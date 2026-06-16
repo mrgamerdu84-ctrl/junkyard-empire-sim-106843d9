@@ -718,12 +718,34 @@ export default function TaxiTycoon() {
 
   // === Actions UI ===
   const taxiCount = save.taxis.length;
+  const effectiveMaxTaxis = tier.maxTaxis + (save.hqCapacityLvl ?? 0);
   const taxiBuyCost = Math.round(TAXI_COST_BASE * Math.pow(1.65, taxiCount));
   const speedCost = Math.round(SPEED_UPGRADE_COST_BASE * Math.pow(2.1, save.taxiSpeedLvl));
 
+  const hqCostFor = (base: number, lvl: number) => Math.round(base * Math.pow(1.9, lvl));
+  type HqKind = "capacity" | "production" | "revenue";
+  const hqLevel = (k: HqKind) =>
+    k === "capacity" ? save.hqCapacityLvl : k === "production" ? save.hqProductionLvl : save.hqRevenueLvl;
+  const hqCost = (k: HqKind) => hqCostFor(HQ_UPGRADE_BASE_COST[k], hqLevel(k));
+  const hqUpgrade = (k: HqKind) => {
+    const lvl = hqLevel(k);
+    if (lvl >= HQ_UPGRADE_MAX) { showToast("Niveau max atteint"); return; }
+    const cost = hqCost(k);
+    if (save.money < cost) { showToast(`Il manque ${fmt(cost - save.money)} $`); return; }
+    setSave((s) => ({
+      ...s,
+      money: s.money - cost,
+      hqCapacityLvl: k === "capacity" ? s.hqCapacityLvl + 1 : s.hqCapacityLvl,
+      hqProductionLvl: k === "production" ? s.hqProductionLvl + 1 : s.hqProductionLvl,
+      hqRevenueLvl: k === "revenue" ? s.hqRevenueLvl + 1 : s.hqRevenueLvl,
+    }));
+    const labels: Record<HqKind, string> = { capacity: "🚕 Capacité +1", production: "⚙️ Production accélérée", revenue: "💰 Revenu boosté" };
+    showToast(labels[k]);
+  };
+
   const buyTaxi = () => {
-    if (taxiCount >= tier.maxTaxis) {
-      showToast(`Capacité max : améliore le dépôt`);
+    if (taxiCount >= effectiveMaxTaxis) {
+      showToast(`Capacité max : améliore le QG`);
       return;
     }
     if (save.money < taxiBuyCost) {
@@ -737,6 +759,7 @@ export default function TaxiTycoon() {
     }));
     showToast("🚕 Nouveau taxi acheté !");
   };
+
 
   const upgradeDepot = () => {
     if (!nextTier) { showToast("Dépôt déjà au max"); return; }
