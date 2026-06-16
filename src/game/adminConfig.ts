@@ -77,7 +77,7 @@ export const DEFAULT_ADMIN: AdminConfig = {
   circuitSpeedMult: 1,
 };
 
-const KEY = "taxi-tycoon-admin-v2";
+const KEY = "taxi-tycoon-admin-v3";
 
 
 function load(): AdminConfig {
