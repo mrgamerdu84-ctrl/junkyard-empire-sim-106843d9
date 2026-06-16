@@ -57,11 +57,11 @@ const CARS: CarSpec[] = [
   { kind: "sedan", color: "#d83a2a", accent: "#7c1c10", duration: 42, delay:   0, pathIdx: 0, scale: 0.64, variant: "red" },
   { kind: "sedan", color: "#e8edf2", accent: "#8a8e94", duration: 38, delay:  -8, pathIdx: 0, scale: 0.62 },
   { kind: "van",   color: "#2f7a4a", accent: "#163b22", duration: 46, delay: -18, pathIdx: 0, scale: 0.7 },
-  { kind: "truck", color: "#1f2937", accent: "#0b0f17", duration: 52, delay: -30, pathIdx: 0, scale: 0.74 },
+  { kind: "truck", color: "#1f2937", accent: "#0b0f17", duration: 40, delay: -30, pathIdx: 0, scale: 0.74 },
   { kind: "hatch", color: "#facc15", accent: "#7a5a08", duration: 40, delay: -38, pathIdx: 0, scale: 0.58, variant: "red" },
   // Path 0 — sens inverse (4 véhicules)
   { kind: "sedan", color: "#2b6ed8", accent: "#143f7c", duration: 40, delay:   0, pathIdx: 0, flip: true, scale: 0.65 },
-  { kind: "truck", color: "#b8410f", accent: "#5a1f06", duration: 48, delay: -12, pathIdx: 0, flip: true, scale: 0.72 },
+  { kind: "truck", color: "#b8410f", accent: "#5a1f06", duration: 38, delay: -12, pathIdx: 0, flip: true, scale: 0.72 },
   { kind: "van",   color: "#ffffff", accent: "#8a8e94", duration: 44, delay: -22, pathIdx: 0, flip: true, scale: 0.7 },
   { kind: "hatch", color: "#7c3aed", accent: "#3b1d72", duration: 41, delay: -32, pathIdx: 0, flip: true, scale: 0.58, variant: "red" },
   // Path 1 — voie courte (3 véhicules)
@@ -71,12 +71,12 @@ const CARS: CarSpec[] = [
   // Path 2 — sens normal (5 véhicules)
   { kind: "van",   color: "#d97a2a", accent: "#7a3a10", duration: 44, delay:   0, pathIdx: 2, scale: 0.68 },
   { kind: "sedan", color: "#b81c4a", accent: "#5c0a20", duration: 40, delay:  -9, pathIdx: 2, scale: 0.62, variant: "red" },
-  { kind: "truck", color: "#0891b2", accent: "#0a4453", duration: 54, delay: -20, pathIdx: 2, scale: 0.76 },
+  { kind: "truck", color: "#0891b2", accent: "#0a4453", duration: 42, delay: -20, pathIdx: 2, scale: 0.76 },
   { kind: "hatch", color: "#4ed6c5", accent: "#187266", duration: 46, delay: -30, pathIdx: 2, scale: 0.58 },
   { kind: "sedan", color: "#f5f5f5", accent: "#7a7a7a", duration: 42, delay: -38, pathIdx: 2, scale: 0.62 },
   // Path 2 — sens inverse (4 véhicules)
   { kind: "hatch", color: "#1a3a6a", accent: "#0a1c40", duration: 42, delay:   0, pathIdx: 2, flip: true, scale: 0.6 },
-  { kind: "truck", color: "#3b4a5c", accent: "#1a232f", duration: 54, delay: -14, pathIdx: 2, flip: true, scale: 0.74 },
+  { kind: "truck", color: "#3b4a5c", accent: "#1a232f", duration: 42, delay: -14, pathIdx: 2, flip: true, scale: 0.74 },
   { kind: "van",   color: "#16a34a", accent: "#0a4a22", duration: 48, delay: -26, pathIdx: 2, flip: true, scale: 0.7 },
   { kind: "sedan", color: "#ea580c", accent: "#7a2a06", duration: 44, delay: -36, pathIdx: 2, flip: true, scale: 0.62, variant: "red" },
   // Trafic supplémentaire (pour saturer le slider Admin civilVehicleCount jusqu'à 24)
@@ -86,13 +86,13 @@ const CARS: CarSpec[] = [
   // Path 3 — Avenue horizontale haute (4 véhicules, 2 par sens)
   { kind: "sedan", color: "#f59e0b", accent: "#7a4a08", duration: 48, delay:   0, pathIdx: 3, scale: 0.62 },
   { kind: "van",   color: "#ef4444", accent: "#7a1f1f", duration: 54, delay: -14, pathIdx: 3, scale: 0.7, variant: "red" },
-  { kind: "truck", color: "#06b6d4", accent: "#0a4a55", duration: 60, delay:  -4, pathIdx: 3, flip: true, scale: 0.74 },
+  { kind: "truck", color: "#06b6d4", accent: "#0a4a55", duration: 46, delay:  -4, pathIdx: 3, flip: true, scale: 0.74 },
   { kind: "hatch", color: "#f5f5f5", accent: "#8a8e94", duration: 50, delay: -22, pathIdx: 3, flip: true, scale: 0.58 },
   // Path 4 — Avenue horizontale basse (4 véhicules)
   { kind: "sedan", color: "#10b981", accent: "#0a5a3a", duration: 50, delay:   0, pathIdx: 4, scale: 0.62 },
   { kind: "hatch", color: "#a855f7", accent: "#4a1f72", duration: 46, delay: -12, pathIdx: 4, scale: 0.58, variant: "red" },
   { kind: "van",   color: "#1f2937", accent: "#0b0f17", duration: 56, delay:  -6, pathIdx: 4, flip: true, scale: 0.7 },
-  { kind: "truck", color: "#fbbf24", accent: "#7a5a08", duration: 62, delay: -24, pathIdx: 4, flip: true, scale: 0.74, variant: "red" },
+  { kind: "truck", color: "#fbbf24", accent: "#7a5a08", duration: 48, delay: -24, pathIdx: 4, flip: true, scale: 0.74, variant: "red" },
   // Path 5 — Axe Nord-Sud (3 véhicules)
   { kind: "sedan", color: "#e11d48", accent: "#6b0f25", duration: 42, delay:   0, pathIdx: 5, scale: 0.62, variant: "red" },
   { kind: "van",   color: "#3b82f6", accent: "#1c3f72", duration: 48, delay: -14, pathIdx: 5, scale: 0.7 },
@@ -287,11 +287,19 @@ const PEDESTRIANS: PedSpec[] = [
   { pathIdx: 2, duration: 190, delay: -75, side: -1, shirt: "#06b6d4", pants: "#1f2937", skin: "#e8b48a", flip: true, scale: 0.9 },
   { pathIdx: 2, duration: 155, delay: -120,side:  1, shirt: "#ffffff", pants: "#0b1220", skin: "#a06c44", scale: 0.83 },
   { pathIdx: 2, duration: 200, delay: -170,side: -1, shirt: "#facc15", pants: "#374151", skin: "#f1c79b", flip: true, scale: 0.88 },
+  // Nouveaux piétons sur les axes principaux (paths 3, 4, 5)
+  { pathIdx: 3, duration: 170, delay: -20, side:  1, shirt: "#ef4444", pants: "#1f2937", skin: "#e8b48a", scale: 0.85 },
+  { pathIdx: 3, duration: 200, delay: -90, side: -1, shirt: "#0ea5e9", pants: "#111827", skin: "#c89372", flip: true, scale: 0.88 },
+  { pathIdx: 4, duration: 180, delay: -30, side:  1, shirt: "#22c55e", pants: "#0f172a", skin: "#f1c79b", scale: 0.86 },
+  { pathIdx: 4, duration: 210, delay: -110,side: -1, shirt: "#f97316", pants: "#374151", skin: "#a06c44", flip: true, scale: 0.84 },
+  { pathIdx: 5, duration: 150, delay: -15, side:  1, shirt: "#a855f7", pants: "#1e293b", skin: "#d4a37a", scale: 0.85 },
+  { pathIdx: 5, duration: 170, delay: -80, side: -1, shirt: "#facc15", pants: "#1f2937", skin: "#e8b48a", flip: true, scale: 0.87 },
 ];
 
 function PedestrianSVG({ shirt, pants, skin, side, scale = 1 }: { shirt: string; pants: string; skin: string; side: 1 | -1; scale?: number }) {
   // Offset Y dans le repère local = perpendiculaire au sens de marche (rotate="auto")
-  const oy = side * 22;
+  // Augmenté à 38 pour bien sortir de la chaussée et se poser sur le trottoir.
+  const oy = side * 38;
   return (
     <g transform={`translate(0,${oy}) scale(${scale})`}>
       <ellipse cx="0" cy="6" rx="4.5" ry="1.6" fill="rgba(0,0,0,0.5)" />

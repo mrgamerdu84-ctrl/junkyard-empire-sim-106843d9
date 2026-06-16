@@ -53,16 +53,17 @@ export const DEFAULT_ADMIN: AdminConfig = {
   maxActiveTaxis: 6,
   taxiSpawnCooldown: 1.5,
 
-  // QG ancré par défaut sur le bâtiment TAXI CORP en bas-gauche de la map.
+  // QG ancré à la place de l'ex-station-service (intersection sud-est, bien visible).
   hqUseFreePos: true,
-  hqX: 230,
-  hqY: 780,
+  hqX: 1450,
+  hqY: 540,
   hqScale: 1,
   hqRotation: 0,
 
   fuelConsumption: 0.6,
-  gasStationX: 1450,
-  gasStationY: 540,
+  // Nouvelle station-service déplacée en bas-gauche (libre de l'ancien QG).
+  gasStationX: 230,
+  gasStationY: 780,
 
   rivalEnabled: true,
   rivalHQX: 1650,
@@ -76,7 +77,7 @@ export const DEFAULT_ADMIN: AdminConfig = {
   circuitSpeedMult: 1,
 };
 
-const KEY = "taxi-tycoon-admin-v2";
+const KEY = "taxi-tycoon-admin-v3";
 
 
 function load(): AdminConfig {
