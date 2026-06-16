@@ -1,6 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import citymap from "@/assets/citymap2.jpg";
 import TaxiTycoon from "@/game/TaxiTycoon";
+import AdminPanel from "@/game/AdminPanel";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -38,6 +39,7 @@ function TaxiTycoonPage() {
       <img src={citymap} alt="Plan de la ville pour le jeu de taxi" className="tt-map" />
       <div className="tt-vignette" />
       <TaxiTycoon />
+      <AdminPanel />
     </div>
   );
 }

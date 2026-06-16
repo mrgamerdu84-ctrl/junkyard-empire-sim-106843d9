@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { ROADS } from "./CityTraffic";
+import { getAdmin, useAdminConfig } from "./adminConfig";
 
 /* ============================================================
  * TAXI TYCOON — entreprise de taxis idle
@@ -61,7 +62,7 @@ type Client = {
   sideDrop: 1 | -1;
 };
 
-const DEPOT_POS_NORM = 0.78; // 78% le long de la route (zone basse-gauche, route bien dégagée)
+const DEFAULT_DEPOT_POS = 0.78; // 78% le long de la route ; override possible via Admin Panel
 const SAVE_KEY = "taxi-tycoon-v1";
 const BASE_SPEED = 60; // px (sur viewBox 1920) par seconde
 const SPEED_UPGRADE_COST_BASE = 800;
@@ -263,6 +264,7 @@ export default function TaxiTycoon() {
   const measureRef = useRef<SVGPathElement | null>(null);
   const containerRef = useRef<SVGSVGElement | null>(null);
   const [pathLen, setPathLen] = useState(0);
+  const admin = useAdminConfig(); // re-render quand l'admin change
 
   // === Persistent state ===
   const [save, setSave] = useState<SaveData>(() => loadSave());
@@ -333,8 +335,8 @@ export default function TaxiTycoon() {
   // Sync taxis runtime list with save
   useEffect(() => {
     if (pathLen === 0) return;
-    const depotPos = pathLen * DEPOT_POS_NORM;
-    const newSpeed = BASE_SPEED + save.taxiSpeedLvl * 18;
+    const depotPos = pathLen * (admin.depotPosNorm || DEFAULT_DEPOT_POS);
+    const newSpeed = (BASE_SPEED + save.taxiSpeedLvl * 18) * admin.taxiSpeedMult;
     // Ajoute les taxis manquants
     while (taxisRef.current.length < save.taxis.length) {
       const idx = taxisRef.current.length;
@@ -354,7 +356,7 @@ export default function TaxiTycoon() {
       if (save.taxis[i]) t.colorId = save.taxis[i].colorId;
     });
     forceRender((n) => n + 1);
-  }, [pathLen, save.taxis, save.taxiSpeedLvl]);
+  }, [pathLen, save.taxis, save.taxiSpeedLvl, admin.taxiSpeedMult, admin.depotPosNorm]);
 
   // Save persistence (debounced)
   useEffect(() => {
@@ -388,18 +390,19 @@ export default function TaxiTycoon() {
       const dt = Math.min(0.1, (now - last) / 1000);
       last = now;
 
-      const depotPos = pathLen * DEPOT_POS_NORM;
+      const adm = getAdmin();
+      const depotPos = pathLen * (adm.depotPosNorm || DEFAULT_DEPOT_POS);
       const cur = saveRef.current;
       const curTier = DEPOT_TIERS[cur.depotTier];
 
       // Spawn client
-      const maxClients = curTier.maxTaxis + 1;
-      if (now - lastSpawnRef.current > curTier.spawnEvery * 1000 && clientsRef.current.length < maxClients) {
+      const maxClients = curTier.maxTaxis + 1 + adm.maxClientsBonus;
+      if (now - lastSpawnRef.current > curTier.spawnEvery * 1000 * adm.spawnRateMult && clientsRef.current.length < maxClients) {
         lastSpawnRef.current = now;
         const pickup = Math.random() * pathLen;
         const dropoff = Math.random() * pathLen;
         const dist = Math.abs(dropoff - pickup);
-        const fare = Math.round((20 + (dist / pathLen) * 180) * curTier.fareMult);
+        const fare = Math.round((20 + (dist / pathLen) * 180) * curTier.fareMult * adm.clientFareMult);
         clientsRef.current.push({
           id: nextIdRef.current++,
           pickup, dropoff, fare,
@@ -517,7 +520,7 @@ export default function TaxiTycoon() {
     };
   };
 
-  const depotXY = useMemo(() => getXY(pathLen * DEPOT_POS_NORM), [pathLen]);
+  const depotXY = useMemo(() => getXY(pathLen * (admin.depotPosNorm || DEFAULT_DEPOT_POS)), [pathLen, admin.depotPosNorm]);
 
   // === Actions UI ===
   const taxiCount = save.taxis.length;
