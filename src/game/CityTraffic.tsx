@@ -245,8 +245,26 @@ function Lamp({ x, y, night }: { x: number; y: number; night: number }) {
   );
 }
 
+// Distance de sécurité et freinage (en px du viewBox 1920x1080)
+const SAFE_GAP = 70;     // distance désirée pare-chocs à pare-chocs
+const BRAKE_GAP = 130;   // au-delà : pleine vitesse ; en deçà : freinage progressif
+const ACCEL = 0.6;       // px/s² lissage vers la vitesse cible (réaccélération douce)
+const BRAKE = 1.8;       // px/s² lissage en freinage (plus mordant que l'accélération)
+
+type CarState = {
+  spec: CarSpec;
+  pathLen: number;
+  baseSpeed: number;   // px/s à allure libre
+  s: number;           // progression linéaire le long du path (px), repère "avant"
+  speed: number;       // px/s instantanée
+  laneKey: string;     // pathIdx + sens -> regroupe les véhicules qui peuvent se gêner
+  node: SVGGElement | null;
+};
+
 export default function CityTraffic() {
   const [night, setNight] = useState(0.25);
+  const pathRefs = useRef<(SVGPathElement | null)[]>([]);
+  const carNodes = useRef<(SVGGElement | null)[]>([]);
 
   useEffect(() => {
     let raf = 0;
@@ -260,6 +278,90 @@ export default function CityTraffic() {
     return () => cancelAnimationFrame(raf);
   }, []);
 
+  // Boucle de trafic : positions JS pilotées avec freinage progressif.
+  useEffect(() => {
+    // Mesurer les longueurs réelles des paths.
+    const lens = pathRefs.current.map((p) => (p ? p.getTotalLength() : 1));
+    if (lens.some((l) => l <= 1)) return;
+
+    const states: CarState[] = CARS.map((spec, i) => {
+      const pathLen = lens[spec.pathIdx];
+      const baseSpeed = pathLen / spec.duration; // px/s
+      // delay négatif => avance dans l'animation : s = -delay * baseSpeed
+      const startS = ((-spec.delay) * baseSpeed) % pathLen;
+      return {
+        spec,
+        pathLen,
+        baseSpeed,
+        s: (startS + pathLen) % pathLen,
+        speed: baseSpeed,
+        laneKey: `${spec.pathIdx}:${spec.flip ? "r" : "f"}`,
+        node: carNodes.current[i],
+      };
+    });
+
+    // Index par lane pour la recherche du véhicule devant.
+    const lanes = new Map<string, CarState[]>();
+    for (const st of states) {
+      if (!lanes.has(st.laneKey)) lanes.set(st.laneKey, []);
+      lanes.get(st.laneKey)!.push(st);
+    }
+
+    let last = performance.now();
+    let raf = 0;
+    const step = (now: number) => {
+      const dt = Math.min(0.05, (now - last) / 1000); // clamp à 50ms (onglet inactif)
+      last = now;
+
+      // 1) calcul de la vitesse cible (freinage selon distance au véhicule devant)
+      for (const lane of lanes.values()) {
+        // trier par progression "avant" décroissante
+        const sorted = [...lane].sort((a, b) => b.s - a.s);
+        for (let i = 0; i < sorted.length; i++) {
+          const me = sorted[i];
+          const ahead = sorted[(i - 1 + sorted.length) % sorted.length];
+          // gap signé vers l'avant (avec wrap autour du path)
+          let gap = ahead.s - me.s;
+          if (gap <= 0) gap += me.pathLen;
+          // sous BRAKE_GAP on commence à ralentir ; sous SAFE_GAP on vise la vitesse du leader (suivi)
+          let target = me.baseSpeed;
+          if (gap < BRAKE_GAP) {
+            const k = Math.max(0, (gap - SAFE_GAP) / (BRAKE_GAP - SAFE_GAP)); // 1 à BRAKE_GAP, 0 à SAFE_GAP
+            // au plus proche, on s'aligne sur la vitesse du leader (sans collision)
+            target = ahead.speed * (1 - k) + me.baseSpeed * k;
+            // sous SAFE_GAP, freiner sous le leader
+            if (gap < SAFE_GAP) target = Math.min(target, ahead.speed * (gap / SAFE_GAP));
+          }
+          // lissage vers la cible : freinage > accélération
+          const diff = target - me.speed;
+          const rate = diff < 0 ? BRAKE : ACCEL;
+          const maxStep = rate * me.baseSpeed * dt; // proportionnel à l'allure libre
+          me.speed += Math.max(-maxStep, Math.min(maxStep, diff));
+          if (me.speed < 1) me.speed = 1; // ne jamais s'arrêter complètement
+        }
+      }
+
+      // 2) avancer et appliquer le transform
+      for (const st of states) {
+        st.s = (st.s + st.speed * dt) % st.pathLen;
+        const node = st.node;
+        if (!node) continue;
+        const path = pathRefs.current[st.spec.pathIdx];
+        if (!path) continue;
+        // direction visuelle (flip = sens inverse du path)
+        const lenForward = st.spec.flip ? st.pathLen - st.s : st.s;
+        const p = path.getPointAtLength(lenForward);
+        const p2 = path.getPointAtLength(Math.min(st.pathLen, lenForward + (st.spec.flip ? -1 : 1)));
+        const ang = (Math.atan2(p2.y - p.y, p2.x - p.x) * 180) / Math.PI;
+        node.setAttribute("transform", `translate(${p.x.toFixed(2)},${p.y.toFixed(2)}) rotate(${ang.toFixed(2)})`);
+      }
+
+      raf = requestAnimationFrame(step);
+    };
+    raf = requestAnimationFrame(step);
+    return () => cancelAnimationFrame(raf);
+  }, []);
+
   return (
     <svg
       viewBox="0 0 1920 1080"
@@ -268,7 +370,14 @@ export default function CityTraffic() {
     >
       <defs>
         {ROADS.map((d, i) => (
-          <path key={i} id={`jce-road-${i}`} d={d} />
+          <path
+            key={i}
+            id={`jce-road-${i}`}
+            d={d}
+            ref={(el) => {
+              pathRefs.current[i] = el;
+            }}
+          />
         ))}
         <filter id="jce-soft-shadow" x="-30%" y="-30%" width="160%" height="160%">
           <feDropShadow dx="0" dy="6" stdDeviation="5" floodColor="#000" floodOpacity="0.35" />
@@ -291,18 +400,14 @@ export default function CityTraffic() {
       </g>
 
       {CARS.map((car, i) => (
-        <g key={i} filter="url(#jce-soft-shadow)">
+        <g
+          key={i}
+          filter="url(#jce-soft-shadow)"
+          ref={(el) => {
+            carNodes.current[i] = el;
+          }}
+        >
           <Vehicle kind={car.kind} color={car.color} accent={car.accent} scale={car.scale} />
-          <animateMotion
-            dur={`${car.duration}s`}
-            begin={`${car.delay}s`}
-            repeatCount="indefinite"
-            rotate="auto"
-            keyPoints={car.flip ? "1;0" : "0;1"}
-            keyTimes="0;1"
-          >
-            <mpath href={`#jce-road-${car.pathIdx}`} />
-          </animateMotion>
         </g>
       ))}
 
