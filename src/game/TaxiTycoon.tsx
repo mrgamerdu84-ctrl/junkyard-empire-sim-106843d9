@@ -126,45 +126,79 @@ function fmt(n: number) {
   return Math.round(n).toLocaleString("fr-FR");
 }
 
-function TaxiSprite({ body, trim, withClient }: { body: string; trim: string; withClient: boolean }) {
+function TaxiSprite({
+  body,
+  trim,
+  withClient,
+  moving,
+}: {
+  body: string;
+  trim: string;
+  withClient: boolean;
+  moving: boolean;
+}) {
   // Image top-down réelle du taxi. L'image native pointe le capot vers le haut ;
   // on la tourne de 90° pour que "forward" du sprite (angle 0 = vers la droite)
   // corresponde au sens de déplacement le long du path.
-  // Une teinte `body` est superposée en multiply pour conserver les couleurs personnalisées.
   const W = 64; // longueur du taxi (sens de la marche)
   const H = 38; // largeur du taxi
   return (
     <g>
-      <ellipse cx="0" cy="2" rx={W / 2 + 2} ry={H / 2 - 2} fill="rgba(0,0,0,0.45)" />
-      <g transform="rotate(90)">
-        {/* image originale (capot vers le haut) -> après rotate(90) capot vers la droite */}
-        <image
-          href={taxiTopdown}
-          x={-H / 2}
-          y={-W / 2}
-          width={H}
-          height={W}
-          preserveAspectRatio="xMidYMid meet"
-        />
-        {/* teinte couleur (multiply) pour respecter le choix du joueur */}
-        <rect
-          x={-H / 2}
-          y={-W / 2}
-          width={H}
-          height={W}
-          fill={body}
-          opacity={body.toLowerCase() === "#f5c542" ? 0 : 0.55}
-          style={{ mixBlendMode: "multiply" }}
-        />
-      </g>
-      {/* passagers visibles quand un client est à bord */}
-      {withClient && (
-        <g>
-          <circle cx="-4" cy="-3" r="2.6" fill="#ffd9b0" stroke="#1a1d22" strokeWidth="0.4" />
-          <circle cx="-4" cy="3" r="2.6" fill="#c89372" stroke="#1a1d22" strokeWidth="0.4" />
+      {/* lignes de vitesse derrière le taxi quand il roule */}
+      {moving && (
+        <g opacity="0.55">
+          <line x1={-W / 2 - 10} y1="-6" x2={-W / 2 - 2} y2="-6" stroke="#ffffff" strokeWidth="1.2" strokeLinecap="round">
+            <animate attributeName="opacity" values="0;0.7;0" dur="0.45s" repeatCount="indefinite" />
+            <animate attributeName="x1" values={`${-W / 2 - 4};${-W / 2 - 14}`} dur="0.45s" repeatCount="indefinite" />
+          </line>
+          <line x1={-W / 2 - 12} y1="0" x2={-W / 2 - 3} y2="0" stroke="#ffffff" strokeWidth="1.4" strokeLinecap="round">
+            <animate attributeName="opacity" values="0;0.8;0" dur="0.45s" begin="0.15s" repeatCount="indefinite" />
+            <animate attributeName="x1" values={`${-W / 2 - 5};${-W / 2 - 16}`} dur="0.45s" begin="0.15s" repeatCount="indefinite" />
+          </line>
+          <line x1={-W / 2 - 10} y1="6" x2={-W / 2 - 2} y2="6" stroke="#ffffff" strokeWidth="1.2" strokeLinecap="round">
+            <animate attributeName="opacity" values="0;0.7;0" dur="0.45s" begin="0.3s" repeatCount="indefinite" />
+            <animate attributeName="x1" values={`${-W / 2 - 4};${-W / 2 - 14}`} dur="0.45s" begin="0.3s" repeatCount="indefinite" />
+          </line>
         </g>
       )}
-      {/* liseré bas pour ancrer visuellement sur la route */}
+      <ellipse cx="0" cy="2" rx={W / 2 + 2} ry={H / 2 - 2} fill="rgba(0,0,0,0.45)" />
+      {/* groupe carrosserie avec léger bobbing de suspension quand le taxi roule */}
+      <g>
+        {moving && (
+          <animateTransform
+            attributeName="transform"
+            type="translate"
+            values="0 -0.4; 0 0.4; 0 -0.4"
+            dur="0.22s"
+            repeatCount="indefinite"
+          />
+        )}
+        <g transform="rotate(90)">
+          <image
+            href={taxiTopdown}
+            x={-H / 2}
+            y={-W / 2}
+            width={H}
+            height={W}
+            preserveAspectRatio="xMidYMid meet"
+          />
+          <rect
+            x={-H / 2}
+            y={-W / 2}
+            width={H}
+            height={W}
+            fill={body}
+            opacity={body.toLowerCase() === "#f5c542" ? 0 : 0.55}
+            style={{ mixBlendMode: "multiply" }}
+          />
+        </g>
+        {withClient && (
+          <g>
+            <circle cx="-4" cy="-3" r="2.6" fill="#ffd9b0" stroke="#1a1d22" strokeWidth="0.4" />
+            <circle cx="-4" cy="3" r="2.6" fill="#c89372" stroke="#1a1d22" strokeWidth="0.4" />
+          </g>
+        )}
+      </g>
       <ellipse cx="0" cy={H / 2 - 1} rx={W / 2 - 4} ry="1.2" fill={trim} opacity="0.35" />
     </g>
   );
@@ -698,7 +732,7 @@ export default function TaxiTycoon() {
           const angle = movingForward ? p.angle : p.angle + 180;
           return (
             <g key={taxi.id} transform={`translate(${p.x},${p.y}) rotate(${angle})`} filter="url(#taxi-shadow)">
-              <TaxiSprite body={color.body} trim={color.trim} withClient={taxi.mode === "to_dest"} />
+              <TaxiSprite body={color.body} trim={color.trim} withClient={taxi.mode === "to_dest"} moving={taxi.mode !== "idle"} />
             </g>
           );
         })}
