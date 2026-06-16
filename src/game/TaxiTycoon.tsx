@@ -975,7 +975,7 @@ export default function TaxiTycoon() {
           return (
             <g key={taxi.id}>
               <g transform={`translate(${p.x},${p.y}) rotate(${angle})`} filter="url(#taxi-shadow)">
-                <TaxiSprite body={color.body} trim={color.trim} withClient={taxi.mode === "to_dest"} moving={taxi.mode !== "idle" && taxi.mode !== "refueling"} />
+                <TaxiSprite body={color.body} trim={color.trim} withClient={taxi.mode === "to_dest"} moving={taxi.mode !== "idle" && taxi.mode !== "refueling"} livery={currentLivery} />
               </g>
               {/* Mini jauge essence sous le taxi */}
               <g transform={`translate(${p.x - 12},${p.y + 22})`}>
