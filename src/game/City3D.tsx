@@ -157,17 +157,18 @@ function Car({ color, scale = 1 }: { color: string; scale?: number }) {
 }
 
 /* ===== Traffic ===== */
-function Traffic({ count = 14 }: { count?: number }) {
+function Traffic({ count = 12 }: { count?: number }) {
   const specs = useMemo(() => {
     const palette = ["#e0362a", "#f5c542", "#2b6ed8", "#e8edf2", "#0e0e0e", "#3a8a48", "#888e96", "#d97a2a", "#b81c4a", "#1a3a6a"];
     return Array.from({ length: count }, (_, i) => ({
       curve: ROAD_LOOPS[i % ROAD_LOOPS.length],
       offset: (i / count + Math.random() * 0.04) % 1,
-      speed: 0.012 + Math.random() * 0.02,
+      speed: 0.010 + Math.random() * 0.018,
       color: palette[i % palette.length],
-      scale: 1.5 + Math.random() * 0.2, // grosses voitures lisibles
+      scale: 2.6 + Math.random() * 0.3, // grosses voitures bien visibles
     }));
   }, [count]);
+
   const refs = useRef<(THREE.Group | null)[]>([]);
   useFrame((_, dt) => {
     specs.forEach((s, i) => {
