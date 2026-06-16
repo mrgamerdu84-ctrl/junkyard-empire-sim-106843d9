@@ -735,7 +735,14 @@ export default function TaxiTycoon() {
         style={{ position: "absolute", inset: 0, width: "100%", height: "100%", pointerEvents: "none", zIndex: 4 }}
       >
         <defs>
-          <path ref={measureRef} id="taxi-road" d={ROADS[0]} />
+          {ROADS.map((d, i) => (
+            <path
+              key={i}
+              ref={(el) => { pathRefs.current[i] = el; }}
+              id={`taxi-road-${i}`}
+              d={d}
+            />
+          ))}
           <filter id="taxi-shadow" x="-30%" y="-30%" width="160%" height="160%">
             <feDropShadow dx="0" dy="6" stdDeviation="5" floodColor="#000" floodOpacity="0.4" />
           </filter>
@@ -748,9 +755,25 @@ export default function TaxiTycoon() {
           ))}
         </g>
 
+        {/* Station-service */}
+        {pathsReady && (
+          <g transform={`translate(${admin.gasStationX},${admin.gasStationY})`} filter="url(#taxi-shadow)">
+            <ellipse cx="0" cy="18" rx="34" ry="8" fill="rgba(0,0,0,0.5)" />
+            <rect x="-28" y="-10" width="56" height="28" rx="2" fill="#1f242b" stroke="#0a0c10" strokeWidth="1.4" />
+            <rect x="-28" y="-26" width="56" height="8" rx="1.5" fill="#dc2626" stroke="#0a0c10" strokeWidth="1.2" />
+            <text y="-20" fontSize="6.5" fontWeight="900" textAnchor="middle" fill="#fff">STATION</text>
+            <rect x="-22" y="-4" width="14" height="18" fill="#dc2626" />
+            <rect x="8" y="-4" width="14" height="18" fill="#dc2626" />
+            <text y="9" fontSize="11" textAnchor="middle">⛽</text>
+            <circle cx="0" cy="-30" r="2.5" fill="#fde68a">
+              <animate attributeName="opacity" values="0.4;1;0.4" dur="1.6s" repeatCount="indefinite" />
+            </circle>
+          </g>
+        )}
+
         {/* Clients en attente (course offerte ou acceptée) — sur le trottoir */}
         {jobs.map((j) => {
-          const p = getSidewalk(j.pickup, j.sidePickup);
+          const p = getSidewalk(j.pickupPath, j.pickup, j.sidePickup);
           const age = (Date.now() - (j.deadline - j.duration)) / 1000;
           const bob = Math.sin(age * 3) * 0.8;
           const pulse = 1 + Math.sin(age * 4) * 0.18;
@@ -781,7 +804,7 @@ export default function TaxiTycoon() {
         {/* Dropoffs — sur le trottoir, uniquement pour les courses acceptées */}
         {jobs.map((j) => {
           if (j.status !== "accepted") return null;
-          const p = getSidewalk(j.dropoff, j.sideDrop);
+          const p = getSidewalk(j.dropoffPath, j.dropoff, j.sideDrop);
           return (
             <g key={"d" + j.id} transform={`translate(${p.x},${p.y})`}>
               <circle r="11" fill="none" stroke="#f59e0b" strokeWidth="2.5" strokeDasharray="4 3" opacity="0.85">
@@ -795,18 +818,29 @@ export default function TaxiTycoon() {
 
 
         {/* Dépôt */}
-        {pathLen > 0 && <Depot tier={tier} x={depotXY.x} y={depotXY.y - 18} scale={admin.hqScale} rotation={admin.hqRotation} />}
+        {pathsReady && <Depot tier={tier} x={depotXY.x} y={depotXY.y - 18} scale={admin.hqScale} rotation={admin.hqRotation} />}
 
         {/* Taxis */}
         {taxisRef.current.map((taxi) => {
-          const p = getXY(taxi.pos);
+          const p = getXYOn(taxi.pathIdx, taxi.pos);
           const color = TAXI_COLORS.find((c) => c.id === taxi.colorId) ?? TAXI_COLORS[0];
-          // Sens du déplacement
           const movingForward = taxi.target >= taxi.pos;
           const angle = movingForward ? p.angle : p.angle + 180;
+          const fuelPct = Math.max(0, Math.min(1, taxi.fuel / 100));
+          const fuelLow = taxi.fuel < FUEL_LOW_THRESHOLD;
           return (
-            <g key={taxi.id} transform={`translate(${p.x},${p.y}) rotate(${angle})`} filter="url(#taxi-shadow)">
-              <TaxiSprite body={color.body} trim={color.trim} withClient={taxi.mode === "to_dest"} moving={taxi.mode !== "idle"} />
+            <g key={taxi.id}>
+              <g transform={`translate(${p.x},${p.y}) rotate(${angle})`} filter="url(#taxi-shadow)">
+                <TaxiSprite body={color.body} trim={color.trim} withClient={taxi.mode === "to_dest"} moving={taxi.mode !== "idle" && taxi.mode !== "refueling"} />
+              </g>
+              {/* Mini jauge essence sous le taxi */}
+              <g transform={`translate(${p.x - 12},${p.y + 22})`}>
+                <rect x="0" y="0" width="24" height="3" rx="1" fill="#0a0c10" opacity="0.7" />
+                <rect x="0" y="0" width={24 * fuelPct} height="3" rx="1" fill={fuelLow ? "#ef4444" : "#34d399"} />
+              </g>
+              {taxi.mode === "refueling" && (
+                <text x={p.x} y={p.y - 30} fontSize="11" textAnchor="middle" fill="#fde68a" fontWeight="900">⛽</text>
+              )}
             </g>
           );
         })}
