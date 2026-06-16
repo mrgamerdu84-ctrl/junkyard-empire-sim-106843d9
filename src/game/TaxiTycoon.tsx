@@ -707,9 +707,18 @@ export default function TaxiTycoon() {
       return;
     }
     lastTaxiDispatchRef.current = now;
+    // Si carburant trop bas, refuser et envoyer à la station d'abord.
+    if (free.fuel < FUEL_LOW_THRESHOLD) {
+      showToast("⛽ Taxi en panne — il file à la station");
+      return;
+    }
     free.jobId = job.id;
-    free.mode = "to_pickup";
+    // Bascule vers le path du pickup, partant de sa position actuelle.
+    const here = taxiXY(free);
+    free.pathIdx = job.pickupPath;
+    free.pos = closestOnPath(job.pickupPath, here.x, here.y);
     free.target = job.pickup;
+    free.mode = "to_pickup";
     setJobs((js) => js.map((j) => j.id === id ? { ...j, status: "accepted", acceptedAt: Date.now() } : j));
   };
 
