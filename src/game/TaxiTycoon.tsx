@@ -267,7 +267,9 @@ export default function TaxiTycoon() {
   const admin = useAdminConfig(); // re-render quand l'admin change
 
   // === Persistent state ===
-  const [save, setSave] = useState<SaveData>(() => loadSave());
+  const [save, setSave] = useState<SaveData>(DEFAULT_SAVE);
+  const [hydrated, setHydrated] = useState(false);
+  useEffect(() => { setSave(loadSave()); setHydrated(true); }, []);
   const saveRef = useRef(save);
   saveRef.current = save;
 
