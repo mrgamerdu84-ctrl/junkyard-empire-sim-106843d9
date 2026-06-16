@@ -188,9 +188,20 @@ export default function AdminPanel() {
       )}
 
       {drawMode && (
-        <div className="adm-place-banner" style={{ background: "#22c55e", color: "#0a1f10" }}>
-          ✏️ Dessine le circuit avec ton doigt (relâche pour valider)
-        </div>
+        <>
+          <div className="adm-place-banner" style={{ background: "#22c55e", color: "#0a1f10" }}>
+            ✏️ Clique sur la carte pour ajouter des points ({cfg.circuitPoints.length})
+          </div>
+          <div className="adm-place-controls">
+            <div className="adm-place-row">
+              <button onClick={undoPoint} aria-label="Annuler dernier point" disabled={cfg.circuitPoints.length === 0}>↶</button>
+              <span className="lbl">Points</span>
+              <span className="val">{cfg.circuitPoints.length}</span>
+              <button onClick={clearCircuit} aria-label="Effacer tout">🗑</button>
+            </div>
+            <button className="adm-place-done" onClick={finishDraw}>✓ Terminer le circuit</button>
+          </div>
+        </>
       )}
 
       {!open && (
