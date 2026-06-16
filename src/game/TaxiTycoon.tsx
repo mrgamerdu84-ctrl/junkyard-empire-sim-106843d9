@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useId, useMemo, useRef, useState } from "react";
 import { ROADS } from "./CityTraffic";
 import taxiTopdown from "@/assets/taxi-topdown.png";
 import { getAdmin, useAdminConfig } from "./adminConfig";
@@ -142,21 +142,21 @@ function TaxiSprite({
   // corresponde au sens de déplacement le long du path.
   const W = 64; // longueur du taxi (sens de la marche)
   const H = 38; // largeur du taxi
+  const uid = useId().replace(/:/g, "");
+  const maskId = `taxi-mask-${uid}`;
+  const needTint = body.toLowerCase() !== "#f5c542";
   return (
     <g>
       {/* lignes de vitesse derrière le taxi quand il roule */}
       {moving && (
         <g opacity="0.55">
           <line x1={-W / 2 - 10} y1="-6" x2={-W / 2 - 2} y2="-6" stroke="#ffffff" strokeWidth="1.2" strokeLinecap="round">
-            <animate attributeName="opacity" values="0;0.7;0" dur="0.45s" repeatCount="indefinite" />
-            <animate attributeName="x1" values={`${-W / 2 - 4};${-W / 2 - 14}`} dur="0.45s" repeatCount="indefinite" />
+            <animate attributeName="x1" values={`${-W / 2 - 2};${-W / 2 - 12}`} dur="0.45s" repeatCount="indefinite" />
           </line>
           <line x1={-W / 2 - 12} y1="0" x2={-W / 2 - 3} y2="0" stroke="#ffffff" strokeWidth="1.4" strokeLinecap="round">
-            <animate attributeName="opacity" values="0;0.8;0" dur="0.45s" begin="0.15s" repeatCount="indefinite" />
-            <animate attributeName="x1" values={`${-W / 2 - 5};${-W / 2 - 16}`} dur="0.45s" begin="0.15s" repeatCount="indefinite" />
+            <animate attributeName="x1" values={`${-W / 2 - 3};${-W / 2 - 14}`} dur="0.4s" begin="0.15s" repeatCount="indefinite" />
           </line>
           <line x1={-W / 2 - 10} y1="6" x2={-W / 2 - 2} y2="6" stroke="#ffffff" strokeWidth="1.2" strokeLinecap="round">
-            <animate attributeName="opacity" values="0;0.7;0" dur="0.45s" begin="0.3s" repeatCount="indefinite" />
             <animate attributeName="x1" values={`${-W / 2 - 4};${-W / 2 - 14}`} dur="0.45s" begin="0.3s" repeatCount="indefinite" />
           </line>
         </g>
@@ -174,6 +174,20 @@ function TaxiSprite({
           />
         )}
         <g transform="rotate(90)">
+          {needTint && (
+            <defs>
+              <mask id={maskId} maskUnits="userSpaceOnUse">
+                <image
+                  href={taxiTopdown}
+                  x={-H / 2}
+                  y={-W / 2}
+                  width={H}
+                  height={W}
+                  preserveAspectRatio="xMidYMid meet"
+                />
+              </mask>
+            </defs>
+          )}
           <image
             href={taxiTopdown}
             x={-H / 2}
@@ -182,15 +196,18 @@ function TaxiSprite({
             height={W}
             preserveAspectRatio="xMidYMid meet"
           />
-          <rect
-            x={-H / 2}
-            y={-W / 2}
-            width={H}
-            height={W}
-            fill={body}
-            opacity={body.toLowerCase() === "#f5c542" ? 0 : 0.55}
-            style={{ mixBlendMode: "multiply" }}
-          />
+          {needTint && (
+            <rect
+              x={-H / 2}
+              y={-W / 2}
+              width={H}
+              height={W}
+              fill={body}
+              opacity={0.55}
+              style={{ mixBlendMode: "multiply" }}
+              mask={`url(#${maskId})`}
+            />
+          )}
         </g>
         {withClient && (
           <g>
