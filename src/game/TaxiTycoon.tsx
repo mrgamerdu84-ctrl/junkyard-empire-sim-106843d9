@@ -785,9 +785,9 @@ export default function TaxiTycoon() {
     showToast(`⚡ Taxis plus rapides !`);
   };
 
-  const setColor = (id: string) => {
-    setSave((s) => ({ ...s, defaultColor: id, taxis: s.taxis.map((t) => ({ colorId: id })) }));
-  };
+  const [garageOpen, setGarageOpen] = useState(false);
+  const currentLivery = LIVERIES.find((l) => l.id === save.liveryId) ?? LIVERIES[0];
+
 
   // === Boucle de file de courses : tick du timer + expiration des offres ===
   useEffect(() => {
