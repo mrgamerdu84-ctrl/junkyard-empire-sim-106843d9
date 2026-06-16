@@ -83,6 +83,20 @@ const CARS: CarSpec[] = [
   { kind: "sedan", color: "#7c3aed", accent: "#3b1d72", duration: 46, delay: -50, pathIdx: 0, scale: 0.62 },
   { kind: "hatch", color: "#22c55e", accent: "#0f5132", duration: 24, delay: -10, pathIdx: 1, flip: true, scale: 0.6, variant: "red" },
   { kind: "sedan", color: "#0ea5e9", accent: "#075985", duration: 48, delay: -48, pathIdx: 2, flip: true, scale: 0.62 },
+  // Path 3 — Avenue horizontale haute (4 véhicules, 2 par sens)
+  { kind: "sedan", color: "#f59e0b", accent: "#7a4a08", duration: 48, delay:   0, pathIdx: 3, scale: 0.62 },
+  { kind: "van",   color: "#ef4444", accent: "#7a1f1f", duration: 54, delay: -14, pathIdx: 3, scale: 0.7, variant: "red" },
+  { kind: "truck", color: "#06b6d4", accent: "#0a4a55", duration: 60, delay:  -4, pathIdx: 3, flip: true, scale: 0.74 },
+  { kind: "hatch", color: "#f5f5f5", accent: "#8a8e94", duration: 50, delay: -22, pathIdx: 3, flip: true, scale: 0.58 },
+  // Path 4 — Avenue horizontale basse (4 véhicules)
+  { kind: "sedan", color: "#10b981", accent: "#0a5a3a", duration: 50, delay:   0, pathIdx: 4, scale: 0.62 },
+  { kind: "hatch", color: "#a855f7", accent: "#4a1f72", duration: 46, delay: -12, pathIdx: 4, scale: 0.58, variant: "red" },
+  { kind: "van",   color: "#1f2937", accent: "#0b0f17", duration: 56, delay:  -6, pathIdx: 4, flip: true, scale: 0.7 },
+  { kind: "truck", color: "#fbbf24", accent: "#7a5a08", duration: 62, delay: -24, pathIdx: 4, flip: true, scale: 0.74, variant: "red" },
+  // Path 5 — Axe Nord-Sud (3 véhicules)
+  { kind: "sedan", color: "#e11d48", accent: "#6b0f25", duration: 42, delay:   0, pathIdx: 5, scale: 0.62, variant: "red" },
+  { kind: "van",   color: "#3b82f6", accent: "#1c3f72", duration: 48, delay: -14, pathIdx: 5, scale: 0.7 },
+  { kind: "hatch", color: "#84cc16", accent: "#3f5a08", duration: 44, delay:  -6, pathIdx: 5, flip: true, scale: 0.58 },
 ];
 
 const LAMPS: [number, number][] = [
