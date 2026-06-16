@@ -630,6 +630,9 @@ function JunkyCityEmpire() {
           <img src={parking} alt="Junky City Parking" loading="lazy" />
           <img src={car1} className="jce-tile-car" style={{ animationDuration: "5.5s", animationDelay: "2s" }} alt="" aria-hidden="true" />
         </button>
+      </div>
+
+
 
 
       <div className="jce-play-wrap">
