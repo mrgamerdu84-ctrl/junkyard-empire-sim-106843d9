@@ -1,7 +1,8 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
-import citymap from "@/assets/citymap.jpg";
 import sharky from "@/assets/sharky.png";
+import City3D, { ZONES_3D, type Zone3D } from "@/game/City3D";
+
 
 export const Route = createFileRoute("/")({
   head: () => ({
