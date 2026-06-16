@@ -182,13 +182,13 @@ function TaxiSprite({ body, trim, withClient }: { body: string; trim: string; wi
   );
 }
 
-function Depot({ tier, x, y }: { tier: DepotTier; x: number; y: number }) {
+function Depot({ tier, x, y, scale = 1, rotation = 0 }: { tier: DepotTier; x: number; y: number; scale?: number; rotation?: number }) {
   const idx = DEPOT_TIERS.indexOf(tier);
   const gradId = `dpt-g-${idx}`;
   const roofId = `dpt-r-${idx}`;
   const winId = `dpt-w-${idx}`;
   return (
-    <g transform={`translate(${x},${y})`}>
+    <g transform={`translate(${x},${y}) scale(${scale}) rotate(${rotation})`}>
       <defs>
         <linearGradient id={gradId} x1="0" y1="0" x2="0" y2="1">
           <stop offset="0%" stopColor="#d0d5dc" />
