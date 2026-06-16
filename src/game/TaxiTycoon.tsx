@@ -294,9 +294,11 @@ function Depot({ tier, x, y, scale = 1, rotation = 0 }: { tier: DepotTier; x: nu
 }
 
 export default function TaxiTycoon() {
-  const measureRef = useRef<SVGPathElement | null>(null);
+  // Une ref par chemin disponible — permet de varier les trajets des taxis.
+  const pathRefs = useRef<(SVGPathElement | null)[]>([]);
+  const pathLensRef = useRef<number[]>([]);
   const containerRef = useRef<SVGSVGElement | null>(null);
-  const [pathLen, setPathLen] = useState(0);
+  const [pathsReady, setPathsReady] = useState(false);
   const admin = useAdminConfig(); // re-render quand l'admin change
 
   // === Persistent state ===
@@ -323,19 +325,26 @@ export default function TaxiTycoon() {
   const [nowTick, setNowTick] = useState(Date.now());
   const jobIdRef = useRef(1);
 
-  const genJob = (tierIdx: number, plen: number): Job => {
+  const genJob = (tierIdx: number): Job => {
     const now = Date.now();
     const t = DEPOT_TIERS[tierIdx];
     const id = jobIdRef.current++;
-    const pickup = Math.random() * plen;
-    const dropoff = Math.random() * plen;
-    const dist = Math.abs(dropoff - pickup);
+    const lens = pathLensRef.current;
+    const pickupPath = Math.floor(Math.random() * lens.length);
+    let dropoffPath = Math.floor(Math.random() * lens.length);
+    // Encourage la variété : si possible, on tente un autre path pour la dépose.
+    if (lens.length > 1 && dropoffPath === pickupPath && Math.random() < 0.65) {
+      dropoffPath = (dropoffPath + 1 + Math.floor(Math.random() * (lens.length - 1))) % lens.length;
+    }
+    const pickup = Math.random() * lens[pickupPath];
+    const dropoff = Math.random() * lens[dropoffPath];
+    // tarif basé sur la distance approximative + tier + admin
+    const distNorm = 0.4 + Math.random() * 0.6;
     const adm = getAdmin();
-    const fare = Math.round((25 + (dist / plen) * 220) * t.fareMult * adm.clientFareMult);
-    // Deadline avant que le client annule : 25s + bonus selon tarif (gros tarif = client plus patient)
+    const fare = Math.round((25 + distNorm * 220) * t.fareMult * adm.clientFareMult);
     const duration = (22 + Math.min(20, fare / 30)) * 1000;
     return {
-      id, pickup, dropoff, fare,
+      id, pickupPath, pickup, dropoffPath, dropoff, fare,
       deadline: now + duration, duration,
       status: "offered",
       sidePickup: Math.random() < 0.5 ? 1 : -1,
@@ -343,16 +352,14 @@ export default function TaxiTycoon() {
     };
   };
 
-
-
-
-  // Mesure de la longueur du path principal au montage
+  // Mesure des longueurs réelles de chaque path au montage.
   useEffect(() => {
-    if (measureRef.current) {
-      const l = measureRef.current.getTotalLength();
-      setPathLen(l);
-    }
+    const lens = pathRefs.current.map((p) => (p ? p.getTotalLength() : 0));
+    pathLensRef.current = lens;
+    if (lens.every((l) => l > 0)) setPathsReady(true);
   }, []);
+
+  const pathLen = pathLensRef.current[0] ?? 0;
 
   // === Helpers de rendu position (déclarés tôt pour usage dans les effets) ===
   const SIDEWALK_OFFSET = 22;
