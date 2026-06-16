@@ -66,27 +66,24 @@ function DayNight({ onPhase }: { onPhase: (day: number) => void }) {
   );
 }
 
-/* ===== Caméra ortho qui s'adapte à la viewport ===== */
+/* ===== Caméra ortho top-down qui s'adapte à la viewport ===== */
 function FitCam() {
-  const { size, set, camera } = useThree();
-  const cam = useMemo(() => new THREE.OrthographicCamera(), []);
+  const { size, camera } = useThree();
   useEffect(() => {
-    const span = 100; // hauteur monde
+    const span = 100;
     const aspect = size.width / Math.max(1, size.height);
+    const cam = camera as THREE.OrthographicCamera;
     cam.left = -(span * aspect) / 2;
     cam.right = (span * aspect) / 2;
     cam.top = span / 2;
     cam.bottom = -span / 2;
     cam.near = 0.1;
     cam.far = 500;
-    cam.position.set(0, 90, 25); // léger tilt pour donner du volume
-    cam.lookAt(0, 0, 0);
     cam.updateProjectionMatrix();
-    set({ camera: cam });
-  }, [size, cam, set]);
-  void camera;
+  }, [size, camera]);
   return null;
 }
+
 
 /* ===== Voiture détaillée ===== */
 function Car({ color, scale = 1 }: { color: string; scale?: number }) {
