@@ -25,7 +25,7 @@ function TaxiTycoonPage() {
         html, body, #root { margin: 0; padding: 0; background: #0c0d10; }
         .tt-root {
           position: relative; width: 100%; height: 100vh; overflow: hidden;
-          background: #1f3522;
+          background: #0c0d10;
         }
         .tt-vignette {
           position: absolute; inset: 0; z-index: 6; pointer-events: none;
