@@ -72,25 +72,58 @@ function CarSVG({ color, accent, scale = 1 }: { color: string; accent: string; s
   );
 }
 
-function TowTruckSVG({ color, accent }: { color: string; accent: string }) {
+type PedSpec = {
+  pathIdx: number;
+  duration: number;
+  delay: number;
+  side: 1 | -1;   // trottoir gauche/droite
+  flip?: boolean;
+  shirt: string;
+  pants: string;
+  skin: string;
+  scale?: number;
+};
+
+const PEDESTRIANS: PedSpec[] = [
+  { pathIdx: 0, duration: 140, delay: -10, side:  1, shirt: "#e94e4e", pants: "#2a2f38", skin: "#f1c79b", scale: 0.85 },
+  { pathIdx: 0, duration: 160, delay: -55, side: -1, shirt: "#3b82f6", pants: "#1f2937", skin: "#c89372", flip: true, scale: 0.9 },
+  { pathIdx: 0, duration: 180, delay: -90, side:  1, shirt: "#fbbf24", pants: "#374151", skin: "#e8b48a", scale: 0.8 },
+  { pathIdx: 0, duration: 150, delay: -130,side: -1, shirt: "#10b981", pants: "#111827", skin: "#a06c44", flip: true, scale: 0.88 },
+  { pathIdx: 1, duration: 70,  delay: -5,  side:  1, shirt: "#a855f7", pants: "#1f2937", skin: "#f0c8a0", scale: 0.82 },
+  { pathIdx: 1, duration: 90,  delay: -40, side: -1, shirt: "#ec4899", pants: "#0f172a", skin: "#d4a37a", flip: true, scale: 0.86 },
+  { pathIdx: 2, duration: 170, delay: -20, side:  1, shirt: "#f97316", pants: "#1e293b", skin: "#c89372", scale: 0.85 },
+  { pathIdx: 2, duration: 190, delay: -75, side: -1, shirt: "#06b6d4", pants: "#1f2937", skin: "#e8b48a", flip: true, scale: 0.9 },
+  { pathIdx: 2, duration: 155, delay: -120,side:  1, shirt: "#ffffff", pants: "#0b1220", skin: "#a06c44", scale: 0.83 },
+  { pathIdx: 2, duration: 200, delay: -170,side: -1, shirt: "#facc15", pants: "#374151", skin: "#f1c79b", flip: true, scale: 0.88 },
+];
+
+function PedestrianSVG({ shirt, pants, skin, side, scale = 1 }: { shirt: string; pants: string; skin: string; side: 1 | -1; scale?: number }) {
+  // Offset Y dans le repère local = perpendiculaire au sens de marche (rotate="auto")
+  const oy = side * 22;
   return (
-    <g transform="scale(0.72)">
-      <ellipse cx="0" cy="9" rx="44" ry="17" fill="rgba(0,0,0,0.46)" />
-      <path d="M -45 -13 L 5 -17 L 12 15 L -42 16 Z" fill="#262b30" />
-      <path d="M -38 -9 L -3 -11 L 1 10 L -35 11 Z" fill="#6b4a35" />
-      <path d="M 8 -16 L 42 -12 L 46 11 L 12 16 Z" fill={color} />
-      <path d="M 19 -12 L 39 -9 L 40 7 L 20 10 Z" fill="#0c1a2e" opacity="0.95" />
-      <path d="M -2 -17 L -20 -30" stroke="#ffb22e" strokeWidth="5" strokeLinecap="round" />
-      <circle cx="24" cy="-18" r="5" fill="#ffae00">
-        <animate attributeName="opacity" values="1;0.25;1" dur="0.42s" repeatCount="indefinite" />
-      </circle>
-      <rect x="-31" y="-22" width="13" height="6" rx="2" fill="#07080a" />
-      <rect x="-31" y="15" width="13" height="6" rx="2" fill="#07080a" />
-      <rect x="18" y="-22" width="13" height="6" rx="2" fill="#07080a" />
-      <rect x="18" y="15" width="13" height="6" rx="2" fill="#07080a" />
-      <circle cx="46" cy="-5" r="2.8" fill="#fff7c0" />
-      <circle cx="46" cy="6" r="2.8" fill="#fff7c0" />
-      <line x1="13" y1="0" x2="42" y2="0" stroke={accent} strokeWidth="1.2" opacity="0.7" />
+    <g transform={`translate(0,${oy}) scale(${scale})`}>
+      <ellipse cx="0" cy="6" rx="4.5" ry="1.6" fill="rgba(0,0,0,0.5)" />
+      {/* jambes (animation marche) */}
+      <g>
+        <rect x="-2.4" y="0" width="2" height="6" rx="0.6" fill={pants}>
+          <animateTransform attributeName="transform" type="translate" values="0 0;0 -1;0 0;0 -1;0 0" dur="0.6s" repeatCount="indefinite" />
+        </rect>
+        <rect x="0.4" y="0" width="2" height="6" rx="0.6" fill={pants}>
+          <animateTransform attributeName="transform" type="translate" values="0 -1;0 0;0 -1;0 0;0 -1" dur="0.6s" repeatCount="indefinite" />
+        </rect>
+      </g>
+      {/* torse */}
+      <path d="M -3.2 -5 Q 0 -7 3.2 -5 L 2.6 1 L -2.6 1 Z" fill={shirt} stroke="rgba(0,0,0,0.4)" strokeWidth="0.4" />
+      {/* bras */}
+      <rect x="-4.2" y="-4" width="1.4" height="4.5" rx="0.5" fill={shirt}>
+        <animateTransform attributeName="transform" type="rotate" values="-10;15;-10" dur="0.6s" repeatCount="indefinite" />
+      </rect>
+      <rect x="2.8" y="-4" width="1.4" height="4.5" rx="0.5" fill={shirt}>
+        <animateTransform attributeName="transform" type="rotate" values="15;-10;15" dur="0.6s" repeatCount="indefinite" />
+      </rect>
+      {/* tête */}
+      <circle cx="0" cy="-8" r="2.4" fill={skin} stroke="rgba(0,0,0,0.5)" strokeWidth="0.4" />
+      <path d="M -2.4 -9.2 Q 0 -11 2.4 -9.2 L 2.2 -8 L -2.2 -8 Z" fill="#1f2937" />
     </g>
   );
 }
