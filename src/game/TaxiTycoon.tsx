@@ -343,7 +343,8 @@ export default function TaxiTycoon() {
   const rivalTaxisRef = useRef<RivalTaxi[]>([]);
   const rivalJobsRef = useRef<Job[]>([]); // courses prises en charge par l'IA
   const [rivalStolen, setRivalStolen] = useState(0);
-  const jobAgeRef = useRef<Map<number, number>>(new Map()); // jobId -> performance.now() de spawn
+
+
 
 
 
