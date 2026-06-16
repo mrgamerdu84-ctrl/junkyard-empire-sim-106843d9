@@ -34,19 +34,31 @@ type CarSpec = {
 
 // Circulation civile diversifiée — aucune teinte taxi jaune.
 // Les taxis du joueur restent gérés par TaxiTycoon.
+//
+// Règles de circulation (animation SVG, pas de physique réelle) :
+// - Durées proches au sein d'un même sens => distance de sécurité ~constante.
+// - Une variation de ±10–15 % autorise des "dépassements" visuels sans collision.
+// - Les `delay` sont calculés pour répartir les phases (k / N) le long du path
+//   => aucune grappe au démarrage, aucun bouchon artificiel.
+// - Les camions / vans roulent un poil plus lentement (gabarit lourd).
 const CARS: CarSpec[] = [
-  { kind: "sedan", color: "#d83a2a", accent: "#7c1c10", duration: 38, delay: -2,  pathIdx: 0, scale: 0.64 },
-  { kind: "van",   color: "#2f7a4a", accent: "#163b22", duration: 46, delay: -16, pathIdx: 0, scale: 0.7 },
-  { kind: "sedan", color: "#2b6ed8", accent: "#143f7c", duration: 36, delay: -8,  pathIdx: 0, flip: true, scale: 0.65 },
-  { kind: "truck", color: "#b8410f", accent: "#5a1f06", duration: 52, delay: -24, pathIdx: 0, flip: true, scale: 0.72 },
-  { kind: "hatch", color: "#12151a", accent: "#050607", duration: 18, delay: -2,  pathIdx: 1, scale: 0.58 },
-  { kind: "sedan", color: "#3a8a48", accent: "#1c4a22", duration: 20, delay: -10, pathIdx: 1, flip: true, scale: 0.6 },
-  { kind: "van",   color: "#d97a2a", accent: "#7a3a10", duration: 48, delay: -14, pathIdx: 2, scale: 0.68 },
-  { kind: "sedan", color: "#b81c4a", accent: "#5c0a20", duration: 39, delay: -6,  pathIdx: 2, scale: 0.62 },
-  { kind: "hatch", color: "#1a3a6a", accent: "#0a1c40", duration: 46, delay: -22, pathIdx: 2, flip: true, scale: 0.6 },
-  { kind: "truck", color: "#3b4a5c", accent: "#1a232f", duration: 56, delay: -30, pathIdx: 2, flip: true, scale: 0.74 },
-  { kind: "sedan", color: "#e8edf2", accent: "#8a8e94", duration: 43, delay: -12, pathIdx: 0, scale: 0.62 },
-  { kind: "hatch", color: "#4ed6c5", accent: "#187266", duration: 45, delay: -28, pathIdx: 2, scale: 0.58 },
+  // Path 0 — sens normal (3 véhicules, phases 0 / 0.33 / 0.66)
+  { kind: "sedan", color: "#d83a2a", accent: "#7c1c10", duration: 42, delay:   0, pathIdx: 0, scale: 0.64 },
+  { kind: "sedan", color: "#e8edf2", accent: "#8a8e94", duration: 38, delay: -13, pathIdx: 0, scale: 0.62 }, // un peu plus rapide => dépasse
+  { kind: "van",   color: "#2f7a4a", accent: "#163b22", duration: 46, delay: -30, pathIdx: 0, scale: 0.7 },
+  // Path 0 — sens inverse (2 véhicules, phases 0 / 0.5)
+  { kind: "sedan", color: "#2b6ed8", accent: "#143f7c", duration: 40, delay:   0, pathIdx: 0, flip: true, scale: 0.65 },
+  { kind: "truck", color: "#b8410f", accent: "#5a1f06", duration: 48, delay: -24, pathIdx: 0, flip: true, scale: 0.72 },
+  // Path 1 — voie courte, un par sens
+  { kind: "hatch", color: "#12151a", accent: "#050607", duration: 19, delay:  -2, pathIdx: 1, scale: 0.58 },
+  { kind: "sedan", color: "#3a8a48", accent: "#1c4a22", duration: 22, delay: -10, pathIdx: 1, flip: true, scale: 0.6 },
+  // Path 2 — sens normal (3 véhicules, phases 0 / 0.33 / 0.66)
+  { kind: "van",   color: "#d97a2a", accent: "#7a3a10", duration: 44, delay:   0, pathIdx: 2, scale: 0.68 },
+  { kind: "sedan", color: "#b81c4a", accent: "#5c0a20", duration: 40, delay: -13, pathIdx: 2, scale: 0.62 }, // dépassement
+  { kind: "hatch", color: "#4ed6c5", accent: "#187266", duration: 46, delay: -32, pathIdx: 2, scale: 0.58 },
+  // Path 2 — sens inverse (2 véhicules, phases 0 / 0.5)
+  { kind: "hatch", color: "#1a3a6a", accent: "#0a1c40", duration: 42, delay:   0, pathIdx: 2, flip: true, scale: 0.6 },
+  { kind: "truck", color: "#3b4a5c", accent: "#1a232f", duration: 54, delay: -27, pathIdx: 2, flip: true, scale: 0.74 },
 ];
 
 const LAMPS: [number, number][] = [
