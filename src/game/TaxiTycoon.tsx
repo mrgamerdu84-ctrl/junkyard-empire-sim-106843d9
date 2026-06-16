@@ -705,11 +705,12 @@ export default function TaxiTycoon() {
       }
 
       // ====== Circuit taxis : avance le long de la boucle ======
-      if (circuitTaxisRef.current.length > 0 && circuitInfo.total > 0) {
+      const cInfo = circuitInfoRef.current;
+      if (circuitTaxisRef.current.length > 0 && cInfo.total > 0) {
         const cSpeed = (BASE_SPEED + 10) * (adm.circuitSpeedMult ?? 1);
         const step = cSpeed * dt;
         for (const ct of circuitTaxisRef.current) {
-          ct.pos = (ct.pos + step) % circuitInfo.total;
+          ct.pos = (ct.pos + step) % cInfo.total;
         }
       }
 
