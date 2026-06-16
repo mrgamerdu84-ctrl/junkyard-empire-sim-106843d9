@@ -935,7 +935,7 @@ export default function TaxiTycoon() {
           return (
             <g key={r.id}>
               <g transform={`translate(${p.x},${p.y}) rotate(${angle})`} filter="url(#taxi-shadow)">
-                <TaxiSprite body="#dc1a2a" trim="#5a0810" withClient={r.mode === "to_dest"} moving={r.mode !== "idle"} />
+                <TaxiSprite image={TAXI_RED_URL} faceRight={false} withClient={r.mode === "to_dest"} moving={r.mode !== "idle"} />
               </g>
               <text x={p.x} y={p.y - 22} fontSize="9" textAnchor="middle" fill="#ff4d5c" fontWeight="900" stroke="#0a0608" strokeWidth="2" paintOrder="stroke">R</text>
             </g>
