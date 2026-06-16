@@ -41,22 +41,27 @@ export const TAXI_COLORS = [
   { id: "purple", name: "Violet",body: "#a855f7", trim: "#5b1aa0" },
 ];
 
-type TaxiMode = "idle" | "to_pickup" | "to_dest" | "returning";
+type TaxiMode = "idle" | "to_pickup" | "to_dest" | "returning" | "to_gas" | "refueling";
 type Taxi = {
   id: number;
-  pos: number;        // longueur le long du path
+  pathIdx: number;    // path actuel emprunté (0..ROADS.length-1)
+  pos: number;        // longueur le long du path actuel
   target: number;
   mode: TaxiMode;
   speed: number;
   colorId: string;
   jobId: number | null;
+  fuel: number;       // 0..100
+  refuelUntil?: number; // timestamp ms : fin du remplissage
 };
 
 type JobStatus = "offered" | "accepted";
 type Job = {
   id: number;
-  pickup: number;       // longueur sur le path
-  dropoff: number;
+  pickupPath: number;
+  pickup: number;       // longueur sur pickupPath
+  dropoffPath: number;
+  dropoff: number;      // longueur sur dropoffPath
   fare: number;
   deadline: number;     // epoch ms — quand le client annule s'il n'est pas accepté
   duration: number;     // ms (pour la barre)
@@ -67,11 +72,13 @@ type Job = {
 };
 
 const DEFAULT_DEPOT_POS = 0.78; // fallback si mode "suit le circuit" (legacy)
-const SAVE_KEY = "taxi-tycoon-v2";
+const SAVE_KEY = "taxi-tycoon-v3";
 const BASE_SPEED = 60; // px (sur viewBox 1920) par seconde
 const SPEED_UPGRADE_COST_BASE = 800;
 const TAXI_COST_BASE = 600;
 const MAX_JOBS_BASE = 3;
+const FUEL_REFILL_MS = 4000;
+const FUEL_LOW_THRESHOLD = 25;
 
 type SaveData = {
   money: number;
