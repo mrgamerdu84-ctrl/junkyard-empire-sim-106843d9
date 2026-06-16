@@ -261,17 +261,50 @@ function JunkyCityEmpire() {
           animation: jcePulseGlow 2.4s ease-in-out infinite;
         }
         .jce-zone.unlocked .jce-zone-status { color: #c8ffd0; }
+        /* Tier upgrades: stronger glow + gold/diamond accents */
+        .jce-zone.tier-2 { border-color: #60d8ff; box-shadow: 0 4px 0 #08384d, 0 6px 28px rgba(96,216,255,0.55); }
+        .jce-zone.tier-3 { border-color: #c084fc; box-shadow: 0 4px 0 #3b1a5e, 0 6px 32px rgba(192,132,252,0.6); background: linear-gradient(180deg, #5b2a8a 0%, #2a1242 100%); }
+        .jce-zone.tier-4 { border-color: #ffb84d; box-shadow: 0 4px 0 #5c3000, 0 6px 36px rgba(255,184,77,0.7); background: linear-gradient(180deg, #8a5a1a 0%, #4a2d05 100%); }
+        .jce-zone.tier-5 {
+          border-color: #ffd633;
+          box-shadow: 0 4px 0 #5c3000, 0 0 40px rgba(255,214,51,0.95), 0 0 60px rgba(255,100,200,0.4);
+          background: linear-gradient(180deg, #ffd633 0%, #c79100 100%);
+          color: #1a1d22;
+        }
+        .jce-zone.tier-5 .jce-zone-title, .jce-zone.tier-5 .jce-zone-status { color: #1a1d22; text-shadow: 0 1px 0 rgba(255,255,255,0.4); }
+        .jce-tier-badge {
+          position: absolute;
+          top: -10px; right: -10px;
+          background: linear-gradient(135deg, #ffd633, #ff9500);
+          color: #1a1d22;
+          font-size: 10px; font-weight: 900;
+          border-radius: 10px;
+          padding: 2px 7px;
+          border: 2px solid #1a1d22;
+          box-shadow: 0 2px 4px rgba(0,0,0,0.6);
+          letter-spacing: 0.5px;
+        }
         .jce-zone.flash {
           animation: jceFlash 0.6s ease-out;
         }
         @keyframes jcePulseGlow {
-          0%, 100% { box-shadow: 0 4px 0 #0a3818, 0 6px 24px rgba(74,222,128,0.4); }
-          50% { box-shadow: 0 4px 0 #0a3818, 0 6px 30px rgba(74,222,128,0.8); }
+          0%, 100% { filter: brightness(1); }
+          50% { filter: brightness(1.15); }
         }
         @keyframes jceFlash {
           0% { transform: translate(-50%, -50%) scale(1); }
           30% { transform: translate(-50%, -50%) scale(1.15); filter: brightness(1.6); }
           100% { transform: translate(-50%, -50%) scale(1); filter: brightness(1); }
+        }
+        /* ===== TRAFFIC ===== */
+        .jce-traffic {
+          position: absolute; inset: 0;
+          width: 100%; height: 100%;
+          pointer-events: none;
+          z-index: 3;
+        }
+        .jce-traffic .car {
+          filter: drop-shadow(0 1px 2px rgba(0,0,0,0.7));
         }
         .jce-coin-pop {
           position: absolute;
