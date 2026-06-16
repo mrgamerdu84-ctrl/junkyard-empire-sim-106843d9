@@ -57,6 +57,8 @@ type Client = {
   fare: number;
   assigned: number | null;
   spawnedAt: number;
+  sidePickup: 1 | -1;
+  sideDrop: 1 | -1;
 };
 
 const DEPOT_POS_NORM = 0.78; // 78% le long de la route (zone basse-gauche, route bien dégagée)
