@@ -210,18 +210,75 @@ function JunkyCityEmpire() {
           background: #d9d9d9;
           border-radius: 4px;
         }
+        .jce-skyline-wrap {
+          position: relative;
+          overflow: hidden;
+        }
         .jce-skyline {
           width: 100%;
           display: block;
           aspect-ratio: 16 / 10;
           object-fit: cover;
         }
+        /* Animated street under the skyline */
+        .jce-street {
+          position: relative;
+          height: 56px;
+          background:
+            repeating-linear-gradient(90deg,
+              rgba(255,255,255,0.85) 0 22px,
+              transparent 22px 50px) center / auto 3px no-repeat,
+            linear-gradient(to bottom, #2a2d33, #1a1c20);
+          overflow: hidden;
+          border-top: 1px solid rgba(0,0,0,0.5);
+          border-bottom: 1px solid rgba(0,0,0,0.5);
+        }
+        .jce-street-car {
+          position: absolute;
+          bottom: 6px;
+          height: 28px;
+          width: auto;
+          filter: drop-shadow(0 4px 6px rgba(0,0,0,0.55));
+          will-change: transform;
+          animation: jceDriveRight linear infinite;
+        }
+        .jce-street-car.rev {
+          top: 6px;
+          bottom: auto;
+          transform: scaleX(-1);
+          animation-name: jceDriveLeft;
+        }
+        @keyframes jceDriveRight {
+          0% { transform: translateX(-25%); }
+          100% { transform: translateX(120vw); }
+        }
+        @keyframes jceDriveLeft {
+          0% { transform: translateX(120vw) scaleX(-1); }
+          100% { transform: translateX(-25%) scaleX(-1); }
+        }
+        /* Tiny car driving across each tile */
+        .jce-tile-car {
+          position: absolute;
+          bottom: 6%;
+          height: 22%;
+          width: auto;
+          filter: drop-shadow(0 3px 4px rgba(0,0,0,0.5));
+          will-change: transform;
+          animation: jceTileDrive linear infinite;
+          pointer-events: none;
+          z-index: 2;
+        }
+        @keyframes jceTileDrive {
+          0% { transform: translateX(-30%); }
+          100% { transform: translateX(420%); }
+        }
         .jce-grid {
           display: grid;
           grid-template-columns: 1fr 1fr;
           gap: 2px;
-          background: #6b4429;
+          background: #0a0b0d;
         }
+
         .jce-tile {
           position: relative;
           padding: 0;
