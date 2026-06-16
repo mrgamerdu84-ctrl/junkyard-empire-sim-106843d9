@@ -34,6 +34,36 @@ function JunkyCityEmpire() {
   const [xp, setXp] = useState(150);
   const [level, setLevel] = useState(1);
   const [pulse, setPulse] = useState<string | null>(null);
+  const [washing, setWashing] = useState(false);
+
+  const playWaterSound = () => {
+    try {
+      const AC = (window.AudioContext || (window as any).webkitAudioContext);
+      if (!AC) return;
+      const ctx = new AC();
+      const duration = 1.1;
+      const buffer = ctx.createBuffer(1, ctx.sampleRate * duration, ctx.sampleRate);
+      const data = buffer.getChannelData(0);
+      for (let i = 0; i < data.length; i++) {
+        const t = i / data.length;
+        // white noise enveloped to feel like splashing water
+        data[i] = (Math.random() * 2 - 1) * (1 - t) * 0.6;
+      }
+      const src = ctx.createBufferSource();
+      src.buffer = buffer;
+      const filter = ctx.createBiquadFilter();
+      filter.type = "bandpass";
+      filter.frequency.value = 1800;
+      filter.Q.value = 0.8;
+      const gain = ctx.createGain();
+      gain.gain.value = 0.35;
+      src.connect(filter).connect(gain).connect(ctx.destination);
+      src.start();
+      src.onended = () => ctx.close();
+    } catch {
+      /* silent fail — perf safe */
+    }
+  };
 
   const collect = (b: Building) => {
     setMoney((m) => m + b.reward);
@@ -47,7 +77,13 @@ function JunkyCityEmpire() {
     });
     setPulse(b.alt);
     setTimeout(() => setPulse(null), 300);
+    if (b.alt === "Car Wash") {
+      playWaterSound();
+      setWashing(true);
+      setTimeout(() => setWashing(false), 1400);
+    }
   };
+
 
   const play = () => {
     let total = 0;
@@ -210,11 +246,58 @@ function JunkyCityEmpire() {
           transform: translateY(3px);
           box-shadow: 0 3px 0 #8a6f1f, 0 6px 12px rgba(0,0,0,0.35);
         }
+        /* ===== Car Wash FX ===== */
+        .jce-wash-fx {
+          position: absolute;
+          inset: 0;
+          pointer-events: none;
+          overflow: hidden;
+          opacity: 0;
+          transition: opacity 0.2s ease;
+        }
+        .jce-wash-fx.is-on { opacity: 1; }
+        .jce-wash-foam {
+          position: absolute;
+          left: 0; right: 0; bottom: 0;
+          height: 38%;
+          background:
+            radial-gradient(circle at 20% 30%, #fff 0 6px, transparent 7px),
+            radial-gradient(circle at 60% 20%, #ffd6f0 0 5px, transparent 6px),
+            radial-gradient(circle at 80% 50%, #fff 0 7px, transparent 8px),
+            linear-gradient(to top, rgba(255,255,255,0.95), rgba(180,230,255,0.6) 50%, transparent);
+          filter: blur(0.5px);
+          will-change: transform;
+          animation: jceFoam 1.4s ease-out forwards;
+        }
+        .jce-bubble {
+          position: absolute;
+          bottom: 10%;
+          border-radius: 50%;
+          background: radial-gradient(circle at 30% 30%, rgba(255,255,255,0.95), rgba(180,230,255,0.7) 60%, rgba(120,200,255,0.3));
+          box-shadow: inset 0 -2px 4px rgba(255,255,255,0.6);
+          will-change: transform, opacity;
+          animation: jceBubble 1.4s ease-out forwards;
+        }
+        @keyframes jceFoam {
+          0% { transform: translateY(40%); opacity: 0; }
+          25% { opacity: 1; }
+          100% { transform: translateY(-10%); opacity: 0; }
+        }
+        @keyframes jceBubble {
+          0% { transform: translate(0, 0) scale(0.4); opacity: 0; }
+          20% { opacity: 1; }
+          100% { transform: translate(var(--dx, 0px), -180px) scale(1); opacity: 0; }
+        }
+        @media (prefers-reduced-motion: reduce) {
+          .jce-wash-fx, .jce-bubble, .jce-wash-foam { animation: none !important; }
+        }
+
         @media (min-width: 640px) {
           .jce-root { max-width: 480px; margin: 0 auto; box-shadow: 0 0 60px rgba(0,0,0,0.4); }
           .jce-play-wrap { max-width: 480px; margin: 0 auto; }
         }
       `}</style>
+
 
       <header className="jce-topbar">
         <div className="jce-money">
@@ -236,7 +319,34 @@ function JunkyCityEmpire() {
           onClick={() => collect(BUILDINGS[1])}
         >
           <img src={carwash} alt="Car Wash" loading="lazy" />
+          <div className={`jce-wash-fx ${washing ? "is-on" : ""}`} aria-hidden="true">
+            {washing && (
+              <>
+                <div className="jce-wash-foam" />
+                {Array.from({ length: 12 }).map((_, i) => {
+                  const left = 8 + i * 7.5;
+                  const size = 10 + ((i * 13) % 18);
+                  const delay = (i % 6) * 0.08;
+                  const dx = (i % 2 === 0 ? -1 : 1) * (10 + (i % 4) * 8);
+                  return (
+                    <span
+                      key={i}
+                      className="jce-bubble"
+                      style={{
+                        left: `${left}%`,
+                        width: `${size}px`,
+                        height: `${size}px`,
+                        animationDelay: `${delay}s`,
+                        ["--dx" as any]: `${dx}px`,
+                      }}
+                    />
+                  );
+                })}
+              </>
+            )}
+          </div>
         </button>
+
 
         <button
           className={`jce-tile ${pulse === BUILDINGS[0].alt ? "jce-pulse" : ""}`}
