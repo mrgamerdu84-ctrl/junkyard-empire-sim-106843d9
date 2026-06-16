@@ -40,7 +40,7 @@ export default function AdminPanel() {
     setOpen(false);
   };
 
-  const bumpScale = (d: number) => setAdmin({ hqScale: Math.max(0.3, Math.min(4, cfg.hqScale + d)) });
+  const bumpScale = (d: number) => setAdmin({ hqScale: Math.max(0.3, Math.min(8, cfg.hqScale + d)) });
   const bumpRot = (d: number) => setAdmin({ hqRotation: cfg.hqRotation + d });
 
 
