@@ -6,6 +6,10 @@ import carwash from "@/assets/carwash.jpg";
 import shop from "@/assets/shop.jpg";
 import warehouse from "@/assets/warehouse.jpg";
 import parking from "@/assets/parking.jpg";
+import car1 from "@/assets/car1.png";
+import car2 from "@/assets/car2.png";
+import car3 from "@/assets/car3.png";
+
 
 export const Route = createFileRoute("/")({
   head: () => ({
