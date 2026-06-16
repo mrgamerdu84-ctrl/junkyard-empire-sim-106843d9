@@ -10,18 +10,20 @@ import { useEffect, useState } from "react";
  * ============================================================ */
 
 const ROADS = [
-  // Route chantier haute — derrière les grues, visible sous le casino/concession.
-  "M 360 520 C 560 505 770 505 930 520 C 1110 540 1300 520 1540 485",
-  // Avenue centrale — longe la casse et le centre, descend vers la ville abandonnée.
-  "M 215 690 C 420 660 630 655 800 675 C 990 700 1125 675 1265 615 C 1435 540 1600 535 1780 585",
-  // Grande route basse — celle où les voitures doivent rouler au premier plan.
-  "M 35 905 C 230 855 455 805 655 785 C 845 765 1035 790 1215 825 C 1425 865 1640 835 1885 735",
-  // Voie opposée basse, légèrement décalée dans le même boulevard.
-  "M 1880 790 C 1640 895 1425 925 1205 885 C 1010 850 830 825 650 845 C 445 865 240 915 35 965",
-  // Bretelle verticale visible à gauche de la casse.
-  "M 610 1065 C 620 930 640 805 665 700 C 700 555 735 455 785 340",
-  // Bretelle droite vers garage/ville abandonnée.
-  "M 1290 1045 C 1265 910 1250 805 1270 690 C 1290 575 1355 475 1460 365",
+  // Rocade basse — calée sur la grande route diagonale visible au premier plan mobile.
+  "M 10 965 C 220 900 470 840 690 812 C 870 790 1030 808 1195 842 C 1395 884 1605 835 1910 720",
+  // Voie opposée de la rocade, décalée dans le même boulevard.
+  "M 1910 785 C 1605 900 1390 948 1180 904 C 1010 868 860 838 690 862 C 470 890 225 950 10 1010",
+  // Avenue centrale — suit la route au milieu de la casse et rejoint la ville abandonnée.
+  "M 5 650 C 220 610 455 590 675 610 C 890 632 1045 630 1215 575 C 1425 506 1610 510 1910 595",
+  // Voie opposée centrale, même tracé mais un peu plus bas pour éviter le hors-route.
+  "M 1910 655 C 1620 565 1425 560 1225 628 C 1040 690 875 682 670 658 C 445 635 220 660 5 710",
+  // Route de service verticale à gauche, visible près de la casse et des clôtures.
+  "M 555 1075 C 585 945 620 845 655 735 C 700 595 742 455 785 320",
+  // Bretelle garage/ville abandonnée à droite.
+  "M 1300 1070 C 1265 930 1248 815 1275 690 C 1305 552 1372 455 1482 350",
+  // Route chantier haute, discrète mais utilisable pour les véhicules en arrière-plan.
+  "M 250 545 C 500 508 760 500 960 525 C 1165 552 1325 525 1585 485",
 ];
 
 type CarSpec = {
@@ -35,16 +37,18 @@ type CarSpec = {
 };
 
 const CARS: CarSpec[] = [
-  { color: "#d83a2a", accent: "#7c1c10", duration: 24, delay: -2, pathIdx: 1, scale: 1.02 },
-  { color: "#f5c542", accent: "#9c7a1c", duration: 26, delay: -11, pathIdx: 2, scale: 1.05 },
-  { color: "#2b6ed8", accent: "#143f7c", duration: 23, delay: -8, pathIdx: 2, scale: 1.04 },
-  { color: "#e8edf2", accent: "#8a8e94", duration: 25, delay: -17, pathIdx: 3, flip: true, scale: 1.0 },
-  { color: "#12151a", accent: "#050607", duration: 27, delay: -6, pathIdx: 3, flip: true, scale: 1.0 },
-  { color: "#3a8a48", accent: "#1c4a22", duration: 31, delay: -21, pathIdx: 0, scale: 0.92 },
-  { color: "#d97a2a", accent: "#7a3a10", duration: 29, delay: -14, pathIdx: 1, scale: 0.96 },
-  { color: "#b81c4a", accent: "#5c0a20", duration: 33, delay: -3, pathIdx: 4, scale: 0.9 },
-  { color: "#1a3a6a", accent: "#0a1c40", duration: 35, delay: -18, pathIdx: 5, flip: true, scale: 0.92 },
-  { color: "#8f969e", accent: "#3a3e44", duration: 28, delay: -25, pathIdx: 0, flip: true, scale: 0.9 },
+  { color: "#d83a2a", accent: "#7c1c10", duration: 24, delay: -2, pathIdx: 0, scale: 1.04 },
+  { color: "#f5c542", accent: "#9c7a1c", duration: 27, delay: -11, pathIdx: 0, scale: 1.06 },
+  { color: "#2b6ed8", accent: "#143f7c", duration: 23, delay: -8, pathIdx: 0, scale: 1.05 },
+  { color: "#e8edf2", accent: "#8a8e94", duration: 25, delay: -17, pathIdx: 1, flip: true, scale: 1.0 },
+  { color: "#12151a", accent: "#050607", duration: 28, delay: -6, pathIdx: 1, flip: true, scale: 1.0 },
+  { color: "#3a8a48", accent: "#1c4a22", duration: 31, delay: -21, pathIdx: 2, scale: 0.96 },
+  { color: "#d97a2a", accent: "#7a3a10", duration: 29, delay: -14, pathIdx: 2, scale: 0.98 },
+  { color: "#b81c4a", accent: "#5c0a20", duration: 32, delay: -4, pathIdx: 3, flip: true, scale: 0.96 },
+  { color: "#1a3a6a", accent: "#0a1c40", duration: 35, delay: -18, pathIdx: 3, flip: true, scale: 0.96 },
+  { color: "#8f969e", accent: "#3a3e44", duration: 34, delay: -25, pathIdx: 4, scale: 0.9 },
+  { color: "#ff6b35", accent: "#8f2d10", duration: 36, delay: -13, pathIdx: 5, flip: true, scale: 0.92 },
+  { color: "#4ed6c5", accent: "#187266", duration: 30, delay: -22, pathIdx: 6, scale: 0.9 },
 ];
 
 const LAMPS: [number, number][] = [
