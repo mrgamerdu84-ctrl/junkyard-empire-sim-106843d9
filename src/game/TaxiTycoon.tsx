@@ -57,6 +57,8 @@ type Client = {
   fare: number;
   assigned: number | null;
   spawnedAt: number;
+  sidePickup: 1 | -1;
+  sideDrop: 1 | -1;
 };
 
 const DEPOT_POS_NORM = 0.78; // 78% le long de la route (zone basse-gauche, route bien dégagée)
@@ -123,55 +125,136 @@ function fmt(n: number) {
 }
 
 function TaxiSprite({ body, trim, withClient }: { body: string; trim: string; withClient: boolean }) {
+  // Vraie silhouette de yellow cab vue de dessus
   return (
-    <g transform="scale(0.55)">
-      <ellipse cx="0" cy="9" rx="32" ry="14" fill="rgba(0,0,0,0.45)" />
-      <path d="M -30 -10 C -24 -18 18 -18 28 -8 L 34 0 L 27 10 C 12 18 -20 17 -31 9 L -36 0 Z" fill={trim} opacity="0.95" />
-      <path d="M -28 -12 C -18 -19 16 -18 28 -8 L 33 0 L 26 9 C 11 15 -18 15 -30 8 L -35 0 Z" fill={body} />
-      {/* damier taxi */}
-      <g>
-        {[-22, -16, -10, -4, 2, 8, 14, 20].map((x, i) => (
-          <rect key={i} x={x} y={i % 2 ? -14 : -12} width="6" height="2.5" fill={i % 2 ? "#111" : "#fff"} />
-        ))}
-        {[-22, -16, -10, -4, 2, 8, 14, 20].map((x, i) => (
-          <rect key={"b" + i} x={x} y={i % 2 ? 11.5 : 13} width="6" height="2.5" fill={i % 2 ? "#fff" : "#111"} />
-        ))}
-      </g>
-      {/* vitres */}
-      <path d="M -10 -10 L 13 -9 C 19 -6 22 -2 23 2 C 20 6 16 8 10 9 L -12 9 C -18 6 -20 3 -21 -1 C -20 -5 -17 -8 -10 -10 Z" fill="#101b2b" opacity="0.94" />
+    <g transform="scale(0.6)">
+      <ellipse cx="0" cy="11" rx="36" ry="13" fill="rgba(0,0,0,0.5)" />
+      {/* contour foncé */}
+      <path d="M -34 -12 C -28 -17 -18 -18 -8 -18 L 14 -18 C 22 -17.5 30 -15 35 -9 L 38 0 L 35 9 C 30 15 22 17.5 14 18 L -8 18 C -18 18 -28 17 -34 12 L -38 0 Z" fill={trim} />
+      {/* carrosserie */}
+      <path d="M -32 -10 C -26 -15 -18 -16 -8 -16 L 12 -16 C 21 -15.5 28 -13 33 -7 L 36 0 L 33 7 C 28 13 21 15.5 12 16 L -8 16 C -18 16 -26 15 -32 10 L -36 0 Z" fill={body} />
+      {/* reflet brillant */}
+      <path d="M -28 -8 C -20 -12 18 -12 28 -6 L 28 -3.5 C 18 -10 -20 -10 -28 -6 Z" fill="#fff" opacity="0.28" />
+      {/* damier latéral */}
+      {[-26, -20, -14, -8, -2, 4, 10, 16, 22].map((x, i) => (
+        <rect key={`t${i}`} x={x} y={-15.5} width="6" height="3" fill={i % 2 ? "#111" : "#fff"} />
+      ))}
+      {[-26, -20, -14, -8, -2, 4, 10, 16, 22].map((x, i) => (
+        <rect key={`b${i}`} x={x} y={12.5} width="6" height="3" fill={i % 2 ? "#fff" : "#111"} />
+      ))}
+      {/* pare-brise avant */}
+      <path d="M 14 -10 C 22 -8 26 -4 27 0 C 26 4 22 8 14 10 L 12 8 L 12 -8 Z" fill="#1a2a44" opacity="0.95" />
+      <path d="M 17 -7 L 25 -2 L 24 0 L 16 -5 Z" fill="#a8d8ff" opacity="0.5" />
+      {/* lunette arrière */}
+      <path d="M -14 -10 C -22 -8 -26 -4 -27 0 C -26 4 -22 8 -14 10 L -12 8 L -12 -8 Z" fill="#1a2a44" opacity="0.95" />
+      <path d="M -17 -7 L -25 -2 L -24 0 L -16 -5 Z" fill="#a8d8ff" opacity="0.4" />
+      {/* toit cabine */}
+      <rect x="-12" y="-8" width="24" height="16" rx="2" fill={body} stroke={trim} strokeWidth="0.8" />
+      <line x1="0" y1="-8" x2="0" y2="8" stroke={trim} strokeWidth="0.6" opacity="0.7" />
+      {/* passagers visibles */}
       {withClient && (
-        <circle cx="2" cy="0" r="3.5" fill="#ffd9b0" stroke="#1a1d22" strokeWidth="0.6" />
+        <g>
+          <circle cx="-4" cy="0" r="3" fill="#ffd9b0" stroke="#1a1d22" strokeWidth="0.4" />
+          <circle cx="4" cy="0" r="3" fill="#c89372" stroke="#1a1d22" strokeWidth="0.4" />
+        </g>
       )}
-      {/* TAXI sign */}
-      <rect x="-5" y="-22" width="10" height="5" rx="1" fill="#ffd633" stroke="#1a1d22" strokeWidth="0.5" />
-      <text x="0" y="-18.3" fontSize="3.5" fontWeight="900" textAnchor="middle" fill="#1a1d22">TAXI</text>
-      {/* roues */}
-      <rect x="10" y="-18" width="12" height="5" rx="2" fill="#08090b" />
-      <rect x="10" y="13" width="12" height="5" rx="2" fill="#08090b" />
-      <rect x="-24" y="-17" width="12" height="5" rx="2" fill="#08090b" />
-      <rect x="-24" y="12" width="12" height="5" rx="2" fill="#08090b" />
-      {/* phares */}
-      <circle cx="33" cy="-5" r="2.2" fill="#fff7c0" />
-      <circle cx="33" cy="5" r="2.2" fill="#fff7c0" />
+      {/* lanterne TAXI sur le toit */}
+      <rect x="-7" y="-3" width="14" height="4.5" rx="0.8" fill="#ffd633" stroke="#1a1d22" strokeWidth="0.6" />
+      <rect x="-7" y="-3" width="14" height="1.4" fill="#fff7a8" opacity="0.8" />
+      <text x="0" y="0.4" fontSize="3.6" fontWeight="900" textAnchor="middle" fill="#1a1d22" letterSpacing="0.3">TAXI</text>
+      {/* roues + enjoliveurs */}
+      <rect x="12" y="-19" width="14" height="5" rx="2" fill="#0a0b0d" />
+      <rect x="12" y="14" width="14" height="5" rx="2" fill="#0a0b0d" />
+      <rect x="-26" y="-19" width="14" height="5" rx="2" fill="#0a0b0d" />
+      <rect x="-26" y="14" width="14" height="5" rx="2" fill="#0a0b0d" />
+      <circle cx="19" cy="-16.5" r="1.2" fill="#c0c4ca" />
+      <circle cx="19" cy="16.5" r="1.2" fill="#c0c4ca" />
+      <circle cx="-19" cy="-16.5" r="1.2" fill="#c0c4ca" />
+      <circle cx="-19" cy="16.5" r="1.2" fill="#c0c4ca" />
+      {/* phares + feux */}
+      <ellipse cx="35" cy="-6" rx="2" ry="1.8" fill="#fff7c0" />
+      <ellipse cx="35" cy="6" rx="2" ry="1.8" fill="#fff7c0" />
+      <ellipse cx="-34" cy="-6" rx="1.6" ry="1.4" fill="#ff3028" />
+      <ellipse cx="-34" cy="6" rx="1.6" ry="1.4" fill="#ff3028" />
+      <rect x="33" y="-2" width="3" height="4" rx="0.5" fill="#1a1d22" />
     </g>
   );
 }
 
 function Depot({ tier, x, y }: { tier: DepotTier; x: number; y: number }) {
+  const idx = DEPOT_TIERS.indexOf(tier);
+  const gradId = `dpt-g-${idx}`;
+  const roofId = `dpt-r-${idx}`;
+  const winId = `dpt-w-${idx}`;
   return (
     <g transform={`translate(${x},${y})`}>
-      <ellipse cx="0" cy="36" rx="60" ry="14" fill="rgba(0,0,0,0.55)" />
-      {/* base */}
-      <rect x="-50" y="-12" width="100" height="48" rx="4" fill={tier.core} stroke="#111" strokeWidth="2" />
+      <defs>
+        <linearGradient id={gradId} x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor="#d0d5dc" />
+          <stop offset="30%" stopColor="#9ea4ad" />
+          <stop offset="100%" stopColor={tier.core} />
+        </linearGradient>
+        <linearGradient id={roofId} x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor="#e8edf2" />
+          <stop offset="60%" stopColor={tier.ring} />
+          <stop offset="100%" stopColor="#1a1d22" />
+        </linearGradient>
+        <linearGradient id={winId} x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor="#fff1a3" />
+          <stop offset="100%" stopColor="#f59e0b" />
+        </linearGradient>
+      </defs>
+      {/* ombre + parvis béton */}
+      <ellipse cx="0" cy="48" rx="98" ry="18" fill="rgba(0,0,0,0.55)" />
+      <path d="M -88 38 L 88 38 L 108 48 L -108 48 Z" fill="#3d4148" stroke="#1a1d22" strokeWidth="1.2" />
+      <path d="M -78 43 L 78 43" stroke="#f5c542" strokeWidth="1.2" strokeDasharray="6 5" opacity="0.7" />
+      {/* corps tôle métallique */}
+      <rect x="-78" y="-18" width="156" height="58" rx="2" fill={`url(#${gradId})`} stroke="#1a1d22" strokeWidth="1.8" />
+      {[-66, -52, -38, 38, 52, 66].map((rx) => (
+        <line key={rx} x1={rx} y1={-18} x2={rx} y2={40} stroke="#1a1d22" strokeWidth="0.5" opacity="0.55" />
+      ))}
       {/* toit */}
-      <path d={`M -54 -12 L 0 -38 L 54 -12 Z`} fill={tier.ring} stroke="#111" strokeWidth="2" />
-      {/* portes garage */}
-      <rect x="-40" y="-2" width="22" height="34" fill="#1a1d22" stroke="#000" strokeWidth="1.5" />
-      <rect x="18" y="-2" width="22" height="34" fill="#1a1d22" stroke="#000" strokeWidth="1.5" />
+      <path d="M -84 -18 L 0 -52 L 84 -18 Z" fill={`url(#${roofId})`} stroke="#1a1d22" strokeWidth="1.8" />
+      <path d="M -84 -18 L 0 -52 L 84 -18 L 78 -16 L 0 -49 L -78 -16 Z" fill="#1a1d22" opacity="0.4" />
+      {[-78, -40, 0, 40, 78].map((rx) => (
+        <circle key={`r${rx}`} cx={rx} cy={-15} r="1.4" fill="#5a606a" stroke="#1a1d22" strokeWidth="0.4" />
+      ))}
+      {/* portes garage avec rails */}
+      <rect x="-60" y="-4" width="34" height="42" fill="#1f242b" stroke="#000" strokeWidth="1.4" />
+      {[2, 10, 18, 26, 34].map((dy) => (
+        <line key={`l1-${dy}`} x1={-60} y1={-4 + dy} x2={-26} y2={-4 + dy} stroke="#0a0b0d" strokeWidth="0.8" />
+      ))}
+      <rect x="-58" y="-2" width="4" height="38" fill={`url(#${winId})`} opacity="0.6" />
+      <rect x="26" y="-4" width="34" height="42" fill="#1f242b" stroke="#000" strokeWidth="1.4" />
+      {[2, 10, 18, 26, 34].map((dy) => (
+        <line key={`l2-${dy}`} x1={26} y1={-4 + dy} x2={60} y2={-4 + dy} stroke="#0a0b0d" strokeWidth="0.8" />
+      ))}
+      <rect x="54" y="-2" width="4" height="38" fill={`url(#${winId})`} opacity="0.6" />
+      {/* bureau central éclairé */}
+      <rect x="-20" y="2" width="40" height="22" fill={`url(#${winId})`} stroke="#1a1d22" strokeWidth="1.2" />
+      <line x1="0" y1="2" x2="0" y2="24" stroke="#1a1d22" strokeWidth="0.6" />
+      <line x1="-20" y1="13" x2="20" y2="13" stroke="#1a1d22" strokeWidth="0.6" />
+      <ellipse cx="-10" cy="18" rx="3" ry="4" fill="#1a1d22" opacity="0.6" />
       {/* enseigne */}
-      <rect x="-44" y="-30" width="88" height="14" rx="2" fill={tier.flag} stroke="#111" strokeWidth="1.5" />
-      <text x="0" y="-20" fontSize="9" fontWeight="900" textAnchor="middle" fill="#1a1d22" letterSpacing="0.5">TAXI CORP</text>
-      <text x="0" y="22" fontSize="20" textAnchor="middle">{tier.badge}</text>
+      <rect x="-58" y="-44" width="116" height="18" rx="2.5" fill={tier.flag} stroke="#1a1d22" strokeWidth="1.6" />
+      <rect x="-58" y="-44" width="116" height="4" fill="#fff" opacity="0.35" />
+      <text x="0" y="-31" fontSize="11" fontWeight="900" textAnchor="middle" fill="#1a1d22" letterSpacing="1">TAXI CORP</text>
+      <rect x="-2" y="-26" width="4" height="8" fill="#5a606a" />
+      {/* badge tier */}
+      <circle cx="65" cy="-32" r="11" fill="#0a0c10" stroke={tier.flag} strokeWidth="2" />
+      <text x="65" y="-28" fontSize="13" textAnchor="middle">{tier.badge}</text>
+      {/* antenne + flash */}
+      <line x1="-60" y1="-52" x2="-60" y2="-66" stroke="#1a1d22" strokeWidth="1.4" />
+      <circle cx="-60" cy="-67" r="2.2" fill="#ff3028">
+        <animate attributeName="opacity" values="1;0.2;1" dur="1.4s" repeatCount="indefinite" />
+      </circle>
+      {/* lampes extérieures */}
+      <circle cx="-72" cy="-12" r="2.5" fill="#fff7a8">
+        <animate attributeName="opacity" values="0.8;1;0.8" dur="3s" repeatCount="indefinite" />
+      </circle>
+      <circle cx="72" cy="-12" r="2.5" fill="#fff7a8">
+        <animate attributeName="opacity" values="0.9;1;0.9" dur="3.2s" repeatCount="indefinite" />
+      </circle>
     </g>
   );
 }
@@ -322,6 +405,8 @@ export default function TaxiTycoon() {
           pickup, dropoff, fare,
           assigned: null,
           spawnedAt: now,
+          sidePickup: Math.random() < 0.5 ? 1 : -1,
+          sideDrop: Math.random() < 0.5 ? 1 : -1,
         });
       }
 
@@ -413,6 +498,23 @@ export default function TaxiTycoon() {
     const p2 = measureRef.current.getPointAtLength(Math.min(pathLen - 0.1, safe + 2));
     const angle = (Math.atan2(p2.y - p.y, p2.x - p.x) * 180) / Math.PI;
     return { x: p.x, y: p.y, angle };
+  };
+
+  // Position décalée sur le trottoir (perpendiculaire à la route)
+  const SIDEWALK_OFFSET = 22;
+  const getSidewalk = (len: number, side: 1 | -1) => {
+    if (!measureRef.current) return { x: 0, y: 0, angle: 0 };
+    const safe = ((len % pathLen) + pathLen) % pathLen;
+    const p = measureRef.current.getPointAtLength(safe);
+    const p2 = measureRef.current.getPointAtLength(Math.min(pathLen - 0.1, safe + 2));
+    const dx = p2.x - p.x, dy = p2.y - p.y;
+    const L = Math.hypot(dx, dy) || 1;
+    const nx = -dy / L, ny = dx / L; // normale unitaire
+    return {
+      x: p.x + nx * SIDEWALK_OFFSET * side,
+      y: p.y + ny * SIDEWALK_OFFSET * side,
+      angle: (Math.atan2(dy, dx) * 180) / Math.PI,
+    };
   };
 
   const depotXY = useMemo(() => getXY(pathLen * DEPOT_POS_NORM), [pathLen]);
@@ -530,35 +632,49 @@ export default function TaxiTycoon() {
           ))}
         </g>
 
-        {/* Clients en attente */}
+        {/* Clients en attente — sur le trottoir */}
         {clientsRef.current.map((c) => {
           if (c.assigned !== null) return null;
-          const p = getXY(c.pickup);
+          const p = getSidewalk(c.pickup, c.sidePickup);
           const age = (performance.now() - c.spawnedAt) / 1000;
-          const pulse = 1 + Math.sin(age * 4) * 0.15;
+          const bob = Math.sin(age * 3) * 0.8;
+          const pulse = 1 + Math.sin(age * 4) * 0.18;
           return (
-            <g key={c.id} transform={`translate(${p.x},${p.y})`} filter="url(#taxi-shadow)">
-              <circle r={14 * pulse} fill="#10b981" opacity="0.35" />
-              <circle r="11" fill="#0f172a" stroke="#34d399" strokeWidth="2.5" />
-              <text y="4.5" fontSize="13" textAnchor="middle">🙋</text>
-              <g transform="translate(0,-22)">
-                <rect x="-22" y="-9" width="44" height="14" rx="3" fill="#0f172a" stroke="#34d399" strokeWidth="1" />
-                <text y="1.5" fontSize="9" fontWeight="900" textAnchor="middle" fill="#34d399">{fmt(c.fare)}$</text>
+            <g key={c.id} transform={`translate(${p.x},${p.y + bob})`} filter="url(#taxi-shadow)">
+              {/* halo d'attente */}
+              <circle r={16 * pulse} fill="#10b981" opacity="0.28" />
+              {/* personnage qui attend */}
+              <ellipse cx="0" cy="9" r="6" rx="6" ry="2" fill="rgba(0,0,0,0.5)" />
+              <rect x="-3" y="-2" width="2.4" height="7" rx="0.6" fill="#1f2937" />
+              <rect x="0.6" y="-2" width="2.4" height="7" rx="0.6" fill="#1f2937" />
+              <path d="M -4 -8 Q 0 -10 4 -8 L 3.4 -1 L -3.4 -1 Z" fill="#10b981" stroke="#0f172a" strokeWidth="0.5" />
+              <rect x="-5" y="-7" width="1.6" height="5" rx="0.5" fill="#10b981" />
+              <rect x="3.4" y="-7" width="1.6" height="5" rx="0.5" fill="#10b981" />
+              <circle cx="0" cy="-12" r="3" fill="#f1c79b" stroke="#0f172a" strokeWidth="0.5" />
+              {/* main levée pour héler */}
+              <rect x="4" y="-14" width="1.4" height="6" rx="0.5" fill="#10b981" transform="rotate(-30 4 -14)">
+                <animateTransform attributeName="transform" type="rotate" values="-30 4 -14;-10 4 -14;-30 4 -14" dur="0.9s" repeatCount="indefinite" />
+              </rect>
+              {/* bulle prix */}
+              <g transform="translate(0,-26)">
+                <rect x="-18" y="-9" width="36" height="13" rx="3" fill="#0f172a" stroke="#34d399" strokeWidth="1" />
+                <text y="0.5" fontSize="8.5" fontWeight="900" textAnchor="middle" fill="#34d399">{fmt(c.fare)}$</text>
               </g>
             </g>
           );
         })}
 
-        {/* Dropoffs (clients en cours dans taxi) */}
+        {/* Dropoffs — sur le trottoir */}
         {clientsRef.current.map((c) => {
           if (c.assigned === null) return null;
-          const p = getXY(c.dropoff);
+          const p = getSidewalk(c.dropoff, c.sideDrop);
           return (
             <g key={"d" + c.id} transform={`translate(${p.x},${p.y})`}>
-              <circle r="9" fill="none" stroke="#f59e0b" strokeWidth="2.5" strokeDasharray="4 3" opacity="0.85">
+              <circle r="11" fill="none" stroke="#f59e0b" strokeWidth="2.5" strokeDasharray="4 3" opacity="0.85">
                 <animateTransform attributeName="transform" type="rotate" from="0" to="360" dur="6s" repeatCount="indefinite" />
               </circle>
-              <text y="3.5" fontSize="10" textAnchor="middle">📍</text>
+              <circle r="6" fill="#0f172a" stroke="#f59e0b" strokeWidth="1.5" />
+              <text y="3" fontSize="9" textAnchor="middle">📍</text>
             </g>
           );
         })}
