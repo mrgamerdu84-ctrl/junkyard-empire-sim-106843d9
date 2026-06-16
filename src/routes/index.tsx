@@ -41,29 +41,73 @@ function JunkyCityEmpire() {
       const AC = (window.AudioContext || (window as any).webkitAudioContext);
       if (!AC) return;
       const ctx = new AC();
-      const duration = 1.1;
-      const buffer = ctx.createBuffer(1, ctx.sampleRate * duration, ctx.sampleRate);
-      const data = buffer.getChannelData(0);
-      for (let i = 0; i < data.length; i++) {
-        const t = i / data.length;
-        // white noise enveloped to feel like splashing water
-        data[i] = (Math.random() * 2 - 1) * (1 - t) * 0.6;
+      const now = ctx.currentTime;
+      const duration = 2.2;
+
+      // 1) Pressurized spray: bright filtered white noise
+      const sprayBuf = ctx.createBuffer(2, ctx.sampleRate * duration, ctx.sampleRate);
+      for (let ch = 0; ch < 2; ch++) {
+        const d = sprayBuf.getChannelData(ch);
+        for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
       }
-      const src = ctx.createBufferSource();
-      src.buffer = buffer;
-      const filter = ctx.createBiquadFilter();
-      filter.type = "bandpass";
-      filter.frequency.value = 1800;
-      filter.Q.value = 0.8;
-      const gain = ctx.createGain();
-      gain.gain.value = 0.35;
-      src.connect(filter).connect(gain).connect(ctx.destination);
-      src.start();
-      src.onended = () => ctx.close();
+      const spray = ctx.createBufferSource();
+      spray.buffer = sprayBuf;
+      const hp = ctx.createBiquadFilter();
+      hp.type = "highpass"; hp.frequency.value = 1200;
+      const bp = ctx.createBiquadFilter();
+      bp.type = "bandpass"; bp.frequency.value = 3500; bp.Q.value = 0.6;
+      const sprayGain = ctx.createGain();
+      sprayGain.gain.setValueAtTime(0.0001, now);
+      sprayGain.gain.exponentialRampToValueAtTime(0.35, now + 0.08);
+      sprayGain.gain.exponentialRampToValueAtTime(0.18, now + 1.2);
+      sprayGain.gain.exponentialRampToValueAtTime(0.0001, now + duration);
+      spray.connect(hp).connect(bp).connect(sprayGain).connect(ctx.destination);
+
+      // 2) Low rumble of running water
+      const rumbleBuf = ctx.createBuffer(1, ctx.sampleRate * duration, ctx.sampleRate);
+      const r = rumbleBuf.getChannelData(0);
+      let last = 0;
+      for (let i = 0; i < r.length; i++) {
+        const w = Math.random() * 2 - 1;
+        last = (last + 0.02 * w) * 0.96; // brownian-ish
+        r[i] = last * 3;
+      }
+      const rumble = ctx.createBufferSource();
+      rumble.buffer = rumbleBuf;
+      const lp = ctx.createBiquadFilter();
+      lp.type = "lowpass"; lp.frequency.value = 400;
+      const rumbleGain = ctx.createGain();
+      rumbleGain.gain.setValueAtTime(0.0001, now);
+      rumbleGain.gain.exponentialRampToValueAtTime(0.25, now + 0.1);
+      rumbleGain.gain.exponentialRampToValueAtTime(0.0001, now + duration);
+      rumble.connect(lp).connect(rumbleGain).connect(ctx.destination);
+
+      // 3) Bubble pops: short pitched blips
+      for (let i = 0; i < 8; i++) {
+        const t = now + 0.15 + Math.random() * 1.4;
+        const osc = ctx.createOscillator();
+        osc.type = "sine";
+        const f0 = 600 + Math.random() * 1200;
+        osc.frequency.setValueAtTime(f0, t);
+        osc.frequency.exponentialRampToValueAtTime(f0 * 2.4, t + 0.06);
+        const g = ctx.createGain();
+        g.gain.setValueAtTime(0.0001, t);
+        g.gain.exponentialRampToValueAtTime(0.12, t + 0.005);
+        g.gain.exponentialRampToValueAtTime(0.0001, t + 0.09);
+        osc.connect(g).connect(ctx.destination);
+        osc.start(t); osc.stop(t + 0.1);
+      }
+
+      spray.start(now);
+      rumble.start(now);
+      spray.stop(now + duration);
+      rumble.stop(now + duration);
+      spray.onended = () => ctx.close();
     } catch {
       /* silent fail — perf safe */
     }
   };
+
 
   const collect = (b: Building) => {
     setMoney((m) => m + b.reward);
