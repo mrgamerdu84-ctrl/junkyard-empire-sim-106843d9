@@ -945,7 +945,8 @@ export default function TaxiTycoon() {
         {/* Taxis */}
         {taxisRef.current.map((taxi) => {
           const p = getXYOn(taxi.pathIdx, taxi.pos);
-          const color = TAXI_COLORS.find((c) => c.id === taxi.colorId) ?? TAXI_COLORS[0];
+          // eslint-disable-next-line @typescript-eslint/no-unused-vars
+          const _ = taxi.colorId;
           const movingForward = taxi.target >= taxi.pos;
           const angle = movingForward ? p.angle : p.angle + 180;
           const fuelPct = Math.max(0, Math.min(1, taxi.fuel / 100));
