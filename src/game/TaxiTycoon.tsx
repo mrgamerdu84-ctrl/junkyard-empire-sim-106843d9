@@ -322,6 +322,59 @@ export default function TaxiTycoon() {
   const rivalJobsRef = useRef<Job[]>([]); // courses prises en charge par l'IA
   const [rivalStolen, setRivalStolen] = useState(0);
 
+  // === Circuit personnalisé (dessiné par le joueur) ===
+  // Pré-calcule la longueur totale + offsets cumulés.
+  const circuitInfo = useMemo(() => {
+    const pts = admin.circuitPoints;
+    if (!pts || pts.length < 2) return { pts: [], total: 0, offsets: [] as number[] };
+    const offsets: number[] = [0];
+    let total = 0;
+    for (let i = 1; i < pts.length; i++) {
+      total += Math.hypot(pts[i].x - pts[i - 1].x, pts[i].y - pts[i - 1].y);
+      offsets.push(total);
+    }
+    // boucle : ferme vers le premier point
+    total += Math.hypot(pts[0].x - pts[pts.length - 1].x, pts[0].y - pts[pts.length - 1].y);
+    return { pts, total, offsets };
+  }, [admin.circuitPoints]);
+
+  const circuitTaxisRef = useRef<{ id: number; pos: number }[]>([]);
+  const circuitInfoRef = useRef(circuitInfo);
+  circuitInfoRef.current = circuitInfo;
+  // Sync le nombre de taxis sur le circuit
+  useEffect(() => {
+    const target = circuitInfo.pts.length >= 2 ? Math.max(0, Math.min(8, admin.circuitTaxiCount)) : 0;
+    while (circuitTaxisRef.current.length < target) {
+      const i = circuitTaxisRef.current.length;
+      circuitTaxisRef.current.push({ id: 20000 + i, pos: (i / Math.max(1, target)) * circuitInfo.total });
+    }
+    while (circuitTaxisRef.current.length > target) circuitTaxisRef.current.pop();
+  }, [admin.circuitTaxiCount, circuitInfo.total, circuitInfo.pts.length]);
+
+  // Récupère (x,y,angle) à une position le long du circuit (en pixels)
+  const circuitAt = (s: number) => {
+    const info = circuitInfo;
+    if (info.pts.length < 2 || info.total <= 0) return { x: 0, y: 0, angle: 0 };
+    let d = ((s % info.total) + info.total) % info.total;
+    for (let i = 0; i < info.pts.length; i++) {
+      const a = info.pts[i];
+      const b = info.pts[(i + 1) % info.pts.length];
+      const segLen = Math.hypot(b.x - a.x, b.y - a.y);
+      if (d <= segLen || i === info.pts.length - 1) {
+        const t = segLen > 0 ? d / segLen : 0;
+        return {
+          x: a.x + (b.x - a.x) * t,
+          y: a.y + (b.y - a.y) * t,
+          angle: (Math.atan2(b.y - a.y, b.x - a.x) * 180) / Math.PI,
+        };
+      }
+      d -= segLen;
+    }
+    return { x: info.pts[0].x, y: info.pts[0].y, angle: 0 };
+  };
+
+
+
 
 
 
@@ -651,6 +704,16 @@ export default function TaxiTycoon() {
         }
       }
 
+      // ====== Circuit taxis : avance le long de la boucle ======
+      const cInfo = circuitInfoRef.current;
+      if (circuitTaxisRef.current.length > 0 && cInfo.total > 0) {
+        const cSpeed = (BASE_SPEED + 10) * (adm.circuitSpeedMult ?? 1);
+        const step = cSpeed * dt;
+        for (const ct of circuitTaxisRef.current) {
+          ct.pos = (ct.pos + step) % cInfo.total;
+        }
+      }
+
       forceRender((n) => (n + 1) % 1_000_000);
 
       raf = requestAnimationFrame(tick);
@@ -930,6 +993,32 @@ export default function TaxiTycoon() {
 
         {/* QG concurrent */}
         {pathsReady && admin.rivalEnabled && <RivalDepot x={admin.rivalHQX} y={admin.rivalHQY - 18} />}
+
+        {/* Circuit dessiné par le joueur */}
+        {circuitInfo.pts.length >= 2 && (
+          <g>
+            <polyline
+              points={[...circuitInfo.pts, circuitInfo.pts[0]].map(p => `${p.x},${p.y}`).join(" ")}
+              fill="none" stroke="#22c55e" strokeWidth="6" strokeOpacity="0.35"
+              strokeLinecap="round" strokeLinejoin="round" strokeDasharray="10 8"
+            />
+            <polyline
+              points={[...circuitInfo.pts, circuitInfo.pts[0]].map(p => `${p.x},${p.y}`).join(" ")}
+              fill="none" stroke="#22c55e" strokeWidth="2.5" strokeOpacity="0.9"
+              strokeLinecap="round" strokeLinejoin="round"
+            />
+          </g>
+        )}
+
+        {/* Taxis qui tournent sur le circuit personnalisé */}
+        {circuitInfo.pts.length >= 2 && circuitTaxisRef.current.map((ct) => {
+          const p = circuitAt(ct.pos);
+          return (
+            <g key={ct.id} transform={`translate(${p.x},${p.y}) rotate(${p.angle})`} filter="url(#taxi-shadow)">
+              <TaxiSprite image={currentLivery.image} faceRight={currentLivery.faceRight} withClient={false} moving={true} />
+            </g>
+          );
+        })}
 
         {/* Taxis rivaux (couleur sombre + bandeau rouge) */}
         {admin.rivalEnabled && rivalTaxisRef.current.map((r) => {

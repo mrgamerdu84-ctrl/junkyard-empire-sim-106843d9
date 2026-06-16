@@ -35,6 +35,11 @@ export type AdminConfig = {
   rivalTaxiCount: number;        // 1..6 — nb de taxis IA
   rivalReactionTime: number;     // 1..15 — délai (s) avant qu'un taxi IA ne snipe une course
   rivalSpeedMult: number;        // 0.5..2.5
+
+  // ====== Circuit personnalisé ======
+  circuitPoints: { x: number; y: number }[]; // polyligne dessinée par le joueur
+  circuitTaxiCount: number;      // 0..8 — nb de taxis qui tournent en boucle
+  circuitSpeedMult: number;      // 0.5..3
 };
 
 export const DEFAULT_ADMIN: AdminConfig = {
@@ -65,6 +70,10 @@ export const DEFAULT_ADMIN: AdminConfig = {
   rivalTaxiCount: 2,
   rivalReactionTime: 5,
   rivalSpeedMult: 1,
+
+  circuitPoints: [],
+  circuitTaxiCount: 0,
+  circuitSpeedMult: 1,
 };
 
 const KEY = "taxi-tycoon-admin-v2";

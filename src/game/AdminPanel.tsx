@@ -4,8 +4,9 @@ import { useAdminConfig, setAdmin, resetAdmin, type AdminConfig } from "./adminC
 /* Floating gear button + slide-in admin panel. */
 export default function AdminPanel() {
   const [open, setOpen] = useState(false);
-  const [tab, setTab] = useState<"trafic" | "hq" | "missions" | "rival">("trafic");
+  const [tab, setTab] = useState<"trafic" | "hq" | "missions" | "rival" | "circuit">("trafic");
   const [placeMode, setPlaceMode] = useState(false);
+  const [drawMode, setDrawMode] = useState(false);
   const cfg = useAdminConfig();
 
   // Mode "placer le QG" — clic sur la map = nouvelle position.
@@ -42,6 +43,66 @@ export default function AdminPanel() {
 
   const bumpScale = (d: number) => setAdmin({ hqScale: Math.max(0.3, Math.min(8, cfg.hqScale + d)) });
   const bumpRot = (d: number) => setAdmin({ hqRotation: cfg.hqRotation + d });
+
+  // === Dessin du circuit au doigt ===
+  useEffect(() => {
+    if (!drawMode) return;
+    const svg = document.querySelector(".tt-root svg") as SVGSVGElement | null;
+    if (!svg) return;
+    let drawing = false;
+    let pts: { x: number; y: number }[] = [];
+    let lastT = 0;
+    const toSvg = (cx: number, cy: number) => {
+      const pt = svg.createSVGPoint();
+      pt.x = cx; pt.y = cy;
+      const ctm = svg.getScreenCTM();
+      if (!ctm) return null;
+      const p = pt.matrixTransform(ctm.inverse());
+      return { x: Math.max(0, Math.min(1920, p.x)), y: Math.max(0, Math.min(1080, p.y)) };
+    };
+    const onDown = (e: PointerEvent) => {
+      const tgt = e.target as HTMLElement;
+      if (tgt.closest(".adm-place-controls") || tgt.closest(".adm-btn")) return;
+      drawing = true;
+      pts = [];
+      const p = toSvg(e.clientX, e.clientY);
+      if (p) pts.push(p);
+      e.preventDefault();
+    };
+    const onMove = (e: PointerEvent) => {
+      if (!drawing) return;
+      const now = performance.now();
+      if (now - lastT < 16) return;
+      lastT = now;
+      const p = toSvg(e.clientX, e.clientY);
+      if (!p) return;
+      const last = pts[pts.length - 1];
+      if (!last || Math.hypot(p.x - last.x, p.y - last.y) > 8) {
+        pts.push(p);
+        setAdmin({ circuitPoints: [...pts] });
+      }
+      e.preventDefault();
+    };
+    const onUp = () => {
+      if (!drawing) return;
+      drawing = false;
+      if (pts.length >= 2) setAdmin({ circuitPoints: pts });
+      setDrawMode(false);
+    };
+    window.addEventListener("pointerdown", onDown, true);
+    window.addEventListener("pointermove", onMove, true);
+    window.addEventListener("pointerup", onUp, true);
+    return () => {
+      window.removeEventListener("pointerdown", onDown, true);
+      window.removeEventListener("pointermove", onMove, true);
+      window.removeEventListener("pointerup", onUp, true);
+    };
+  }, [drawMode]);
+
+  const startDraw = () => { setDrawMode(true); setOpen(false); };
+  const clearCircuit = () => setAdmin({ circuitPoints: [], circuitTaxiCount: 0 });
+
+
 
 
 
@@ -139,6 +200,12 @@ export default function AdminPanel() {
         </>
       )}
 
+      {drawMode && (
+        <div className="adm-place-banner" style={{ background: "#22c55e", color: "#0a1f10" }}>
+          ✏️ Dessine le circuit avec ton doigt (relâche pour valider)
+        </div>
+      )}
+
       {!open && (
         <button className="adm-btn" onClick={() => setOpen(true)} aria-label="Panneau admin" title="Panneau admin">⚙</button>
       )}
@@ -155,8 +222,9 @@ export default function AdminPanel() {
             <div className="adm-tabs">
               <button className={`adm-tab ${tab === "trafic" ? "active" : ""}`} onClick={() => setTab("trafic")}>Trafic</button>
               <button className={`adm-tab ${tab === "hq" ? "active" : ""}`} onClick={() => setTab("hq")}>QG</button>
-              <button className={`adm-tab ${tab === "missions" ? "active" : ""}`} onClick={() => setTab("missions")}>Missions</button>
+              <button className={`adm-tab ${tab === "missions" ? "active" : ""}`} onClick={() => setTab("missions")}>Miss.</button>
               <button className={`adm-tab ${tab === "rival" ? "active" : ""}`} onClick={() => setTab("rival")}>Rival</button>
+              <button className={`adm-tab ${tab === "circuit" ? "active" : ""}`} onClick={() => setTab("circuit")}>Circuit</button>
             </div>
 
             {tab === "trafic" && (
@@ -239,6 +307,29 @@ export default function AdminPanel() {
                   format={(v) => v.toFixed(0)} onChange={(v) => setAdmin({ rivalHQX: v })} />
                 <Slider label="QG Rival — Y" value={cfg.rivalHQY} min={0} max={1080} step={1}
                   format={(v) => v.toFixed(0)} onChange={(v) => setAdmin({ rivalHQY: v })} />
+              </>
+            )}
+            {tab === "circuit" && (
+              <>
+                <button className="adm-place" onClick={startDraw}>
+                  ✏️ Dessiner un circuit au doigt
+                </button>
+                <div className="adm-hint" style={{ marginTop: 4 }}>
+                  Le panneau se ferme. Trace la boucle avec le doigt sur la carte.
+                </div>
+                <button className="adm-place" onClick={clearCircuit} style={{ marginTop: 8 }}>
+                  🗑 Effacer le circuit
+                </button>
+                <div className="adm-hint" style={{ marginTop: 4 }}>
+                  Points actuels : {cfg.circuitPoints.length}
+                </div>
+
+                <Slider label="Taxis sur le circuit" hint="Taxis dédiés qui tournent en boucle"
+                  value={cfg.circuitTaxiCount} min={0} max={8} step={1}
+                  format={(v) => v.toFixed(0)} onChange={(v) => setAdmin({ circuitTaxiCount: v })} />
+                <Slider label="Vitesse circuit"
+                  value={cfg.circuitSpeedMult} min={0.3} max={3} step={0.05}
+                  format={(v) => "×" + v.toFixed(2)} onChange={(v) => setAdmin({ circuitSpeedMult: v })} />
               </>
             )}
 
