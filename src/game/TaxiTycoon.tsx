@@ -284,6 +284,28 @@ function Depot({ tier, x, y, scale = 1, rotation = 0 }: { tier: DepotTier; x: nu
   );
 }
 
+function RivalDepot({ x, y }: { x: number; y: number }) {
+  return (
+    <g transform={`translate(${x},${y})`}>
+      <ellipse cx="0" cy="48" rx="92" ry="16" fill="rgba(0,0,0,0.55)" />
+      <path d="M -82 38 L 82 38 L 102 48 L -102 48 Z" fill="#2a2024" stroke="#1a0a10" strokeWidth="1.2" />
+      <rect x="-72" y="-14" width="144" height="54" rx="2" fill="#3a1820" stroke="#1a0a10" strokeWidth="1.8" />
+      <path d="M -78 -14 L 0 -46 L 78 -14 Z" fill="#7a1020" stroke="#1a0a10" strokeWidth="1.8" />
+      <rect x="-54" y="-2" width="32" height="40" fill="#0a0608" stroke="#000" strokeWidth="1.4" />
+      <rect x="22" y="-2" width="32" height="40" fill="#0a0608" stroke="#000" strokeWidth="1.4" />
+      <rect x="-18" y="4" width="36" height="20" fill="#ff3040" opacity="0.9" stroke="#1a0a10" strokeWidth="1" />
+      <rect x="-54" y="-40" width="108" height="16" rx="2.5" fill="#dc1a2a" stroke="#1a0a10" strokeWidth="1.6" />
+      <text x="0" y="-28" fontSize="10" fontWeight="900" textAnchor="middle" fill="#fff" letterSpacing="1">RIVAL CABS</text>
+      <circle cx="58" cy="-30" r="10" fill="#0a0608" stroke="#ff3040" strokeWidth="2" />
+      <text x="58" y="-26" fontSize="12" textAnchor="middle">⚔️</text>
+      <line x1="-56" y1="-46" x2="-56" y2="-60" stroke="#1a0a10" strokeWidth="1.4" />
+      <circle cx="-56" cy="-61" r="2" fill="#ff3040">
+        <animate attributeName="opacity" values="1;0.2;1" dur="1.1s" repeatCount="indefinite" />
+      </circle>
+    </g>
+  );
+}
+
 export default function TaxiTycoon() {
   // Une ref par chemin disponible — permet de varier les trajets des taxis.
   const pathRefs = useRef<(SVGPathElement | null)[]>([]);
