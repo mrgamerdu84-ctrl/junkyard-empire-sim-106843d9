@@ -752,41 +752,62 @@ export default function TaxiTycoon() {
           </div>
         </div>
 
-        {/* === Contrats === */}
+        {/* === File de courses (offres + courses en cours) === */}
         <div className="tt-contracts">
           <div className="tt-contracts-head">
-            <span>📋 CONTRATS</span>
-            {boost && boost.until > nowTick && (
-              <span className="tt-boost">x{boost.mult} {Math.max(0, Math.ceil((boost.until - nowTick) / 1000))}s</span>
-            )}
+            <span>📋 COURSES</span>
+            <span className="tt-fleet">
+              {taxisRef.current.filter((t) => t.mode !== "idle").length}/{taxiCount} en course
+            </span>
           </div>
-          {contracts.map((c) => {
-            const remain = Math.max(0, c.deadline - nowTick);
+          {jobs.length === 0 && (
+            <div className="tt-empty">En attente d'appels…</div>
+          )}
+          {jobs.slice().sort((a, b) => {
+            // offered en premier, puis par deadline ascendant
+            if (a.status !== b.status) return a.status === "offered" ? -1 : 1;
+            return a.deadline - b.deadline;
+          }).map((j) => {
+            const isOffered = j.status === "offered";
+            const remain = Math.max(0, j.deadline - nowTick);
             const remainSec = Math.ceil(remain / 1000);
-            const timePct = Math.max(0, Math.min(1, remain / c.duration));
-            const progPct = Math.max(0, Math.min(1, c.progress / c.target));
-            const urgent = remainSec <= 10;
-            const progressLabel = c.kind === "earn"
-              ? `${fmt(c.progress)} / ${fmt(c.target)}$`
-              : `${c.progress} / ${c.target}`;
+            const timePct = isOffered ? Math.max(0, Math.min(1, remain / j.duration)) : 1;
+            const urgent = isOffered && remainSec <= 6;
+            const freeTaxi = taxisRef.current.some((t) => t.mode === "idle");
             return (
-              <div key={c.id} className={`tt-contract ${urgent ? "urgent" : ""}`}>
+              <div key={j.id} className={`tt-contract ${urgent ? "urgent" : ""} ${!isOffered ? "in-progress" : ""}`}>
                 <div className="tt-c-row">
-                  <span className="tt-c-icon">{c.icon}</span>
-                  <span className="tt-c-label">{c.label}</span>
-                  <button className="tt-c-x" onClick={() => cancelContract(c.id)} title="Abandonner">✕</button>
+                  <span className="tt-c-icon">{isOffered ? "🙋" : "🚕"}</span>
+                  <span className="tt-c-label">
+                    {isOffered ? `Course ${fmt(j.fare)}$` : `En cours — ${fmt(j.fare)}$`}
+                  </span>
+                  {isOffered && (
+                    <button className="tt-c-x" onClick={() => rejectJob(j.id)} title="Refuser">✕</button>
+                  )}
                 </div>
-                <div className="tt-c-bar"><div className="tt-c-bar-fill" style={{ width: `${progPct * 100}%` }} /></div>
-                <div className="tt-c-meta">
-                  <span>{progressLabel}</span>
-                  <span className="tt-c-reward">+{fmt(c.rewardCash)}${c.rewardMult ? ` • x${c.rewardMult}` : ""}</span>
-                </div>
-                <div className="tt-c-time"><div className="tt-c-time-fill" style={{ width: `${timePct * 100}%` }} /></div>
-                <div className="tt-c-time-lbl">{remainSec}s</div>
+                {isOffered ? (
+                  <>
+                    <div className="tt-c-time"><div className="tt-c-time-fill" style={{ width: `${timePct * 100}%` }} /></div>
+                    <button
+                      className="tt-c-accept"
+                      onClick={() => acceptJob(j.id)}
+                      disabled={!freeTaxi}
+                      title={freeTaxi ? "Envoyer un taxi" : "Tous les taxis sont occupés"}
+                    >
+                      {freeTaxi ? `▶ Accepter (${remainSec}s)` : `Flotte pleine (${remainSec}s)`}
+                    </button>
+                  </>
+                ) : (
+                  <div className="tt-c-meta">
+                    <span>Taxi en route…</span>
+                    <span className="tt-c-reward">+{fmt(j.fare)}$</span>
+                  </div>
+                )}
               </div>
             );
           })}
         </div>
+
 
         <div className="tt-actions">
           <button className="tt-btn primary" onClick={buyTaxi} disabled={save.money < taxiBuyCost || taxiCount >= tier.maxTaxis}>
