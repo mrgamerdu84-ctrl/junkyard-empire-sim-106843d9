@@ -1208,13 +1208,18 @@ export default function TaxiTycoon() {
                     <button
                       className="tt-shop-buy"
                       onClick={() => hqUpgrade(k)}
-                      disabled={maxed || cantPay}
+                      disabled={maxed}
                     >
                       {maxed ? "MAX" : `${fmt(cost)} $`}
                     </button>
                   </div>
                 );
               })}
+              <div style={{ display: "flex", justifyContent: "center", marginTop: 10 }}>
+                <button className="tt-shop-close-btn" onClick={() => setShopOpen(false)}>
+                  ❌ Fermer la boutique
+                </button>
+              </div>
             </div>
           </div>
         )}
@@ -1365,6 +1370,13 @@ export default function TaxiTycoon() {
           font-weight: 800; font-size: 12px; cursor: pointer; min-width: 78px;
         }
         .tt-shop-buy:disabled { opacity: 0.45; cursor: not-allowed; }
+        .tt-shop-close-btn {
+          background: linear-gradient(180deg, #ef4444, #991b1b);
+          color: #fff; border: 1px solid #7f1d1d; border-radius: 10px;
+          padding: 10px 18px; font-weight: 800; font-size: 13px; cursor: pointer;
+          min-width: 160px; pointer-events: auto;
+        }
+        .tt-shop-close-btn:hover { transform: scale(1.04); }
 
         .tt-garage-fab {
           position: absolute; bottom: 12px; left: 50%; transform: translateX(-50%);
