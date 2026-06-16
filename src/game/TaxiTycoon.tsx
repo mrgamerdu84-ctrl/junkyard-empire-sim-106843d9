@@ -702,6 +702,15 @@ export default function TaxiTycoon() {
         }
       }
 
+      // ====== Circuit taxis : avance le long de la boucle ======
+      if (circuitTaxisRef.current.length > 0 && circuitInfo.total > 0) {
+        const cSpeed = (BASE_SPEED + 10) * (adm.circuitSpeedMult ?? 1);
+        const step = cSpeed * dt;
+        for (const ct of circuitTaxisRef.current) {
+          ct.pos = (ct.pos + step) % circuitInfo.total;
+        }
+      }
+
       forceRender((n) => (n + 1) % 1_000_000);
 
       raf = requestAnimationFrame(tick);
