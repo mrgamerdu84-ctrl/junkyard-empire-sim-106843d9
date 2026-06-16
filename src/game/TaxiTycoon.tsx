@@ -977,24 +977,8 @@ export default function TaxiTycoon() {
         {/* QG concurrent */}
         {pathsReady && admin.rivalEnabled && <RivalDepot x={admin.rivalHQX} y={admin.rivalHQY - 18} />}
 
-        {/* Circuit dessiné par le joueur */}
-        {circuitInfo.pts.length >= 2 && (
-          <g>
-            <polyline
-              points={[...circuitInfo.pts, circuitInfo.pts[0]].map(p => `${p.x},${p.y}`).join(" ")}
-              fill="none" stroke="#22c55e" strokeWidth="6" strokeOpacity="0.35"
-              strokeLinecap="round" strokeLinejoin="round" strokeDasharray="10 8"
-            />
-            <polyline
-              points={[...circuitInfo.pts, circuitInfo.pts[0]].map(p => `${p.x},${p.y}`).join(" ")}
-              fill="none" stroke="#22c55e" strokeWidth="2.5" strokeOpacity="0.9"
-              strokeLinecap="round" strokeLinejoin="round"
-            />
-            {circuitInfo.pts.map((p, i) => (
-              <circle key={i} cx={p.x} cy={p.y} r="6" fill="#0a0c10" stroke="#22c55e" strokeWidth="2" />
-            ))}
-          </g>
-        )}
+        {/* Circuit dessiné par le joueur — TRACÉ CACHÉ, seuls les taxis restent visibles */}
+
         {/* Aperçu pendant le dessin : si un seul point, affiche-le */}
         {circuitInfo.pts.length === 1 && (
           <circle cx={circuitInfo.pts[0].x} cy={circuitInfo.pts[0].y} r="7" fill="#0a0c10" stroke="#22c55e" strokeWidth="2" />
