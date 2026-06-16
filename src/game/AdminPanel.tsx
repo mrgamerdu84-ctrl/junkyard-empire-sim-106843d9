@@ -8,20 +8,24 @@ export default function AdminPanel() {
   const [placeMode, setPlaceMode] = useState(false);
   const cfg = useAdminConfig();
 
-  // Mode "placer le QG" — clic sur la map = nouvelle position
+  // Mode "placer le QG" — clic sur la map = nouvelle position.
+  // On ferme le panneau pendant le placement pour que le clic atteigne la map,
+  // et on convertit n'importe quel clic en coordonnées SVG (le SVG du jeu a
+  // pointer-events:none, donc on ne peut pas se fier à svg.contains(target)).
   useEffect(() => {
     if (!placeMode) return;
     const onClick = (e: MouseEvent) => {
       const svg = document.querySelector(".tt-root svg") as SVGSVGElement | null;
       if (!svg) return;
-      const target = e.target as Element;
-      if (!svg.contains(target)) return;
       const pt = svg.createSVGPoint();
       pt.x = e.clientX; pt.y = e.clientY;
       const ctm = svg.getScreenCTM();
       if (!ctm) return;
       const p = pt.matrixTransform(ctm.inverse());
-      setAdmin({ hqUseFreePos: true, hqX: p.x, hqY: p.y });
+      // Bornes du viewBox 1920×1080
+      const x = Math.max(0, Math.min(1920, p.x));
+      const y = Math.max(0, Math.min(1080, p.y));
+      setAdmin({ hqUseFreePos: true, hqX: x, hqY: y });
       setPlaceMode(false);
       e.stopPropagation();
       e.preventDefault();
@@ -29,6 +33,13 @@ export default function AdminPanel() {
     window.addEventListener("click", onClick, true);
     return () => window.removeEventListener("click", onClick, true);
   }, [placeMode]);
+
+  // Quand on lance le placement, on ferme le panneau pour libérer la map.
+  const startPlacement = () => {
+    setPlaceMode(true);
+    setOpen(false);
+  };
+
 
   return (
     <>
