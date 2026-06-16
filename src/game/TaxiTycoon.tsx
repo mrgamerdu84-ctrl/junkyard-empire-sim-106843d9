@@ -524,39 +524,13 @@ export default function TaxiTycoon() {
       y: p.y + ny * SIDEWALK_OFFSET * side,
       angle: (Math.atan2(dy, dx) * 180) / Math.PI,
     };
-
-
-  // === Helpers de rendu position ===
-  const getXY = (len: number): { x: number; y: number; angle: number } => {
-    if (!measureRef.current) return { x: 0, y: 0, angle: 0 };
-    const safe = ((len % pathLen) + pathLen) % pathLen;
-    const p = measureRef.current.getPointAtLength(safe);
-    const p2 = measureRef.current.getPointAtLength(Math.min(pathLen - 0.1, safe + 2));
-    const angle = (Math.atan2(p2.y - p.y, p2.x - p.x) * 180) / Math.PI;
-    return { x: p.x, y: p.y, angle };
   };
 
-  // Position décalée sur le trottoir (perpendiculaire à la route)
-  const SIDEWALK_OFFSET = 22;
-  const getSidewalk = (len: number, side: 1 | -1) => {
-    if (!measureRef.current) return { x: 0, y: 0, angle: 0 };
-    const safe = ((len % pathLen) + pathLen) % pathLen;
-    const p = measureRef.current.getPointAtLength(safe);
-    const p2 = measureRef.current.getPointAtLength(Math.min(pathLen - 0.1, safe + 2));
-    const dx = p2.x - p.x, dy = p2.y - p.y;
-    const L = Math.hypot(dx, dy) || 1;
-    const nx = -dy / L, ny = dx / L; // normale unitaire
-    return {
-      x: p.x + nx * SIDEWALK_OFFSET * side,
-      y: p.y + ny * SIDEWALK_OFFSET * side,
-      angle: (Math.atan2(dy, dx) * 180) / Math.PI,
-    };
-  };
+  // Le QG est ancré en XY absolu sur la map.
+  const depotXY = useMemo(() => ({ x: admin.hqX, y: admin.hqY, angle: 0 }),
+    [admin.hqX, admin.hqY]);
 
-  const depotXY = useMemo(() => {
-    if (admin.hqUseFreePos) return { x: admin.hqX, y: admin.hqY, angle: 0 };
-    return getXY(pathLen * (admin.depotPosNorm || DEFAULT_DEPOT_POS));
-  }, [pathLen, admin.depotPosNorm, admin.hqUseFreePos, admin.hqX, admin.hqY]);
+
 
   // === Actions UI ===
   const taxiCount = save.taxis.length;
