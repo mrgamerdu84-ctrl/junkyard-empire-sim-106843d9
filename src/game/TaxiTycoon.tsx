@@ -577,49 +577,57 @@ export default function TaxiTycoon() {
     setSave((s) => ({ ...s, defaultColor: id, taxis: s.taxis.map((t) => ({ colorId: id })) }));
   };
 
-  // === Boucle contrats : refresh slots + expiration + complétion ===
+  // === Boucle de file de courses : tick du timer + expiration des offres ===
   useEffect(() => {
     const iv = window.setInterval(() => {
       const now = Date.now();
       setNowTick(now);
-      // Boost expiration
-      setBoost((b) => (b && b.until <= now ? null : b));
-      // Évalue complétion + expiration + refill
-      setContracts((cs) => {
+      // Expire les courses « offered » dont le client a abandonné
+      setJobs((js) => {
         let changed = false;
-        const kept: Contract[] = [];
-        for (const c of cs) {
-          if (c.progress >= c.target) {
-            // Récompense
-            setSave((s) => ({ ...s, money: s.money + c.rewardCash, contractsCompleted: s.contractsCompleted + 1 }));
-            if (c.rewardMult && c.rewardMultSec) {
-              setBoost({ mult: c.rewardMult, until: now + c.rewardMultSec * 1000 });
-            }
-            showToast(`✅ Contrat réussi : +${fmt(c.rewardCash)}$${c.rewardMult ? ` • x${c.rewardMult} ${c.rewardMultSec}s` : ""}`);
+        const kept: Job[] = [];
+        for (const j of js) {
+          if (j.status === "offered" && j.deadline <= now) {
             changed = true;
             continue;
           }
-          if (c.deadline <= now) {
-            showToast(`⏱️ Contrat expiré`);
-            changed = true;
-            continue;
-          }
-          kept.push(c);
+          kept.push(j);
         }
-        // Refill jusqu'à MAX
-        while (kept.length < MAX_CONTRACTS) {
-          kept.push(genContract(saveRef.current.depotTier));
-          changed = true;
-        }
-        return changed ? kept : cs;
+        return changed ? kept : js;
       });
-    }, 500);
+    }, 250);
     return () => clearInterval(iv);
   }, []);
 
-  const cancelContract = (id: number) => {
-    setContracts((cs) => cs.filter((c) => c.id !== id));
+  // Le joueur refuse / annule une course proposée
+  const rejectJob = (id: number) => {
+    setJobs((js) => js.filter((j) => j.id !== id));
   };
+
+  // Le joueur accepte la course → on cherche un taxi idle, sinon on râle.
+  const acceptJob = (id: number) => {
+    const job = jobsRef.current.find((j) => j.id === id);
+    if (!job || job.status !== "offered") return;
+    const free = taxisRef.current.find((t) => t.mode === "idle");
+    if (!free) {
+      showToast("🚖 Tous les taxis sont occupés");
+      return;
+    }
+    const adm = getAdmin();
+    const cooldownMs = Math.max(0, adm.taxiSpawnCooldown) * 1000;
+    const now = performance.now();
+    if (now - lastTaxiDispatchRef.current < cooldownMs) {
+      showToast(`⏱️ Cooldown sortie QG`);
+      return;
+    }
+    lastTaxiDispatchRef.current = now;
+    free.jobId = job.id;
+    free.mode = "to_pickup";
+    free.target = job.pickup;
+    setJobs((js) => js.map((j) => j.id === id ? { ...j, status: "accepted", acceptedAt: Date.now() } : j));
+  };
+
+
 
 
   return (
