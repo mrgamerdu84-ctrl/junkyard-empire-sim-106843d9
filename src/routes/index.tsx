@@ -560,8 +560,41 @@ function JunkyCityEmpire() {
           }}
         />
 
+        <header className="jce-topbar">
+          <div className="jce-profile-block">
+            <div className="jce-profile">
+              <div className="jce-avatar"><img src={sharky} alt="Sharky" /></div>
+              <div className="jce-profile-info">
+                <div className="jce-name">SHARKY</div>
+                <div className="jce-level">Niveau {niveau}</div>
+                <div className="jce-xpbar">
+                  <div className="jce-xpbar-fill" style={{ width: `${xp}%` }} />
+                </div>
+              </div>
+            </div>
+            <div className="jce-resources">
+              <div className="jce-resource">
+                <div className="jce-res-icon money">💵</div>
+                <div className="jce-res-value">{formatNum(argent)} $</div>
+              </div>
+              <div className="jce-resource">
+                <div className="jce-res-icon scrap">📦</div>
+                <div className="jce-res-value">{formatNum(ferraille)}</div>
+              </div>
+            </div>
+          </div>
+          <div className="jce-topright">
+            <div className="jce-stats-row">
+              <div className="jce-stat"><span className="jce-stat-icon">🔧</span><span>32/32</span></div>
+              <div className="jce-stat"><span className="jce-stat-icon">🚛</span><span>8/12</span></div>
+              <div className="jce-stat rating"><span className="jce-stars">★★★★</span><span>4.2</span></div>
+              <div className="jce-settings" role="button" aria-label="Paramètres">⚙</div>
+            </div>
+          </div>
+        </header>
 
         {toast && <div className="jce-toast">{toast}</div>}
+
 
         <nav className="jce-toolbar">
           {TOOLBAR.map((t) => (
