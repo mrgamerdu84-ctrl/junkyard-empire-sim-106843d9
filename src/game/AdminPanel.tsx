@@ -191,7 +191,7 @@ export default function AdminPanel() {
                   format={(v) => v.toFixed(0)} onChange={(v) => setAdmin({ hqUseFreePos: true, hqY: v })} />
 
                 <Slider label="Taille du QG"
-                  value={cfg.hqScale} min={0.5} max={3} step={0.05}
+                  value={cfg.hqScale} min={0.3} max={8} step={0.05}
                   format={(v) => "×" + v.toFixed(2)} onChange={(v) => setAdmin({ hqScale: v })} />
 
                 <Slider label="Rotation"
