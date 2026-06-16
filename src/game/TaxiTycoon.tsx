@@ -735,6 +735,8 @@ export default function TaxiTycoon() {
   };
 
   const [garageOpen, setGarageOpen] = useState(false);
+  const [musicOn, setMusicOn] = useState(false);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
   const currentLivery = LIVERIES.find((l) => l.id === save.liveryId) ?? LIVERIES[0];
 
 
