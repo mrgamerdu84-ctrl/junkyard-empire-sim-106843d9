@@ -1320,6 +1320,44 @@ export default function TaxiTycoon() {
         .tt-btn-lbl { font-size: 11px; font-weight: 800; letter-spacing: 0.3px; }
         .tt-btn-cost { font-size: 11px; font-weight: 900; color: #fde68a; }
         .tt-btn.upgrade .tt-btn-cost { color: #d1fae5; }
+        .tt-btn.shop { background: linear-gradient(180deg, #7c3aed, #3b0c7a); border-color: #2a0a55; }
+        .tt-btn.shop .tt-btn-cost { color: #e9d5ff; }
+
+        /* === Boutique QG === */
+        .tt-shop-overlay {
+          position: fixed; inset: 0; background: rgba(0,0,0,0.65); z-index: 200;
+          display: flex; align-items: center; justify-content: center; padding: 16px;
+          backdrop-filter: blur(4px);
+        }
+        .tt-shop {
+          width: 100%; max-width: 460px; background: #14171c; color: #e8edf2;
+          border: 1px solid #2a2f38; border-radius: 14px; padding: 16px;
+          box-shadow: 0 18px 50px rgba(0,0,0,0.7);
+          font-family: system-ui, -apple-system, sans-serif;
+          max-height: 86vh; overflow-y: auto;
+        }
+        .tt-shop-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }
+        .tt-shop-head h2 { margin: 0; font-size: 17px; color: #f5c542; letter-spacing: 0.3px; }
+        .tt-shop-close { background: transparent; border: none; color: #8a8e94; font-size: 26px; cursor: pointer; line-height: 1; }
+        .tt-shop-money { font-size: 13px; color: #34d399; font-weight: 700; margin-bottom: 12px; }
+        .tt-shop-row {
+          display: flex; gap: 10px; align-items: center; padding: 10px;
+          background: #1a1d22; border: 1px solid #2a2f38; border-radius: 10px; margin-bottom: 8px;
+        }
+        .tt-shop-row-ico { font-size: 26px; }
+        .tt-shop-row-body { flex: 1; min-width: 0; }
+        .tt-shop-row-title { font-size: 13px; font-weight: 700; color: #f5c542; }
+        .tt-shop-row-desc { font-size: 11px; color: #9ca0a6; margin-top: 2px; }
+        .tt-shop-bar { display: flex; align-items: center; gap: 4px; margin-top: 6px; }
+        .tt-shop-pip { width: 12px; height: 6px; border-radius: 2px; background: #2a2f38; }
+        .tt-shop-pip.on { background: #f5c542; }
+        .tt-shop-lvl { font-size: 10px; color: #c8ccd2; margin-left: 6px; font-variant-numeric: tabular-nums; }
+        .tt-shop-buy {
+          background: linear-gradient(180deg, #f5c542, #b8860b); color: #14171c;
+          border: 1px solid #6e5108; border-radius: 8px; padding: 8px 12px;
+          font-weight: 800; font-size: 12px; cursor: pointer; min-width: 78px;
+        }
+        .tt-shop-buy:disabled { opacity: 0.45; cursor: not-allowed; }
 
         .tt-garage-fab {
           position: absolute; bottom: 12px; left: 50%; transform: translateX(-50%);
