@@ -184,26 +184,31 @@ export default function TaxiTycoon() {
     }
   }, []);
 
-  // Init taxis from save
+  // Sync taxis runtime list with save
   useEffect(() => {
     if (pathLen === 0) return;
-    if (taxisRef.current.length === 0) {
-      const depotPos = pathLen * DEPOT_POS_NORM;
-      taxisRef.current = save.taxis.map((t, i) => ({
+    const depotPos = pathLen * DEPOT_POS_NORM;
+    const newSpeed = BASE_SPEED + save.taxiSpeedLvl * 18;
+    // Ajoute les taxis manquants
+    while (taxisRef.current.length < save.taxis.length) {
+      const idx = taxisRef.current.length;
+      taxisRef.current.push({
         id: nextIdRef.current++,
         pos: depotPos,
         target: depotPos,
-        mode: "idle" as TaxiMode,
-        speed: BASE_SPEED + save.taxiSpeedLvl * 18,
-        colorId: t.colorId,
+        mode: "idle",
+        speed: newSpeed,
+        colorId: save.taxis[idx].colorId,
         clientId: null,
-      }));
-      forceRender((n) => n + 1);
+      });
     }
-    // Sync taxi speed when upgrade happens
-    const newSpeed = BASE_SPEED + save.taxiSpeedLvl * 18;
-    taxisRef.current.forEach((t) => (t.speed = newSpeed));
-  }, [pathLen, save.taxis.length, save.taxiSpeedLvl]);
+    // Sync couleurs + vitesse
+    taxisRef.current.forEach((t, i) => {
+      t.speed = newSpeed;
+      if (save.taxis[i]) t.colorId = save.taxis[i].colorId;
+    });
+    forceRender((n) => n + 1);
+  }, [pathLen, save.taxis, save.taxiSpeedLvl]);
 
   // Save persistence (debounced)
   useEffect(() => {
