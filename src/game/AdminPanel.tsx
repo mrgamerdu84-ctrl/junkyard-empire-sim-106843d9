@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useAdminConfig, setAdmin, resetAdmin, type AdminConfig } from "./adminConfig";
 
 /* Floating gear button + slide-in admin panel. */
@@ -44,14 +44,11 @@ export default function AdminPanel() {
   const bumpScale = (d: number) => setAdmin({ hqScale: Math.max(0.3, Math.min(8, cfg.hqScale + d)) });
   const bumpRot = (d: number) => setAdmin({ hqRotation: cfg.hqRotation + d });
 
-  // === Dessin du circuit au doigt ===
+  // === Dessin du circuit : clic point par point ===
   useEffect(() => {
     if (!drawMode) return;
     const svg = document.querySelector(".tt-root svg") as SVGSVGElement | null;
     if (!svg) return;
-    let drawing = false;
-    let pts: { x: number; y: number }[] = [];
-    let lastT = 0;
     const toSvg = (cx: number, cy: number) => {
       const pt = svg.createSVGPoint();
       pt.x = cx; pt.y = cy;
@@ -60,47 +57,37 @@ export default function AdminPanel() {
       const p = pt.matrixTransform(ctm.inverse());
       return { x: Math.max(0, Math.min(1920, p.x)), y: Math.max(0, Math.min(1080, p.y)) };
     };
-    const onDown = (e: PointerEvent) => {
+    const onClick = (e: MouseEvent) => {
       const tgt = e.target as HTMLElement;
-      if (tgt.closest(".adm-place-controls") || tgt.closest(".adm-btn")) return;
-      drawing = true;
-      pts = [];
-      const p = toSvg(e.clientX, e.clientY);
-      if (p) pts.push(p);
-      e.preventDefault();
-    };
-    const onMove = (e: PointerEvent) => {
-      if (!drawing) return;
-      const now = performance.now();
-      if (now - lastT < 16) return;
-      lastT = now;
+      if (tgt.closest(".adm-place-controls") || tgt.closest(".adm-btn") || tgt.closest(".adm-place-banner")) return;
       const p = toSvg(e.clientX, e.clientY);
       if (!p) return;
-      const last = pts[pts.length - 1];
-      if (!last || Math.hypot(p.x - last.x, p.y - last.y) > 8) {
-        pts.push(p);
-        setAdmin({ circuitPoints: [...pts] });
-      }
+      const current = (cfgRef.current.circuitPoints ?? []) as { x: number; y: number }[];
+      setAdmin({ circuitPoints: [...current, p] });
+      e.stopPropagation();
       e.preventDefault();
     };
-    const onUp = () => {
-      if (!drawing) return;
-      drawing = false;
-      if (pts.length >= 2) setAdmin({ circuitPoints: pts });
-      setDrawMode(false);
-    };
-    window.addEventListener("pointerdown", onDown, true);
-    window.addEventListener("pointermove", onMove, true);
-    window.addEventListener("pointerup", onUp, true);
-    return () => {
-      window.removeEventListener("pointerdown", onDown, true);
-      window.removeEventListener("pointermove", onMove, true);
-      window.removeEventListener("pointerup", onUp, true);
-    };
+    window.addEventListener("click", onClick, true);
+    return () => window.removeEventListener("click", onClick, true);
   }, [drawMode]);
 
-  const startDraw = () => { setDrawMode(true); setOpen(false); };
+  // Garde la config courante accessible dans le handler de clic
+  const cfgRef = useRef(cfg);
+  cfgRef.current = cfg;
+
+  const startDraw = () => {
+    setAdmin({ circuitPoints: [] }); // repart d'un circuit vide
+    setDrawMode(true);
+    setOpen(false);
+  };
+  const undoPoint = () => {
+    const pts = cfg.circuitPoints ?? [];
+    if (pts.length === 0) return;
+    setAdmin({ circuitPoints: pts.slice(0, -1) });
+  };
+  const finishDraw = () => setDrawMode(false);
   const clearCircuit = () => setAdmin({ circuitPoints: [], circuitTaxiCount: 0 });
+
 
 
 
@@ -201,9 +188,20 @@ export default function AdminPanel() {
       )}
 
       {drawMode && (
-        <div className="adm-place-banner" style={{ background: "#22c55e", color: "#0a1f10" }}>
-          ✏️ Dessine le circuit avec ton doigt (relâche pour valider)
-        </div>
+        <>
+          <div className="adm-place-banner" style={{ background: "#22c55e", color: "#0a1f10" }}>
+            ✏️ Clique sur la carte pour ajouter des points ({cfg.circuitPoints.length})
+          </div>
+          <div className="adm-place-controls">
+            <div className="adm-place-row">
+              <button onClick={undoPoint} aria-label="Annuler dernier point" disabled={cfg.circuitPoints.length === 0}>↶</button>
+              <span className="lbl">Points</span>
+              <span className="val">{cfg.circuitPoints.length}</span>
+              <button onClick={clearCircuit} aria-label="Effacer tout">🗑</button>
+            </div>
+            <button className="adm-place-done" onClick={finishDraw}>✓ Terminer le circuit</button>
+          </div>
+        </>
       )}
 
       {!open && (
@@ -312,10 +310,10 @@ export default function AdminPanel() {
             {tab === "circuit" && (
               <>
                 <button className="adm-place" onClick={startDraw}>
-                  ✏️ Dessiner un circuit au doigt
+                  📍 Dessiner un circuit (point par point)
                 </button>
                 <div className="adm-hint" style={{ marginTop: 4 }}>
-                  Le panneau se ferme. Trace la boucle avec le doigt sur la carte.
+                  Le panneau se ferme. Clique sur la carte pour placer chaque virage, puis "Terminer".
                 </div>
                 <button className="adm-place" onClick={clearCircuit} style={{ marginTop: 8 }}>
                   🗑 Effacer le circuit
