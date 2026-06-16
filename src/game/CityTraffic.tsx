@@ -1,20 +1,16 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useAdminConfig } from "./adminConfig";
 import npcTopdown from "@/assets/car-npc-topdown.png";
 import npcRedTopdown from "@/assets/car-npc-red-topdown.png";
+import citymap from "@/assets/citymap.jpg";
 
 /* eslint-disable prettier/prettier */
 
 /* ============================================================
- * JUNKY CITY EMPIRE — Map vectorielle 100% procédurale
- * viewBox 1920x1080, parfaitement scalable mobile.
- * Réseau : 6 boucles interconnectées (anneau périphérique,
- * 2 avenues horizontales, 2 avenues verticales, rond-point).
+ * JUNKY CITY EMPIRE — Image-based map (citymap.jpg)
+ * Routes invisibles pour le trafic (les taxis suivent ces paths).
  * ============================================================ */
 
-// Boucles fermées : tout véhicule boucle en %=pathLen.
-// Les boucles partagent des intersections visuelles (carrefours), ce qui
-// donne l'illusion d'un vrai réseau connecté.
 export const ROADS = [
   // 0 — Anneau périphérique (grand rectangle arrondi)
   "M 200 120 L 1720 120 Q 1800 120 1800 200 L 1800 880 Q 1800 960 1720 960 L 200 960 Q 120 960 120 880 L 120 200 Q 120 120 200 120 Z",
@@ -29,42 +25,6 @@ export const ROADS = [
   // 5 — Rond-point central (cercle r=120 autour de 960,540)
   "M 1080 540 A 120 120 0 1 1 840 540 A 120 120 0 1 1 1080 540 Z",
 ];
-
-const LAMPS: [number, number][] = [
-  [160, 280], [440, 280], [1480, 280], [1760, 280],
-  [160, 880], [440, 880], [1480, 880], [1760, 880],
-  [720, 300], [1200, 300], [720, 840], [1200, 840],
-  [300, 540], [1620, 540], [960, 400], [960, 680],
-];
-
-// Blocs construits (zones entre les routes) : on y plante des bâtiments.
-type Block = { x: number; y: number; w: number; h: number; cols: number; rows: number; hue: number };
-const BLOCKS: Block[] = [
-  // Bandeau supérieur (entre anneau et avenue haute)
-  { x: 480, y: 170, w: 960, h: 100, cols: 5, rows: 1, hue: 18 },
-  // Bandeau inférieur (entre avenue basse et anneau)
-  { x: 480, y: 870, w: 960, h: 70,  cols: 5, rows: 1, hue: 250 },
-  // Centre-haut entre avenue haute et rond-point
-  { x: 480, y: 360, w: 340, h: 160, cols: 2, rows: 1, hue: 210 },
-  { x: 1100, y: 360, w: 340, h: 160, cols: 2, rows: 1, hue: 200 },
-  // Centre-bas
-  { x: 480, y: 620, w: 340, h: 200, cols: 2, rows: 1, hue: 35 },
-  { x: 1100, y: 620, w: 340, h: 200, cols: 2, rows: 1, hue: 350 },
-  // Colonne gauche extérieure
-  { x: 200, y: 280, w: 200, h: 280, cols: 1, rows: 2, hue: 140 },
-  { x: 200, y: 580, w: 200, h: 240, cols: 1, rows: 2, hue: 130 },
-  // Colonne droite extérieure
-  { x: 1520, y: 280, w: 200, h: 280, cols: 1, rows: 2, hue: 280 },
-  { x: 1520, y: 580, w: 200, h: 240, cols: 1, rows: 2, hue: 270 },
-];
-
-const PARKS = [
-  { x: 900, y: 180, w: 120, h: 80 },
-  { x: 900, y: 870, w: 120, h: 70 },
-];
-
-// Lot du dépôt taxi (intégré au décor, le bâtiment HQ s'affiche dessus).
-const HQ_LOT = { x: 200, y: 850, w: 240, h: 100 };
 
 type VehicleKind = "sedan" | "van" | "truck" | "hatch" | "moto";
 type VehicleVariant = "black" | "red";
@@ -185,125 +145,6 @@ function Vehicle({
   );
 }
 
-function Lamp({ x, y, night }: { x: number; y: number; night: number }) {
-  const lit = night > 0.32;
-  return (
-    <g transform={`translate(${x},${y})`}>
-      {lit && (
-        <circle r="44" fill="#ffd66a" opacity={night * 0.28}>
-          <animate attributeName="opacity" values={`${night * 0.2};${night * 0.36};${night * 0.2}`} dur="3s" repeatCount="indefinite" />
-        </circle>
-      )}
-      <path d="M 0 24 L 0 0 L -16 -6" stroke="#191b1f" strokeWidth="4" strokeLinecap="round" fill="none" />
-      <circle cx="-18" cy="-6" r="5" fill={lit ? "#fff5b0" : "#4f5148"} />
-      {lit && <circle cx="-18" cy="-6" r="10" fill="#ffd66a" opacity="0.35" />}
-    </g>
-  );
-}
-
-/* ===== Décor procédural (memoisé sur jour/nuit binaire) ===== */
-function CityBackground({ nightOn }: { nightOn: boolean }) {
-  return (
-    <g>
-      {/* sol */}
-      <rect width="1920" height="1080" fill="#1f3522" />
-      {/* texture quadrillage discrète */}
-      <g opacity="0.07" stroke="#000" strokeWidth="1">
-        {Array.from({ length: 19 }).map((_, i) => (
-          <line key={`gx${i}`} x1={(i + 1) * 100} y1={0} x2={(i + 1) * 100} y2={1080} />
-        ))}
-        {Array.from({ length: 10 }).map((_, i) => (
-          <line key={`gy${i}`} x1={0} y1={(i + 1) * 100} x2={1920} y2={(i + 1) * 100} />
-        ))}
-      </g>
-
-      {/* parcs */}
-      {PARKS.map((p, i) => (
-        <g key={`park-${i}`}>
-          <rect x={p.x} y={p.y} width={p.w} height={p.h} rx="10" fill="#2f5a32" stroke="#1c3a1c" strokeWidth="2" />
-          <circle cx={p.x + p.w * 0.3} cy={p.y + p.h * 0.5} r="14" fill="#3f7a3f" />
-          <circle cx={p.x + p.w * 0.7} cy={p.y + p.h * 0.5} r="12" fill="#458a45" />
-        </g>
-      ))}
-
-      {/* trottoirs élargis sous toutes les routes */}
-      <g>
-        {ROADS.map((d, i) => (
-          <path key={`sw-${i}`} d={d} stroke="#6a6e74" strokeWidth={62} fill="none" strokeLinecap="round" strokeLinejoin="round" />
-        ))}
-      </g>
-      {/* asphalte */}
-      <g>
-        {ROADS.map((d, i) => (
-          <path key={`as-${i}`} d={d} stroke="#1d2128" strokeWidth={46} fill="none" strokeLinecap="round" strokeLinejoin="round" />
-        ))}
-      </g>
-      {/* lignes médianes pointillées jaunes */}
-      <g>
-        {ROADS.map((d, i) => (
-          <path key={`md-${i}`} d={d} stroke="#f6d56a" strokeWidth="2.4" strokeDasharray="22 18" fill="none" opacity="0.75" />
-        ))}
-      </g>
-
-      {/* Rond-point central : pelouse + arbre */}
-      <g>
-        <circle cx="960" cy="540" r="86" fill="#2f5a32" stroke="#1c3a1c" strokeWidth="3" />
-        <circle cx="960" cy="540" r="44" fill="#3f7a3f" />
-        <circle cx="960" cy="540" r="14" fill="#5a3a1c" />
-        <circle cx="960" cy="530" r="22" fill="#4a8a4a" />
-      </g>
-
-      {/* Lot dépôt taxi (sous le HQ rendu par TaxiTycoon) */}
-      <g>
-        <rect x={HQ_LOT.x} y={HQ_LOT.y} width={HQ_LOT.w} height={HQ_LOT.h} fill="#2a2d33" stroke="#f5c542" strokeWidth="3" strokeDasharray="14 8" />
-        <text x={HQ_LOT.x + HQ_LOT.w / 2} y={HQ_LOT.y + 18} textAnchor="middle" fontSize="13" fontWeight="900" fill="#f5c542" letterSpacing="2">TAXI DEPOT</text>
-      </g>
-
-      {/* Bâtiments dans les blocks */}
-      {BLOCKS.map((b, bi) => {
-        const cellW = b.w / b.cols;
-        const cellH = b.h / b.rows;
-        const items: React.ReactNode[] = [];
-        for (let r = 0; r < b.rows; r++) {
-          for (let c = 0; c < b.cols; c++) {
-            const seed = bi * 17 + r * 7 + c * 3;
-            const padX = 6 + ((seed * 3) % 5);
-            const padY = 6 + ((seed * 5) % 4);
-            const x = b.x + c * cellW + padX;
-            const y = b.y + r * cellH + padY;
-            const w = cellW - padX * 2;
-            const h = cellH - padY * 2;
-            if (w < 12 || h < 12) continue;
-            const fill = `hsl(${b.hue + ((seed * 11) % 24) - 12}, 22%, ${28 + (seed % 14)}%)`;
-            const roof = `hsl(${b.hue}, 28%, 18%)`;
-            const winCols = Math.max(2, Math.floor(w / 22));
-            const winRows = Math.max(2, Math.floor(h / 22));
-            const wins: React.ReactNode[] = [];
-            for (let ww = 0; ww < winCols; ww++) {
-              for (let hh = 0; hh < winRows; hh++) {
-                const wx = x + 6 + ww * ((w - 12) / Math.max(1, winCols - 1));
-                const wy = y + 8 + hh * ((h - 16) / Math.max(1, winRows - 1));
-                const lit = nightOn && ((seed + ww * 3 + hh) % 3 === 0);
-                wins.push(
-                  <rect key={`w-${ww}-${hh}`} x={wx} y={wy} width="5" height="7" fill={lit ? "#ffd66a" : "#101319"} opacity={lit ? 0.95 : 0.85} />
-                );
-              }
-            }
-            items.push(
-              <g key={`bld-${bi}-${r}-${c}`}>
-                <rect x={x + 3} y={y + 5} width={w} height={h} fill="rgba(0,0,0,0.32)" />
-                <rect x={x} y={y} width={w} height={h} fill={fill} stroke={roof} strokeWidth="1.6" />
-                {wins}
-              </g>
-            );
-          }
-        }
-        return <g key={`blk-${bi}`}>{items}</g>;
-      })}
-    </g>
-  );
-}
-
 /* ===== Trafic ===== */
 
 const SAFE_GAP = 55;
@@ -323,14 +164,13 @@ type CarState = {
 };
 
 export default function CityTraffic() {
-  const [nightOn, setNightOn] = useState(false);
   const [nightLevel, setNightLevel] = useState(0.25);
   const admin = useAdminConfig();
   const activeCars = CARS.slice(0, Math.max(0, Math.min(CARS.length, admin.civilVehicleCount)));
   const pathRefs = useRef<(SVGPathElement | null)[]>([]);
   const carNodes = useRef<(SVGGElement | null)[]>([]);
 
-  // Cycle jour/nuit (raf, boolean throttlé pour éviter re-render bg)
+  // Cycle jour/nuit subtil
   useEffect(() => {
     let raf = 0;
     const tick = () => {
@@ -338,10 +178,6 @@ export default function CityTraffic() {
       const daylight = Math.max(0, Math.sin(t * Math.PI * 2));
       const n = 0.18 + (1 - daylight) * 0.72;
       setNightLevel((prev) => (Math.abs(prev - n) > 0.04 ? n : prev));
-      setNightOn((on) => {
-        const next = n > 0.55;
-        return next === on ? on : next;
-      });
       raf = requestAnimationFrame(tick);
     };
     raf = requestAnimationFrame(tick);
@@ -424,8 +260,6 @@ export default function CityTraffic() {
     return () => cancelAnimationFrame(raf);
   }, [activeCars.length]);
 
-  const bg = useMemo(() => <CityBackground nightOn={nightOn} />, [nightOn]);
-
   return (
     <svg
       viewBox="0 0 1920 1080"
@@ -441,22 +275,17 @@ export default function CityTraffic() {
         </filter>
       </defs>
 
-      {bg}
+      {/* Fond image citymap.jpg */}
+      <image href={citymap} width="1920" height="1080" preserveAspectRatio="xMidYMid slice" />
 
-      <g filter="url(#jce-soft-shadow)">
-        {LAMPS.map(([x, y], i) => (
-          <Lamp key={i} x={x} y={y} night={nightLevel} />
-        ))}
-      </g>
+      {/* Overlay nuit */}
+      <rect width="1920" height="1080" fill="#0a1530" opacity={nightLevel * 0.25} pointerEvents="none" />
 
       {activeCars.map((car, i) => (
         <g key={i} filter="url(#jce-soft-shadow)" ref={(el) => { carNodes.current[i] = el; }}>
           <Vehicle kind={car.kind} color={car.color} accent={car.accent} scale={car.scale} variant={car.variant} />
         </g>
       ))}
-
-      {/* Overlay nuit */}
-      <rect width="1920" height="1080" fill="#0a1530" opacity={nightLevel * 0.25} pointerEvents="none" />
     </svg>
   );
 }
