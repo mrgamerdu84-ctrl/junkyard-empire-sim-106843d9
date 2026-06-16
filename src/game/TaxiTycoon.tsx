@@ -322,6 +322,57 @@ export default function TaxiTycoon() {
   const rivalJobsRef = useRef<Job[]>([]); // courses prises en charge par l'IA
   const [rivalStolen, setRivalStolen] = useState(0);
 
+  // === Circuit personnalisé (dessiné par le joueur) ===
+  // Pré-calcule la longueur totale + offsets cumulés.
+  const circuitInfo = useMemo(() => {
+    const pts = admin.circuitPoints;
+    if (!pts || pts.length < 2) return { pts: [], total: 0, offsets: [] as number[] };
+    const offsets: number[] = [0];
+    let total = 0;
+    for (let i = 1; i < pts.length; i++) {
+      total += Math.hypot(pts[i].x - pts[i - 1].x, pts[i].y - pts[i - 1].y);
+      offsets.push(total);
+    }
+    // boucle : ferme vers le premier point
+    total += Math.hypot(pts[0].x - pts[pts.length - 1].x, pts[0].y - pts[pts.length - 1].y);
+    return { pts, total, offsets };
+  }, [admin.circuitPoints]);
+
+  const circuitTaxisRef = useRef<{ id: number; pos: number }[]>([]);
+  // Sync le nombre de taxis sur le circuit
+  useEffect(() => {
+    const target = circuitInfo.pts.length >= 2 ? Math.max(0, Math.min(8, admin.circuitTaxiCount)) : 0;
+    while (circuitTaxisRef.current.length < target) {
+      const i = circuitTaxisRef.current.length;
+      circuitTaxisRef.current.push({ id: 20000 + i, pos: (i / Math.max(1, target)) * circuitInfo.total });
+    }
+    while (circuitTaxisRef.current.length > target) circuitTaxisRef.current.pop();
+  }, [admin.circuitTaxiCount, circuitInfo.total, circuitInfo.pts.length]);
+
+  // Récupère (x,y,angle) à une position le long du circuit (en pixels)
+  const circuitAt = (s: number) => {
+    const info = circuitInfo;
+    if (info.pts.length < 2 || info.total <= 0) return { x: 0, y: 0, angle: 0 };
+    let d = ((s % info.total) + info.total) % info.total;
+    for (let i = 0; i < info.pts.length; i++) {
+      const a = info.pts[i];
+      const b = info.pts[(i + 1) % info.pts.length];
+      const segLen = Math.hypot(b.x - a.x, b.y - a.y);
+      if (d <= segLen || i === info.pts.length - 1) {
+        const t = segLen > 0 ? d / segLen : 0;
+        return {
+          x: a.x + (b.x - a.x) * t,
+          y: a.y + (b.y - a.y) * t,
+          angle: (Math.atan2(b.y - a.y, b.x - a.x) * 180) / Math.PI,
+        };
+      }
+      d -= segLen;
+    }
+    return { x: info.pts[0].x, y: info.pts[0].y, angle: 0 };
+  };
+
+
+
 
 
 
