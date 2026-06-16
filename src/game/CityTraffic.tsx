@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { useAdminConfig } from "./adminConfig";
+import npcTopdown from "@/assets/car-npc-topdown.png";
 
 /* eslint-disable prettier/prettier */
 
@@ -69,6 +70,10 @@ const CARS: CarSpec[] = [
   { kind: "truck", color: "#3b4a5c", accent: "#1a232f", duration: 54, delay: -14, pathIdx: 2, flip: true, scale: 0.74 },
   { kind: "van",   color: "#16a34a", accent: "#0a4a22", duration: 48, delay: -26, pathIdx: 2, flip: true, scale: 0.7 },
   { kind: "sedan", color: "#ea580c", accent: "#7a2a06", duration: 44, delay: -36, pathIdx: 2, flip: true, scale: 0.62 },
+  // Trafic supplémentaire (pour saturer le slider Admin civilVehicleCount jusqu'à 24)
+  { kind: "sedan", color: "#7c3aed", accent: "#3b1d72", duration: 46, delay: -50, pathIdx: 0, scale: 0.62 },
+  { kind: "hatch", color: "#22c55e", accent: "#0f5132", duration: 24, delay: -10, pathIdx: 1, flip: true, scale: 0.6 },
+  { kind: "sedan", color: "#0ea5e9", accent: "#075985", duration: 48, delay: -48, pathIdx: 2, flip: true, scale: 0.62 },
 ];
 
 const LAMPS: [number, number][] = [
@@ -176,12 +181,50 @@ function HatchSVG({ color, accent, scale = 1 }: { color: string; accent: string;
   );
 }
 
-function Vehicle({ kind, color, accent, scale }: { kind: VehicleKind; color: string; accent: string; scale?: number }) {
-  if (kind === "van") return <VanSVG color={color} accent={accent} scale={scale} />;
-  if (kind === "truck") return <TruckSVG color={color} accent={accent} scale={scale} />;
-  if (kind === "hatch") return <HatchSVG color={color} accent={accent} scale={scale} />;
-  return <CarSVG color={color} accent={accent} scale={scale} />;
+function Vehicle({ kind, color, accent, scale = 1 }: { kind: VehicleKind; color: string; accent: string; scale?: number }) {
+  // Toutes les voitures PNJ utilisent désormais la même image top-down (sedan noir).
+  // Le `kind` reste utilisé pour ajuster la longueur (van/truck plus longs).
+  // L'image native a le capot en haut → on applique +90° pour aligner avec
+  // l'angle de déplacement (angle 0 du parent = vers la droite).
+  // Une teinte `color` en multiply colore légèrement la carrosserie noire.
+  const baseLen = kind === "truck" ? 96 : kind === "van" ? 80 : kind === "hatch" ? 60 : 70;
+  const baseWid = kind === "truck" ? 38 : kind === "van" ? 36 : 32;
+  const W = baseLen;
+  const H = baseWid;
+  // Pour éviter de "blanchir" le noir avec un multiply à forte opacité, on garde
+  // une teinte légère (le noir reste dominant pour les couleurs sombres).
+  const tintOpacity = color.toLowerCase() === "#000" || color.toLowerCase() === "#000000" ? 0 : 0.5;
+  return (
+    <g transform={`scale(${scale})`}>
+      <ellipse cx="0" cy="3" rx={W / 2 + 2} ry={H / 2 - 1} fill="rgba(0,0,0,0.4)" />
+      <g transform="rotate(90)">
+        <image
+          href={npcTopdown}
+          x={-H / 2}
+          y={-W / 2}
+          width={H}
+          height={W}
+          preserveAspectRatio="xMidYMid meet"
+        />
+        <rect
+          x={-H / 2}
+          y={-W / 2}
+          width={H}
+          height={W}
+          fill={color}
+          opacity={tintOpacity}
+          style={{ mixBlendMode: "multiply" }}
+        />
+      </g>
+      {/* feux avant subtils */}
+      <circle cx={W / 2 - 2} cy={-H / 4} r="1.4" fill="#fff7c0" opacity="0.85" />
+      <circle cx={W / 2 - 2} cy={H / 4} r="1.4" fill="#fff7c0" opacity="0.85" />
+    </g>
+  );
 }
+
+// Composants SVG conservés pour référence/legacy (non utilisés depuis l'image PNG).
+void CarSVG; void VanSVG; void TruckSVG; void HatchSVG;
 
 type PedSpec = {
   pathIdx: number;
