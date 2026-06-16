@@ -634,7 +634,8 @@ export default function TaxiTycoon() {
               r.pos = closestOnPath(candidate.pickupPath, admin.rivalHQX, admin.rivalHQY);
               r.target = candidate.pickup;
               r.mode = "to_pickup";
-              // retire la course de la file joueur
+              // mémorise la course côté rival, puis la retire de la file joueur
+              rivalJobsRef.current.push(candidate);
               setJobs((js) => js.filter((x) => x.id !== candidate.id));
               setRivalStolen((n) => n + 1);
               showToast("⚔️ Course volée par Rival Cabs !");
