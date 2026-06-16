@@ -309,6 +309,29 @@ export default function AdminPanel() {
                   format={(v) => v.toFixed(0)} onChange={(v) => setAdmin({ rivalHQY: v })} />
               </>
             )}
+            {tab === "circuit" && (
+              <>
+                <button className="adm-place" onClick={startDraw}>
+                  ✏️ Dessiner un circuit au doigt
+                </button>
+                <div className="adm-hint" style={{ marginTop: 4 }}>
+                  Le panneau se ferme. Trace la boucle avec le doigt sur la carte.
+                </div>
+                <button className="adm-place" onClick={clearCircuit} style={{ marginTop: 8 }}>
+                  🗑 Effacer le circuit
+                </button>
+                <div className="adm-hint" style={{ marginTop: 4 }}>
+                  Points actuels : {cfg.circuitPoints.length}
+                </div>
+
+                <Slider label="Taxis sur le circuit" hint="Taxis dédiés qui tournent en boucle"
+                  value={cfg.circuitTaxiCount} min={0} max={8} step={1}
+                  format={(v) => v.toFixed(0)} onChange={(v) => setAdmin({ circuitTaxiCount: v })} />
+                <Slider label="Vitesse circuit"
+                  value={cfg.circuitSpeedMult} min={0.3} max={3} step={0.05}
+                  format={(v) => "×" + v.toFixed(2)} onChange={(v) => setAdmin({ circuitSpeedMult: v })} />
+              </>
+            )}
 
 
             <button className="adm-reset" onClick={resetAdmin}>↺ Réinitialiser les valeurs</button>
