@@ -32,13 +32,6 @@ const DEPOT_TIERS: DepotTier[] = [
 
 export const TAXI_COLORS = [
   { id: "yellow", name: "Jaune", body: "#f5c542", trim: "#9c7a1c" },
-  { id: "red",    name: "Rouge", body: "#d83a2a", trim: "#7c1c10" },
-  { id: "blue",   name: "Bleu",  body: "#2b6ed8", trim: "#143f7c" },
-  { id: "green",  name: "Vert",  body: "#3a8a48", trim: "#1c4a22" },
-  { id: "white",  name: "Blanc", body: "#e8edf2", trim: "#8a8e94" },
-  { id: "black",  name: "Noir",  body: "#1a1d22", trim: "#050607" },
-  { id: "orange", name: "Orange",body: "#ff6b35", trim: "#8f2d10" },
-  { id: "purple", name: "Violet",body: "#a855f7", trim: "#5b1aa0" },
 ];
 
 type TaxiMode = "idle" | "to_pickup" | "to_dest" | "returning" | "to_gas" | "refueling";
@@ -72,13 +65,34 @@ type Job = {
 };
 
 const DEFAULT_DEPOT_POS = 0.78; // fallback si mode "suit le circuit" (legacy)
-const SAVE_KEY = "taxi-tycoon-v3";
+const SAVE_KEY = "taxi-tycoon-v4";
 const BASE_SPEED = 60; // px (sur viewBox 1920) par seconde
 const SPEED_UPGRADE_COST_BASE = 800;
 const TAXI_COST_BASE = 600;
 const MAX_JOBS_BASE = 3;
 const FUEL_REFILL_MS = 4000;
 const FUEL_LOW_THRESHOLD = 25;
+
+// === Livrées de taxi inspirées de vraies compagnies (yellow body only) ===
+export type Livery = {
+  id: string;
+  name: string;        // nom de la compagnie
+  city: string;        // ville/pays
+  roofLabel: string;   // texte sur le panneau de toit
+  roofBg: string;      // couleur du panneau de toit
+  roofFg: string;      // couleur du texte du toit
+  stripe: "checker" | "band" | "dots" | "none";
+  stripeColor: string;
+};
+
+export const LIVERIES: Livery[] = [
+  { id: "classic",  name: "Classic Cab",   city: "Origine",     roofLabel: "TAXI",      roofBg: "#1a1d22", roofFg: "#fde047", stripe: "none",    stripeColor: "#1a1d22" },
+  { id: "nyc",      name: "Yellow Cab",    city: "New York",    roofLabel: "NYC TAXI",  roofBg: "#1a1d22", roofFg: "#ffffff", stripe: "checker", stripeColor: "#1a1d22" },
+  { id: "london",   name: "Black Cab Co.", city: "London",      roofLabel: "TAXI",      roofBg: "#0a0c10", roofFg: "#ffffff", stripe: "band",    stripeColor: "#0a0c10" },
+  { id: "paris",    name: "G7 Cab",        city: "Paris",       roofLabel: "G7",        roofBg: "#0f3a8a", roofFg: "#ffffff", stripe: "band",    stripeColor: "#0f3a8a" },
+  { id: "tokyo",    name: "Nihon Kotsu",   city: "Tokyo",       roofLabel: "東京",       roofBg: "#c8102e", roofFg: "#ffffff", stripe: "dots",    stripeColor: "#c8102e" },
+  { id: "rome",     name: "Roma Taxi",     city: "Roma",        roofLabel: "ROMA",      roofBg: "#16a34a", roofFg: "#ffffff", stripe: "band",    stripeColor: "#16a34a" },
+];
 
 type SaveData = {
   money: number;
@@ -89,6 +103,7 @@ type SaveData = {
   taxis: { colorId: string }[];
   defaultColor: string;
   jobsCompleted: number;
+  liveryId: string;
 };
 
 const DEFAULT_SAVE: SaveData = {
@@ -100,6 +115,7 @@ const DEFAULT_SAVE: SaveData = {
   taxis: [{ colorId: "yellow" }],
   defaultColor: "yellow",
   jobsCompleted: 0,
+  liveryId: "classic",
 };
 
 
@@ -125,23 +141,21 @@ function TaxiSprite({
   trim: _trim,
   withClient,
   moving,
+  livery,
 }: {
   body: string;
   trim: string;
   withClient: boolean;
   moving: boolean;
+  livery?: Livery;
 }) {
-  // Image top-down réelle du taxi (capot vers le haut dans le PNG natif).
-  // On tourne de 90° pour que l'angle 0 (vers la droite) corresponde au
-  // sens de marche le long du path.
-  const W = 68; // longueur du taxi (sens de la marche)
-  const H = 34; // largeur du taxi
+  const W = 68;
+  const H = 34;
   const uid = useId().replace(/:/g, "");
   const clipId = `taxi-clip-${uid}`;
   const isYellow = body.toLowerCase() === "#f5c542";
   return (
     <g>
-      {/* lignes de vitesse derrière le taxi quand il roule */}
       {moving && (
         <g opacity="0.55">
           <line x1={-W / 2 - 10} y1="-6" x2={-W / 2 - 2} y2="-6" stroke="#ffffff" strokeWidth="1.2" strokeLinecap="round">
@@ -155,18 +169,10 @@ function TaxiSprite({
           </line>
         </g>
       )}
-      {/* ombre portée */}
       <ellipse cx="0" cy="3" rx={W / 2 + 2} ry={H / 2 - 1} fill="rgba(0,0,0,0.45)" />
-      {/* carrosserie + léger bobbing de suspension */}
       <g>
         {moving && (
-          <animateTransform
-            attributeName="transform"
-            type="translate"
-            values="0 -0.4; 0 0.4; 0 -0.4"
-            dur="0.22s"
-            repeatCount="indefinite"
-          />
+          <animateTransform attributeName="transform" type="translate" values="0 -0.4; 0 0.4; 0 -0.4" dur="0.22s" repeatCount="indefinite" />
         )}
         <defs>
           <clipPath id={clipId}>
@@ -174,27 +180,48 @@ function TaxiSprite({
           </clipPath>
         </defs>
         <g transform="rotate(90)" clipPath={`url(#${clipId})`}>
-          <image
-            href={taxiTopdown}
-            x={-H / 2 - 1}
-            y={-W / 2 - 2}
-            width={H + 2}
-            height={W + 4}
-            preserveAspectRatio="xMidYMid meet"
-          />
-          {/* teinte uniquement pour les couleurs non-jaunes — opacité douce */}
+          <image href={taxiTopdown} x={-H / 2 - 1} y={-W / 2 - 2} width={H + 2} height={W + 4} preserveAspectRatio="xMidYMid meet" />
           {!isYellow && (
-            <rect
-              x={-H / 2 - 1}
-              y={-W / 2 - 2}
-              width={H + 2}
-              height={W + 4}
-              fill={body}
-              opacity={0.55}
-              style={{ mixBlendMode: "multiply" }}
-            />
+            <rect x={-H / 2 - 1} y={-W / 2 - 2} width={H + 2} height={W + 4} fill={body} opacity={0.55} style={{ mixBlendMode: "multiply" }} />
           )}
         </g>
+
+        {/* === Livrée === */}
+        {livery && livery.stripe === "checker" && (
+          <g clipPath={`url(#${clipId})`}>
+            {Array.from({ length: 12 }).map((_, i) => (
+              <rect key={i} x={-W / 2 + i * (W / 12)} y={H / 2 - 4} width={W / 12} height="3"
+                fill={i % 2 === 0 ? livery.stripeColor : "#ffffff"} />
+            ))}
+            {Array.from({ length: 12 }).map((_, i) => (
+              <rect key={`t${i}`} x={-W / 2 + i * (W / 12)} y={-H / 2 + 1} width={W / 12} height="3"
+                fill={i % 2 === 0 ? livery.stripeColor : "#ffffff"} />
+            ))}
+          </g>
+        )}
+        {livery && livery.stripe === "band" && (
+          <g clipPath={`url(#${clipId})`}>
+            <rect x={-W / 2} y={H / 2 - 5} width={W} height="4" fill={livery.stripeColor} />
+            <rect x={-W / 2} y={-H / 2 + 1} width={W} height="4" fill={livery.stripeColor} />
+          </g>
+        )}
+        {livery && livery.stripe === "dots" && (
+          <g clipPath={`url(#${clipId})`}>
+            {Array.from({ length: 8 }).map((_, i) => (
+              <circle key={i} cx={-W / 2 + 5 + i * (W / 8)} cy={H / 2 - 3} r="1.4" fill={livery.stripeColor} />
+            ))}
+          </g>
+        )}
+
+        {/* Panneau de toit (taxi roof sign) */}
+        {livery && (
+          <g>
+            <rect x={-7} y={-5.5} width={14} height={5} rx="1" fill={livery.roofBg} stroke="#0a0c10" strokeWidth="0.35" />
+            <text x="0" y="-2" fontSize="3.2" fontWeight="900" textAnchor="middle" fill={livery.roofFg} letterSpacing="0.3">{livery.roofLabel}</text>
+            <rect x={-7} y={-5.8} width={14} height={0.6} fill="#ffffff" opacity="0.5" />
+          </g>
+        )}
+
         {withClient && (
           <g>
             <circle cx="-4" cy="-3" r="2.6" fill="#ffd9b0" stroke="#1a1d22" strokeWidth="0.4" />
@@ -758,9 +785,9 @@ export default function TaxiTycoon() {
     showToast(`⚡ Taxis plus rapides !`);
   };
 
-  const setColor = (id: string) => {
-    setSave((s) => ({ ...s, defaultColor: id, taxis: s.taxis.map((t) => ({ colorId: id })) }));
-  };
+  const [garageOpen, setGarageOpen] = useState(false);
+  const currentLivery = LIVERIES.find((l) => l.id === save.liveryId) ?? LIVERIES[0];
+
 
   // === Boucle de file de courses : tick du timer + expiration des offres ===
   useEffect(() => {
@@ -919,6 +946,35 @@ export default function TaxiTycoon() {
         {/* Dépôt */}
         {pathsReady && <Depot tier={tier} x={depotXY.x} y={depotXY.y - 18} scale={admin.hqScale} rotation={admin.hqRotation} />}
 
+        {/* Petit garage de personnalisation à côté du QG */}
+        {pathsReady && (
+          <g
+            transform={`translate(${depotXY.x + 130},${depotXY.y - 4})`}
+            style={{ cursor: "pointer", pointerEvents: "auto" }}
+            onClick={() => setGarageOpen(true)}
+          >
+            <title>Garage — personnaliser le taxi</title>
+            <ellipse cx="0" cy="22" rx="42" ry="9" fill="rgba(0,0,0,0.55)" />
+            <rect x="-36" y="-8" width="72" height="32" rx="2" fill="#3a3f48" stroke="#0a0c10" strokeWidth="1.4" />
+            <path d="M -38 -8 L 0 -28 L 38 -8 Z" fill="#f5c542" stroke="#0a0c10" strokeWidth="1.4" />
+            <rect x="-28" y="-2" width="22" height="26" fill="#1a1d22" stroke="#000" strokeWidth="1" />
+            <rect x="6" y="-2" width="22" height="26" fill="#1a1d22" stroke="#000" strokeWidth="1" />
+            {[2, 8, 14, 20].map((dy) => (
+              <g key={dy}>
+                <line x1={-28} y1={-2 + dy} x2={-6} y2={-2 + dy} stroke="#0a0c10" strokeWidth="0.5" />
+                <line x1={6} y1={-2 + dy} x2={28} y2={-2 + dy} stroke="#0a0c10" strokeWidth="0.5" />
+              </g>
+            ))}
+            <rect x="-30" y="-24" width="60" height="10" rx="1.5" fill="#f5c542" stroke="#0a0c10" strokeWidth="1.2" />
+            <text x="0" y="-17" fontSize="7" fontWeight="900" textAnchor="middle" fill="#1a1d22">GARAGE</text>
+            <circle cx="0" cy="32" r="6" fill="#f5c542" opacity="0.9">
+              <animate attributeName="r" values="5;8;5" dur="1.6s" repeatCount="indefinite" />
+              <animate attributeName="opacity" values="0.85;0.4;0.85" dur="1.6s" repeatCount="indefinite" />
+            </circle>
+            <text x="0" y="35" fontSize="9" textAnchor="middle">🏁</text>
+          </g>
+        )}
+
         {/* QG concurrent */}
         {pathsReady && admin.rivalEnabled && <RivalDepot x={admin.rivalHQX} y={admin.rivalHQY - 18} />}
 
@@ -948,7 +1004,7 @@ export default function TaxiTycoon() {
           return (
             <g key={taxi.id}>
               <g transform={`translate(${p.x},${p.y}) rotate(${angle})`} filter="url(#taxi-shadow)">
-                <TaxiSprite body={color.body} trim={color.trim} withClient={taxi.mode === "to_dest"} moving={taxi.mode !== "idle" && taxi.mode !== "refueling"} />
+                <TaxiSprite body={color.body} trim={color.trim} withClient={taxi.mode === "to_dest"} moving={taxi.mode !== "idle" && taxi.mode !== "refueling"} livery={currentLivery} />
               </g>
               {/* Mini jauge essence sous le taxi */}
               <g transform={`translate(${p.x - 12},${p.y + 22})`}>
@@ -1079,17 +1135,53 @@ export default function TaxiTycoon() {
           </button>
         </div>
 
-        <div className="tt-colors">
-          {TAXI_COLORS.map((c) => (
-            <button
-              key={c.id}
-              className={`tt-color ${save.defaultColor === c.id ? "selected" : ""}`}
-              onClick={() => setColor(c.id)}
-              style={{ background: c.body, borderColor: c.trim }}
-              title={`Repeindre tous en ${c.name}`}
-            />
-          ))}
-        </div>
+        {/* Bouton garage : ouvre le modal de personnalisation */}
+        <button className="tt-garage-fab" onClick={() => setGarageOpen(true)} title="Garage — personnaliser le taxi">
+          🏁
+        </button>
+
+        {garageOpen && (
+          <div className="tt-modal-overlay" onClick={() => setGarageOpen(false)}>
+            <div className="tt-modal" onClick={(e) => e.stopPropagation()}>
+              <div className="tt-modal-h">
+                <h3>🏁 Garage — Livrées de taxi</h3>
+                <button className="tt-modal-x" onClick={() => setGarageOpen(false)}>×</button>
+              </div>
+              <p className="tt-modal-sub">Carrosserie jaune officielle. Choisis ta compagnie :</p>
+              <div className="tt-livery-grid">
+                {LIVERIES.map((l) => (
+                  <button
+                    key={l.id}
+                    className={`tt-livery-card ${save.liveryId === l.id ? "selected" : ""}`}
+                    onClick={() => setSave((s) => ({ ...s, liveryId: l.id }))}
+                  >
+                    <svg viewBox="-50 -25 100 50" className="tt-livery-preview">
+                      <rect x="-40" y="-18" width="80" height="36" rx="5" fill="#f5c542" stroke="#9c7a1c" strokeWidth="1.2" />
+                      {l.stripe === "checker" && Array.from({ length: 14 }).map((_, i) => (
+                        <rect key={i} x={-40 + i * (80 / 14)} y={12} width={80 / 14} height="4"
+                          fill={i % 2 === 0 ? l.stripeColor : "#fff"} />
+                      ))}
+                      {l.stripe === "band" && (
+                        <>
+                          <rect x="-40" y="12" width="80" height="5" fill={l.stripeColor} />
+                          <rect x="-40" y="-17" width="80" height="5" fill={l.stripeColor} />
+                        </>
+                      )}
+                      {l.stripe === "dots" && Array.from({ length: 9 }).map((_, i) => (
+                        <circle key={i} cx={-36 + i * 9} cy={14} r="1.8" fill={l.stripeColor} />
+                      ))}
+                      <rect x="-12" y="-6" width="24" height="9" rx="1.5" fill={l.roofBg} stroke="#0a0c10" strokeWidth="0.5" />
+                      <text x="0" y="0.8" fontSize="6" fontWeight="900" textAnchor="middle" fill={l.roofFg}>{l.roofLabel}</text>
+                    </svg>
+                    <div className="tt-livery-name">{l.name}</div>
+                    <div className="tt-livery-city">{l.city}</div>
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
+
 
         {toast && <div className="tt-toast">{toast}</div>}
       </div>
@@ -1154,20 +1246,64 @@ export default function TaxiTycoon() {
         .tt-btn-cost { font-size: 11px; font-weight: 900; color: #fde68a; }
         .tt-btn.upgrade .tt-btn-cost { color: #d1fae5; }
 
-        .tt-colors {
+        .tt-garage-fab {
           position: absolute; bottom: 12px; left: 50%; transform: translateX(-50%);
-          display: flex; gap: 6px; padding: 6px 8px;
-          background: rgba(10,12,16,0.75); border-radius: 999px;
-          border: 1px solid rgba(255,255,255,0.08);
+          width: 44px; height: 44px; border-radius: 50%;
+          background: linear-gradient(180deg, #f5c542, #b88a16);
+          border: 2px solid #1a1d22; color: #1a1d22;
+          font-size: 20px; cursor: pointer;
+          box-shadow: 0 4px 12px rgba(0,0,0,0.6), inset 0 1px 0 rgba(255,255,255,0.25);
           pointer-events: auto;
+          display: flex; align-items: center; justify-content: center;
         }
-        .tt-color {
-          width: 28px; height: 28px; border-radius: 50%;
-          border: 2px solid; cursor: pointer; padding: 0;
-          transition: transform 0.12s ease;
+        .tt-garage-fab:hover { transform: translateX(-50%) scale(1.08); }
+
+        .tt-modal-overlay {
+          position: absolute; inset: 0; z-index: 60;
+          background: rgba(0,0,0,0.7);
+          display: flex; align-items: center; justify-content: center;
+          padding: 16px; pointer-events: auto;
+          backdrop-filter: blur(4px);
         }
-        .tt-color:hover { transform: scale(1.15); }
-        .tt-color.selected { outline: 2px solid #fde68a; outline-offset: 2px; transform: scale(1.18); }
+        .tt-modal {
+          background: linear-gradient(180deg, #1a1d22 0%, #0d0e12 100%);
+          border: 1px solid #f5c542; border-radius: 14px;
+          padding: 16px; width: 100%; max-width: 520px;
+          max-height: 90vh; overflow-y: auto;
+          box-shadow: 0 20px 50px rgba(0,0,0,0.8);
+        }
+        .tt-modal-h { display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px; }
+        .tt-modal-h h3 { margin: 0; color: #fde68a; font-size: 15px; letter-spacing: 0.5px; }
+        .tt-modal-x { background: transparent; border: none; color: #8a8e94; font-size: 26px; line-height: 1; cursor: pointer; padding: 0 4px; }
+        .tt-modal-sub { color: #9ca3af; font-size: 11px; margin: 0 0 12px; }
+        .tt-livery-grid {
+          display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+          gap: 8px;
+        }
+        .tt-livery-card {
+          background: #14171c; border: 2px solid #2a2f38; border-radius: 8px;
+          padding: 8px 6px; cursor: pointer; color: #e8edf2;
+          font-family: inherit; text-align: center;
+          transition: border-color 0.15s, transform 0.08s;
+        }
+        .tt-livery-card:hover { border-color: #5a606a; }
+        .tt-livery-card.selected { border-color: #f5c542; background: #20231a; }
+        .tt-livery-preview { width: 100%; height: 50px; display: block; }
+        .tt-livery-name { font-size: 12px; font-weight: 800; margin-top: 4px; }
+        .tt-livery-city { font-size: 10px; color: #8a8e94; }
+
+        /* Mobile paysage : compresse le HUD verticalement */
+        @media (max-height: 500px) and (orientation: landscape) {
+          .tt-actions { bottom: 8px; gap: 6px; }
+          .tt-btn { padding: 5px 10px; min-width: 80px; }
+          .tt-btn-ico { font-size: 16px; }
+          .tt-btn-lbl { font-size: 10px; }
+          .tt-btn-cost { font-size: 10px; }
+          .tt-garage-fab { bottom: 6px; width: 36px; height: 36px; font-size: 16px; }
+          .tt-depot-card { top: 48px; padding: 4px 10px; }
+          .tt-contracts { top: 48px; width: 180px; max-height: calc(100% - 110px); }
+        }
+
 
         .tt-toast {
           position: absolute; top: 50%; left: 50%;
