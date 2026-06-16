@@ -14,23 +14,24 @@ type Node = { id: NodeId; x: number; y: number };
 type Edge = { from: NodeId; to: NodeId };
 
 // --- Carte des nodes (calés sur citymap2.jpg, viewBox 1920x1080) ----------
+// Rond-point centré (885, 540), rayon ~78.
 const NODES: Node[] = [
-  // Route horizontale haute (légèrement diagonale)
-  { id: "TL", x:   80, y: 305 },  // top-left
-  { id: "TC", x:  957, y: 275 },  // top-center (intersection N-S / haute)
-  { id: "TR", x: 1860, y: 240 },  // top-right
-  // Bords verticaux
-  { id: "ML", x:   80, y: 545 },  // mid-left
-  { id: "MR", x: 1860, y: 545 },  // mid-right
+  // Route horizontale haute (légèrement diagonale, descend de droite à gauche)
+  { id: "TL", x:    0, y: 285 },
+  { id: "TC", x:  885, y: 258 },
+  { id: "TR", x: 1920, y: 220 },
+  // Route horizontale centrale (passe par le rond-point) — extrémités
+  { id: "ML", x:    0, y: 545 },
+  { id: "MR", x: 1920, y: 540 },
   // Route horizontale basse
-  { id: "BL", x:   80, y: 800 },  // bottom-left
-  { id: "BC", x:  957, y: 815 },  // bottom-center (intersection N-S / basse)
-  { id: "BR", x: 1860, y: 765 },  // bottom-right
-  // Rond-point central (4 entrées + 4 points sur l'anneau)
-  { id: "RN", x:  957, y: 410 },  // entrée nord
-  { id: "RE", x: 1190, y: 545 },  // entrée est
-  { id: "RS", x:  957, y: 670 },  // entrée sud
-  { id: "RW", x:  727, y: 545 },  // entrée ouest
+  { id: "BL", x:    0, y: 720 },
+  { id: "BC", x:  885, y: 705 },
+  { id: "BR", x: 1920, y: 690 },
+  // Rond-point central — 4 points sur l'anneau
+  { id: "RN", x:  885, y: 462 },
+  { id: "RE", x:  963, y: 540 },
+  { id: "RS", x:  885, y: 618 },
+  { id: "RW", x:  807, y: 540 },
 ];
 
 // Edges bidirectionnels : on liste chaque arête une fois, on génère les 2 sens.
