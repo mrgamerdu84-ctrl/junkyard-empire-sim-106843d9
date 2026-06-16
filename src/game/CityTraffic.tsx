@@ -77,6 +77,90 @@ function CarSVG({ color, accent, scale = 1 }: { color: string; accent: string; s
   );
 }
 
+function VanSVG({ color, accent, scale = 1 }: { color: string; accent: string; scale?: number }) {
+  return (
+    <g transform={`scale(${scale})`}>
+      <ellipse cx="0" cy="9" rx="34" ry="14" fill="rgba(0,0,0,0.42)" />
+      {/* caisse arrière haute */}
+      <path d="M -32 -14 L 10 -14 L 14 -12 L 14 11 L -32 11 Z" fill={accent} opacity="0.95" />
+      <path d="M -31 -13 L 9 -13 L 13 -11 L 13 10 L -31 10 Z" fill={color} />
+      {/* cabine avant */}
+      <path d="M 10 -11 L 22 -8 L 28 0 L 22 9 L 10 10 Z" fill={accent} opacity="0.95" />
+      <path d="M 11 -10 L 21 -7 L 26 0 L 21 8 L 11 9 Z" fill={color} />
+      {/* pare-brise cabine */}
+      <path d="M 13 -7 L 20 -5 L 24 0 L 20 5 L 13 7 Z" fill="#0b1320" opacity="0.9" />
+      {/* portes arrière */}
+      <line x1="-10" y1="-13" x2="-10" y2="10" stroke="#0b0d10" strokeWidth="0.8" opacity="0.6" />
+      <line x1="-22" y1="-13" x2="-22" y2="10" stroke="#0b0d10" strokeWidth="0.8" opacity="0.4" />
+      {/* logo livraison */}
+      <rect x="-26" y="-6" width="14" height="9" rx="1" fill="#ffffff" opacity="0.85" />
+      <rect x="-25" y="-4" width="12" height="2" fill={accent} opacity="0.6" />
+      <rect x="-25" y="-1" width="9" height="1.4" fill={accent} opacity="0.4" />
+      {/* roues */}
+      <rect x="6" y="-17" width="10" height="4.5" rx="1.5" fill="#08090b" />
+      <rect x="6" y="12" width="10" height="4.5" rx="1.5" fill="#08090b" />
+      <rect x="-26" y="-17" width="11" height="4.5" rx="1.5" fill="#08090b" />
+      <rect x="-26" y="12" width="11" height="4.5" rx="1.5" fill="#08090b" />
+      {/* phares */}
+      <circle cx="27" cy="-4" r="1.8" fill="#fff7c0" />
+      <circle cx="27" cy="4" r="1.8" fill="#fff7c0" />
+    </g>
+  );
+}
+
+function TruckSVG({ color, accent, scale = 1 }: { color: string; accent: string; scale?: number }) {
+  return (
+    <g transform={`scale(${scale})`}>
+      <ellipse cx="0" cy="10" rx="40" ry="15" fill="rgba(0,0,0,0.45)" />
+      {/* remorque */}
+      <rect x="-38" y="-14" width="36" height="26" rx="1.5" fill={accent} opacity="0.95" />
+      <rect x="-37" y="-13" width="34" height="24" rx="1.2" fill={color} />
+      <line x1="-26" y1="-13" x2="-26" y2="11" stroke="#0b0d10" strokeWidth="0.8" opacity="0.45" />
+      <line x1="-15" y1="-13" x2="-15" y2="11" stroke="#0b0d10" strokeWidth="0.8" opacity="0.45" />
+      {/* attelage */}
+      <rect x="-2" y="-2" width="4" height="4" fill="#1a1d22" />
+      {/* cabine tracteur */}
+      <path d="M 2 -11 L 18 -11 L 26 -7 L 28 0 L 26 7 L 18 11 L 2 11 Z" fill={accent} opacity="0.95" />
+      <path d="M 3 -10 L 17 -10 L 25 -6 L 27 0 L 25 6 L 17 10 L 3 10 Z" fill={color} />
+      <path d="M 14 -8 L 22 -5 L 24 0 L 22 5 L 14 8 Z" fill="#0b1320" opacity="0.9" />
+      {/* roues */}
+      <rect x="-35" y="-18" width="10" height="4.5" rx="1.5" fill="#08090b" />
+      <rect x="-35" y="13" width="10" height="4.5" rx="1.5" fill="#08090b" />
+      <rect x="-20" y="-18" width="10" height="4.5" rx="1.5" fill="#08090b" />
+      <rect x="-20" y="13" width="10" height="4.5" rx="1.5" fill="#08090b" />
+      <rect x="10" y="-15" width="10" height="4.5" rx="1.5" fill="#08090b" />
+      <rect x="10" y="11" width="10" height="4.5" rx="1.5" fill="#08090b" />
+      {/* phares */}
+      <circle cx="27" cy="-4" r="2" fill="#fff7c0" />
+      <circle cx="27" cy="4" r="2" fill="#fff7c0" />
+    </g>
+  );
+}
+
+function HatchSVG({ color, accent, scale = 1 }: { color: string; accent: string; scale?: number }) {
+  return (
+    <g transform={`scale(${scale})`}>
+      <ellipse cx="0" cy="7" rx="26" ry="12" fill="rgba(0,0,0,0.4)" />
+      <path d="M -24 -9 C -18 -15 14 -15 22 -6 L 26 0 L 22 8 C 10 14 -16 14 -25 8 L -29 0 Z" fill={accent} opacity="0.95" />
+      <path d="M -23 -10 C -16 -15 13 -14 22 -6 L 25 0 L 21 7 C 9 12 -15 12 -24 7 L -28 0 Z" fill={color} />
+      <path d="M -8 -11 L 12 -10 C 16 -7 18 -3 18 0 C 16 4 12 7 8 8 L -10 8 C -14 6 -16 3 -17 0 C -16 -4 -13 -8 -8 -11 Z" fill="#0d1626" opacity="0.94" />
+      <rect x="8" y="-15" width="10" height="4.5" rx="1.5" fill="#08090b" />
+      <rect x="8" y="11" width="10" height="4.5" rx="1.5" fill="#08090b" />
+      <rect x="-20" y="-14" width="10" height="4.5" rx="1.5" fill="#08090b" />
+      <rect x="-20" y="10" width="10" height="4.5" rx="1.5" fill="#08090b" />
+      <circle cx="25" cy="-4" r="1.8" fill="#fff7c0" />
+      <circle cx="25" cy="4" r="1.8" fill="#fff7c0" />
+    </g>
+  );
+}
+
+function Vehicle({ kind, color, accent, scale }: { kind: VehicleKind; color: string; accent: string; scale?: number }) {
+  if (kind === "van") return <VanSVG color={color} accent={accent} scale={scale} />;
+  if (kind === "truck") return <TruckSVG color={color} accent={accent} scale={scale} />;
+  if (kind === "hatch") return <HatchSVG color={color} accent={accent} scale={scale} />;
+  return <CarSVG color={color} accent={accent} scale={scale} />;
+}
+
 type PedSpec = {
   pathIdx: number;
   duration: number;
