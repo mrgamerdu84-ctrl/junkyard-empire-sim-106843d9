@@ -422,21 +422,30 @@ export default function TaxiTycoon() {
         (c) => c.assigned !== null || now - c.spawnedAt < 35000
       );
 
-      // Assigner clients aux taxis idle
-      for (const taxi of taxisRef.current) {
-        if (taxi.mode !== "idle") continue;
-        let best: Client | null = null;
-        let bestDist = Infinity;
-        for (const c of clientsRef.current) {
-          if (c.assigned !== null) continue;
-          const d = Math.abs(c.pickup - taxi.pos);
-          if (d < bestDist) { bestDist = d; best = c; }
-        }
-        if (best) {
-          best.assigned = taxi.id;
-          taxi.clientId = best.id;
-          taxi.mode = "to_pickup";
-          taxi.target = best.pickup;
+      // Assigner clients aux taxis idle — avec régulation
+      const activeTaxiCount = taxisRef.current.filter((t) => t.mode !== "idle").length;
+      const maxActive = Math.max(1, adm.maxActiveTaxis | 0);
+      const cooldownMs = Math.max(0, adm.taxiSpawnCooldown) * 1000;
+      const canDispatch = activeTaxiCount < maxActive && (now - lastTaxiDispatchRef.current) >= cooldownMs;
+
+      if (canDispatch) {
+        for (const taxi of taxisRef.current) {
+          if (taxi.mode !== "idle") continue;
+          let best: Client | null = null;
+          let bestDist = Infinity;
+          for (const c of clientsRef.current) {
+            if (c.assigned !== null) continue;
+            const d = Math.abs(c.pickup - taxi.pos);
+            if (d < bestDist) { bestDist = d; best = c; }
+          }
+          if (best) {
+            best.assigned = taxi.id;
+            taxi.clientId = best.id;
+            taxi.mode = "to_pickup";
+            taxi.target = best.pickup;
+            lastTaxiDispatchRef.current = now;
+            break; // un seul dispatch par tick → respecte le cooldown
+          }
         }
       }
 
