@@ -990,7 +990,14 @@ export default function TaxiTycoon() {
               fill="none" stroke="#22c55e" strokeWidth="2.5" strokeOpacity="0.9"
               strokeLinecap="round" strokeLinejoin="round"
             />
+            {circuitInfo.pts.map((p, i) => (
+              <circle key={i} cx={p.x} cy={p.y} r="6" fill="#0a0c10" stroke="#22c55e" strokeWidth="2" />
+            ))}
           </g>
+        )}
+        {/* Aperçu pendant le dessin : si un seul point, affiche-le */}
+        {circuitInfo.pts.length === 1 && (
+          <circle cx={circuitInfo.pts[0].x} cy={circuitInfo.pts[0].y} r="7" fill="#0a0c10" stroke="#22c55e" strokeWidth="2" />
         )}
 
         {/* Taxis qui tournent sur le circuit personnalisé */}
