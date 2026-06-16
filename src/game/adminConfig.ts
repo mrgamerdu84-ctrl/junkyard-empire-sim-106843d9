@@ -53,20 +53,20 @@ export const DEFAULT_ADMIN: AdminConfig = {
   maxActiveTaxis: 6,
   taxiSpawnCooldown: 1.5,
 
-  // QG ancré sur le lot "TAXI DEPOT" intégré au décor (avenue basse SW).
+  // QG position legacy (image-based map)
   hqUseFreePos: true,
-  hqX: 320,
-  hqY: 900,
-  hqScale: 0.9,
+  hqX: 230,
+  hqY: 780,
+  hqScale: 1,
   hqRotation: 0,
 
   fuelConsumption: 0.6,
-  // Station-service sur l'avenue verticale droite, au niveau du rond-point.
+  // Station-service position legacy
   gasStationX: 1620,
   gasStationY: 540,
 
   rivalEnabled: true,
-  // QG rival en haut-droite, sur l'anneau.
+  // QG rival position legacy
   rivalHQX: 1620,
   rivalHQY: 220,
   rivalTaxiCount: 2,
@@ -78,7 +78,7 @@ export const DEFAULT_ADMIN: AdminConfig = {
   circuitSpeedMult: 1,
 };
 
-const KEY = "taxi-tycoon-admin-v3";
+const KEY = "taxi-tycoon-admin-v4";
 
 
 
