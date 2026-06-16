@@ -79,10 +79,13 @@ function FitCam() {
     cam.bottom = -span / 2;
     cam.near = 0.1;
     cam.far = 500;
+    cam.position.set(0, 90, 25);
+    cam.lookAt(0, 0, 0);
     cam.updateProjectionMatrix();
   }, [size, camera]);
   return null;
 }
+
 
 
 /* ===== Voiture détaillée ===== */
