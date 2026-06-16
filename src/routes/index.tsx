@@ -39,13 +39,6 @@ const ZONES: Zone[] = [
   { id: "international", name: "CASSE INTERNATIONALE", unlock: 60, top: "82%", left: "82%", coutAchat: 500000, clicsTotalRequis: 40, gainParSeconde: 7500, scrapParSeconde: 20 },
 ];
 
-const ROADS = [
-  { d: "M 0 70 L 100 70", dur: 14 },
-  { d: "M 0 40 L 100 40", dur: 18 },
-  { d: "M 38 100 L 38 0", dur: 16 },
-  { d: "M 75 0 L 75 100", dur: 20 },
-  { d: "M 0 88 L 50 88 L 50 70", dur: 12 },
-];
 
 const tierFor = (niveau: number, unlock = 1) =>
   Math.min(5, 1 + Math.floor(Math.max(0, niveau - unlock) / 5));
@@ -345,12 +338,6 @@ function JunkyCityEmpire() {
           50% { filter: brightness(1.15); }
         }
 
-        .jce-traffic {
-          position: absolute; inset: 0;
-          width: 100%; height: 100%;
-          pointer-events: none; z-index: 3;
-        }
-        .jce-traffic .car { filter: drop-shadow(0 1px 2px rgba(0,0,0,0.7)); }
 
         .jce-coin-pop {
           position: absolute;
@@ -432,30 +419,6 @@ function JunkyCityEmpire() {
       <div className="jce-map">
         <img src={citymap} alt="Vue aérienne de Junky City" className="jce-map-img" />
 
-        <svg className="jce-traffic" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
-          <defs>
-            {ROADS.map((r, i) => (
-              <path key={`road-${i}`} id={`road-${i}`} d={r.d} />
-            ))}
-          </defs>
-          {ROADS.flatMap((r, i) => {
-            const colors = ["#e53935", "#1e88e5", "#fdd835", "#43a047", "#fff", "#212121"];
-            const count = 3;
-            return Array.from({ length: count }).map((_, k) => {
-              const color = colors[(i * count + k) % colors.length];
-              const begin = `${(k / count) * r.dur}s`;
-              return (
-                <g key={`car-${i}-${k}`} className="car">
-                  <rect x="-1.6" y="-0.8" width="3.2" height="1.6" rx="0.35" fill={color} />
-                  <rect x="-0.6" y="-0.55" width="1.6" height="1.1" rx="0.2" fill="rgba(180,220,255,0.85)" />
-                  <animateMotion dur={`${r.dur}s`} begin={begin} repeatCount="indefinite" rotate="auto">
-                    <mpath href={`#road-${i}`} />
-                  </animateMotion>
-                </g>
-              );
-            });
-          })}
-        </svg>
 
         <header className="jce-topbar">
           <div className="jce-profile-block">
