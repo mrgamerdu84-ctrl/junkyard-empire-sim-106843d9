@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useAdminConfig } from "./adminConfig";
 import npcTopdown from "@/assets/car-npc-topdown.png";
+import npcRedTopdown from "@/assets/car-npc-red-topdown.png";
 
 /* eslint-disable prettier/prettier */
 
@@ -22,6 +23,7 @@ export const ROADS = [
 ];
 
 type VehicleKind = "sedan" | "van" | "truck" | "hatch";
+type VehicleVariant = "black" | "red";
 
 type CarSpec = {
   color: string;
@@ -32,6 +34,7 @@ type CarSpec = {
   flip?: boolean;
   scale?: number;
   kind: VehicleKind;
+  variant?: VehicleVariant;
 };
 
 // Circulation civile diversifiée — aucune teinte taxi jaune.
@@ -45,23 +48,23 @@ type CarSpec = {
 // - Les camions / vans roulent un poil plus lentement (gabarit lourd).
 const CARS: CarSpec[] = [
   // Path 0 — sens normal (5 véhicules, phases ~0 / 0.2 / 0.4 / 0.6 / 0.8)
-  { kind: "sedan", color: "#d83a2a", accent: "#7c1c10", duration: 42, delay:   0, pathIdx: 0, scale: 0.64 },
+  { kind: "sedan", color: "#d83a2a", accent: "#7c1c10", duration: 42, delay:   0, pathIdx: 0, scale: 0.64, variant: "red" },
   { kind: "sedan", color: "#e8edf2", accent: "#8a8e94", duration: 38, delay:  -8, pathIdx: 0, scale: 0.62 },
   { kind: "van",   color: "#2f7a4a", accent: "#163b22", duration: 46, delay: -18, pathIdx: 0, scale: 0.7 },
   { kind: "truck", color: "#1f2937", accent: "#0b0f17", duration: 52, delay: -30, pathIdx: 0, scale: 0.74 },
-  { kind: "hatch", color: "#facc15", accent: "#7a5a08", duration: 40, delay: -38, pathIdx: 0, scale: 0.58 },
+  { kind: "hatch", color: "#facc15", accent: "#7a5a08", duration: 40, delay: -38, pathIdx: 0, scale: 0.58, variant: "red" },
   // Path 0 — sens inverse (4 véhicules)
   { kind: "sedan", color: "#2b6ed8", accent: "#143f7c", duration: 40, delay:   0, pathIdx: 0, flip: true, scale: 0.65 },
   { kind: "truck", color: "#b8410f", accent: "#5a1f06", duration: 48, delay: -12, pathIdx: 0, flip: true, scale: 0.72 },
   { kind: "van",   color: "#ffffff", accent: "#8a8e94", duration: 44, delay: -22, pathIdx: 0, flip: true, scale: 0.7 },
-  { kind: "hatch", color: "#7c3aed", accent: "#3b1d72", duration: 41, delay: -32, pathIdx: 0, flip: true, scale: 0.58 },
+  { kind: "hatch", color: "#7c3aed", accent: "#3b1d72", duration: 41, delay: -32, pathIdx: 0, flip: true, scale: 0.58, variant: "red" },
   // Path 1 — voie courte (3 véhicules)
   { kind: "hatch", color: "#12151a", accent: "#050607", duration: 19, delay:  -2, pathIdx: 1, scale: 0.58 },
-  { kind: "sedan", color: "#3a8a48", accent: "#1c4a22", duration: 22, delay:  -8, pathIdx: 1, flip: true, scale: 0.6 },
+  { kind: "sedan", color: "#3a8a48", accent: "#1c4a22", duration: 22, delay:  -8, pathIdx: 1, flip: true, scale: 0.6, variant: "red" },
   { kind: "van",   color: "#e11d48", accent: "#6b0f25", duration: 24, delay: -14, pathIdx: 1, scale: 0.66 },
   // Path 2 — sens normal (5 véhicules)
   { kind: "van",   color: "#d97a2a", accent: "#7a3a10", duration: 44, delay:   0, pathIdx: 2, scale: 0.68 },
-  { kind: "sedan", color: "#b81c4a", accent: "#5c0a20", duration: 40, delay:  -9, pathIdx: 2, scale: 0.62 },
+  { kind: "sedan", color: "#b81c4a", accent: "#5c0a20", duration: 40, delay:  -9, pathIdx: 2, scale: 0.62, variant: "red" },
   { kind: "truck", color: "#0891b2", accent: "#0a4453", duration: 54, delay: -20, pathIdx: 2, scale: 0.76 },
   { kind: "hatch", color: "#4ed6c5", accent: "#187266", duration: 46, delay: -30, pathIdx: 2, scale: 0.58 },
   { kind: "sedan", color: "#f5f5f5", accent: "#7a7a7a", duration: 42, delay: -38, pathIdx: 2, scale: 0.62 },
@@ -69,10 +72,10 @@ const CARS: CarSpec[] = [
   { kind: "hatch", color: "#1a3a6a", accent: "#0a1c40", duration: 42, delay:   0, pathIdx: 2, flip: true, scale: 0.6 },
   { kind: "truck", color: "#3b4a5c", accent: "#1a232f", duration: 54, delay: -14, pathIdx: 2, flip: true, scale: 0.74 },
   { kind: "van",   color: "#16a34a", accent: "#0a4a22", duration: 48, delay: -26, pathIdx: 2, flip: true, scale: 0.7 },
-  { kind: "sedan", color: "#ea580c", accent: "#7a2a06", duration: 44, delay: -36, pathIdx: 2, flip: true, scale: 0.62 },
+  { kind: "sedan", color: "#ea580c", accent: "#7a2a06", duration: 44, delay: -36, pathIdx: 2, flip: true, scale: 0.62, variant: "red" },
   // Trafic supplémentaire (pour saturer le slider Admin civilVehicleCount jusqu'à 24)
   { kind: "sedan", color: "#7c3aed", accent: "#3b1d72", duration: 46, delay: -50, pathIdx: 0, scale: 0.62 },
-  { kind: "hatch", color: "#22c55e", accent: "#0f5132", duration: 24, delay: -10, pathIdx: 1, flip: true, scale: 0.6 },
+  { kind: "hatch", color: "#22c55e", accent: "#0f5132", duration: 24, delay: -10, pathIdx: 1, flip: true, scale: 0.6, variant: "red" },
   { kind: "sedan", color: "#0ea5e9", accent: "#075985", duration: 48, delay: -48, pathIdx: 2, flip: true, scale: 0.62 },
 ];
 
@@ -181,25 +184,41 @@ function HatchSVG({ color, accent, scale = 1 }: { color: string; accent: string;
   );
 }
 
-function Vehicle({ kind, color, accent: _accent, scale = 1 }: { kind: VehicleKind; color: string; accent: string; scale?: number }) {
-  // Toutes les voitures PNJ utilisent désormais la même image top-down (sedan noir).
-  // Le `kind` reste utilisé pour ajuster la longueur (van/truck plus longs).
-  // L'image native a le capot en haut → on applique +90° pour aligner avec
-  // l'angle de déplacement (angle 0 du parent = vers la droite).
-  // Une teinte `color` en multiply colore légèrement la carrosserie noire.
+function Vehicle({
+  kind,
+  color,
+  accent: _accent,
+  scale = 1,
+  variant = "black",
+}: {
+  kind: VehicleKind;
+  color: string;
+  accent: string;
+  scale?: number;
+  variant?: VehicleVariant;
+}) {
+  // Toutes les voitures PNJ utilisent des images top-down.
+  // - variant "black" : sedan noir (hood en haut dans l'image native) → rotate(+90)
+  // - variant "red"   : coupé rouge (hood en bas dans l'image native) → rotate(-90)
+  // Une teinte `color` en multiply colore légèrement la carrosserie.
   const baseLen = kind === "truck" ? 96 : kind === "van" ? 80 : kind === "hatch" ? 60 : 70;
   const baseWid = kind === "truck" ? 38 : kind === "van" ? 36 : 32;
   const W = baseLen;
   const H = baseWid;
-  // Pour éviter de "blanchir" le noir avec un multiply à forte opacité, on garde
-  // une teinte légère (le noir reste dominant pour les couleurs sombres).
-  const tintOpacity = color.toLowerCase() === "#000" || color.toLowerCase() === "#000000" ? 0 : 0.5;
+  const isRed = variant === "red";
+  const href = isRed ? npcRedTopdown : npcTopdown;
+  const innerRotate = isRed ? -90 : 90;
+  const lc = color.toLowerCase();
+  // Teinte légère, désactivée si la couleur est proche de la teinte native de l'image.
+  let tintOpacity = 0.5;
+  if (lc === "#000" || lc === "#000000") tintOpacity = 0;
+  if (isRed && (lc === "#d83a2a" || lc === "#b81c4a" || lc === "#e11d48")) tintOpacity = 0;
   return (
     <g transform={`scale(${scale})`}>
       <ellipse cx="0" cy="3" rx={W / 2 + 2} ry={H / 2 - 1} fill="rgba(0,0,0,0.4)" />
-      <g transform="rotate(90)">
+      <g transform={`rotate(${innerRotate})`}>
         <image
-          href={npcTopdown}
+          href={href}
           x={-H / 2}
           y={-W / 2}
           width={H}
@@ -216,7 +235,6 @@ function Vehicle({ kind, color, accent: _accent, scale = 1 }: { kind: VehicleKin
           style={{ mixBlendMode: "multiply" }}
         />
       </g>
-      {/* feux avant subtils */}
       <circle cx={W / 2 - 2} cy={-H / 4} r="1.4" fill="#fff7c0" opacity="0.85" />
       <circle cx={W / 2 - 2} cy={H / 4} r="1.4" fill="#fff7c0" opacity="0.85" />
     </g>
@@ -462,7 +480,7 @@ export default function CityTraffic() {
             carNodes.current[i] = el;
           }}
         >
-          <Vehicle kind={car.kind} color={car.color} accent={car.accent} scale={car.scale} />
+          <Vehicle kind={car.kind} color={car.color} accent={car.accent} scale={car.scale} variant={car.variant} />
         </g>
       ))}
 
