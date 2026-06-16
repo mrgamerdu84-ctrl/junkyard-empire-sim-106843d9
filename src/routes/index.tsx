@@ -3,7 +3,6 @@ import citymap from "@/assets/citymap2.jpg";
 import TaxiTycoon from "@/game/TaxiTycoon";
 import AdminPanel from "@/game/AdminPanel";
 import RulesPanel from "@/game/RulesPanel";
-import WaypointTraffic from "@/game/WaypointTraffic";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -40,7 +39,6 @@ function TaxiTycoonPage() {
       `}</style>
       <img src={citymap} alt="Plan de la ville pour le jeu de taxi" className="tt-map" />
       <div className="tt-vignette" />
-      <WaypointTraffic />
       <TaxiTycoon />
       <AdminPanel />
       <RulesPanel />

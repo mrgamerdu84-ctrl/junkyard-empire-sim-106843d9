@@ -6,7 +6,7 @@ import { useEffect, useState } from "react";
 
 export type AdminConfig = {
   depotPosNorm: number;       // 0..1 — position du QG le long du path principal
-  civilVehicleCount: number;  // 0..35 — voitures civiles affichées
+  civilVehicleCount: number;  // 0..24 — voitures civiles affichées
   taxiSpeedMult: number;      // 0.5..3 — multiplicateur vitesse taxis
   spawnRateMult: number;      // 0.25..3 — < 1 = clients plus rapides ; > 1 = plus lents
   maxClientsBonus: number;    // 0..10 — clients additionnels autorisés en simultané
@@ -44,7 +44,7 @@ export type AdminConfig = {
 
 export const DEFAULT_ADMIN: AdminConfig = {
   depotPosNorm: 0.78, // conservé pour compat ; non utilisé en mode XY libre
-  civilVehicleCount: 35,
+  civilVehicleCount: 22,
   taxiSpeedMult: 1,
   spawnRateMult: 1,
   maxClientsBonus: 0,
@@ -53,17 +53,16 @@ export const DEFAULT_ADMIN: AdminConfig = {
   maxActiveTaxis: 6,
   taxiSpawnCooldown: 1.5,
 
-  // QG ancré à la place de l'ex-station-service (intersection sud-est, bien visible).
+  // QG ancré par défaut sur le bâtiment TAXI CORP en bas-gauche de la map.
   hqUseFreePos: true,
-  hqX: 1450,
-  hqY: 540,
+  hqX: 230,
+  hqY: 780,
   hqScale: 1,
   hqRotation: 0,
 
   fuelConsumption: 0.6,
-  // Nouvelle station-service déplacée en bas-gauche (libre de l'ancien QG).
-  gasStationX: 230,
-  gasStationY: 780,
+  gasStationX: 1450,
+  gasStationY: 540,
 
   rivalEnabled: true,
   rivalHQX: 1650,
@@ -77,7 +76,7 @@ export const DEFAULT_ADMIN: AdminConfig = {
   circuitSpeedMult: 1,
 };
 
-const KEY = "taxi-tycoon-admin-v3";
+const KEY = "taxi-tycoon-admin-v2";
 
 
 function load(): AdminConfig {
