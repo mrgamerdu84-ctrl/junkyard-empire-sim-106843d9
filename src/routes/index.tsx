@@ -495,32 +495,41 @@ function JunkyCityEmpire() {
         </header>
 
         {ZONES.map((z) => {
-          const locked = z.unlock && z.unlock > niveau;
+          const locked = !!z.unlock && z.unlock > niveau;
           const unlocked = !!z.reward && !locked;
+          const tier = unlocked ? tierFor(niveau, z.unlock ?? 1) : 0;
+          const gain = unlocked && z.reward ? z.reward * tier : 0;
+          const scrapGain = unlocked && z.scrap ? z.scrap * tier : 0;
           return (
             <button
               key={z.id}
-              className={`jce-zone ${unlocked ? "unlocked" : ""} ${flash === z.id ? "flash" : ""}`}
+              className={`jce-zone ${unlocked ? "unlocked" : ""} ${tier ? `tier-${tier}` : ""} ${flash === z.id ? "flash" : ""}`}
               style={{ top: z.top, left: z.left }}
               onClick={() => accepter(z)}
             >
+              {unlocked && tier > 0 && (
+                <div className="jce-tier-badge">
+                  {"★".repeat(tier)} N{tier}
+                </div>
+              )}
               <div className="jce-zone-title">
                 {locked && <span>🔒</span>}
                 {z.name}
               </div>
               <div className={`jce-zone-status ${unlocked ? "" : "muted"}`}>
                 {unlocked
-                  ? `+${z.reward} $ • +${z.scrap} ferraille`
+                  ? `+${gain.toLocaleString("fr-FR")} $ • +${scrapGain}`
                   : z.unlock
                   ? `Débloqué au niveau ${z.unlock}`
                   : z.status}
               </div>
-              {flash === z.id && z.reward && (
-                <div className="jce-coin-pop">+{z.reward}$</div>
+              {flash === z.id && unlocked && (
+                <div className="jce-coin-pop">+{gain.toLocaleString("fr-FR")}$</div>
               )}
             </button>
           );
         })}
+
 
         {toast && <div className="jce-toast">{toast}</div>}
 
