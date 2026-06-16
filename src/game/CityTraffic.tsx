@@ -317,10 +317,11 @@ function Lamp({ x, y, night }: { x: number; y: number; night: number }) {
 }
 
 // Distance de sécurité et freinage (en px du viewBox 1920x1080)
-const SAFE_GAP = 70;     // distance désirée pare-chocs à pare-chocs
-const BRAKE_GAP = 130;   // au-delà : pleine vitesse ; en deçà : freinage progressif
+const SAFE_GAP = 55;     // distance désirée pare-chocs à pare-chocs
+const BRAKE_GAP = 110;   // au-delà : pleine vitesse ; en deçà : freinage progressif
 const ACCEL = 0.6;       // px/s² lissage vers la vitesse cible (réaccélération douce)
 const BRAKE = 1.8;       // px/s² lissage en freinage (plus mordant que l'accélération)
+const MIN_SPEED_RATIO = 0.35; // plancher anti-figeage (% de baseSpeed)
 
 type CarState = {
   spec: CarSpec;
@@ -396,21 +397,26 @@ export default function CityTraffic() {
           // gap signé vers l'avant (avec wrap autour du path)
           let gap = ahead.s - me.s;
           if (gap <= 0) gap += me.pathLen;
-          // sous BRAKE_GAP on commence à ralentir ; sous SAFE_GAP on vise la vitesse du leader (suivi)
+          // marges réduites pour véhicules longs pour éviter blocages en courbe
+          const myLen = me.spec.kind === "truck" ? 60 : me.spec.kind === "van" ? 50 : 38;
+          const safe = SAFE_GAP + myLen * 0.2;
+          const brake = BRAKE_GAP + myLen * 0.2;
           let target = me.baseSpeed;
-          if (gap < BRAKE_GAP) {
-            const k = Math.max(0, (gap - SAFE_GAP) / (BRAKE_GAP - SAFE_GAP)); // 1 à BRAKE_GAP, 0 à SAFE_GAP
-            // au plus proche, on s'aligne sur la vitesse du leader (sans collision)
-            target = ahead.speed * (1 - k) + me.baseSpeed * k;
-            // sous SAFE_GAP, freiner sous le leader
-            if (gap < SAFE_GAP) target = Math.min(target, ahead.speed * (gap / SAFE_GAP));
+          if (gap < brake) {
+            const k = Math.max(0, (gap - safe) / (brake - safe));
+            // anti-cascade : on ne s'aligne jamais sous le plancher du leader.
+            const leaderEff = Math.max(ahead.speed, ahead.baseSpeed * MIN_SPEED_RATIO);
+            target = leaderEff * (1 - k) + me.baseSpeed * k;
+            if (gap < safe) target = Math.min(target, leaderEff * (gap / safe));
           }
           // lissage vers la cible : freinage > accélération
           const diff = target - me.speed;
           const rate = diff < 0 ? BRAKE : ACCEL;
           const maxStep = rate * me.baseSpeed * dt; // proportionnel à l'allure libre
           me.speed += Math.max(-maxStep, Math.min(maxStep, diff));
-          if (me.speed < 1) me.speed = 1; // ne jamais s'arrêter complètement
+          // plancher anti-figeage : 35 % de baseSpeed
+          const floor = me.baseSpeed * MIN_SPEED_RATIO;
+          if (me.speed < floor) me.speed = floor;
         }
       }
 
