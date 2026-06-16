@@ -89,8 +89,11 @@ function JunkyCityEmpire() {
       setTimeout(() => setToast(null), 1600);
       return;
     }
-    setArgent((m) => m + z.reward!);
-    setFerraille((f) => f + (z.scrap ?? 0));
+    const tier = tierFor(niveau, z.unlock ?? 1);
+    const gain = z.reward * tier;
+    const scrapGain = (z.scrap ?? 0) * tier;
+    setArgent((m) => m + gain);
+    setFerraille((f) => f + scrapGain);
     setXp((x) => {
       const nx = x + 5;
       if (nx >= 100) {
