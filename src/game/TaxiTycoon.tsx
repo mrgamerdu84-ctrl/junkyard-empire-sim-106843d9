@@ -168,7 +168,7 @@ function TaxiSprite({
         {moving && (
           <animateTransform attributeName="transform" type="translate" values="0 -0.3; 0 0.3; 0 -0.3" dur="0.22s" repeatCount="indefinite" />
         )}
-        <g transform={faceRight ? undefined : "scale(-1,1)"}>
+        <g transform={faceRight ? "rotate(90)" : "rotate(-90)"}>
           <image href={image} x={-S / 2} y={-S / 2} width={S} height={S} preserveAspectRatio="xMidYMid meet" />
         </g>
         {withClient && (
