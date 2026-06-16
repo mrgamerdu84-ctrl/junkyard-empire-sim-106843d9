@@ -415,7 +415,7 @@ export default function City3D({ drawRoadStrips = false }: City3DProps) {
       shadows
       dpr={[1, 1.6]}
       gl={{ antialias: true, alpha: true, powerPreference: "high-performance" }}
-      style={{ position: "absolute", inset: 0, width: "100%", height: "100%", pointerEvents: "none" }}
+      style={{ position: "absolute", inset: 0, width: "100%", height: "100%", pointerEvents: "none", zIndex: 3 }}
       onCreated={({ scene }) => { scene.background = null; }}
     >
       <FitCam />
