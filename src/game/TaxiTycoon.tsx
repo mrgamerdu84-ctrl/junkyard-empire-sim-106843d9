@@ -113,7 +113,14 @@ type SaveData = {
   defaultColor: string;
   jobsCompleted: number;
   liveryId: string;
+  // ====== Boutique QG ======
+  hqCapacityLvl: number;   // +1 taxi de capacité par niveau (0..5)
+  hqProductionLvl: number; // -15% cooldown sortie par niveau (0..5)
+  hqRevenueLvl: number;    // +10% revenu par niveau (0..5)
 };
+
+const HQ_UPGRADE_MAX = 5;
+const HQ_UPGRADE_BASE_COST = { capacity: 1200, production: 1500, revenue: 2000 } as const;
 
 const DEFAULT_SAVE: SaveData = {
   money: 250,
@@ -125,6 +132,9 @@ const DEFAULT_SAVE: SaveData = {
   defaultColor: "yellow",
   jobsCompleted: 0,
   liveryId: "classic",
+  hqCapacityLvl: 0,
+  hqProductionLvl: 0,
+  hqRevenueLvl: 0,
 };
 
 
@@ -342,7 +352,8 @@ export default function TaxiTycoon() {
     // tarif basé sur la distance approximative + tier + admin
     const distNorm = 0.4 + Math.random() * 0.6;
     const adm = getAdmin();
-    const fare = Math.round((25 + distNorm * 220) * t.fareMult * adm.clientFareMult);
+    const revBonus = 1 + 0.10 * (saveRef.current.hqRevenueLvl ?? 0);
+    const fare = Math.round((25 + distNorm * 220) * t.fareMult * adm.clientFareMult * revBonus);
     const duration = (22 + Math.min(20, fare / 30)) * 1000;
     return {
       id, pickupPath, pickup, dropoffPath, dropoff, fare,
@@ -707,12 +718,34 @@ export default function TaxiTycoon() {
 
   // === Actions UI ===
   const taxiCount = save.taxis.length;
+  const effectiveMaxTaxis = tier.maxTaxis + (save.hqCapacityLvl ?? 0);
   const taxiBuyCost = Math.round(TAXI_COST_BASE * Math.pow(1.65, taxiCount));
   const speedCost = Math.round(SPEED_UPGRADE_COST_BASE * Math.pow(2.1, save.taxiSpeedLvl));
 
+  const hqCostFor = (base: number, lvl: number) => Math.round(base * Math.pow(1.9, lvl));
+  type HqKind = "capacity" | "production" | "revenue";
+  const hqLevel = (k: HqKind) =>
+    k === "capacity" ? save.hqCapacityLvl : k === "production" ? save.hqProductionLvl : save.hqRevenueLvl;
+  const hqCost = (k: HqKind) => hqCostFor(HQ_UPGRADE_BASE_COST[k], hqLevel(k));
+  const hqUpgrade = (k: HqKind) => {
+    const lvl = hqLevel(k);
+    if (lvl >= HQ_UPGRADE_MAX) { showToast("Niveau max atteint"); return; }
+    const cost = hqCost(k);
+    if (save.money < cost) { showToast(`Il manque ${fmt(cost - save.money)} $`); return; }
+    setSave((s) => ({
+      ...s,
+      money: s.money - cost,
+      hqCapacityLvl: k === "capacity" ? s.hqCapacityLvl + 1 : s.hqCapacityLvl,
+      hqProductionLvl: k === "production" ? s.hqProductionLvl + 1 : s.hqProductionLvl,
+      hqRevenueLvl: k === "revenue" ? s.hqRevenueLvl + 1 : s.hqRevenueLvl,
+    }));
+    const labels: Record<HqKind, string> = { capacity: "🚕 Capacité +1", production: "⚙️ Production accélérée", revenue: "💰 Revenu boosté" };
+    showToast(labels[k]);
+  };
+
   const buyTaxi = () => {
-    if (taxiCount >= tier.maxTaxis) {
-      showToast(`Capacité max : améliore le dépôt`);
+    if (taxiCount >= effectiveMaxTaxis) {
+      showToast(`Capacité max : améliore le QG`);
       return;
     }
     if (save.money < taxiBuyCost) {
@@ -726,6 +759,7 @@ export default function TaxiTycoon() {
     }));
     showToast("🚕 Nouveau taxi acheté !");
   };
+
 
   const upgradeDepot = () => {
     if (!nextTier) { showToast("Dépôt déjà au max"); return; }
@@ -747,6 +781,7 @@ export default function TaxiTycoon() {
   };
 
   const [garageOpen, setGarageOpen] = useState(false);
+  const [shopOpen, setShopOpen] = useState(false);
   const [musicOn, setMusicOn] = useState(false);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const currentLivery = LIVERIES.find((l) => l.id === save.liveryId) ?? LIVERIES[0];
@@ -789,7 +824,8 @@ export default function TaxiTycoon() {
       return;
     }
     const adm = getAdmin();
-    const cooldownMs = Math.max(0, adm.taxiSpawnCooldown) * 1000;
+    const prodReduction = Math.max(0.2, 1 - 0.15 * (saveRef.current.hqProductionLvl ?? 0));
+    const cooldownMs = Math.max(0, adm.taxiSpawnCooldown) * 1000 * prodReduction;
     const now = performance.now();
     if (now - lastTaxiDispatchRef.current < cooldownMs) {
       showToast(`⏱️ Cooldown sortie QG`);
@@ -1033,7 +1069,7 @@ export default function TaxiTycoon() {
           </div>
           <div className="tt-stat">
             <span className="tt-stat-icon">🚕</span>
-            <span className="tt-stat-val">{taxiCount}/{tier.maxTaxis}</span>
+            <span className="tt-stat-val">{taxiCount}/{effectiveMaxTaxis}</span>
           </div>
           {admin.rivalEnabled && (
             <div className="tt-stat" style={{ color: "#ff6b7a" }} title="Courses volées par Rival Cabs">
@@ -1046,7 +1082,7 @@ export default function TaxiTycoon() {
         <div className="tt-depot-card">
           <div className="tt-depot-name">{tier.badge} {tier.name}</div>
           <div className="tt-depot-stats">
-            Tarifs ×{tier.fareMult.toFixed(1)} • Capa {tier.maxTaxis} taxis
+            Tarifs ×{tier.fareMult.toFixed(1)} • Capa {effectiveMaxTaxis} taxis
           </div>
         </div>
 
@@ -1108,7 +1144,7 @@ export default function TaxiTycoon() {
 
 
         <div className="tt-actions">
-          <button className="tt-btn primary" onClick={buyTaxi} disabled={save.money < taxiBuyCost || taxiCount >= tier.maxTaxis}>
+          <button className="tt-btn primary" onClick={buyTaxi} disabled={save.money < taxiBuyCost || taxiCount >= effectiveMaxTaxis}>
             <span className="tt-btn-ico">🚕</span>
             <span className="tt-btn-lbl">Acheter taxi</span>
             <span className="tt-btn-cost">{fmt(taxiBuyCost)}$</span>
@@ -1123,7 +1159,58 @@ export default function TaxiTycoon() {
             <span className="tt-btn-lbl">{nextTier ? `Améliorer dépôt` : `Dépôt max`}</span>
             <span className="tt-btn-cost">{nextTier ? `${fmt(nextTier.cost)}$` : "—"}</span>
           </button>
+          <button className="tt-btn shop" onClick={() => setShopOpen(true)} title="Boutique d'améliorations QG">
+            <span className="tt-btn-ico">🏪</span>
+            <span className="tt-btn-lbl">Boutique QG</span>
+            <span className="tt-btn-cost">Améliorations</span>
+          </button>
         </div>
+
+        {/* === Modal Boutique QG === */}
+        {shopOpen && (
+          <div className="tt-shop-overlay" onClick={() => setShopOpen(false)}>
+            <div className="tt-shop" onClick={(e) => e.stopPropagation()}>
+              <div className="tt-shop-head">
+                <h2>🏪 Boutique du QG</h2>
+                <button className="tt-shop-close" onClick={() => setShopOpen(false)}>×</button>
+              </div>
+              <div className="tt-shop-money">💵 {fmt(save.money)} $</div>
+
+              {([
+                { k: "capacity" as const, ico: "🚕", title: "Capacité de taxis", desc: "+1 taxi de capacité par niveau" },
+                { k: "production" as const, ico: "⚙️", title: "Vitesse de production", desc: "−15% sur le cooldown de sortie du QG" },
+                { k: "revenue" as const, ico: "💰", title: "Niveau du QG", desc: "+10% de revenu par course" },
+              ]).map(({ k, ico, title, desc }) => {
+                const lvl = hqLevel(k);
+                const maxed = lvl >= HQ_UPGRADE_MAX;
+                const cost = hqCost(k);
+                const cantPay = save.money < cost;
+                return (
+                  <div key={k} className="tt-shop-row">
+                    <div className="tt-shop-row-ico">{ico}</div>
+                    <div className="tt-shop-row-body">
+                      <div className="tt-shop-row-title">{title}</div>
+                      <div className="tt-shop-row-desc">{desc}</div>
+                      <div className="tt-shop-bar">
+                        {Array.from({ length: HQ_UPGRADE_MAX }).map((_, i) => (
+                          <span key={i} className={`tt-shop-pip ${i < lvl ? "on" : ""}`} />
+                        ))}
+                        <span className="tt-shop-lvl">Niv. {lvl}/{HQ_UPGRADE_MAX}</span>
+                      </div>
+                    </div>
+                    <button
+                      className="tt-shop-buy"
+                      onClick={() => hqUpgrade(k)}
+                      disabled={maxed || cantPay}
+                    >
+                      {maxed ? "MAX" : `${fmt(cost)} $`}
+                    </button>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
 
         {/* Bouton garage : ouvre le modal de personnalisation */}
         <button className="tt-garage-fab" onClick={() => setGarageOpen(true)} title="Garage — personnaliser le taxi">
@@ -1233,6 +1320,44 @@ export default function TaxiTycoon() {
         .tt-btn-lbl { font-size: 11px; font-weight: 800; letter-spacing: 0.3px; }
         .tt-btn-cost { font-size: 11px; font-weight: 900; color: #fde68a; }
         .tt-btn.upgrade .tt-btn-cost { color: #d1fae5; }
+        .tt-btn.shop { background: linear-gradient(180deg, #7c3aed, #3b0c7a); border-color: #2a0a55; }
+        .tt-btn.shop .tt-btn-cost { color: #e9d5ff; }
+
+        /* === Boutique QG === */
+        .tt-shop-overlay {
+          position: fixed; inset: 0; background: rgba(0,0,0,0.65); z-index: 200;
+          display: flex; align-items: center; justify-content: center; padding: 16px;
+          backdrop-filter: blur(4px);
+        }
+        .tt-shop {
+          width: 100%; max-width: 460px; background: #14171c; color: #e8edf2;
+          border: 1px solid #2a2f38; border-radius: 14px; padding: 16px;
+          box-shadow: 0 18px 50px rgba(0,0,0,0.7);
+          font-family: system-ui, -apple-system, sans-serif;
+          max-height: 86vh; overflow-y: auto;
+        }
+        .tt-shop-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }
+        .tt-shop-head h2 { margin: 0; font-size: 17px; color: #f5c542; letter-spacing: 0.3px; }
+        .tt-shop-close { background: transparent; border: none; color: #8a8e94; font-size: 26px; cursor: pointer; line-height: 1; }
+        .tt-shop-money { font-size: 13px; color: #34d399; font-weight: 700; margin-bottom: 12px; }
+        .tt-shop-row {
+          display: flex; gap: 10px; align-items: center; padding: 10px;
+          background: #1a1d22; border: 1px solid #2a2f38; border-radius: 10px; margin-bottom: 8px;
+        }
+        .tt-shop-row-ico { font-size: 26px; }
+        .tt-shop-row-body { flex: 1; min-width: 0; }
+        .tt-shop-row-title { font-size: 13px; font-weight: 700; color: #f5c542; }
+        .tt-shop-row-desc { font-size: 11px; color: #9ca0a6; margin-top: 2px; }
+        .tt-shop-bar { display: flex; align-items: center; gap: 4px; margin-top: 6px; }
+        .tt-shop-pip { width: 12px; height: 6px; border-radius: 2px; background: #2a2f38; }
+        .tt-shop-pip.on { background: #f5c542; }
+        .tt-shop-lvl { font-size: 10px; color: #c8ccd2; margin-left: 6px; font-variant-numeric: tabular-nums; }
+        .tt-shop-buy {
+          background: linear-gradient(180deg, #f5c542, #b8860b); color: #14171c;
+          border: 1px solid #6e5108; border-radius: 8px; padding: 8px 12px;
+          font-weight: 800; font-size: 12px; cursor: pointer; min-width: 78px;
+        }
+        .tt-shop-buy:disabled { opacity: 0.45; cursor: not-allowed; }
 
         .tt-garage-fab {
           position: absolute; bottom: 12px; left: 50%; transform: translateX(-50%);
