@@ -310,10 +310,10 @@ export default function AdminPanel() {
             {tab === "circuit" && (
               <>
                 <button className="adm-place" onClick={startDraw}>
-                  ✏️ Dessiner un circuit au doigt
+                  📍 Dessiner un circuit (point par point)
                 </button>
                 <div className="adm-hint" style={{ marginTop: 4 }}>
-                  Le panneau se ferme. Trace la boucle avec le doigt sur la carte.
+                  Le panneau se ferme. Clique sur la carte pour placer chaque virage, puis "Terminer".
                 </div>
                 <button className="adm-place" onClick={clearCircuit} style={{ marginTop: 8 }}>
                   🗑 Effacer le circuit
