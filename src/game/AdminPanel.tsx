@@ -237,7 +237,7 @@ export default function AdminPanel() {
                   value={cfg.taxiSpeedMult} min={0.5} max={3} step={0.05}
                   format={(v) => "×" + v.toFixed(2)} onChange={(v) => setAdmin({ taxiSpeedMult: v })} />
                 <Slider label="Nombre de véhicules civils" hint="Voitures, vans et camions sur les routes"
-                  value={cfg.civilVehicleCount} min={0} max={24} step={1}
+                  value={cfg.civilVehicleCount} min={0} max={35} step={1}
                   format={(v) => v.toFixed(0)} onChange={(v) => setAdmin({ civilVehicleCount: v })} />
               </>
             )}
