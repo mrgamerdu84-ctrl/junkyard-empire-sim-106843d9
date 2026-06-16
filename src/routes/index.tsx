@@ -6,6 +6,10 @@ import carwash from "@/assets/carwash.jpg";
 import shop from "@/assets/shop.jpg";
 import warehouse from "@/assets/warehouse.jpg";
 import parking from "@/assets/parking.jpg";
+import car1 from "@/assets/car1.png";
+import car2 from "@/assets/car2.png";
+import car3 from "@/assets/car3.png";
+
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -148,7 +152,7 @@ function JunkyCityEmpire() {
       <style>{`
         .jce-root {
           min-height: 100vh;
-          background-color: #8a5a3b;
+          background: #1a1d22;
           font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
           color: white;
           user-select: none;
@@ -158,14 +162,15 @@ function JunkyCityEmpire() {
           position: sticky;
           top: 0;
           z-index: 20;
-          background: #8a5a3b;
+          background: linear-gradient(to bottom, #0f1115, #1a1d22);
           display: grid;
           grid-template-columns: auto 1fr auto;
           align-items: center;
           gap: 12px;
           padding: 10px 14px;
-          border-bottom: 2px solid rgba(0,0,0,0.15);
+          border-bottom: 1px solid rgba(255,255,255,0.08);
         }
+
         .jce-money {
           display: flex;
           align-items: center;
@@ -205,18 +210,75 @@ function JunkyCityEmpire() {
           background: #d9d9d9;
           border-radius: 4px;
         }
+        .jce-skyline-wrap {
+          position: relative;
+          overflow: hidden;
+        }
         .jce-skyline {
           width: 100%;
           display: block;
           aspect-ratio: 16 / 10;
           object-fit: cover;
         }
+        /* Animated street under the skyline */
+        .jce-street {
+          position: relative;
+          height: 56px;
+          background:
+            repeating-linear-gradient(90deg,
+              rgba(255,255,255,0.85) 0 22px,
+              transparent 22px 50px) center / auto 3px no-repeat,
+            linear-gradient(to bottom, #2a2d33, #1a1c20);
+          overflow: hidden;
+          border-top: 1px solid rgba(0,0,0,0.5);
+          border-bottom: 1px solid rgba(0,0,0,0.5);
+        }
+        .jce-street-car {
+          position: absolute;
+          bottom: 6px;
+          height: 28px;
+          width: auto;
+          filter: drop-shadow(0 4px 6px rgba(0,0,0,0.55));
+          will-change: transform;
+          animation: jceDriveRight linear infinite;
+        }
+        .jce-street-car.rev {
+          top: 6px;
+          bottom: auto;
+          transform: scaleX(-1);
+          animation-name: jceDriveLeft;
+        }
+        @keyframes jceDriveRight {
+          0% { transform: translateX(-25%); }
+          100% { transform: translateX(120vw); }
+        }
+        @keyframes jceDriveLeft {
+          0% { transform: translateX(120vw) scaleX(-1); }
+          100% { transform: translateX(-25%) scaleX(-1); }
+        }
+        /* Tiny car driving across each tile */
+        .jce-tile-car {
+          position: absolute;
+          bottom: 6%;
+          height: 22%;
+          width: auto;
+          filter: drop-shadow(0 3px 4px rgba(0,0,0,0.5));
+          will-change: transform;
+          animation: jceTileDrive linear infinite;
+          pointer-events: none;
+          z-index: 2;
+        }
+        @keyframes jceTileDrive {
+          0% { transform: translateX(-30%); }
+          100% { transform: translateX(420%); }
+        }
         .jce-grid {
           display: grid;
           grid-template-columns: 1fr 1fr;
           gap: 2px;
-          background: #6b4429;
+          background: #0a0b0d;
         }
+
         .jce-tile {
           position: relative;
           padding: 0;
@@ -434,10 +496,12 @@ function JunkyCityEmpire() {
           100% { transform: translateY(180px) scaleY(1.4); opacity: 0; }
         }
         @media (prefers-reduced-motion: reduce) {
-          .jce-wash-fx *, .jce-bubble, .jce-wash-foam, .jce-jet, .jce-mist, .jce-wash-shine, .jce-wash-tint, .jce-drop {
+          .jce-wash-fx *, .jce-bubble, .jce-wash-foam, .jce-jet, .jce-mist, .jce-wash-shine, .jce-wash-tint, .jce-drop,
+          .jce-street-car, .jce-tile-car {
             animation: none !important;
           }
         }
+
 
 
         @media (min-width: 640px) {
@@ -459,7 +523,16 @@ function JunkyCityEmpire() {
         <div className="jce-avatar" />
       </header>
 
-      <img src={skyline} alt="Skyline de Junky City" className="jce-skyline" />
+      <div className="jce-skyline-wrap">
+        <img src={skyline} alt="Skyline de Junky City" className="jce-skyline" />
+      </div>
+      <div className="jce-street" aria-hidden="true">
+        <img src={car1} className="jce-street-car" style={{ animationDuration: "9s", animationDelay: "0s" }} alt="" />
+        <img src={car3} className="jce-street-car" style={{ animationDuration: "12s", animationDelay: "3s", bottom: "4px" }} alt="" />
+        <img src={car2} className="jce-street-car rev" style={{ animationDuration: "7s", animationDelay: "1s" }} alt="" />
+        <img src={car1} className="jce-street-car rev" style={{ animationDuration: "11s", animationDelay: "5s", top: "4px" }} alt="" />
+      </div>
+
 
       <div className="jce-grid">
         <button
@@ -529,10 +602,18 @@ function JunkyCityEmpire() {
           <img src={garage} alt="Junky City Garage" loading="lazy" />
         </button>
         <button
+          className={`jce-tile ${pulse === BUILDINGS[0].alt ? "jce-pulse" : ""}`}
+          onClick={() => collect(BUILDINGS[0])}
+        >
+          <img src={garage} alt="Junky City Garage" loading="lazy" />
+          <img src={car2} className="jce-tile-car" style={{ animationDuration: "5s" }} alt="" aria-hidden="true" />
+        </button>
+        <button
           className={`jce-tile ${pulse === BUILDINGS[3].alt ? "jce-pulse" : ""}`}
           onClick={() => collect(BUILDINGS[3])}
         >
           <img src={warehouse} alt="Junky City Warehouse" loading="lazy" />
+          <img src={car1} className="jce-tile-car" style={{ animationDuration: "6s", animationDelay: "1s" }} alt="" aria-hidden="true" />
         </button>
 
         <button
@@ -540,14 +621,19 @@ function JunkyCityEmpire() {
           onClick={() => collect(BUILDINGS[2])}
         >
           <img src={shop} alt="Junky Shop" loading="lazy" />
+          <img src={car3} className="jce-tile-car" style={{ animationDuration: "7s", animationDelay: "0.5s" }} alt="" aria-hidden="true" />
         </button>
         <button
           className={`jce-tile ${pulse === BUILDINGS[4].alt ? "jce-pulse" : ""}`}
           onClick={() => collect(BUILDINGS[4])}
         >
           <img src={parking} alt="Junky City Parking" loading="lazy" />
+          <img src={car1} className="jce-tile-car" style={{ animationDuration: "5.5s", animationDelay: "2s" }} alt="" aria-hidden="true" />
         </button>
       </div>
+
+
+
 
       <div className="jce-play-wrap">
         <button className="jce-play-btn" onClick={play}>JOUER</button>
