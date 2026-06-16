@@ -205,18 +205,22 @@ export default function CityTraffic() {
         </g>
       ))}
 
-      <g filter="url(#jce-soft-shadow)">
-        <TowTruckSVG color="#ff8800" accent="#7a3a00" />
-        <animateMotion dur="34s" begin="-4s" repeatCount="indefinite" rotate="auto">
-        <mpath href="#jce-road-0" />
-        </animateMotion>
-      </g>
-      <g filter="url(#jce-soft-shadow)">
-        <TowTruckSVG color="#f5c542" accent="#7a5a10" />
-        <animateMotion dur="38s" begin="-19s" repeatCount="indefinite" rotate="auto" keyPoints="1;0" keyTimes="0;1">
-          <mpath href="#jce-road-1" />
-        </animateMotion>
-      </g>
+      {/* Piétons sur les trottoirs (offset perpendiculaire grâce à rotate="auto") */}
+      {PEDESTRIANS.map((ped, i) => (
+        <g key={`ped-${i}`}>
+          <PedestrianSVG shirt={ped.shirt} pants={ped.pants} skin={ped.skin} side={ped.side} scale={ped.scale} />
+          <animateMotion
+            dur={`${ped.duration}s`}
+            begin={`${ped.delay}s`}
+            repeatCount="indefinite"
+            rotate="auto"
+            keyPoints={ped.flip ? "1;0" : "0;1"}
+            keyTimes="0;1"
+          >
+            <mpath href={`#jce-road-${ped.pathIdx}`} />
+          </animateMotion>
+        </g>
+      ))}
 
       <rect width="1920" height="1080" fill="#0a1530" opacity={night * 0.25} pointerEvents="none" />
     </svg>
