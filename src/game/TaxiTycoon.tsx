@@ -6,9 +6,9 @@ import taxiRedAsset from "@/assets/taxi-red-top.png";
 import musicAsset from "@/assets/midnight-fare.mp3.asset.json";
 import { getAdmin, useAdminConfig } from "./adminConfig";
 
-const TAXI_YELLOW_URL = taxiYellowAsset.url;
-const TAXI_BLACK_URL = taxiBlackAsset.url;
-const TAXI_RED_URL = taxiRedAsset.url;
+const TAXI_YELLOW_URL = taxiYellowAsset;
+const TAXI_BLACK_URL = taxiBlackAsset;
+const TAXI_RED_URL = taxiRedAsset;
 const MUSIC_URL = musicAsset.url;
 
 /* ============================================================
