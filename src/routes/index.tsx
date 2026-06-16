@@ -257,8 +257,10 @@ function JunkyCityEmpire() {
           box-shadow: 0 2px 0 rgba(0,0,0,0.5);
         }
 
-        .jce-map { position: relative; width: 100%; height: 100vh; background: #0c0d10; }
-        .jce-map-img { width: 100%; height: 100%; object-fit: cover; display: block; }
+        .jce-map { position: relative; width: 100%; height: 100vh; background: #0c0d10; overflow: hidden; }
+        .jce-map-img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; display: block; z-index: 1; }
+        .jce-night-tint { position: absolute; inset: 0; z-index: 2; pointer-events: none; mix-blend-mode: multiply; transition: background 1s ease; }
+
 
         /* === ENSEIGNES (Premium Glass Tycoon) === */
         .jce-zone {
