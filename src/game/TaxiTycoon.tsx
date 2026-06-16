@@ -182,13 +182,13 @@ function TaxiSprite({ body, trim, withClient }: { body: string; trim: string; wi
   );
 }
 
-function Depot({ tier, x, y }: { tier: DepotTier; x: number; y: number }) {
+function Depot({ tier, x, y, scale = 1, rotation = 0 }: { tier: DepotTier; x: number; y: number; scale?: number; rotation?: number }) {
   const idx = DEPOT_TIERS.indexOf(tier);
   const gradId = `dpt-g-${idx}`;
   const roofId = `dpt-r-${idx}`;
   const winId = `dpt-w-${idx}`;
   return (
-    <g transform={`translate(${x},${y})`}>
+    <g transform={`translate(${x},${y}) scale(${scale}) rotate(${rotation})`}>
       <defs>
         <linearGradient id={gradId} x1="0" y1="0" x2="0" y2="1">
           <stop offset="0%" stopColor="#d0d5dc" />
@@ -267,7 +267,9 @@ export default function TaxiTycoon() {
   const admin = useAdminConfig(); // re-render quand l'admin change
 
   // === Persistent state ===
-  const [save, setSave] = useState<SaveData>(() => loadSave());
+  const [save, setSave] = useState<SaveData>(DEFAULT_SAVE);
+  const [hydrated, setHydrated] = useState(false);
+  useEffect(() => { setSave(loadSave()); setHydrated(true); }, []);
   const saveRef = useRef(save);
   saveRef.current = save;
 
@@ -276,6 +278,7 @@ export default function TaxiTycoon() {
   const clientsRef = useRef<Client[]>([]);
   const nextIdRef = useRef(1);
   const lastSpawnRef = useRef(0);
+  const lastTaxiDispatchRef = useRef(0);
   const [, forceRender] = useState(0);
   const [toast, setToast] = useState<string | null>(null);
   const [popups, setPopups] = useState<{ id: number; text: string; x: number; y: number }[]>([]);
@@ -360,11 +363,12 @@ export default function TaxiTycoon() {
 
   // Save persistence (debounced)
   useEffect(() => {
+    if (!hydrated) return;
     const id = setTimeout(() => {
       try { localStorage.setItem(SAVE_KEY, JSON.stringify(save)); } catch {}
     }, 400);
     return () => clearTimeout(id);
-  }, [save]);
+  }, [save, hydrated]);
 
   const tier = DEPOT_TIERS[save.depotTier];
   const nextTier = DEPOT_TIERS[save.depotTier + 1];
@@ -418,21 +422,30 @@ export default function TaxiTycoon() {
         (c) => c.assigned !== null || now - c.spawnedAt < 35000
       );
 
-      // Assigner clients aux taxis idle
-      for (const taxi of taxisRef.current) {
-        if (taxi.mode !== "idle") continue;
-        let best: Client | null = null;
-        let bestDist = Infinity;
-        for (const c of clientsRef.current) {
-          if (c.assigned !== null) continue;
-          const d = Math.abs(c.pickup - taxi.pos);
-          if (d < bestDist) { bestDist = d; best = c; }
-        }
-        if (best) {
-          best.assigned = taxi.id;
-          taxi.clientId = best.id;
-          taxi.mode = "to_pickup";
-          taxi.target = best.pickup;
+      // Assigner clients aux taxis idle — avec régulation
+      const activeTaxiCount = taxisRef.current.filter((t) => t.mode !== "idle").length;
+      const maxActive = Math.max(1, adm.maxActiveTaxis | 0);
+      const cooldownMs = Math.max(0, adm.taxiSpawnCooldown) * 1000;
+      const canDispatch = activeTaxiCount < maxActive && (now - lastTaxiDispatchRef.current) >= cooldownMs;
+
+      if (canDispatch) {
+        for (const taxi of taxisRef.current) {
+          if (taxi.mode !== "idle") continue;
+          let best: Client | null = null;
+          let bestDist = Infinity;
+          for (const c of clientsRef.current) {
+            if (c.assigned !== null) continue;
+            const d = Math.abs(c.pickup - taxi.pos);
+            if (d < bestDist) { bestDist = d; best = c; }
+          }
+          if (best) {
+            best.assigned = taxi.id;
+            taxi.clientId = best.id;
+            taxi.mode = "to_pickup";
+            taxi.target = best.pickup;
+            lastTaxiDispatchRef.current = now;
+            break; // un seul dispatch par tick → respecte le cooldown
+          }
         }
       }
 
@@ -520,7 +533,10 @@ export default function TaxiTycoon() {
     };
   };
 
-  const depotXY = useMemo(() => getXY(pathLen * (admin.depotPosNorm || DEFAULT_DEPOT_POS)), [pathLen, admin.depotPosNorm]);
+  const depotXY = useMemo(() => {
+    if (admin.hqUseFreePos) return { x: admin.hqX, y: admin.hqY, angle: 0 };
+    return getXY(pathLen * (admin.depotPosNorm || DEFAULT_DEPOT_POS));
+  }, [pathLen, admin.depotPosNorm, admin.hqUseFreePos, admin.hqX, admin.hqY]);
 
   // === Actions UI ===
   const taxiCount = save.taxis.length;
@@ -683,7 +699,7 @@ export default function TaxiTycoon() {
         })}
 
         {/* Dépôt */}
-        {pathLen > 0 && <Depot tier={tier} x={depotXY.x} y={depotXY.y - 18} />}
+        {pathLen > 0 && <Depot tier={tier} x={depotXY.x} y={depotXY.y - 18} scale={admin.hqScale} rotation={admin.hqRotation} />}
 
         {/* Taxis */}
         {taxisRef.current.map((taxi) => {

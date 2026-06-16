@@ -11,6 +11,17 @@ export type AdminConfig = {
   spawnRateMult: number;      // 0.25..3 — < 1 = clients plus rapides ; > 1 = plus lents
   maxClientsBonus: number;    // 0..10 — clients additionnels autorisés en simultané
   clientFareMult: number;     // 0.5..5 — multiplicateur de tarif des courses
+
+  // ====== Régulation du trafic taxi ======
+  maxActiveTaxis: number;        // 1..20 — nb max de taxis simultanément en mission
+  taxiSpawnCooldown: number;     // 0..15 — délai (s) entre deux sorties de taxi du QG
+
+  // ====== Personnalisation du QG ======
+  hqUseFreePos: boolean;         // false = suit le path (depotPosNorm) ; true = X/Y libres
+  hqX: number;                   // 0..1920 — position absolue X (SVG)
+  hqY: number;                   // 0..1080 — position absolue Y (SVG)
+  hqScale: number;               // 0.5..3 — échelle visuelle
+  hqRotation: number;            // -180..180 — rotation (deg)
 };
 
 export const DEFAULT_ADMIN: AdminConfig = {
@@ -20,6 +31,15 @@ export const DEFAULT_ADMIN: AdminConfig = {
   spawnRateMult: 1,
   maxClientsBonus: 0,
   clientFareMult: 1,
+
+  maxActiveTaxis: 6,
+  taxiSpawnCooldown: 3,
+
+  hqUseFreePos: false,
+  hqX: 960,
+  hqY: 540,
+  hqScale: 1,
+  hqRotation: 0,
 };
 
 const KEY = "taxi-tycoon-admin-v1";
@@ -35,8 +55,19 @@ function load(): AdminConfig {
   }
 }
 
-let current: AdminConfig = load();
+// On démarre toujours avec les valeurs par défaut pour rester SSR-safe ;
+// les valeurs persistées sont rechargées après le mount (cf. useAdminConfig).
+let current: AdminConfig = { ...DEFAULT_ADMIN };
+let hydrated = false;
 const listeners = new Set<(c: AdminConfig) => void>();
+
+function hydrateOnce() {
+  if (hydrated || typeof window === "undefined") return;
+  hydrated = true;
+  const loaded = load();
+  current = loaded;
+  for (const l of listeners) l(current);
+}
 
 export function getAdmin(): AdminConfig {
   return current;
@@ -61,6 +92,10 @@ export function subscribeAdmin(fn: (c: AdminConfig) => void): () => void {
 
 export function useAdminConfig(): AdminConfig {
   const [cfg, setCfg] = useState(current);
-  useEffect(() => subscribeAdmin(setCfg), []);
+  useEffect(() => {
+    hydrateOnce();
+    setCfg(current);
+    return subscribeAdmin(setCfg);
+  }, []);
   return cfg;
 }
