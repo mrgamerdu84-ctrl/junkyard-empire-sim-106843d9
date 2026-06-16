@@ -44,14 +44,11 @@ export default function AdminPanel() {
   const bumpScale = (d: number) => setAdmin({ hqScale: Math.max(0.3, Math.min(8, cfg.hqScale + d)) });
   const bumpRot = (d: number) => setAdmin({ hqRotation: cfg.hqRotation + d });
 
-  // === Dessin du circuit au doigt ===
+  // === Dessin du circuit : clic point par point ===
   useEffect(() => {
     if (!drawMode) return;
     const svg = document.querySelector(".tt-root svg") as SVGSVGElement | null;
     if (!svg) return;
-    let drawing = false;
-    let pts: { x: number; y: number }[] = [];
-    let lastT = 0;
     const toSvg = (cx: number, cy: number) => {
       const pt = svg.createSVGPoint();
       pt.x = cx; pt.y = cy;
@@ -60,47 +57,37 @@ export default function AdminPanel() {
       const p = pt.matrixTransform(ctm.inverse());
       return { x: Math.max(0, Math.min(1920, p.x)), y: Math.max(0, Math.min(1080, p.y)) };
     };
-    const onDown = (e: PointerEvent) => {
+    const onClick = (e: MouseEvent) => {
       const tgt = e.target as HTMLElement;
-      if (tgt.closest(".adm-place-controls") || tgt.closest(".adm-btn")) return;
-      drawing = true;
-      pts = [];
-      const p = toSvg(e.clientX, e.clientY);
-      if (p) pts.push(p);
-      e.preventDefault();
-    };
-    const onMove = (e: PointerEvent) => {
-      if (!drawing) return;
-      const now = performance.now();
-      if (now - lastT < 16) return;
-      lastT = now;
+      if (tgt.closest(".adm-place-controls") || tgt.closest(".adm-btn") || tgt.closest(".adm-place-banner")) return;
       const p = toSvg(e.clientX, e.clientY);
       if (!p) return;
-      const last = pts[pts.length - 1];
-      if (!last || Math.hypot(p.x - last.x, p.y - last.y) > 8) {
-        pts.push(p);
-        setAdmin({ circuitPoints: [...pts] });
-      }
+      const current = (cfgRef.current.circuitPoints ?? []) as { x: number; y: number }[];
+      setAdmin({ circuitPoints: [...current, p] });
+      e.stopPropagation();
       e.preventDefault();
     };
-    const onUp = () => {
-      if (!drawing) return;
-      drawing = false;
-      if (pts.length >= 2) setAdmin({ circuitPoints: pts });
-      setDrawMode(false);
-    };
-    window.addEventListener("pointerdown", onDown, true);
-    window.addEventListener("pointermove", onMove, true);
-    window.addEventListener("pointerup", onUp, true);
-    return () => {
-      window.removeEventListener("pointerdown", onDown, true);
-      window.removeEventListener("pointermove", onMove, true);
-      window.removeEventListener("pointerup", onUp, true);
-    };
+    window.addEventListener("click", onClick, true);
+    return () => window.removeEventListener("click", onClick, true);
   }, [drawMode]);
 
-  const startDraw = () => { setDrawMode(true); setOpen(false); };
+  // Garde la config courante accessible dans le handler de clic
+  const cfgRef = useRef(cfg);
+  cfgRef.current = cfg;
+
+  const startDraw = () => {
+    setAdmin({ circuitPoints: [] }); // repart d'un circuit vide
+    setDrawMode(true);
+    setOpen(false);
+  };
+  const undoPoint = () => {
+    const pts = cfg.circuitPoints ?? [];
+    if (pts.length === 0) return;
+    setAdmin({ circuitPoints: pts.slice(0, -1) });
+  };
+  const finishDraw = () => setDrawMode(false);
   const clearCircuit = () => setAdmin({ circuitPoints: [], circuitTaxiCount: 0 });
+
 
 
 
