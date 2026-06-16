@@ -653,44 +653,42 @@ export default function TaxiTycoon() {
           ))}
         </g>
 
-        {/* Clients en attente — sur le trottoir */}
-        {clientsRef.current.map((c) => {
-          if (c.assigned !== null) return null;
-          const p = getSidewalk(c.pickup, c.sidePickup);
-          const age = (performance.now() - c.spawnedAt) / 1000;
+        {/* Clients en attente (course offerte ou acceptée) — sur le trottoir */}
+        {jobs.map((j) => {
+          const p = getSidewalk(j.pickup, j.sidePickup);
+          const age = (Date.now() - (j.deadline - j.duration)) / 1000;
           const bob = Math.sin(age * 3) * 0.8;
           const pulse = 1 + Math.sin(age * 4) * 0.18;
+          const haloColor = j.status === "accepted" ? "#3b82f6" : "#10b981";
           return (
-            <g key={c.id} transform={`translate(${p.x},${p.y + bob})`} filter="url(#taxi-shadow)">
-              {/* halo d'attente */}
-              <circle r={16 * pulse} fill="#10b981" opacity="0.28" />
-              {/* personnage qui attend */}
+            <g key={j.id} transform={`translate(${p.x},${p.y + bob})`} filter="url(#taxi-shadow)">
+              <circle r={16 * pulse} fill={haloColor} opacity="0.28" />
               <ellipse cx="0" cy="9" r="6" rx="6" ry="2" fill="rgba(0,0,0,0.5)" />
               <rect x="-3" y="-2" width="2.4" height="7" rx="0.6" fill="#1f2937" />
               <rect x="0.6" y="-2" width="2.4" height="7" rx="0.6" fill="#1f2937" />
-              <path d="M -4 -8 Q 0 -10 4 -8 L 3.4 -1 L -3.4 -1 Z" fill="#10b981" stroke="#0f172a" strokeWidth="0.5" />
-              <rect x="-5" y="-7" width="1.6" height="5" rx="0.5" fill="#10b981" />
-              <rect x="3.4" y="-7" width="1.6" height="5" rx="0.5" fill="#10b981" />
+              <path d="M -4 -8 Q 0 -10 4 -8 L 3.4 -1 L -3.4 -1 Z" fill={haloColor} stroke="#0f172a" strokeWidth="0.5" />
+              <rect x="-5" y="-7" width="1.6" height="5" rx="0.5" fill={haloColor} />
+              <rect x="3.4" y="-7" width="1.6" height="5" rx="0.5" fill={haloColor} />
               <circle cx="0" cy="-12" r="3" fill="#f1c79b" stroke="#0f172a" strokeWidth="0.5" />
-              {/* main levée pour héler */}
-              <rect x="4" y="-14" width="1.4" height="6" rx="0.5" fill="#10b981" transform="rotate(-30 4 -14)">
-                <animateTransform attributeName="transform" type="rotate" values="-30 4 -14;-10 4 -14;-30 4 -14" dur="0.9s" repeatCount="indefinite" />
-              </rect>
-              {/* bulle prix */}
+              {j.status === "offered" && (
+                <rect x="4" y="-14" width="1.4" height="6" rx="0.5" fill={haloColor} transform="rotate(-30 4 -14)">
+                  <animateTransform attributeName="transform" type="rotate" values="-30 4 -14;-10 4 -14;-30 4 -14" dur="0.9s" repeatCount="indefinite" />
+                </rect>
+              )}
               <g transform="translate(0,-26)">
-                <rect x="-18" y="-9" width="36" height="13" rx="3" fill="#0f172a" stroke="#34d399" strokeWidth="1" />
-                <text y="0.5" fontSize="8.5" fontWeight="900" textAnchor="middle" fill="#34d399">{fmt(c.fare)}$</text>
+                <rect x="-18" y="-9" width="36" height="13" rx="3" fill="#0f172a" stroke={haloColor} strokeWidth="1" />
+                <text y="0.5" fontSize="8.5" fontWeight="900" textAnchor="middle" fill={haloColor}>{fmt(j.fare)}$</text>
               </g>
             </g>
           );
         })}
 
-        {/* Dropoffs — sur le trottoir */}
-        {clientsRef.current.map((c) => {
-          if (c.assigned === null) return null;
-          const p = getSidewalk(c.dropoff, c.sideDrop);
+        {/* Dropoffs — sur le trottoir, uniquement pour les courses acceptées */}
+        {jobs.map((j) => {
+          if (j.status !== "accepted") return null;
+          const p = getSidewalk(j.dropoff, j.sideDrop);
           return (
-            <g key={"d" + c.id} transform={`translate(${p.x},${p.y})`}>
+            <g key={"d" + j.id} transform={`translate(${p.x},${p.y})`}>
               <circle r="11" fill="none" stroke="#f59e0b" strokeWidth="2.5" strokeDasharray="4 3" opacity="0.85">
                 <animateTransform attributeName="transform" type="rotate" from="0" to="360" dur="6s" repeatCount="indefinite" />
               </circle>
@@ -699,6 +697,7 @@ export default function TaxiTycoon() {
             </g>
           );
         })}
+
 
         {/* Dépôt */}
         {pathLen > 0 && <Depot tier={tier} x={depotXY.x} y={depotXY.y - 18} scale={admin.hqScale} rotation={admin.hqRotation} />}
