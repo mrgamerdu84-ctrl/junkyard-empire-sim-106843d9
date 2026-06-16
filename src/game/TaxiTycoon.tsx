@@ -185,82 +185,27 @@ function TaxiSprite({
 
 
 function Depot({ tier, x, y, scale = 1, rotation = 0 }: { tier: DepotTier; x: number; y: number; scale?: number; rotation?: number }) {
-  const idx = DEPOT_TIERS.indexOf(tier);
-  const gradId = `dpt-g-${idx}`;
-  const roofId = `dpt-r-${idx}`;
-  const winId = `dpt-w-${idx}`;
+  // Le nouveau QG est une image isométrique (bâtiment + parking + station).
+  // Largeur/hauteur de base ; le joueur peut agrandir via admin.hqScale.
+  const W = 260;
+  const H = 260;
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const _tier = tier;
   return (
     <g transform={`translate(${x},${y}) scale(${scale}) rotate(${rotation})`}>
-      <defs>
-        <linearGradient id={gradId} x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stopColor="#d0d5dc" />
-          <stop offset="30%" stopColor="#9ea4ad" />
-          <stop offset="100%" stopColor={tier.core} />
-        </linearGradient>
-        <linearGradient id={roofId} x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stopColor="#e8edf2" />
-          <stop offset="60%" stopColor={tier.ring} />
-          <stop offset="100%" stopColor="#1a1d22" />
-        </linearGradient>
-        <linearGradient id={winId} x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stopColor="#fff1a3" />
-          <stop offset="100%" stopColor="#f59e0b" />
-        </linearGradient>
-      </defs>
-      {/* ombre + parvis béton */}
-      <ellipse cx="0" cy="48" rx="98" ry="18" fill="rgba(0,0,0,0.55)" />
-      <path d="M -88 38 L 88 38 L 108 48 L -108 48 Z" fill="#3d4148" stroke="#1a1d22" strokeWidth="1.2" />
-      <path d="M -78 43 L 78 43" stroke="#f5c542" strokeWidth="1.2" strokeDasharray="6 5" opacity="0.7" />
-      {/* corps tôle métallique */}
-      <rect x="-78" y="-18" width="156" height="58" rx="2" fill={`url(#${gradId})`} stroke="#1a1d22" strokeWidth="1.8" />
-      {[-66, -52, -38, 38, 52, 66].map((rx) => (
-        <line key={rx} x1={rx} y1={-18} x2={rx} y2={40} stroke="#1a1d22" strokeWidth="0.5" opacity="0.55" />
-      ))}
-      {/* toit */}
-      <path d="M -84 -18 L 0 -52 L 84 -18 Z" fill={`url(#${roofId})`} stroke="#1a1d22" strokeWidth="1.8" />
-      <path d="M -84 -18 L 0 -52 L 84 -18 L 78 -16 L 0 -49 L -78 -16 Z" fill="#1a1d22" opacity="0.4" />
-      {[-78, -40, 0, 40, 78].map((rx) => (
-        <circle key={`r${rx}`} cx={rx} cy={-15} r="1.4" fill="#5a606a" stroke="#1a1d22" strokeWidth="0.4" />
-      ))}
-      {/* portes garage avec rails */}
-      <rect x="-60" y="-4" width="34" height="42" fill="#1f242b" stroke="#000" strokeWidth="1.4" />
-      {[2, 10, 18, 26, 34].map((dy) => (
-        <line key={`l1-${dy}`} x1={-60} y1={-4 + dy} x2={-26} y2={-4 + dy} stroke="#0a0b0d" strokeWidth="0.8" />
-      ))}
-      <rect x="-58" y="-2" width="4" height="38" fill={`url(#${winId})`} opacity="0.6" />
-      <rect x="26" y="-4" width="34" height="42" fill="#1f242b" stroke="#000" strokeWidth="1.4" />
-      {[2, 10, 18, 26, 34].map((dy) => (
-        <line key={`l2-${dy}`} x1={26} y1={-4 + dy} x2={60} y2={-4 + dy} stroke="#0a0b0d" strokeWidth="0.8" />
-      ))}
-      <rect x="54" y="-2" width="4" height="38" fill={`url(#${winId})`} opacity="0.6" />
-      {/* bureau central éclairé */}
-      <rect x="-20" y="2" width="40" height="22" fill={`url(#${winId})`} stroke="#1a1d22" strokeWidth="1.2" />
-      <line x1="0" y1="2" x2="0" y2="24" stroke="#1a1d22" strokeWidth="0.6" />
-      <line x1="-20" y1="13" x2="20" y2="13" stroke="#1a1d22" strokeWidth="0.6" />
-      <ellipse cx="-10" cy="18" rx="3" ry="4" fill="#1a1d22" opacity="0.6" />
-      {/* enseigne */}
-      <rect x="-58" y="-44" width="116" height="18" rx="2.5" fill={tier.flag} stroke="#1a1d22" strokeWidth="1.6" />
-      <rect x="-58" y="-44" width="116" height="4" fill="#fff" opacity="0.35" />
-      <text x="0" y="-31" fontSize="11" fontWeight="900" textAnchor="middle" fill="#1a1d22" letterSpacing="1">TAXI CORP</text>
-      <rect x="-2" y="-26" width="4" height="8" fill="#5a606a" />
-      {/* badge tier */}
-      <circle cx="65" cy="-32" r="11" fill="#0a0c10" stroke={tier.flag} strokeWidth="2" />
-      <text x="65" y="-28" fontSize="13" textAnchor="middle">{tier.badge}</text>
-      {/* antenne + flash */}
-      <line x1="-60" y1="-52" x2="-60" y2="-66" stroke="#1a1d22" strokeWidth="1.4" />
-      <circle cx="-60" cy="-67" r="2.2" fill="#ff3028">
-        <animate attributeName="opacity" values="1;0.2;1" dur="1.4s" repeatCount="indefinite" />
-      </circle>
-      {/* lampes extérieures */}
-      <circle cx="-72" cy="-12" r="2.5" fill="#fff7a8">
-        <animate attributeName="opacity" values="0.8;1;0.8" dur="3s" repeatCount="indefinite" />
-      </circle>
-      <circle cx="72" cy="-12" r="2.5" fill="#fff7a8">
-        <animate attributeName="opacity" values="0.9;1;0.9" dur="3.2s" repeatCount="indefinite" />
-      </circle>
+      <ellipse cx="0" cy={H / 2 - 10} rx={W / 2} ry="14" fill="rgba(0,0,0,0.45)" />
+      <image
+        href={HQ_DEPOT_URL}
+        x={-W / 2}
+        y={-H / 2}
+        width={W}
+        height={H}
+        preserveAspectRatio="xMidYMid meet"
+      />
     </g>
   );
 }
+
 
 function RivalDepot({ x, y }: { x: number; y: number }) {
   return (
