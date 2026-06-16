@@ -1171,18 +1171,6 @@ export default function TaxiTycoon() {
             <span className="tt-btn-lbl">Boutique QG</span>
             <span className="tt-btn-cost">Améliorations</span>
           </button>
-          <button className="tt-btn" onClick={() => {
-            const a = document.createElement("a");
-            a.href = "/taxi-tycoon.zip";
-            a.download = "taxi-tycoon.zip";
-            document.body.appendChild(a);
-            a.click();
-            a.remove();
-          }} title="Télécharger le projet ZIP">
-            <span className="tt-btn-ico">📦</span>
-            <span className="tt-btn-lbl">Télécharger ZIP</span>
-            <span className="tt-btn-cost">Source</span>
-          </button>
         </div>
 
         {/* === Modal Boutique QG === */}
