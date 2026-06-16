@@ -8,20 +8,24 @@ export default function AdminPanel() {
   const [placeMode, setPlaceMode] = useState(false);
   const cfg = useAdminConfig();
 
-  // Mode "placer le QG" — clic sur la map = nouvelle position
+  // Mode "placer le QG" — clic sur la map = nouvelle position.
+  // On ferme le panneau pendant le placement pour que le clic atteigne la map,
+  // et on convertit n'importe quel clic en coordonnées SVG (le SVG du jeu a
+  // pointer-events:none, donc on ne peut pas se fier à svg.contains(target)).
   useEffect(() => {
     if (!placeMode) return;
     const onClick = (e: MouseEvent) => {
       const svg = document.querySelector(".tt-root svg") as SVGSVGElement | null;
       if (!svg) return;
-      const target = e.target as Element;
-      if (!svg.contains(target)) return;
       const pt = svg.createSVGPoint();
       pt.x = e.clientX; pt.y = e.clientY;
       const ctm = svg.getScreenCTM();
       if (!ctm) return;
       const p = pt.matrixTransform(ctm.inverse());
-      setAdmin({ hqUseFreePos: true, hqX: p.x, hqY: p.y });
+      // Bornes du viewBox 1920×1080
+      const x = Math.max(0, Math.min(1920, p.x));
+      const y = Math.max(0, Math.min(1080, p.y));
+      setAdmin({ hqUseFreePos: true, hqX: x, hqY: y });
       setPlaceMode(false);
       e.stopPropagation();
       e.preventDefault();
@@ -29,6 +33,13 @@ export default function AdminPanel() {
     window.addEventListener("click", onClick, true);
     return () => window.removeEventListener("click", onClick, true);
   }, [placeMode]);
+
+  // Quand on lance le placement, on ferme le panneau pour libérer la map.
+  const startPlacement = () => {
+    setPlaceMode(true);
+    setOpen(false);
+  };
+
 
   return (
     <>
@@ -124,32 +135,17 @@ export default function AdminPanel() {
 
             {tab === "hq" && (
               <>
-                <div className="adm-section">
-                  <label className="adm-toggle">
-                    <input type="checkbox" checked={cfg.hqUseFreePos}
-                      onChange={(e) => setAdmin({ hqUseFreePos: e.target.checked })} />
-                    Position libre (X/Y) — sinon suit le circuit
-                  </label>
+                <button className={`adm-place ${placeMode ? "active" : ""}`} onClick={startPlacement}>
+                  📍 Placer le QG sur la carte
+                </button>
+                <div className="adm-hint" style={{ marginTop: 4 }}>
+                  Le panneau se ferme, cliquez où vous voulez placer le QG.
                 </div>
 
-                <button className={`adm-place ${placeMode ? "active" : ""}`} onClick={() => setPlaceMode((v) => !v)}>
-                  {placeMode ? "Annuler — cliquez ailleurs" : "📍 Placer le QG sur la carte"}
-                </button>
-
-                {!cfg.hqUseFreePos && (
-                  <Slider label="Position sur le circuit" hint="0 = début, 1 = fin du path"
-                    value={cfg.depotPosNorm} min={0} max={1} step={0.01}
-                    format={(v) => (v * 100).toFixed(0) + "%"} onChange={(v) => setAdmin({ depotPosNorm: v })} />
-                )}
-
-                {cfg.hqUseFreePos && (
-                  <>
-                    <Slider label="QG — X" value={cfg.hqX} min={0} max={1920} step={1}
-                      format={(v) => v.toFixed(0)} onChange={(v) => setAdmin({ hqX: v })} />
-                    <Slider label="QG — Y" value={cfg.hqY} min={0} max={1080} step={1}
-                      format={(v) => v.toFixed(0)} onChange={(v) => setAdmin({ hqY: v })} />
-                  </>
-                )}
+                <Slider label="QG — X" value={cfg.hqX} min={0} max={1920} step={1}
+                  format={(v) => v.toFixed(0)} onChange={(v) => setAdmin({ hqUseFreePos: true, hqX: v })} />
+                <Slider label="QG — Y" value={cfg.hqY} min={0} max={1080} step={1}
+                  format={(v) => v.toFixed(0)} onChange={(v) => setAdmin({ hqUseFreePos: true, hqY: v })} />
 
                 <Slider label="Taille du QG"
                   value={cfg.hqScale} min={0.5} max={3} step={0.05}
@@ -163,17 +159,18 @@ export default function AdminPanel() {
 
             {tab === "missions" && (
               <>
-                <Slider label="Fréquence des clients" hint="< 1 = clients plus rapides ; > 1 = plus lents"
+                <Slider label="Délai nouvelle course" hint="Plus court = courses qui arrivent plus vite"
                   value={cfg.spawnRateMult} min={0.25} max={3} step={0.05}
                   format={(v) => "×" + v.toFixed(2)} onChange={(v) => setAdmin({ spawnRateMult: v })} />
-                <Slider label="Bonus clients simultanés"
-                  value={cfg.maxClientsBonus} min={0} max={10} step={1}
+                <Slider label="Courses en file (bonus)"
+                  value={cfg.maxClientsBonus} min={0} max={6} step={1}
                   format={(v) => "+" + v.toFixed(0)} onChange={(v) => setAdmin({ maxClientsBonus: v })} />
                 <Slider label="Multiplicateur de tarif"
                   value={cfg.clientFareMult} min={0.5} max={5} step={0.1}
                   format={(v) => "×" + v.toFixed(1)} onChange={(v) => setAdmin({ clientFareMult: v })} />
               </>
             )}
+
 
             <button className="adm-reset" onClick={resetAdmin}>↺ Réinitialiser les valeurs</button>
           </div>

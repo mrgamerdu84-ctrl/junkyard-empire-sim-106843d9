@@ -25,7 +25,7 @@ export type AdminConfig = {
 };
 
 export const DEFAULT_ADMIN: AdminConfig = {
-  depotPosNorm: 0.78,
+  depotPosNorm: 0.78, // conservé pour compat ; non utilisé en mode XY libre
   civilVehicleCount: 22,
   taxiSpeedMult: 1,
   spawnRateMult: 1,
@@ -33,16 +33,18 @@ export const DEFAULT_ADMIN: AdminConfig = {
   clientFareMult: 1,
 
   maxActiveTaxis: 6,
-  taxiSpawnCooldown: 3,
+  taxiSpawnCooldown: 1.5,
 
-  hqUseFreePos: false,
-  hqX: 960,
-  hqY: 540,
+  // QG ancré par défaut sur le bâtiment TAXI CORP en bas-gauche de la map.
+  hqUseFreePos: true,
+  hqX: 230,
+  hqY: 780,
   hqScale: 1,
   hqRotation: 0,
 };
 
-const KEY = "taxi-tycoon-admin-v1";
+const KEY = "taxi-tycoon-admin-v2";
+
 
 function load(): AdminConfig {
   if (typeof window === "undefined") return DEFAULT_ADMIN;
