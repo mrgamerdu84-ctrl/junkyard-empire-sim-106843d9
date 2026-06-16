@@ -364,7 +364,11 @@ type CarState = {
 export default function CityTraffic() {
   const [night, setNight] = useState(0.25);
   const admin = useAdminConfig();
-  const activeCars = CARS.slice(0, Math.max(0, Math.min(CARS.length, admin.civilVehicleCount)));
+  // Les voitures civiles sont désormais gérées par WaypointTraffic (graphe d'intersections).
+  // On garde CARS pour le slider Admin (compat), mais on ne les rend plus ici.
+  const activeCars: typeof CARS = [];
+  void admin;
+  void CARS;
   const pathRefs = useRef<(SVGPathElement | null)[]>([]);
   const carNodes = useRef<(SVGGElement | null)[]>([]);
 
