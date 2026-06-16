@@ -1339,18 +1339,18 @@ export default function TaxiTycoon() {
         .tt-shop-overlay {
           position: fixed; inset: 0; background: rgba(0,0,0,0.65); z-index: 200;
           display: flex; align-items: center; justify-content: center; padding: 16px;
-          backdrop-filter: blur(4px);
+          backdrop-filter: blur(4px); pointer-events: auto;
         }
         .tt-shop {
           width: 100%; max-width: 460px; background: #14171c; color: #e8edf2;
           border: 1px solid #2a2f38; border-radius: 14px; padding: 16px;
           box-shadow: 0 18px 50px rgba(0,0,0,0.7);
           font-family: system-ui, -apple-system, sans-serif;
-          max-height: 86vh; overflow-y: auto;
+          max-height: 86vh; overflow-y: auto; pointer-events: auto;
         }
         .tt-shop-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }
         .tt-shop-head h2 { margin: 0; font-size: 17px; color: #f5c542; letter-spacing: 0.3px; }
-        .tt-shop-close { background: transparent; border: none; color: #8a8e94; font-size: 26px; cursor: pointer; line-height: 1; }
+        .tt-shop-close { background: transparent; border: none; color: #8a8e94; font-size: 26px; cursor: pointer; line-height: 1; pointer-events: auto; }
         .tt-shop-money { font-size: 13px; color: #34d399; font-weight: 700; margin-bottom: 12px; }
         .tt-shop-row {
           display: flex; gap: 10px; align-items: center; padding: 10px;
@@ -1368,6 +1368,7 @@ export default function TaxiTycoon() {
           background: linear-gradient(180deg, #f5c542, #b8860b); color: #14171c;
           border: 1px solid #6e5108; border-radius: 8px; padding: 8px 12px;
           font-weight: 800; font-size: 12px; cursor: pointer; min-width: 78px;
+          pointer-events: auto;
         }
         .tt-shop-buy:disabled { opacity: 0.45; cursor: not-allowed; }
         .tt-shop-close-btn {
