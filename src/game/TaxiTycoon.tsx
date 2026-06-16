@@ -301,56 +301,42 @@ export default function TaxiTycoon() {
 
   // === Dynamic state (not persisted) ===
   const taxisRef = useRef<Taxi[]>([]);
-  const clientsRef = useRef<Client[]>([]);
   const nextIdRef = useRef(1);
-  const lastSpawnRef = useRef(0);
+  const lastJobSpawnRef = useRef(0);
   const lastTaxiDispatchRef = useRef(0);
   const [, forceRender] = useState(0);
   const [toast, setToast] = useState<string | null>(null);
   const [popups, setPopups] = useState<{ id: number; text: string; x: number; y: number }[]>([]);
   const popIdRef = useRef(0);
 
-  // Contracts state
-  const [contracts, setContracts] = useState<Contract[]>([]);
-  const contractsRef = useRef<Contract[]>([]);
-  contractsRef.current = contracts;
-  const [boost, setBoost] = useState<ActiveBoost>(null);
-  const boostRef = useRef<ActiveBoost>(null);
-  boostRef.current = boost;
+  // Jobs (file de courses proposées au joueur) — state React car affichées dans le HUD.
+  const [jobs, setJobs] = useState<Job[]>([]);
+  const jobsRef = useRef<Job[]>([]);
+  jobsRef.current = jobs;
   const [nowTick, setNowTick] = useState(Date.now());
-  const contractIdRef = useRef(1);
+  const jobIdRef = useRef(1);
 
-  const genContract = (tierIdx: number): Contract => {
+  const genJob = (tierIdx: number, plen: number): Job => {
     const now = Date.now();
     const t = DEPOT_TIERS[tierIdx];
-    const kinds: ContractKind[] = ["clients", "earn", "streak"];
-    const kind = kinds[Math.floor(Math.random() * kinds.length)];
-    const id = contractIdRef.current++;
-    const tierBoost = 1 + tierIdx * 0.3;
-    if (kind === "clients") {
-      const target = Math.round((3 + Math.floor(Math.random() * 4)) * (1 + tierIdx * 0.5));
-      const duration = (45 + target * 8) * 1000;
-      const rewardCash = Math.round(target * 80 * t.fareMult * tierBoost);
-      return { id, kind, icon: "👥", label: `Servir ${target} clients`, target, progress: 0, deadline: now + duration, duration, rewardCash };
-    }
-    if (kind === "earn") {
-      const target = Math.round((300 + Math.random() * 400) * t.fareMult * (1 + tierIdx * 0.6));
-      const duration = (60 + target / 8) * 1000;
-      const rewardCash = Math.round(target * 0.55);
-      return { id, kind, icon: "💵", label: `Gagner ${fmt(target)}$`, target, progress: 0, deadline: now + duration, duration, rewardCash };
-    }
-    // streak: course rapide x2 pendant N sec
-    const target = 2 + Math.floor(Math.random() * 3);
-    const duration = (35 + target * 10) * 1000;
-    const rewardCash = Math.round(target * 100 * t.fareMult * tierBoost);
+    const id = jobIdRef.current++;
+    const pickup = Math.random() * plen;
+    const dropoff = Math.random() * plen;
+    const dist = Math.abs(dropoff - pickup);
+    const adm = getAdmin();
+    const fare = Math.round((25 + (dist / plen) * 220) * t.fareMult * adm.clientFareMult);
+    // Deadline avant que le client annule : 25s + bonus selon tarif (gros tarif = client plus patient)
+    const duration = (22 + Math.min(20, fare / 30)) * 1000;
     return {
-      id, kind, icon: "🔥",
-      label: `Enchaîner ${target} courses`,
-      target, progress: 0, deadline: now + duration, duration,
-      rewardCash,
-      rewardMult: 2, rewardMultSec: 20,
+      id, pickup, dropoff, fare,
+      deadline: now + duration, duration,
+      status: "offered",
+      sidePickup: Math.random() < 0.5 ? 1 : -1,
+      sideDrop: Math.random() < 0.5 ? 1 : -1,
     };
   };
+
+
 
 
   // Mesure de la longueur du path principal au montage
