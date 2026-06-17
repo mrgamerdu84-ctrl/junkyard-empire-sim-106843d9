@@ -1131,9 +1131,9 @@ export default function TaxiTycoon() {
 
         {/* Taxis rivaux (couleur sombre + bandeau rouge) */}
         {admin.rivalEnabled && rivalTaxisRef.current.map((r) => {
-          const p = getXYOn(r.pathIdx, r.pos);
           const movingForward = r.target >= r.pos;
-          const angle = movingForward ? p.angle : p.angle + 180;
+          const p = getLaneXY(r.pathIdx, r.pos, movingForward);
+          const angle = p.angle;
           return (
             <g key={r.id}>
               <g transform={`translate(${p.x},${p.y}) rotate(${angle})`} filter="url(#taxi-shadow)">
@@ -1146,11 +1146,11 @@ export default function TaxiTycoon() {
 
         {/* Taxis */}
         {taxisRef.current.map((taxi) => {
-          const p = getXYOn(taxi.pathIdx, taxi.pos);
+          const movingForward = taxi.target >= taxi.pos;
+          const p = getLaneXY(taxi.pathIdx, taxi.pos, movingForward);
           // eslint-disable-next-line @typescript-eslint/no-unused-vars
           const _ = taxi.colorId;
-          const movingForward = taxi.target >= taxi.pos;
-          const angle = movingForward ? p.angle : p.angle + 180;
+          const angle = p.angle;
           const fuelPct = Math.max(0, Math.min(1, taxi.fuel / 100));
           const fuelLow = taxi.fuel < FUEL_LOW_THRESHOLD;
           return (
