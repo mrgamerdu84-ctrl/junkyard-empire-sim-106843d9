@@ -1495,54 +1495,33 @@ export default function TaxiTycoon() {
         })}
 
 
-        {/* Dépôt */}
+        {/* Dépôt principal — grand bâtiment cingé dans le décor (cliquable pour personnaliser) */}
         {pathsReady && (() => {
           const t = (performance.now() % 300000) / 300000;
           const daylight = Math.max(0, Math.sin(t * Math.PI * 2 + Math.PI / 2));
           const night = 0.1 + (1 - daylight) * 0.6;
           return (
-            <Depot
-              tier={tier}
-              x={depotXY.x}
-              y={depotXY.y - 18}
-              scale={admin.hqScale}
-              rotation={admin.hqRotation}
-              capLvl={save.hqCapacityLvl ?? 0}
-              revLvl={save.hqRevenueLvl ?? 0}
-              prodLvl={save.hqProductionLvl ?? 0}
-              night={night}
-            />
+            <g
+              style={{ cursor: "pointer", pointerEvents: "auto" }}
+              onClick={() => setGarageOpen(true)}
+            >
+              <title>TAXI DEPOT — cliquer pour personnaliser</title>
+              <Depot
+                tier={tier}
+                x={depotXY.x}
+                y={depotXY.y - 18}
+                scale={admin.hqScale}
+                rotation={admin.hqRotation}
+                capLvl={save.hqCapacityLvl ?? 0}
+                revLvl={save.hqRevenueLvl ?? 0}
+                prodLvl={save.hqProductionLvl ?? 0}
+                night={night}
+              />
+            </g>
           );
         })()}
 
-        {/* Petit garage de personnalisation à côté du QG */}
-        {pathsReady && (
-          <g
-            transform={`translate(${depotXY.x + 130},${depotXY.y - 4})`}
-            style={{ cursor: "pointer", pointerEvents: "auto" }}
-            onClick={() => setGarageOpen(true)}
-          >
-            <title>Garage — personnaliser le taxi</title>
-            <ellipse cx="0" cy="22" rx="42" ry="9" fill="rgba(0,0,0,0.55)" />
-            <rect x="-36" y="-8" width="72" height="32" rx="2" fill="#3a3f48" stroke="#0a0c10" strokeWidth="1.4" />
-            <path d="M -38 -8 L 0 -28 L 38 -8 Z" fill="#f5c542" stroke="#0a0c10" strokeWidth="1.4" />
-            <rect x="-28" y="-2" width="22" height="26" fill="#1a1d22" stroke="#000" strokeWidth="1" />
-            <rect x="6" y="-2" width="22" height="26" fill="#1a1d22" stroke="#000" strokeWidth="1" />
-            {[2, 8, 14, 20].map((dy) => (
-              <g key={dy}>
-                <line x1={-28} y1={-2 + dy} x2={-6} y2={-2 + dy} stroke="#0a0c10" strokeWidth="0.5" />
-                <line x1={6} y1={-2 + dy} x2={28} y2={-2 + dy} stroke="#0a0c10" strokeWidth="0.5" />
-              </g>
-            ))}
-            <rect x="-30" y="-24" width="60" height="10" rx="1.5" fill="#f5c542" stroke="#0a0c10" strokeWidth="1.2" />
-            <text x="0" y="-17" fontSize="7" fontWeight="900" textAnchor="middle" fill="#1a1d22">GARAGE</text>
-            <circle cx="0" cy="32" r="6" fill="#f5c542" opacity="0.9">
-              <animate attributeName="r" values="5;8;5" dur="1.6s" repeatCount="indefinite" />
-              <animate attributeName="opacity" values="0.85;0.4;0.85" dur="1.6s" repeatCount="indefinite" />
-            </circle>
-            <text x="0" y="35" fontSize="9" textAnchor="middle">🏁</text>
-          </g>
-        )}
+
 
         {/* QG concurrent */}
         {pathsReady && admin.rivalEnabled && <RivalDepot x={admin.rivalHQX} y={admin.rivalHQY - 18} />}
