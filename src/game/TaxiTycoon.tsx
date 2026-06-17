@@ -762,6 +762,7 @@ export default function TaxiTycoon() {
   }, [pathsReady]);
 
   // === Helpers de rendu position ===
+  const LANE_OFFSET = 12; // px à droite de l'axe de la route, dans le sens de marche
   const getXYOn = (pathIdx: number, len: number): { x: number; y: number; angle: number } => {
     const p = pathRefs.current[pathIdx];
     const plen = pathLensRef.current[pathIdx] ?? 0;
@@ -771,6 +772,26 @@ export default function TaxiTycoon() {
     const pt2 = p.getPointAtLength(Math.min(plen - 0.1, safe + 2));
     const angle = (Math.atan2(pt2.y - pt.y, pt2.x - pt.x) * 180) / Math.PI;
     return { x: pt.x, y: pt.y, angle };
+  };
+  // Position décalée d'une voie sur la droite (en sens de marche).
+  // forward = true si le véhicule progresse dans le sens du path.
+  const getLaneXY = (pathIdx: number, len: number, forward: boolean) => {
+    const p = pathRefs.current[pathIdx];
+    const plen = pathLensRef.current[pathIdx] ?? 0;
+    if (!p || plen === 0) return { x: 0, y: 0, angle: 0 };
+    const safe = ((len % plen) + plen) % plen;
+    const pt = p.getPointAtLength(safe);
+    const pt2 = p.getPointAtLength(Math.min(plen - 0.1, safe + 2));
+    let dx = pt2.x - pt.x, dy = pt2.y - pt.y;
+    if (!forward) { dx = -dx; dy = -dy; }
+    const L = Math.hypot(dx, dy) || 1;
+    // perpendiculaire « à droite » du sens de marche (repère y vers le bas)
+    const rx = dy / L, ry = -dx / L;
+    return {
+      x: pt.x + rx * LANE_OFFSET,
+      y: pt.y + ry * LANE_OFFSET,
+      angle: (Math.atan2(dy, dx) * 180) / Math.PI,
+    };
   };
 
   // Position décalée sur le trottoir (perpendiculaire à la route)
