@@ -567,7 +567,7 @@ export default function CityTraffic() {
         );
       })}
 
-      <rect width="1920" height="1080" fill="#0a1530" opacity={night * 0.55} pointerEvents="none" />
+      <rect width="1920" height="1080" fill="#0a1530" opacity={Math.max(0, (night - 0.15)) * 0.55} pointerEvents="none" />
     </svg>
   );
 }
