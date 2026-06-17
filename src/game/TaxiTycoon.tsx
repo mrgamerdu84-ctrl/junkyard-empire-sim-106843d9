@@ -1162,7 +1162,9 @@ export default function TaxiTycoon() {
         }
       }
 
-
+      taxisRef.current.forEach(syncVehicleLane);
+      rivalTaxisRef.current.forEach(syncVehicleLane);
+      policeCarsRef.current.forEach(syncVehicleLane);
 
       // ====== Circuit taxis : avance le long de la boucle ======
       const cInfo = circuitInfoRef.current;
