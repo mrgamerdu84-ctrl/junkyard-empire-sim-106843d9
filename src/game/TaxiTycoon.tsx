@@ -1023,8 +1023,8 @@ export default function TaxiTycoon() {
         {/* Dépôt */}
         {pathsReady && (() => {
           const t = (performance.now() % 300000) / 300000;
-          const daylight = Math.max(0, Math.sin(t * Math.PI * 2));
-          const night = 0.12 + (1 - daylight) * 0.78;
+          const daylight = Math.max(0, Math.sin(t * Math.PI * 2 + Math.PI / 2));
+          const night = 0.1 + (1 - daylight) * 0.6;
           return (
             <Depot
               tier={tier}
