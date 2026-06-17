@@ -554,7 +554,7 @@ export default function CityTraffic() {
         const pedGreen = red;
         const pedColor = pedGreen ? "#22e36a" : "#ff2a2a";
         return (
-          <g key={`tl-${l.id}`} transform={`translate(${l.x},${l.y})`} pointerEvents="none">
+          <g key={`tl-${l.id}`} transform={`translate(${l.x},${l.y}) scale(1.6)`} pointerEvents="none">
             <ellipse cx="0" cy="14" rx="14" ry="4" fill="rgba(0,0,0,0.45)" />
             <rect x="-7" y="-22" width="14" height="36" rx="3" fill="#0e1217" stroke="#000" strokeWidth="1" />
             <circle cx="0" cy="-14" r="3.4" fill={red ? "#ff2a2a" : "#2a0808"} opacity={red ? 1 : 0.4}>
