@@ -518,9 +518,13 @@ export default function CityTraffic() {
             carNodes.current[i] = el;
           }}
         >
-          <Vehicle kind={car.kind} color={car.color} accent={car.accent} scale={car.scale} variant={car.variant} />
+          <Vehicle kind={car.kind} color={car.color} accent={car.accent} scale={car.scale} variant={car.variant} photoIdx={i} />
         </g>
       ))}
+
+      {/* Piétons photos qui marchent sur les trottoirs (markets/promeneurs) */}
+      <PhotoPedestrians pathRefs={pathRefs} />
+
 
       {/* Piétons sur les trottoirs (densité moyenne : ~2x liste de base, sauf village) */}
       {[...PEDESTRIANS, ...PEDESTRIANS.map(p => ({ ...p, delay: p.delay - 30, side: (p.side === 1 ? -1 : 1) as 1 | -1 }))]
