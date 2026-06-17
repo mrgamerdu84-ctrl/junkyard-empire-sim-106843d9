@@ -344,6 +344,24 @@ export default function TaxiTycoon() {
   const rivalJobsRef = useRef<Job[]>([]); // courses prises en charge par l'IA
   const [rivalStolen, setRivalStolen] = useState(0);
 
+  // === Police ===
+  type PoliceCar = {
+    id: number;
+    pathIdx: number;
+    pos: number;
+    target: number;
+    mode: "patrol" | "chase";
+    chaseRivalId: number | null;
+  };
+  const policeCarsRef = useRef<PoliceCar[]>([]);
+  const wantedRivalIdRef = useRef<number | null>(null);
+  const wantedUntilRef = useRef<number>(0);
+  const lastViolationRef = useRef<number>(performance.now());
+  const POLICE_SPEED = 92;     // px/s patrol
+  const POLICE_CHASE_SPEED = 140;
+  const POLICE_FINE = 200;
+  const POLICE_CATCH_DIST = 48; // px
+
   // === Circuit personnalisé (dessiné par le joueur) ===
   // Pré-calcule la longueur totale + offsets cumulés.
   const circuitInfo = useMemo(() => {
