@@ -542,12 +542,15 @@ export default function CityTraffic() {
         </g>
       ))}
 
-      {/* Feux rouges aux intersections */}
+      {/* Feux rouges aux intersections + feux piétons synchronisés */}
       {lights.map((l) => {
         // lightsTick force le re-render à chaque frame pour animer la couleur
         void lightsTick;
         const st = getLightState(l, nowSeconds());
         const red = st === "red", orange = st === "orange", green = st === "green";
+        // Feu piéton : vert uniquement quand le feu voiture est rouge.
+        const pedGreen = red;
+        const pedColor = pedGreen ? "#22e36a" : "#ff2a2a";
         return (
           <g key={`tl-${l.id}`} transform={`translate(${l.x},${l.y})`} pointerEvents="none">
             <ellipse cx="0" cy="14" rx="14" ry="4" fill="rgba(0,0,0,0.45)" />
@@ -563,6 +566,49 @@ export default function CityTraffic() {
                 fill={red ? "#ff2a2a" : orange ? "#ffb020" : "#22e36a"}
                 opacity={night * 0.35} />
             )}
+            {/* Feu piéton — pictogramme à côté du feu voiture */}
+            <g transform="translate(16,-6)">
+              <rect x="-5" y="-9" width="10" height="18" rx="2" fill="#0e1217" stroke="#000" strokeWidth="0.8" />
+              <g fill={pedColor}>
+                <circle cx="0" cy="-5" r="1.4" />
+                {pedGreen ? (
+                  <>
+                    <rect x="-0.8" y="-3.6" width="1.6" height="4" rx="0.4" />
+                    <rect x="-2.2" y="0.4" width="1.4" height="3" rx="0.4" transform="rotate(-18 -1.5 1.9)" />
+                    <rect x="0.8" y="0.4" width="1.4" height="3" rx="0.4" transform="rotate(18 1.5 1.9)" />
+                  </>
+                ) : (
+                  <>
+                    <rect x="-1" y="-3.6" width="2" height="4.2" rx="0.5" />
+                    <rect x="-1.6" y="0.6" width="1.4" height="3" rx="0.4" />
+                    <rect x="0.2" y="0.6" width="1.4" height="3" rx="0.4" />
+                  </>
+                )}
+              </g>
+              {pedGreen && night > 0.4 && (
+                <circle r="7" fill="#22e36a" opacity={night * 0.35} />
+              )}
+            </g>
+            {/* Passage piéton (zébra) au sol */}
+            <g opacity="0.55">
+              {[-12, -6, 0, 6, 12].map((ox) => (
+                <rect key={ox} x={ox - 1.5} y={20} width="3" height="14" fill="#f4f4f4" rx="0.5" />
+              ))}
+            </g>
+          </g>
+        );
+      })}
+
+      {/* Piétons qui traversent UNIQUEMENT pendant la phase verte du feu piéton */}
+      {lights.map((l) => {
+        void lightsTick;
+        const st = getLightState(l, nowSeconds());
+        if (st !== "red") return null;
+        const phase = (nowSeconds() % 3) / 3;
+        const dx = (phase - 0.5) * 30;
+        return (
+          <g key={`pedx-${l.id}`} transform={`translate(${l.x + dx},${l.y + 28})`} pointerEvents="none">
+            <PedestrianSVG shirt="#22e36a" pants="#0f172a" skin="#e8b48a" side={0 as unknown as 1} scale={0.7} />
           </g>
         );
       })}
