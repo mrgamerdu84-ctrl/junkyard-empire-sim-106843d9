@@ -440,12 +440,14 @@ export default function CityTraffic() {
           }
           // lissage vers la cible : freinage > accélération
           const diff = target - me.speed;
-          const rate = diff < 0 ? BRAKE : ACCEL;
-          const maxStep = rate * me.baseSpeed * dt; // proportionnel à l'allure libre
+          const rate = diff < 0 ? BRAKE * (target === 0 ? 2.5 : 1) : ACCEL;
+          const maxStep = rate * me.baseSpeed * dt;
           me.speed += Math.max(-maxStep, Math.min(maxStep, diff));
-          // plancher anti-figeage : 35 % de baseSpeed
-          const floor = me.baseSpeed * MIN_SPEED_RATIO;
-          if (me.speed < floor) me.speed = floor;
+          // plancher anti-figeage sauf si stop forcé (feu rouge)
+          if (target > 0) {
+            const floor = me.baseSpeed * MIN_SPEED_RATIO;
+            if (me.speed < floor) me.speed = floor;
+          } else if (me.speed < 0) me.speed = 0;
         }
       }
 
