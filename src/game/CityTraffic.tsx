@@ -348,17 +348,23 @@ type CarState = {
 
 export default function CityTraffic() {
   const [night, setNight] = useState(0.25);
+  const [lightsTick, setLightsTick] = useState(0);
   const admin = useAdminConfig();
-  const activeCars = CARS.slice(0, Math.max(0, Math.min(CARS.length, admin.civilVehicleCount)));
+  // Filtre les véhicules civils dont le path est en zone village.
+  const activeCars = CARS.filter(c => !VILLAGE_PATHS.has(c.pathIdx))
+    .slice(0, Math.max(0, Math.min(CARS.length, admin.civilVehicleCount)));
   const pathRefs = useRef<(SVGPathElement | null)[]>([]);
   const carNodes = useRef<(SVGGElement | null)[]>([]);
+  const [lights, setLights] = useState<TrafficLight[]>([]);
 
+  // Cycle jour/nuit 300s (5 minutes).
   useEffect(() => {
     let raf = 0;
     const tick = () => {
-      const t = (performance.now() % 180000) / 180000;
+      const t = (performance.now() % 300000) / 300000;
       const daylight = Math.max(0, Math.sin(t * Math.PI * 2));
-      setNight(0.18 + (1 - daylight) * 0.72);
+      setNight(0.12 + (1 - daylight) * 0.78);
+      setLightsTick(v => (v + 1) % 1000000);
       raf = requestAnimationFrame(tick);
     };
     raf = requestAnimationFrame(tick);
