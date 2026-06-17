@@ -1573,12 +1573,10 @@ export default function TaxiTycoon() {
         {RADARS.map((rd) => {
           const plen = pathLensRef.current[rd.pathIdx] ?? 0;
           if (plen <= 0) return null;
-          const p = getLaneXY(rd.pathIdx, rd.posFrac * plen, true);
-          // Décale le radar côté trottoir (à droite)
-          const a = (p.angle * Math.PI) / 180;
-          const ox = Math.sin(a) * 14, oy = -Math.cos(a) * 14;
+          // Radar ancré sur le trottoir (bord droit de la route), pas sur la voie
+          const p = getSidewalk(rd.pathIdx, rd.posFrac * plen, 1);
           return (
-            <g key={`radar-${rd.id}`} transform={`translate(${p.x + ox},${p.y + oy}) rotate(${p.angle})`}>
+            <g key={`radar-${rd.id}`} transform={`translate(${p.x},${p.y}) rotate(${p.angle})`}>
               {/* poteau */}
               <rect x="-1.5" y="-2" width="3" height="14" fill="#0b0d10" />
               {/* boîtier caméra */}
