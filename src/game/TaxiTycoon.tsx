@@ -406,11 +406,13 @@ export default function TaxiTycoon() {
     const t = DEPOT_TIERS[tierIdx];
     const id = jobIdRef.current++;
     const lens = pathLensRef.current;
-    const pickupPath = Math.floor(Math.random() * lens.length);
-    let dropoffPath = Math.floor(Math.random() * lens.length);
-    // Encourage la variété : si possible, on tente un autre path pour la dépose.
-    if (lens.length > 1 && dropoffPath === pickupPath && Math.random() < 0.65) {
-      dropoffPath = (dropoffPath + 1 + Math.floor(Math.random() * (lens.length - 1))) % lens.length;
+    const allowed: number[] = [];
+    for (let i = 0; i < lens.length; i++) if (!VILLAGE_PATHS.has(i)) allowed.push(i);
+    const pickupPath = allowed[Math.floor(Math.random() * allowed.length)];
+    let dropoffPath = allowed[Math.floor(Math.random() * allowed.length)];
+    if (allowed.length > 1 && dropoffPath === pickupPath && Math.random() < 0.65) {
+      const others = allowed.filter(p => p !== pickupPath);
+      dropoffPath = others[Math.floor(Math.random() * others.length)];
     }
     const pickup = Math.random() * lens[pickupPath];
     const dropoff = Math.random() * lens[dropoffPath];
