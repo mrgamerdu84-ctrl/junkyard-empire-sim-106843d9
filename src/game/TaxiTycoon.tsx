@@ -1386,20 +1386,17 @@ export default function TaxiTycoon() {
           </filter>
         </defs>
 
-        {/* Asphalte double-voie : base sombre + lignes de rive + bande centrale jaune pointillée */}
-        <g>
-          {/* Base asphalte — très large pour couvrir toute la chaussée */}
+        {/* Calque route masqué */}
+        <g display="none">
           {ROADS.map((d, i) => (
             <path key={`asp-${i}`} d={d} stroke="#1a1d22" strokeWidth={120} fill="none" strokeLinecap="round" opacity="0.75" />
           ))}
-          {/* Lignes de rive blanches */}
           {ROADS.map((d, i) => (
             <path key={`edge-${i}`} d={d} stroke="#e8ecf2" strokeWidth={110} fill="none" strokeLinecap="round" opacity="0.12" />
           ))}
           {ROADS.map((d, i) => (
             <path key={`edgeL-${i}`} d={d} stroke="#ffffff" strokeWidth={2.5} fill="none" strokeLinecap="round" opacity="0.55" strokeDasharray="0" />
           ))}
-          {/* Bande centrale jaune pointillée */}
           {ROADS.map((d, i) => (
             <path key={`center-${i}`} d={d} stroke="#f5c542" strokeWidth={3} fill="none" strokeLinecap="butt" opacity="0.95" strokeDasharray="18 14" />
           ))}
