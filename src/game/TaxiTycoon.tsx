@@ -350,8 +350,10 @@ export default function TaxiTycoon() {
     pathIdx: number;
     pos: number;
     target: number;
-    mode: "patrol" | "chase";
+    mode: "patrol" | "chase" | "stakeout_drive" | "stakeout_wait";
     chaseRivalId: number | null;
+    chasePlayerTaxiId: number | null;
+    hideoutXY?: { x: number; y: number };
   };
   const policeCarsRef = useRef<PoliceCar[]>([]);
   const wantedRivalIdRef = useRef<number | null>(null);
@@ -361,6 +363,40 @@ export default function TaxiTycoon() {
   const POLICE_CHASE_SPEED = 140;
   const POLICE_FINE = 200;
   const POLICE_CATCH_DIST = 48; // px
+
+  // === Radars fixes & planques police (Speed Traps) ===
+  // Radars : couples (pathIdx, posFraction) -> position le long du path.
+  type RadarSpec = { id: number; pathIdx: number; posFrac: number };
+  const RADARS: RadarSpec[] = [
+    { id: 1, pathIdx: 0, posFrac: 0.25 },
+    { id: 2, pathIdx: 0, posFrac: 0.72 },
+    { id: 3, pathIdx: 2, posFrac: 0.40 },
+  ];
+  const SPEED_LIMIT = 78;          // px/s ; déclenche dès l'upgrade vitesse niveau 1+
+  const RADAR_FINE = 120;
+  const RADAR_TRIGGER_DIST = 26;   // px le long du path
+  const RADAR_COOLDOWN_MS = 6000;  // évite les amendes en chaîne
+  const radarLastHitRef = useRef<Record<string, number>>({}); // key = `${radarId}:${taxiId}`
+  const radarFlashRef = useRef<{ id: number; x: number; y: number; t: number } | null>(null);
+  const [radarFlashTick, setRadarFlashTick] = useState(0);
+
+  // Planques : points XY au bord de la route où la police se cache.
+  type HideoutSpec = { id: number; x: number; y: number };
+  const HIDEOUTS: HideoutSpec[] = [
+    { id: 1, x: 540,  y: 760 },
+    { id: 2, x: 1150, y: 540 },
+    { id: 3, x: 1620, y: 320 },
+  ];
+  const HIDEOUT_TRAP_DIST = 95;      // px : portée de détection radar embusqué
+  const HIDEOUT_FINE = 400;
+  const STAKEOUT_DURATION_MS = 18000;
+  const stakeoutHideoutRef = useRef<Record<number, number>>({}); // policeId -> hideoutId
+  const stakeoutUntilRef = useRef<Record<number, number>>({});   // policeId -> until ms
+  const wantedPlayerTaxiIdRef = useRef<number | null>(null);
+  const wantedPlayerUntilRef = useRef<number>(0);
+  const lastStakeoutTriggerRef = useRef<number>(performance.now());
+
+
 
   // === Circuit personnalisé (dessiné par le joueur) ===
   // Pré-calcule la longueur totale + offsets cumulés.
@@ -570,6 +606,7 @@ export default function TaxiTycoon() {
         target: plen - 1,
         mode: "patrol",
         chaseRivalId: null,
+        chasePlayerTaxiId: null,
       });
     }
     while (policeCarsRef.current.length > target) policeCarsRef.current.pop();
@@ -789,7 +826,38 @@ export default function TaxiTycoon() {
         }
       }
 
-      // ====== Police : patrouille + course-poursuite des rivaux contrevenants ======
+      // ====== Radars fixes : flash + amende automatique aux taxis en excès ======
+      {
+        const nowMs = performance.now();
+        for (const taxi of taxisRef.current) {
+          if (taxi.mode === "idle" || taxi.mode === "refueling") continue;
+          if (taxi.speed <= SPEED_LIMIT) continue;
+          for (const rd of RADARS) {
+            if (taxi.pathIdx !== rd.pathIdx) continue;
+            const plen = pathLensRef.current[rd.pathIdx] ?? 0;
+            if (plen <= 0) continue;
+            const rdPos = rd.posFrac * plen;
+            if (Math.abs(taxi.pos - rdPos) > RADAR_TRIGGER_DIST) continue;
+            const key = `${rd.id}:${taxi.id}`;
+            if (nowMs - (radarLastHitRef.current[key] ?? 0) < RADAR_COOLDOWN_MS) continue;
+            radarLastHitRef.current[key] = nowMs;
+            const pt = pathRefs.current[rd.pathIdx]?.getPointAtLength(rdPos);
+            setSave(s => ({ ...s, money: Math.max(0, s.money - RADAR_FINE) }));
+            if (pt) {
+              radarFlashRef.current = { id: rd.id, x: pt.x, y: pt.y, t: nowMs };
+              setRadarFlashTick(n => (n + 1) % 1_000_000);
+              popFloat(`-${RADAR_FINE}$ radar`, pt.x, pt.y - 10);
+            }
+            showToast(`📷 Flash radar ! Amende de ${RADAR_FINE}$`);
+          }
+        }
+        // expire le flash après 300ms
+        if (radarFlashRef.current && nowMs - radarFlashRef.current.t > 300) {
+          radarFlashRef.current = null;
+        }
+      }
+
+      // ====== Police : patrouille, course-poursuite rivaux, planques + piège joueur ======
       if (policeCarsRef.current.length > 0) {
         const nowMs = performance.now();
 
@@ -807,77 +875,184 @@ export default function TaxiTycoon() {
             lastViolationRef.current = nowMs;
             showToast("🚨 Rival Cabs grille un feu — la police arrive !");
           } else {
-            lastViolationRef.current = nowMs; // reschedule
+            lastViolationRef.current = nowMs;
           }
         }
-
-        // Expire si trop long sans capture
         if (wantedRivalIdRef.current !== null && nowMs > wantedUntilRef.current) {
           wantedRivalIdRef.current = null;
         }
+        if (wantedPlayerTaxiIdRef.current !== null && nowMs > wantedPlayerUntilRef.current) {
+          wantedPlayerTaxiIdRef.current = null;
+        }
 
-        const wanted = wantedRivalIdRef.current !== null
+        const wantedRival = wantedRivalIdRef.current !== null
           ? rivalTaxisRef.current.find(r => r.id === wantedRivalIdRef.current) ?? null
           : null;
+        const wantedPlayer = wantedPlayerTaxiIdRef.current !== null
+          ? taxisRef.current.find(t => t.id === wantedPlayerTaxiIdRef.current) ?? null
+          : null;
 
-        // 2) MAJ chaque police car
-        for (const pc of policeCarsRef.current) {
-          // Assigner / lever la chasse
-          if (wanted && pc.mode !== "chase") {
-            pc.mode = "chase";
-            pc.chaseRivalId = wanted.id;
-            // saute sur le path du rival pour une vraie poursuite
+        // 2) Périodiquement, une police libre va se planquer (toutes les ~30-45s)
+        if (
+          !wantedRival && !wantedPlayer &&
+          nowMs - lastStakeoutTriggerRef.current > 30000 + Math.random() * 15000
+        ) {
+          const patrolling = policeCarsRef.current.filter(p => p.mode === "patrol");
+          const usedHideouts = new Set(Object.values(stakeoutHideoutRef.current));
+          const freeHideouts = HIDEOUTS.filter(h => !usedHideouts.has(h.id));
+          if (patrolling.length > 0 && freeHideouts.length > 0) {
+            const pc = patrolling[Math.floor(Math.random() * patrolling.length)];
+            const ho = freeHideouts[Math.floor(Math.random() * freeHideouts.length)];
+            pc.mode = "stakeout_drive";
+            pc.hideoutXY = { x: ho.x, y: ho.y };
+            // snap au point du path le + proche du hideout pour s'y diriger
+            let bestIdx = pc.pathIdx, bestPos = pc.pos, bestD = Infinity;
+            for (let pi = 0; pi < pathRefs.current.length; pi++) {
+              if (VILLAGE_PATHS.has(pi)) continue;
+              const cp = closestOnPath(pi, ho.x, ho.y);
+              const pt = pathRefs.current[pi]?.getPointAtLength(cp);
+              if (!pt) continue;
+              const d = Math.hypot(pt.x - ho.x, pt.y - ho.y);
+              if (d < bestD) { bestD = d; bestIdx = pi; bestPos = cp; }
+            }
+            // sauter sur le path cible
             const here = pathRefs.current[pc.pathIdx]?.getPointAtLength(pc.pos);
-            pc.pathIdx = wanted.pathIdx;
-            pc.pos = here ? closestOnPath(wanted.pathIdx, here.x, here.y) : 0;
-          } else if (!wanted && pc.mode === "chase") {
+            pc.pathIdx = bestIdx;
+            pc.pos = here ? closestOnPath(bestIdx, here.x, here.y) : bestPos;
+            pc.target = bestPos;
+            stakeoutHideoutRef.current[pc.id] = ho.id;
+            stakeoutUntilRef.current[pc.id] = nowMs + STAKEOUT_DURATION_MS;
+            lastStakeoutTriggerRef.current = nowMs;
+          } else {
+            lastStakeoutTriggerRef.current = nowMs;
+          }
+        }
+
+        // 3) MAJ chaque police
+        for (const pc of policeCarsRef.current) {
+          // Priorité chase : si quelqu'un est wanted et police libre -> chase
+          const isStakeout = pc.mode === "stakeout_drive" || pc.mode === "stakeout_wait";
+          if (wantedRival && !isStakeout && pc.mode !== "chase") {
+            pc.mode = "chase";
+            pc.chaseRivalId = wantedRival.id;
+            pc.chasePlayerTaxiId = null;
+            const here = pathRefs.current[pc.pathIdx]?.getPointAtLength(pc.pos);
+            pc.pathIdx = wantedRival.pathIdx;
+            pc.pos = here ? closestOnPath(wantedRival.pathIdx, here.x, here.y) : 0;
+          } else if (!wantedRival && !wantedPlayer && pc.mode === "chase") {
             pc.mode = "patrol";
             pc.chaseRivalId = null;
-            const plen = pathLensRef.current[pc.pathIdx] ?? 0;
-            pc.target = pc.target > pc.pos ? plen - 1 : 1;
+            pc.chasePlayerTaxiId = null;
           }
 
-          if (pc.mode === "chase" && wanted) {
-            // Synchroniser le path + viser la position du rival
-            if (pc.pathIdx !== wanted.pathIdx) {
-              const here = pathRefs.current[pc.pathIdx]?.getPointAtLength(pc.pos);
-              pc.pathIdx = wanted.pathIdx;
-              pc.pos = here ? closestOnPath(wanted.pathIdx, here.x, here.y) : pc.pos;
-            }
-            pc.target = wanted.pos;
-            const diff = pc.target - pc.pos;
-            const step = POLICE_CHASE_SPEED * dt;
-            if (Math.abs(diff) > 0.5) pc.pos += Math.sign(diff) * Math.min(step, Math.abs(diff));
+          // ----- Mode CHASE -----
+          if (pc.mode === "chase") {
+            const targetTaxi: { pathIdx: number; pos: number; id: number } | null =
+              pc.chasePlayerTaxiId !== null
+                ? (taxisRef.current.find(t => t.id === pc.chasePlayerTaxiId) ?? null)
+                : (wantedRival ?? null);
+            if (!targetTaxi) {
+              pc.mode = "patrol";
+              pc.chaseRivalId = null;
+              pc.chasePlayerTaxiId = null;
+            } else {
+              if (pc.pathIdx !== targetTaxi.pathIdx) {
+                const here = pathRefs.current[pc.pathIdx]?.getPointAtLength(pc.pos);
+                pc.pathIdx = targetTaxi.pathIdx;
+                pc.pos = here ? closestOnPath(targetTaxi.pathIdx, here.x, here.y) : pc.pos;
+              }
+              pc.target = targetTaxi.pos;
+              const diff = pc.target - pc.pos;
+              const step = POLICE_CHASE_SPEED * dt;
+              if (Math.abs(diff) > 0.5) pc.pos += Math.sign(diff) * Math.min(step, Math.abs(diff));
 
-            // Capture si proche en distance XY
-            const pcPt = pathRefs.current[pc.pathIdx]?.getPointAtLength(pc.pos);
-            const rPt = pathRefs.current[wanted.pathIdx]?.getPointAtLength(wanted.pos);
-            if (pcPt && rPt) {
-              const d = Math.hypot(pcPt.x - rPt.x, pcPt.y - rPt.y);
-              if (d < POLICE_CATCH_DIST) {
-                // Arrestation : amende reversée au joueur
-                setSave(s => ({ ...s, money: s.money + POLICE_FINE }));
-                popFloat(`+${POLICE_FINE}$ amende`, rPt.x, rPt.y - 8);
-                showToast("🚓 Rival arrêté ! Amende reversée.");
-                wantedRivalIdRef.current = null;
-                pc.mode = "patrol";
-                pc.chaseRivalId = null;
-                const plen = pathLensRef.current[pc.pathIdx] ?? 0;
-                pc.target = plen - 1;
+              const pcPt = pathRefs.current[pc.pathIdx]?.getPointAtLength(pc.pos);
+              const tPt = pathRefs.current[targetTaxi.pathIdx]?.getPointAtLength(targetTaxi.pos);
+              if (pcPt && tPt) {
+                const d = Math.hypot(pcPt.x - tPt.x, pcPt.y - tPt.y);
+                if (d < POLICE_CATCH_DIST) {
+                  if (pc.chasePlayerTaxiId !== null) {
+                    setSave(s => ({ ...s, money: Math.max(0, s.money - HIDEOUT_FINE) }));
+                    popFloat(`-${HIDEOUT_FINE}$ gros PV`, tPt.x, tPt.y - 8);
+                    showToast(`🚓 Piégé par la planque ! Amende ${HIDEOUT_FINE}$`);
+                    wantedPlayerTaxiIdRef.current = null;
+                  } else {
+                    setSave(s => ({ ...s, money: s.money + POLICE_FINE }));
+                    popFloat(`+${POLICE_FINE}$ amende`, tPt.x, tPt.y - 8);
+                    showToast("🚓 Rival arrêté ! Amende reversée.");
+                    wantedRivalIdRef.current = null;
+                  }
+                  pc.mode = "patrol";
+                  pc.chaseRivalId = null;
+                  pc.chasePlayerTaxiId = null;
+                  delete stakeoutHideoutRef.current[pc.id];
+                }
               }
             }
-          } else {
-            // Patrouille : aller-retour sur le path en respectant les feux
+            continue;
+          }
+
+          // ----- Mode STAKEOUT_DRIVE : rouler vers la planque -----
+          if (pc.mode === "stakeout_drive") {
             const diff = pc.target - pc.pos;
             const step = POLICE_SPEED * dt;
-            const plen = pathLensRef.current[pc.pathIdx] ?? 0;
             if (Math.abs(diff) <= step) {
-              pc.target = pc.target > 1 ? 1 : Math.max(1, plen - 1);
+              pc.pos = pc.target;
+              pc.mode = "stakeout_wait";
             } else {
               const forward = diff > 0;
               if (!shouldStopAhead(pc.pathIdx, pc.pos, forward, nowSeconds())) {
                 pc.pos += Math.sign(diff) * step;
               }
+            }
+            continue;
+          }
+
+          // ----- Mode STAKEOUT_WAIT : embuscade -----
+          if (pc.mode === "stakeout_wait") {
+            // Détecte un taxi joueur rapide à portée
+            const pcPt = pathRefs.current[pc.pathIdx]?.getPointAtLength(pc.pos);
+            if (pcPt) {
+              for (const taxi of taxisRef.current) {
+                if (taxi.mode === "idle" || taxi.mode === "refueling") continue;
+                if (taxi.speed <= SPEED_LIMIT) continue;
+                const tPt = pathRefs.current[taxi.pathIdx]?.getPointAtLength(taxi.pos);
+                if (!tPt) continue;
+                const d = Math.hypot(pcPt.x - tPt.x, pcPt.y - tPt.y);
+                if (d < HIDEOUT_TRAP_DIST) {
+                  wantedPlayerTaxiIdRef.current = taxi.id;
+                  wantedPlayerUntilRef.current = nowMs + 15000;
+                  pc.mode = "chase";
+                  pc.chasePlayerTaxiId = taxi.id;
+                  pc.chaseRivalId = null;
+                  delete stakeoutHideoutRef.current[pc.id];
+                  delete stakeoutUntilRef.current[pc.id];
+                  showToast("🚨 Police planquée — gyrophares allumés !");
+                  break;
+                }
+              }
+            }
+            // Expire la planque sans capture
+            if (pc.mode === "stakeout_wait" && nowMs > (stakeoutUntilRef.current[pc.id] ?? 0)) {
+              pc.mode = "patrol";
+              delete stakeoutHideoutRef.current[pc.id];
+              delete stakeoutUntilRef.current[pc.id];
+              const plen = pathLensRef.current[pc.pathIdx] ?? 0;
+              pc.target = plen - 1;
+            }
+            continue;
+          }
+
+          // ----- Mode PATROL : aller-retour -----
+          const diff = pc.target - pc.pos;
+          const step = POLICE_SPEED * dt;
+          const plen = pathLensRef.current[pc.pathIdx] ?? 0;
+          if (Math.abs(diff) <= step) {
+            pc.target = pc.target > 1 ? 1 : Math.max(1, plen - 1);
+          } else {
+            const forward = diff > 0;
+            if (!shouldStopAhead(pc.pathIdx, pc.pos, forward, nowSeconds())) {
+              pc.pos += Math.sign(diff) * step;
             }
           }
         }
@@ -1286,35 +1461,89 @@ export default function TaxiTycoon() {
           );
         })}
 
+        {/* Radars fixes au bord de la route */}
+        {RADARS.map((rd) => {
+          const plen = pathLensRef.current[rd.pathIdx] ?? 0;
+          if (plen <= 0) return null;
+          const p = getLaneXY(rd.pathIdx, rd.posFrac * plen, true);
+          // Décale le radar côté trottoir (à droite)
+          const a = (p.angle * Math.PI) / 180;
+          const ox = Math.sin(a) * 14, oy = -Math.cos(a) * 14;
+          return (
+            <g key={`radar-${rd.id}`} transform={`translate(${p.x + ox},${p.y + oy}) rotate(${p.angle})`}>
+              {/* poteau */}
+              <rect x="-1.5" y="-2" width="3" height="14" fill="#0b0d10" />
+              {/* boîtier caméra */}
+              <rect x="-7" y="-9" width="14" height="9" rx="2" fill="#222831" stroke="#0b0d10" strokeWidth="1" />
+              <circle cx="0" cy="-4.5" r="3" fill="#0b0d10" stroke="#94a3b8" strokeWidth="0.8" />
+              <circle cx="0" cy="-4.5" r="1.4" fill="#3b82f6" />
+              <text x="0" y="-12" textAnchor="middle" fontSize="3.4" fontWeight="900" fill="#fbbf24" stroke="#0b0d10" strokeWidth="0.8" paintOrder="stroke">RADAR</text>
+            </g>
+          );
+        })}
+
+        {/* Planques police — emplacements de stationnement */}
+        {HIDEOUTS.map((ho) => {
+          const occupied = Object.values(stakeoutHideoutRef.current).includes(ho.id);
+          return (
+            <g key={`hideout-${ho.id}`} transform={`translate(${ho.x},${ho.y})`}>
+              <rect x="-14" y="-9" width="28" height="18" rx="2"
+                fill="#1f2937" opacity="0.45"
+                stroke={occupied ? "#ef4444" : "#fbbf24"}
+                strokeWidth="1.2" strokeDasharray="3 2" />
+              {/* arbres autour pour la cachette */}
+              <circle cx="-18" cy="-2" r="6" fill="#0f3d2e" opacity="0.85" />
+              <circle cx="18" cy="2"   r="6" fill="#0f3d2e" opacity="0.85" />
+              <circle cx="-16" cy="10" r="5" fill="#0f3d2e" opacity="0.85" />
+            </g>
+          );
+        })}
+
+        {/* Flash radar (cercle blanc bref) */}
+        {(() => {
+          void radarFlashTick;
+          const fl = radarFlashRef.current;
+          if (!fl) return null;
+          return (
+            <g key={`flash-${fl.id}-${fl.t}`} transform={`translate(${fl.x},${fl.y})`} pointerEvents="none">
+              <circle r="60" fill="#ffffff" opacity="0.85">
+                <animate attributeName="r" values="20;120" dur="0.3s" fill="freeze" />
+                <animate attributeName="opacity" values="0.95;0" dur="0.3s" fill="freeze" />
+              </circle>
+            </g>
+          );
+        })()}
+
         {/* Voitures de police — patrouillent et chassent les contrevenants */}
         {policeCarsRef.current.map((pc) => {
           const movingForward = pc.target >= pc.pos;
-          const p = getLaneXY(pc.pathIdx, pc.pos, movingForward);
+          // Si planquée, on l'affiche sur le slot de stationnement
+          const hidden = pc.mode === "stakeout_wait" && pc.hideoutXY;
+          const p = hidden
+            ? { x: pc.hideoutXY!.x, y: pc.hideoutXY!.y, angle: 0 }
+            : getLaneXY(pc.pathIdx, pc.pos, movingForward);
           const chasing = pc.mode === "chase";
-          // gyrophare : alternance rouge/bleu via t
           const t = Math.floor(performance.now() / 200) % 2;
           const ledA = chasing ? (t === 0 ? "#3b82f6" : "#ef4444") : "#1f2937";
           const ledB = chasing ? (t === 0 ? "#ef4444" : "#3b82f6") : "#1f2937";
           return (
             <g key={pc.id} transform={`translate(${p.x},${p.y}) rotate(${p.angle})`} filter="url(#taxi-shadow)">
-              {/* halo lumineux pendant la chasse */}
               {chasing && (
                 <circle r="22" fill={t === 0 ? "#3b82f6" : "#ef4444"} opacity="0.28">
                   <animate attributeName="r" values="18;26;18" dur="0.6s" repeatCount="indefinite" />
                 </circle>
               )}
-              {/* corps voiture vue du ciel */}
-              <rect x="-14" y="-7" width="28" height="14" rx="3" fill="#f8fafc" stroke="#0b0d10" strokeWidth="1" />
-              {/* bande latérale noire (POLICE) */}
+              <rect x="-14" y="-7" width="28" height="14" rx="3" fill="#f8fafc" stroke="#0b0d10" strokeWidth="1" opacity={hidden ? 0.85 : 1} />
               <rect x="-14" y="-1.4" width="28" height="2.8" fill="#0b0d10" />
-              {/* capot / coffre */}
               <rect x="-12" y="-5.5" width="6" height="11" rx="1.2" fill="#dbe2ea" opacity="0.9" />
               <rect x="6" y="-5.5" width="6" height="11" rx="1.2" fill="#dbe2ea" opacity="0.9" />
-              {/* gyrophare sur toit */}
               <rect x="-4" y="-3" width="8" height="6" rx="1.2" fill="#0b0d10" />
               <circle cx="-2" cy="0" r="1.6" fill={ledA} />
               <circle cx="2" cy="0" r="1.6" fill={ledB} />
               <text x="0" y="1.6" textAnchor="middle" fontSize="3" fontWeight="900" fill="#0b0d10" pointerEvents="none">POLICE</text>
+              {hidden && (
+                <text x="0" y="-12" textAnchor="middle" fontSize="3.4" fontWeight="900" fill="#fbbf24" stroke="#0b0d10" strokeWidth="0.8" paintOrder="stroke">PLANQUE</text>
+              )}
             </g>
           );
         })}
