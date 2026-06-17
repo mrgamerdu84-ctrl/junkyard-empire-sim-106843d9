@@ -551,6 +551,34 @@ export default function TaxiTycoon() {
     forceRender((n) => n + 1);
   }, [pathsReady, admin.rivalEnabled, admin.rivalTaxiCount, admin.rivalHQX, admin.rivalHQY]);
 
+  // Sync police fleet (2 voitures qui patrouillent en permanence)
+  useEffect(() => {
+    if (!pathsReady) return;
+    const N = pathLensRef.current.length;
+    if (N === 0) return;
+    const allowed: number[] = [];
+    for (let i = 0; i < N; i++) if (!VILLAGE_PATHS.has(i)) allowed.push(i);
+    if (allowed.length === 0) return;
+    const target = 2;
+    while (policeCarsRef.current.length < target) {
+      const pIdx = allowed[policeCarsRef.current.length % allowed.length];
+      const plen = pathLensRef.current[pIdx] ?? 0;
+      policeCarsRef.current.push({
+        id: 30000 + policeCarsRef.current.length,
+        pathIdx: pIdx,
+        pos: (policeCarsRef.current.length / target) * plen,
+        target: plen - 1,
+        mode: "patrol",
+        chaseRivalId: null,
+      });
+    }
+    while (policeCarsRef.current.length > target) policeCarsRef.current.pop();
+    forceRender((n) => n + 1);
+  }, [pathsReady]);
+
+
+
+
 
 
   // Save persistence (debounced)
