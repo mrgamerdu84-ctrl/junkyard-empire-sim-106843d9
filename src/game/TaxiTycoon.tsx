@@ -1224,6 +1224,12 @@ export default function TaxiTycoon() {
     };
   };
 
+  const syncVehicleLane = (vehicle: { pathIdx: number; pos: number; target: number; lane?: LanePosition }) => {
+    vehicle.pos = clampRoadLen(vehicle.pathIdx, vehicle.pos);
+    vehicle.target = clampRoadLen(vehicle.pathIdx, vehicle.target);
+    vehicle.lane = getLaneXY(vehicle.pathIdx, vehicle.pos, vehicle.target >= vehicle.pos);
+  };
+
   // Position décalée sur le trottoir (perpendiculaire à la route)
   const getSidewalk = (pathIdx: number, len: number, side: 1 | -1) => {
     const p = pathRefs.current[pathIdx];
