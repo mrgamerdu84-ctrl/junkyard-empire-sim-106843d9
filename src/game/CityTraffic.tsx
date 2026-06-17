@@ -318,13 +318,15 @@ function Lamp({ x, y, night }: { x: number; y: number; night: number }) {
   return (
     <g transform={`translate(${x},${y})`}>
       {lit && (
-        <circle r="46" fill="#ffd66a" opacity={night * 0.28}>
-          <animate attributeName="opacity" values={`${night * 0.2};${night * 0.36};${night * 0.2}`} dur="3s" repeatCount="indefinite" />
+        <circle r="62" fill="#ffd66a" opacity={night * 0.32}>
+          <animate attributeName="opacity" values={`${night * 0.22};${night * 0.42};${night * 0.22}`} dur="3s" repeatCount="indefinite" />
         </circle>
       )}
-      <path d="M 0 30 L 0 0 L -18 -7" stroke="#191b1f" strokeWidth="5" strokeLinecap="round" fill="none" />
-      <circle cx="-20" cy="-7" r="6" fill={lit ? "#fff5b0" : "#4f5148"} />
-      {lit && <circle cx="-20" cy="-7" r="12" fill="#ffd66a" opacity="0.35" />}
+      {/* base / poteau plus visible */}
+      <ellipse cx="0" cy="4" rx="5" ry="2" fill="rgba(0,0,0,0.55)" />
+      <path d="M 0 30 L 0 -2 L -26 -10" stroke="#0e1115" strokeWidth="6" strokeLinecap="round" fill="none" />
+      <circle cx="-28" cy="-10" r="8" fill={lit ? "#fff5b0" : "#5a5d54"} stroke="#1a1d22" strokeWidth="1.2" />
+      {lit && <circle cx="-28" cy="-10" r="16" fill="#ffd66a" opacity="0.45" />}
     </g>
   );
 }
