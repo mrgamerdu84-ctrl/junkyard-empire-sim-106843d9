@@ -470,12 +470,19 @@ export default function TaxiTycoon() {
     return { x: pt.x, y: pt.y };
   };
 
-  // Choisit aléatoirement un path différent du dernier (variété de trajet).
+  // Choisit aléatoirement un path différent du dernier (variété de trajet),
+  // en évitant les paths du village (haut de la map).
   const pickPath = (avoid?: number): number => {
     const n = pathLensRef.current.length;
-    if (n <= 1) return 0;
-    let idx = Math.floor(Math.random() * n);
-    if (idx === avoid) idx = (idx + 1 + Math.floor(Math.random() * (n - 1))) % n;
+    const allowed: number[] = [];
+    for (let i = 0; i < n; i++) if (!VILLAGE_PATHS.has(i)) allowed.push(i);
+    if (allowed.length === 0) return 0;
+    if (allowed.length === 1) return allowed[0];
+    let idx = allowed[Math.floor(Math.random() * allowed.length)];
+    if (idx === avoid) {
+      const others = allowed.filter(p => p !== avoid);
+      idx = others[Math.floor(Math.random() * others.length)];
+    }
     return idx;
   };
 
