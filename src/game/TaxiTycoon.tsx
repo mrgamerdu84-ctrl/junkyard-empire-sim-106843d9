@@ -673,7 +673,11 @@ export default function TaxiTycoon() {
             taxi.refuelUntil = Date.now() + FUEL_REFILL_MS;
           }
         } else {
-          taxi.pos += Math.sign(diff) * step;
+          // Respect des feux : si rouge devant, on s'arrête (skip ce frame)
+          const forward = diff > 0;
+          if (!shouldStopAhead(taxi.pathIdx, taxi.pos, forward, nowSeconds())) {
+            taxi.pos += Math.sign(diff) * step;
+          }
         }
       }
 
