@@ -1998,7 +1998,9 @@ export default function TaxiTycoon() {
           position: fixed; inset: 0; background: rgba(0,0,0,0.65); z-index: 200;
           display: flex; align-items: center; justify-content: center; padding: 16px;
           backdrop-filter: blur(4px);
+          pointer-events: auto;
         }
+        .tt-shop-overlay * { pointer-events: auto; }
         .tt-shop {
           width: 100%; max-width: 460px; background: #14171c; color: #e8edf2;
           border: 1px solid #2a2f38; border-radius: 14px; padding: 16px;
