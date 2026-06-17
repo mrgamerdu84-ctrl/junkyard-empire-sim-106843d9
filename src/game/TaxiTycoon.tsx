@@ -1286,7 +1286,40 @@ export default function TaxiTycoon() {
           );
         })}
 
-        {/* Taxis */}
+        {/* Voitures de police — patrouillent et chassent les contrevenants */}
+        {policeCarsRef.current.map((pc) => {
+          const movingForward = pc.target >= pc.pos;
+          const p = getLaneXY(pc.pathIdx, pc.pos, movingForward);
+          const chasing = pc.mode === "chase";
+          // gyrophare : alternance rouge/bleu via t
+          const t = Math.floor(performance.now() / 200) % 2;
+          const ledA = chasing ? (t === 0 ? "#3b82f6" : "#ef4444") : "#1f2937";
+          const ledB = chasing ? (t === 0 ? "#ef4444" : "#3b82f6") : "#1f2937";
+          return (
+            <g key={pc.id} transform={`translate(${p.x},${p.y}) rotate(${p.angle})`} filter="url(#taxi-shadow)">
+              {/* halo lumineux pendant la chasse */}
+              {chasing && (
+                <circle r="22" fill={t === 0 ? "#3b82f6" : "#ef4444"} opacity="0.28">
+                  <animate attributeName="r" values="18;26;18" dur="0.6s" repeatCount="indefinite" />
+                </circle>
+              )}
+              {/* corps voiture vue du ciel */}
+              <rect x="-14" y="-7" width="28" height="14" rx="3" fill="#f8fafc" stroke="#0b0d10" strokeWidth="1" />
+              {/* bande latérale noire (POLICE) */}
+              <rect x="-14" y="-1.4" width="28" height="2.8" fill="#0b0d10" />
+              {/* capot / coffre */}
+              <rect x="-12" y="-5.5" width="6" height="11" rx="1.2" fill="#dbe2ea" opacity="0.9" />
+              <rect x="6" y="-5.5" width="6" height="11" rx="1.2" fill="#dbe2ea" opacity="0.9" />
+              {/* gyrophare sur toit */}
+              <rect x="-4" y="-3" width="8" height="6" rx="1.2" fill="#0b0d10" />
+              <circle cx="-2" cy="0" r="1.6" fill={ledA} />
+              <circle cx="2" cy="0" r="1.6" fill={ledB} />
+              <text x="0" y="1.6" textAnchor="middle" fontSize="3" fontWeight="900" fill="#0b0d10" pointerEvents="none">POLICE</text>
+            </g>
+          );
+        })}
+
+
         {taxisRef.current.map((taxi) => {
           const movingForward = taxi.target >= taxi.pos;
           const p = getLaneXY(taxi.pathIdx, taxi.pos, movingForward);
