@@ -357,14 +357,20 @@ export default function CityTraffic() {
   const carNodes = useRef<(SVGGElement | null)[]>([]);
   const [lights, setLights] = useState<TrafficLight[]>([]);
 
-  // Cycle jour/nuit 300s (5 minutes).
+  // Cycle jour/nuit 300s (5 minutes). Démarre en plein jour.
   useEffect(() => {
     let raf = 0;
     const tick = () => {
       const t = (performance.now() % 300000) / 300000;
-      const daylight = Math.max(0, Math.sin(t * Math.PI * 2));
-      setNight(0.12 + (1 - daylight) * 0.78);
+      // décalage π/2 pour partir au midi (sin = 1)
+      const daylight = Math.max(0, Math.sin(t * Math.PI * 2 + Math.PI / 2));
+      setNight(0.1 + (1 - daylight) * 0.6);
       setLightsTick(v => (v + 1) % 1000000);
+      raf = requestAnimationFrame(tick);
+    };
+    raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
+  }, []);
       raf = requestAnimationFrame(tick);
     };
     raf = requestAnimationFrame(tick);
