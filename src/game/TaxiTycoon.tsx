@@ -1386,12 +1386,25 @@ export default function TaxiTycoon() {
           </filter>
         </defs>
 
-        {/* Asphalte visualisé légèrement (assombri sous les taxis) */}
-        <g opacity="0.18">
+        {/* Asphalte double-voie : base sombre + lignes de rive + bande centrale jaune pointillée */}
+        <g>
+          {/* Base asphalte large (couvre les 2 voies, LANE_OFFSET=12 → 24px lane-to-lane) */}
           {ROADS.map((d, i) => (
-            <path key={i} d={d} stroke="#0a0c10" strokeWidth={28} fill="none" strokeLinecap="round" />
+            <path key={`asp-${i}`} d={d} stroke="#1a1d22" strokeWidth={42} fill="none" strokeLinecap="round" opacity="0.55" />
+          ))}
+          {/* Lignes de rive blanches (bord extérieur des voies) */}
+          {ROADS.map((d, i) => (
+            <path key={`edge-${i}`} d={d} stroke="#e8ecf2" strokeWidth={40} fill="none" strokeLinecap="round" opacity="0.0" />
+          ))}
+          {ROADS.map((d, i) => (
+            <path key={`edgeL-${i}`} d={d} stroke="#ffffff" strokeWidth={1.2} fill="none" strokeLinecap="round" opacity="0.35" strokeDasharray="0" />
+          ))}
+          {/* Bande centrale jaune pointillée (séparation des 2 sens) */}
+          {ROADS.map((d, i) => (
+            <path key={`center-${i}`} d={d} stroke="#f5c542" strokeWidth={1.4} fill="none" strokeLinecap="butt" opacity="0.85" strokeDasharray="10 8" />
           ))}
         </g>
+
 
         {/* Station-service — vraie station avec auvent, deux pompes, boutique */}
         {pathsReady && (
