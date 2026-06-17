@@ -1386,21 +1386,6 @@ export default function TaxiTycoon() {
           </filter>
         </defs>
 
-        {/* Calque route masqué */}
-        <g display="none">
-          {ROADS.map((d, i) => (
-            <path key={`asp-${i}`} d={d} stroke="#1a1d22" strokeWidth={120} fill="none" strokeLinecap="round" opacity="0.75" />
-          ))}
-          {ROADS.map((d, i) => (
-            <path key={`edge-${i}`} d={d} stroke="#e8ecf2" strokeWidth={110} fill="none" strokeLinecap="round" opacity="0.12" />
-          ))}
-          {ROADS.map((d, i) => (
-            <path key={`edgeL-${i}`} d={d} stroke="#ffffff" strokeWidth={2.5} fill="none" strokeLinecap="round" opacity="0.55" strokeDasharray="0" />
-          ))}
-          {ROADS.map((d, i) => (
-            <path key={`center-${i}`} d={d} stroke="#f5c542" strokeWidth={3} fill="none" strokeLinecap="butt" opacity="0.95" strokeDasharray="18 14" />
-          ))}
-        </g>
 
 
         {/* Station-service — vraie station avec auvent, deux pompes, boutique */}
