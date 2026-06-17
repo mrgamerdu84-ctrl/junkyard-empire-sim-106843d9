@@ -541,7 +541,9 @@ export default function CityTraffic() {
       ))}
 
       {/* Feux rouges aux intersections */}
-      {(void lightsTick, lights).map((l) => {
+      {lights.map((l) => {
+        // lightsTick force le re-render à chaque frame pour animer la couleur
+        void lightsTick;
         const st = getLightState(l, nowSeconds());
         const red = st === "red", orange = st === "orange", green = st === "green";
         return (
