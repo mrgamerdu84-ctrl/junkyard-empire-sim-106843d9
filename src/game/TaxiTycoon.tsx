@@ -43,7 +43,7 @@ export const TAXI_COLORS = [
   { id: "yellow", name: "Jaune", body: "#f5c542", trim: "#9c7a1c" },
 ];
 
-type TaxiMode = "idle" | "to_pickup" | "to_dest" | "returning" | "to_gas" | "refueling";
+type TaxiMode = "idle" | "to_pickup" | "to_dest" | "returning" | "to_gas" | "refueling" | "depositing";
 type Taxi = {
   id: number;
   pathIdx: number;    // path actuel emprunté (0..ROADS.length-1)
@@ -55,7 +55,14 @@ type Taxi = {
   jobId: number | null;
   fuel: number;       // 0..100
   refuelUntil?: number; // timestamp ms : fin du remplissage
+  ridesSinceDeposit: number; // nb courses depuis le dernier dépôt au QG
+  depositUntil?: number;     // timestamp ms : fin du dépôt au QG
+  mustDeposit?: boolean;     // flag : doit déposer au QG en retournant
 };
+
+// Mécanique : retour au QG tous les N courses, attente de DEPOSIT_MS
+const DEPOSIT_EVERY_RIDES = 3;
+const DEPOSIT_MS = 5000;
 
 type JobStatus = "offered" | "accepted";
 type Job = {
