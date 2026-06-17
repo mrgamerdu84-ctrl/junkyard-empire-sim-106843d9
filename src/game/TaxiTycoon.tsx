@@ -1299,21 +1299,61 @@ export default function TaxiTycoon() {
           ))}
         </g>
 
-        {/* Station-service */}
+        {/* Station-service — vraie station avec auvent, deux pompes, boutique */}
         {pathsReady && (
           <g transform={`translate(${admin.gasStationX},${admin.gasStationY})`} filter="url(#taxi-shadow)">
-            <ellipse cx="0" cy="18" rx="34" ry="8" fill="rgba(0,0,0,0.5)" />
-            <rect x="-28" y="-10" width="56" height="28" rx="2" fill="#1f242b" stroke="#0a0c10" strokeWidth="1.4" />
-            <rect x="-28" y="-26" width="56" height="8" rx="1.5" fill="#dc2626" stroke="#0a0c10" strokeWidth="1.2" />
-            <text y="-20" fontSize="6.5" fontWeight="900" textAnchor="middle" fill="#fff">STATION</text>
-            <rect x="-22" y="-4" width="14" height="18" fill="#dc2626" />
-            <rect x="8" y="-4" width="14" height="18" fill="#dc2626" />
-            <text y="9" fontSize="11" textAnchor="middle">⛽</text>
-            <circle cx="0" cy="-30" r="2.5" fill="#fde68a">
+            {/* ombre globale */}
+            <ellipse cx="0" cy="34" rx="62" ry="10" fill="rgba(0,0,0,0.55)" />
+
+            {/* Dalle béton + marquages */}
+            <rect x="-58" y="-6" width="116" height="42" rx="3" fill="#2b2f36" stroke="#0a0c10" strokeWidth="1.2" />
+            <g opacity="0.6" stroke="#f5c542" strokeWidth="0.8" strokeDasharray="3 2" fill="none">
+              <line x1="-58" y1="14" x2="58" y2="14" />
+            </g>
+
+            {/* Boutique (à droite) */}
+            <rect x="18" y="-22" width="40" height="22" rx="1.5" fill="#e7ecf2" stroke="#0a0c10" strokeWidth="1.2" />
+            <rect x="18" y="-28" width="40" height="6" rx="1" fill="#dc2626" stroke="#0a0c10" strokeWidth="1.2" />
+            <text x="38" y="-23.5" fontSize="4.5" fontWeight="900" textAnchor="middle" fill="#fff" letterSpacing="0.8">SHOP 24/7</text>
+            <rect x="22" y="-18" width="10" height="12" fill="#7dd3fc" opacity="0.9" stroke="#0a0c10" strokeWidth="0.6" />
+            <rect x="34" y="-18" width="10" height="12" fill="#7dd3fc" opacity="0.9" stroke="#0a0c10" strokeWidth="0.6" />
+            <rect x="46" y="-12" width="10" height="6" fill="#0a0c10" />
+
+            {/* Auvent (canopée jaune) au-dessus des pompes */}
+            <rect x="-58" y="-34" width="68" height="6" rx="1.5" fill="#f5c542" stroke="#0a0c10" strokeWidth="1.2" />
+            <rect x="-56" y="-28" width="3" height="32" fill="#0a0c10" />
+            <rect x="7" y="-28" width="3" height="32" fill="#0a0c10" />
+            <rect x="-58" y="-38" width="68" height="4" rx="1" fill="#dc2626" stroke="#0a0c10" strokeWidth="1" />
+            <text x="-24" y="-34.5" fontSize="3.6" fontWeight="900" textAnchor="middle" fill="#fff" letterSpacing="1.2">GAS &amp; GO</text>
+
+            {/* Deux pompes */}
+            {[-38, -14].map((px, i) => (
+              <g key={i} transform={`translate(${px},6)`}>
+                <rect x="-5" y="-12" width="10" height="18" rx="1" fill="#1f242b" stroke="#0a0c10" strokeWidth="0.8" />
+                <rect x="-4" y="-10" width="8" height="6" fill="#22c55e" />
+                <text y="-5.6" fontSize="3.4" fontWeight="900" textAnchor="middle" fill="#0a0c10">95</text>
+                <rect x="-1" y="6" width="2" height="3" fill="#0a0c10" />
+                {/* tuyau */}
+                <path d={`M 5 -6 Q 9 -2 8 4`} stroke="#0a0c10" strokeWidth="1" fill="none" />
+                <rect x="7" y="3" width="3" height="4" fill="#0a0c10" />
+              </g>
+            ))}
+
+            {/* Totem prix sur le bord */}
+            <g transform="translate(-66,8)">
+              <rect x="-1" y="-22" width="2" height="22" fill="#0a0c10" />
+              <rect x="-9" y="-30" width="18" height="14" rx="1.2" fill="#0e1217" stroke="#f5c542" strokeWidth="1" />
+              <text y="-22" fontSize="3.6" fontWeight="900" textAnchor="middle" fill="#f5c542">⛽ 1.79</text>
+              <text y="-17" fontSize="3.2" fontWeight="700" textAnchor="middle" fill="#fde68a">DIESEL</text>
+            </g>
+
+            {/* Petite enseigne illuminée */}
+            <circle cx="-58" cy="-40" r="2.2" fill="#fde68a">
               <animate attributeName="opacity" values="0.4;1;0.4" dur="1.6s" repeatCount="indefinite" />
             </circle>
           </g>
         )}
+
 
         {/* Clients en attente (course offerte ou acceptée) — sur le trottoir */}
         {jobs.map((j) => {
