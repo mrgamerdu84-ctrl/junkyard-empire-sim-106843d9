@@ -2,6 +2,19 @@ import { useEffect, useRef, useState } from "react";
 import { useAdminConfig } from "./adminConfig";
 import npcTopdown from "@/assets/car-npc-topdown.png";
 import npcRedTopdown from "@/assets/car-npc-red-topdown.png";
+import {
+  initTrafficLights,
+  getTrafficLights,
+  getLightState,
+  shouldStopAhead,
+  nowSeconds,
+  type TrafficLight,
+} from "./trafficLights";
+
+// Paths "village" (haut de la map) : aucune voiture/piéton civil
+// ni course taxi ne doit s'y générer. On garde l'index pour ne pas casser
+// les autres références numériques.
+export const VILLAGE_PATHS = new Set<number>([1]);
 
 /* eslint-disable prettier/prettier */
 
