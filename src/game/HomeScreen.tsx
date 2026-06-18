@@ -208,9 +208,11 @@ export default function HomeScreen({ onPlay }: { onPlay: () => void }) {
             {user && <span style={{ fontSize: 11, opacity: 0.7, marginLeft: 6 }}>(compte en ligne)</span>}
           </div>
         )}
-        <button className="hs-btn" onClick={() => setLoading(true)}>
-          Jouer ▶
-        </button>
+        {user && (
+          <button className="hs-btn" onClick={() => setLoading(true)}>
+            Jouer ▶
+          </button>
+        )}
         <button className="hs-btn" onClick={() => setShowLeaderboard(true)}>
           🏆 Classement
         </button>
