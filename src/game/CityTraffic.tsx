@@ -348,7 +348,7 @@ const PEDESTRIANS: PedSpec[] = [
   { pathIdx: 2, duration: 155, delay: -120,side:  1, shirt: "#ffffff", pants: "#0b1220", skin: "#a06c44", scale: 0.83 },
   { pathIdx: 2, duration: 200, delay: -170,side: -1, shirt: "#facc15", pants: "#374151", skin: "#f1c79b", flip: true, scale: 0.88 },
 ];
-void PEDESTRIANS;
+void PEDESTRIANS; void PedestrianSVG;
 
 
 // Largeur d'asphalte visible sur la carte ≈ 28-34px (stroke). On place
