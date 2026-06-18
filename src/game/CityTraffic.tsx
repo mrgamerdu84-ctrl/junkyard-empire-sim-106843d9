@@ -561,11 +561,6 @@ export default function CityTraffic() {
         ))}
       </g>
 
-      <g filter="url(#jce-soft-shadow)">
-        {lampPositions.map(([x, y]: [number, number], i: number) => (
-          <Lamp key={i} x={x} y={y} night={night} />
-        ))}
-      </g>
 
       {activeCars.map((car, i) => (
         <g
