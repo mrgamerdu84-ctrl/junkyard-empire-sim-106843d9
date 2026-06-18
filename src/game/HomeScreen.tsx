@@ -144,6 +144,32 @@ export default function HomeScreen({ onPlay }: { onPlay: () => void }) {
 
       {showTutorial && <TutorialDialog onClose={() => setShowTutorial(false)} />}
       {showLeaderboard && <LeaderboardPanel onClose={() => setShowLeaderboard(false)} />}
+
+      {showPseudo && (
+        <div className="hs-pseudo-overlay">
+          <div className="hs-pseudo-card">
+            <h3 className="hs-pseudo-title">✏️ Ton pseudo</h3>
+            <input
+              className="hs-pseudo-input"
+              type="text"
+              maxLength={16}
+              value={pseudoInput}
+              onChange={(e) => setPseudoInput(e.target.value)}
+              placeholder="Chauffeur"
+              onKeyDown={(e) => { if (e.key === "Enter") { setPlayerName(pseudoInput); setDisplayName(getPlayerName()); setShowPseudo(false); } }}
+            />
+            <div className="hs-pseudo-actions">
+              <button className="hs-pseudo-btn hs-pseudo-secondary" onClick={() => setShowPseudo(false)}>Annuler</button>
+              <button
+                className="hs-pseudo-btn"
+                onClick={() => { setPlayerName(pseudoInput); setDisplayName(getPlayerName()); setShowPseudo(false); }}
+              >
+                Valider
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
