@@ -1,13 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { useAdminConfig } from "./adminConfig";
-import npcTopdown from "@/assets/car-npc-topdown.png";
-import npcRedTopdown from "@/assets/car-npc-red-topdown.png";
-import carBlueAsset from "@/assets/car-blue.png.asset.json";
-import carPurpleAsset from "@/assets/car-purple.png.asset.json";
-import carOrangeAsset from "@/assets/car-orange.png.asset.json";
-import carGreenAsset from "@/assets/car-green.png.asset.json";
-import pedManAsset from "@/assets/pedestrian-man.png.asset.json";
-import pedWomanAsset from "@/assets/pedestrian-woman.png.asset.json";
+import { CIVIL_CAR_URLS, PEDESTRIAN_PHOTO_URLS } from "./gameAssets";
 import {
   initTrafficLights,
   getTrafficLights,
@@ -17,9 +10,10 @@ import {
   type TrafficLight,
 } from "./trafficLights";
 
-const CHARGER_IMAGES = [carBlueAsset.url, carPurpleAsset.url, carOrangeAsset.url, carGreenAsset.url];
-const PED_PHOTO_IMAGES = [pedManAsset.url, pedWomanAsset.url];
-void npcTopdown; void npcRedTopdown;
+// Skins centralisés — pour remplacer un véhicule civil, édite
+// `src/game/gameAssets.ts` (clés "civil.car.*"). Aucun import direct ici.
+const CHARGER_IMAGES = CIVIL_CAR_URLS;
+const PED_PHOTO_IMAGES = PEDESTRIAN_PHOTO_URLS;
 
 // Paths "village" (haut de la map) : aucune voiture/piéton civil
 // ni course taxi ne doit s'y générer. On garde l'index pour ne pas casser
