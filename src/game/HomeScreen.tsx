@@ -19,6 +19,10 @@ export default function HomeScreen({ onPlay }: { onPlay: () => void }) {
   const [showTrialEnded, setShowTrialEnded] = useState(false);
   const [pseudoInput, setPseudoInput] = useState(getPlayerName());
   const [displayName, setDisplayName] = useState(getPlayerName());
+  const [showAdmin, setShowAdmin] = useState(false);
+  const [adminEmail, setAdminEmail] = useState("");
+  const [adminPass, setAdminPass] = useState("");
+  const [adminErr, setAdminErr] = useState("");
 
   // Période d'essai 7 jours pour le pseudo local
   const TRIAL_MS = 7 * 24 * 60 * 60 * 1000;
