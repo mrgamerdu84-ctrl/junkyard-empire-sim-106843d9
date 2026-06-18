@@ -288,7 +288,12 @@ function PhotoPedestrians({ pathRefs }: { pathRefs: React.MutableRefObject<(SVGP
         // perpendiculaire = trottoir
         const nx = -dy / L * PHOTO_PED_OFFSET * st.spec.side;
         const ny =  dx / L * PHOTO_PED_OFFSET * st.spec.side;
-        node.setAttribute("transform", `translate(${(p.x + nx).toFixed(2)},${(p.y + ny).toFixed(2)})`);
+        // angle de marche (le sprite top-down tourne dans la direction du mouvement)
+        const ang = (Math.atan2(dy, dx) * 180) / Math.PI;
+        node.setAttribute(
+          "transform",
+          `translate(${(p.x + nx).toFixed(2)},${(p.y + ny).toFixed(2)}) rotate(${ang.toFixed(2)})`,
+        );
       }
       raf = requestAnimationFrame(step);
     };
@@ -297,22 +302,27 @@ function PhotoPedestrians({ pathRefs }: { pathRefs: React.MutableRefObject<(SVGP
   }, [pathRefs]);
   return (
     <g pointerEvents="none">
-      {PHOTO_PEDS.map((spec, i) => (
-        <g key={i} ref={el => { nodes.current[i] = el; }}>
-          <ellipse cx="0" cy={10 * spec.scale} rx={6 * spec.scale} ry={2 * spec.scale} fill="rgba(0,0,0,0.45)" />
-          <image
-            href={PED_PHOTO_IMAGES[spec.imageIdx]}
-            x={-14 * spec.scale}
-            y={-22 * spec.scale}
-            width={28 * spec.scale}
-            height={36 * spec.scale}
-            preserveAspectRatio="xMidYMid meet"
-          />
-        </g>
-      ))}
+      {PHOTO_PEDS.map((spec, i) => {
+        // Sprites top-down ~36px (vue du ciel), rotation = sens de marche
+        const S = 36 * spec.scale;
+        return (
+          <g key={i} ref={el => { nodes.current[i] = el; }}>
+            <ellipse cx="0" cy={S * 0.2} rx={S * 0.35} ry={S * 0.18} fill="rgba(0,0,0,0.45)" />
+            <image
+              href={PED_PHOTO_IMAGES[spec.imageIdx]}
+              x={-S / 2}
+              y={-S / 2}
+              width={S}
+              height={S}
+              preserveAspectRatio="xMidYMid meet"
+            />
+          </g>
+        );
+      })}
     </g>
   );
 }
+
 
 
 type PedSpec = {
