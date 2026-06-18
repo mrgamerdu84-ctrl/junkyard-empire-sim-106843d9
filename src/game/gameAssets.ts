@@ -91,13 +91,26 @@ export function getAsset(key: AssetKey): string {
   return GAME_ASSETS[key];
 }
 
-/** Liste ordonnée des skins de voitures civiles. */
-export const CIVIL_CAR_URLS: string[] = [
-  GAME_ASSETS["civil.car.1"],
-  GAME_ASSETS["civil.car.2"],
-  GAME_ASSETS["civil.car.3"],
-  GAME_ASSETS["civil.car.4"],
-];
+// --- Auto-découverte des voitures civiles ---
+// Dépose simplement un PNG/JPG/WebP dans `src/assets/civil/`
+// (ex: `src/assets/civil/my-car.png`) -> il sera utilisé automatiquement.
+const civilGlob = import.meta.glob<{ default: string }>(
+  "/src/assets/civil/*.{png,jpg,jpeg,webp,svg}",
+  { eager: true }
+);
+const civilAutoUrls: string[] = Object.keys(civilGlob)
+  .sort()
+  .map((k) => civilGlob[k].default);
+
+/** Liste ordonnée des skins de voitures civiles (auto + défauts du registre). */
+export const CIVIL_CAR_URLS: string[] = civilAutoUrls.length > 0
+  ? civilAutoUrls
+  : [
+      GAME_ASSETS["civil.car.1"],
+      GAME_ASSETS["civil.car.2"],
+      GAME_ASSETS["civil.car.3"],
+      GAME_ASSETS["civil.car.4"],
+    ];
 
 /** Liste ordonnée des skins piétons photo. */
 export const PEDESTRIAN_PHOTO_URLS: string[] = [

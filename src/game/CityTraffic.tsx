@@ -96,11 +96,9 @@ const CARS: CarSpec[] = [
   { kind: "sedan", color: "#0ea5e9", accent: "#075985", duration: 48, delay: -48, pathIdx: 2, flip: true, scale: 0.62 },
 ];
 
-const LAMPS: [number, number][] = [
-  [420, 655], [600, 650], [805, 675], [1015, 680], [1240, 625], [1460, 560],
-  [280, 855], [485, 805], [700, 790], [930, 795], [1160, 825], [1410, 860], [1645, 825],
-  [645, 880], [682, 690], [1280, 880], [1275, 690],
-];
+// Lampadaires : générés dynamiquement le long des routes (voir useEffect plus bas)
+const LAMP_SPACING = 220;   // espace entre 2 lampadaires sur une même rive (px)
+const LAMP_OFFSET = 42;     // distance perpendiculaire du centre de la route (bord trottoir)
 
 function CarSVG({ color, accent, scale = 1 }: { color: string; accent: string; scale?: number }) {
   return (
@@ -427,6 +425,37 @@ export default function CityTraffic() {
   const pathRefs = useRef<(SVGPathElement | null)[]>([]);
   const carNodes = useRef<(SVGGElement | null)[]>([]);
   const [lights, setLights] = useState<TrafficLight[]>([]);
+  const [lampPositions, setLampPositions] = useState<[number, number][]>([]);
+
+  // Génère les lampadaires le long des routes (bord trottoir).
+  useEffect(() => {
+    const compute = () => {
+      const out: [number, number][] = [];
+      for (let i = 0; i < pathRefs.current.length; i++) {
+        if (VILLAGE_PATHS.has(i)) continue;
+        const path = pathRefs.current[i];
+        if (!path) continue;
+        const len = path.getTotalLength();
+        if (len <= 1) continue;
+        // alterne côté gauche / droite pour ne pas surcharger une seule rive
+        let side: 1 | -1 = 1;
+        for (let s = LAMP_SPACING / 2; s < len; s += LAMP_SPACING) {
+          const p = path.getPointAtLength(s);
+          const p2 = path.getPointAtLength(Math.min(len, s + 1));
+          const dx = p2.x - p.x, dy = p2.y - p.y;
+          const L = Math.hypot(dx, dy) || 1;
+          const nx = -dy / L * LAMP_OFFSET * side;
+          const ny = dx / L * LAMP_OFFSET * side;
+          out.push([p.x + nx, p.y + ny]);
+          side = (side === 1 ? -1 : 1);
+        }
+      }
+      if (out.length > 0) setLampPositions(out);
+    };
+    // attend un frame que les <path> soient mesurables
+    const raf = requestAnimationFrame(compute);
+    return () => cancelAnimationFrame(raf);
+  }, []);
 
   // Cycle jour/nuit 300s (5 minutes). Démarre en plein jour.
   useEffect(() => {
@@ -577,7 +606,7 @@ export default function CityTraffic() {
       </g>
 
       <g filter="url(#jce-soft-shadow)">
-        {LAMPS.map(([x, y], i) => (
+        {lampPositions.map(([x, y]: [number, number], i: number) => (
           <Lamp key={i} x={x} y={y} night={night} />
         ))}
       </g>
