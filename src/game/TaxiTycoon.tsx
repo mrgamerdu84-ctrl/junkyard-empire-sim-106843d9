@@ -127,10 +127,30 @@ type SaveData = {
   hqCapacityLvl: number;   // +1 taxi de capacité par niveau (0..5)
   hqProductionLvl: number; // -15% cooldown sortie par niveau (0..5)
   hqRevenueLvl: number;    // +10% revenu par niveau (0..5)
+  cityFund: number;        // 💰 Caisse de la ville (alimentée par les amendes)
 };
 
 const HQ_UPGRADE_MAX = 5;
 const HQ_UPGRADE_BASE_COST = { capacity: 1200, production: 1500, revenue: 2000 } as const;
+
+// === Niveaux de prospérité de la ville ===
+// La ville grandit avec sa caisse — chaque palier débloque un nouveau statut.
+export const CITY_LEVELS: { name: string; threshold: number; emoji: string }[] = [
+  { name: "Village",     threshold: 0,     emoji: "🏘️" },
+  { name: "Bourg",       threshold: 500,   emoji: "🏡" },
+  { name: "Petite ville", threshold: 1500,  emoji: "🏪" },
+  { name: "Ville",       threshold: 4000,  emoji: "🏙️" },
+  { name: "Grande ville", threshold: 9000,  emoji: "🌆" },
+  { name: "Métropole",   threshold: 20000, emoji: "🌇" },
+];
+
+export function getCityLevel(fund: number) {
+  let lvl = 0;
+  for (let i = 0; i < CITY_LEVELS.length; i++) {
+    if (fund >= CITY_LEVELS[i].threshold) lvl = i;
+  }
+  return { index: lvl, ...CITY_LEVELS[lvl], next: CITY_LEVELS[lvl + 1] };
+}
 
 const DEFAULT_SAVE: SaveData = {
   money: 250,
@@ -145,7 +165,9 @@ const DEFAULT_SAVE: SaveData = {
   hqCapacityLvl: 0,
   hqProductionLvl: 0,
   hqRevenueLvl: 0,
+  cityFund: 0,
 };
+
 
 
 function loadSave(): SaveData {
