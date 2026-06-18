@@ -238,9 +238,10 @@ export default function AdminPanel() {
         </>
       )}
 
-      {!open && unlocked && (
+      {!open && (
         <button className="adm-btn" onClick={() => setOpen(true)} aria-label="Panneau admin" title="Panneau admin">⚙</button>
       )}
+
 
       {open && !unlocked && (
         <>
