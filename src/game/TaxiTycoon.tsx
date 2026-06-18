@@ -754,7 +754,7 @@ export default function TaxiTycoon() {
           taxi.fuel = Math.max(0, taxi.fuel - adm.fuelConsumption * dt);
         }
 
-        // Idle : check si carburant bas → aller à la station
+        // Idle : check si carburant bas → station, sinon retour au QG s'il est loin
         if (taxi.mode === "idle") {
           if (taxi.fuel < FUEL_LOW_THRESHOLD) {
             const pIdx = pickPath(taxi.pathIdx);
@@ -763,9 +763,23 @@ export default function TaxiTycoon() {
             taxi.pos = closestOnPath(pIdx, here.x, here.y);
             taxi.target = closestOnPath(pIdx, adm.gasStationX, adm.gasStationY);
             taxi.mode = "to_gas";
+            continue;
+          }
+          // Si pas de course en cours et taxi éloigné du QG → rentrer au bercail
+          const here = taxiXY(taxi);
+          const dxHQ = here.x - adm.hqX;
+          const dyHQ = here.y - adm.hqY;
+          const distHQ2 = dxHQ * dxHQ + dyHQ * dyHQ;
+          if (distHQ2 > 60 * 60) {
+            const pIdx = pickPath(taxi.pathIdx);
+            taxi.pathIdx = pIdx;
+            taxi.pos = closestOnPath(pIdx, here.x, here.y);
+            taxi.target = closestOnPath(pIdx, adm.hqX, adm.hqY);
+            taxi.mode = "returning";
           }
           continue;
         }
+
 
         // Refueling : attendre que le timer se termine
         if (taxi.mode === "refueling") {
