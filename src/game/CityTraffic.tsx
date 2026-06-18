@@ -96,9 +96,6 @@ const CARS: CarSpec[] = [
   { kind: "sedan", color: "#0ea5e9", accent: "#075985", duration: 48, delay: -48, pathIdx: 2, flip: true, scale: 0.62 },
 ];
 
-// Lampadaires : générés dynamiquement le long des routes (voir useEffect plus bas)
-const LAMP_SPACING = 220;   // espace entre 2 lampadaires sur une même rive (px)
-const LAMP_OFFSET = 42;     // distance perpendiculaire du centre de la route (bord trottoir)
 
 function CarSVG({ color, accent, scale = 1 }: { color: string; accent: string; scale?: number }) {
   return (
