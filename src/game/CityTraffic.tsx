@@ -425,6 +425,37 @@ export default function CityTraffic() {
   const pathRefs = useRef<(SVGPathElement | null)[]>([]);
   const carNodes = useRef<(SVGGElement | null)[]>([]);
   const [lights, setLights] = useState<TrafficLight[]>([]);
+  const [lampPositions, setLampPositions] = useState<[number, number][]>([]);
+
+  // Génère les lampadaires le long des routes (bord trottoir).
+  useEffect(() => {
+    const compute = () => {
+      const out: [number, number][] = [];
+      for (let i = 0; i < pathRefs.current.length; i++) {
+        if (VILLAGE_PATHS.has(i)) continue;
+        const path = pathRefs.current[i];
+        if (!path) continue;
+        const len = path.getTotalLength();
+        if (len <= 1) continue;
+        // alterne côté gauche / droite pour ne pas surcharger une seule rive
+        let side: 1 | -1 = 1;
+        for (let s = LAMP_SPACING / 2; s < len; s += LAMP_SPACING) {
+          const p = path.getPointAtLength(s);
+          const p2 = path.getPointAtLength(Math.min(len, s + 1));
+          const dx = p2.x - p.x, dy = p2.y - p.y;
+          const L = Math.hypot(dx, dy) || 1;
+          const nx = -dy / L * LAMP_OFFSET * side;
+          const ny = dx / L * LAMP_OFFSET * side;
+          out.push([p.x + nx, p.y + ny]);
+          side = (side === 1 ? -1 : 1);
+        }
+      }
+      if (out.length > 0) setLampPositions(out);
+    };
+    // attend un frame que les <path> soient mesurables
+    const raf = requestAnimationFrame(compute);
+    return () => cancelAnimationFrame(raf);
+  }, []);
 
   // Cycle jour/nuit 300s (5 minutes). Démarre en plein jour.
   useEffect(() => {
