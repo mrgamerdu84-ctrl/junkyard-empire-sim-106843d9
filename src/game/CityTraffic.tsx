@@ -200,8 +200,6 @@ function HatchSVG({ color, accent, scale = 1 }: { color: string; accent: string;
 }
 
 function Vehicle({
-  kind,
-  scale = 1,
   photoIdx = 0,
 }: {
   kind: VehicleKind;
@@ -211,16 +209,14 @@ function Vehicle({
   variant?: VehicleVariant;
   photoIdx?: number;
 }) {
-  // Voitures civiles : sprites top-down (vue du ciel) au même format
-  // que les taxis. Le capot pointe vers +x (est), donc PAS de scaleX(-1).
-  // Taille uniforme (boîte 48px) pour cohérence avec les taxis.
-  void kind; void scale;
-  const W = 56;
-  const H = W * 0.5;
+  // Voitures civiles : sprites top-down. Les images générées ont le capot
+  // côté gauche -> scaleX(-1) pour le pointer vers +x (sens d'avancée).
+  // Taille uniforme (toutes les voitures au même niveau).
+  const W = 60;
+  const H = W * 0.45;
   const href = CHARGER_IMAGES[photoIdx % CHARGER_IMAGES.length];
   return (
-    <g>
-      <ellipse cx="0" cy={H * 0.18} rx={W / 2 + 2} ry={H / 2 + 2} fill="rgba(0,0,0,0.4)" />
+    <g transform="scale(-1,1)">
       <image
         href={href}
         x={-W / 2}
@@ -232,6 +228,7 @@ function Vehicle({
     </g>
   );
 }
+
 
 
 
