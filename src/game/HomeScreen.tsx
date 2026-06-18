@@ -114,6 +114,12 @@ export default function HomeScreen({ onPlay }: { onPlay: () => void }) {
         <button className="hs-btn" onClick={() => setLoading(true)}>
           Jouer ▶
         </button>
+        <button className="hs-btn" onClick={() => setShowLeaderboard(true)}>
+          🏆 Classement
+        </button>
+        <button className="hs-btn" onClick={() => { resetTutorial(); setShowTutorial(true); }}>
+          📖 Tuto
+        </button>
         <button
           className="hs-btn"
           onClick={() => {
@@ -126,6 +132,10 @@ export default function HomeScreen({ onPlay }: { onPlay: () => void }) {
           APK
         </button>
       </div>
+
+      {showTutorial && <TutorialDialog onClose={() => setShowTutorial(false)} />}
+      {showLeaderboard && <LeaderboardPanel onClose={() => setShowLeaderboard(false)} />}
     </div>
   );
 }
+
