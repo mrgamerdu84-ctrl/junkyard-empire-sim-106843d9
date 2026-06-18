@@ -127,10 +127,30 @@ type SaveData = {
   hqCapacityLvl: number;   // +1 taxi de capacité par niveau (0..5)
   hqProductionLvl: number; // -15% cooldown sortie par niveau (0..5)
   hqRevenueLvl: number;    // +10% revenu par niveau (0..5)
+  cityFund: number;        // 💰 Caisse de la ville (alimentée par les amendes)
 };
 
 const HQ_UPGRADE_MAX = 5;
 const HQ_UPGRADE_BASE_COST = { capacity: 1200, production: 1500, revenue: 2000 } as const;
+
+// === Niveaux de prospérité de la ville ===
+// La ville grandit avec sa caisse — chaque palier débloque un nouveau statut.
+export const CITY_LEVELS: { name: string; threshold: number; emoji: string }[] = [
+  { name: "Village",     threshold: 0,     emoji: "🏘️" },
+  { name: "Bourg",       threshold: 500,   emoji: "🏡" },
+  { name: "Petite ville", threshold: 1500,  emoji: "🏪" },
+  { name: "Ville",       threshold: 4000,  emoji: "🏙️" },
+  { name: "Grande ville", threshold: 9000,  emoji: "🌆" },
+  { name: "Métropole",   threshold: 20000, emoji: "🌇" },
+];
+
+export function getCityLevel(fund: number) {
+  let lvl = 0;
+  for (let i = 0; i < CITY_LEVELS.length; i++) {
+    if (fund >= CITY_LEVELS[i].threshold) lvl = i;
+  }
+  return { index: lvl, ...CITY_LEVELS[lvl], next: CITY_LEVELS[lvl + 1] };
+}
 
 const DEFAULT_SAVE: SaveData = {
   money: 250,
@@ -145,7 +165,9 @@ const DEFAULT_SAVE: SaveData = {
   hqCapacityLvl: 0,
   hqProductionLvl: 0,
   hqRevenueLvl: 0,
+  cityFund: 0,
 };
+
 
 
 function loadSave(): SaveData {
@@ -448,7 +470,7 @@ export default function TaxiTycoon() {
     { id: 3, pathIdx: 2, posFrac: 0.40 },
   ];
   const SPEED_LIMIT = 78;          // px/s ; déclenche dès l'upgrade vitesse niveau 1+
-  const RADAR_FINE = 120;
+  const RADAR_FINE = 50;
   const RADAR_TRIGGER_DIST = 26;   // px le long du path
   const RADAR_COOLDOWN_MS = 6000;  // évite les amendes en chaîne
   const radarLastHitRef = useRef<Record<string, number>>({}); // key = `${radarId}:${taxiId}`
@@ -959,7 +981,7 @@ export default function TaxiTycoon() {
             if (nowMs - (radarLastHitRef.current[key] ?? 0) < RADAR_COOLDOWN_MS) continue;
             radarLastHitRef.current[key] = nowMs;
             const pt = pathRefs.current[rd.pathIdx]?.getPointAtLength(rdPos);
-            setSave(s => ({ ...s, money: Math.max(0, s.money - RADAR_FINE) }));
+            setSave(s => ({ ...s, money: Math.max(0, s.money - RADAR_FINE), cityFund: s.cityFund + RADAR_FINE }));
             if (pt) {
               radarFlashRef.current = { id: rd.id, x: pt.x, y: pt.y, t: nowMs };
               setRadarFlashTick(n => (n + 1) % 1_000_000);
@@ -1076,7 +1098,7 @@ export default function TaxiTycoon() {
                 const d = Math.hypot(pcPt.x - tPt.x, pcPt.y - tPt.y);
                 if (d < POLICE_CATCH_DIST) {
                   if (pc.chasePlayerTaxiId !== null) {
-                    setSave(s => ({ ...s, money: Math.max(0, s.money - HIDEOUT_FINE) }));
+                    setSave(s => ({ ...s, money: Math.max(0, s.money - HIDEOUT_FINE), cityFund: s.cityFund + HIDEOUT_FINE }));
                     popFloat(`-${HIDEOUT_FINE}$ gros PV`, tPt.x, tPt.y - 8);
                     showToast(`🚓 Piégé par la planque ! Amende ${HIDEOUT_FINE}$`);
                     wantedPlayerTaxiIdRef.current = null;
@@ -1783,7 +1805,21 @@ export default function TaxiTycoon() {
               <span className="tt-stat-val">{rivalStolen}</span>
             </div>
           )}
+          {(() => {
+            const city = getCityLevel(save.cityFund);
+            const nextT = city.next?.threshold ?? city.threshold;
+            const prevT = city.threshold;
+            const pct = city.next ? Math.min(100, Math.round(((save.cityFund - prevT) / (nextT - prevT)) * 100)) : 100;
+            return (
+              <div className="tt-stat tt-city" title={`Caisse de la ville : ${fmt(save.cityFund)}$ — alimentée par les amendes`}>
+                <span className="tt-stat-icon">{city.emoji}</span>
+                <span className="tt-stat-val">{city.name}</span>
+                <div className="tt-city-bar"><div className="tt-city-fill" style={{ width: `${pct}%` }} /></div>
+              </div>
+            );
+          })()}
         </div>
+
 
         <div className="tt-depot-card">
           <div className="tt-depot-name">{tier.name} (x{tier.fareMult.toFixed(1)})</div>
@@ -2000,6 +2036,10 @@ export default function TaxiTycoon() {
           pointer-events: auto;
         }
         .tt-stat.money { color: #34d399; }
+        .tt-stat.tt-city { color: #fde047; position: relative; padding-right: 10px; }
+        .tt-city-bar { position: absolute; left: 8px; right: 8px; bottom: 2px; height: 3px; background: rgba(255,255,255,0.15); border-radius: 2px; overflow: hidden; }
+        .tt-city-fill { height: 100%; background: linear-gradient(90deg, #fde047, #f97316); transition: width 0.4s ease; }
+
         .tt-stat-icon { font-size: 16px; }
 
         .tt-depot-card {
