@@ -49,7 +49,7 @@ export default function LeaderboardPanel({ onClose }: { onClose: () => void }) {
         </div>
 
         <div className="lb-today">
-          <div className="lb-today-label">Score du jour</div>
+          <div className="lb-today-label">{playerName} — Score du jour</div>
           <div className="lb-today-val">{fmt(todayScore)} $</div>
         </div>
 
