@@ -826,19 +826,24 @@ export default function TaxiTycoon() {
             const j = jobsRef.current.find((x) => x.id === taxi.jobId);
             if (j) {
               const p = pathRefs.current[j.dropoffPath];
+              // Bonus Taxi d'Or : +50% tarif si débloqué
+              const bonus = isSpecialTaxiUnlocked() ? 1.5 : 1;
+              const finalFare = Math.round(j.fare * bonus);
               if (p) {
                 const pt = p.getPointAtLength(j.dropoff);
-                popFloat(`+${fmt(j.fare)}$`, pt.x, pt.y);
+                popFloat(`+${fmt(finalFare)}$`, pt.x, pt.y);
               }
+              recordEarning(finalFare);
               setSave((s) => ({
                 ...s,
-                money: s.money + j.fare,
-                totalEarned: s.totalEarned + j.fare,
+                money: s.money + finalFare,
+                totalEarned: s.totalEarned + finalFare,
                 customersServed: s.customersServed + 1,
                 jobsCompleted: s.jobsCompleted + 1,
               }));
               setJobs((js) => js.filter((x) => x.id !== j.id));
             }
+
             taxi.jobId = null;
             taxi.ridesSinceDeposit = (taxi.ridesSinceDeposit ?? 0) + 1;
             const pIdx = pickPath(taxi.pathIdx);
