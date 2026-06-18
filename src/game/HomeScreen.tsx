@@ -23,6 +23,8 @@ export default function HomeScreen({ onPlay }: { onPlay: () => void }) {
   const [adminEmail, setAdminEmail] = useState("");
   const [adminPass, setAdminPass] = useState("");
   const [adminErr, setAdminErr] = useState("");
+  const [titleTaps, setTitleTaps] = useState(0);
+  const [lastTap, setLastTap] = useState(0);
 
   // Période d'essai 7 jours pour le pseudo local
   const TRIAL_MS = 7 * 24 * 60 * 60 * 1000;
