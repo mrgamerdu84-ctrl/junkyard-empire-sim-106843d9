@@ -279,9 +279,10 @@ export default function HomeScreen({ onPlay }: { onPlay: () => void }) {
                     await supabase.from("profiles").update({ pseudo: newName }).eq("id", user.id);
                   }
                   setShowPseudo(false);
+                  if (!user) setLoading(true);
                 }}
               >
-                Valider
+                {user ? "Valider" : "Jouer ▶"}
               </button>
             </div>
           </div>
