@@ -212,14 +212,18 @@ function Vehicle({
   const H = 36;
   const href = CHARGER_IMAGES[photoIdx % CHARGER_IMAGES.length];
   return (
-    <image
-      href={href}
-      x={-W / 2}
-      y={-H / 2}
-      width={W}
-      height={H}
-      preserveAspectRatio="xMidYMid meet"
-    />
+    <g transform="rotate(90)">
+      {/* +90° car le sprite taxi pointe vers le haut (nord) dans le PNG ;
+          le parent applique rotate(angle_du_path) basé sur +x. */}
+      <image
+        href={href}
+        x={-W / 2}
+        y={-H / 2}
+        width={W}
+        height={H}
+        preserveAspectRatio="xMidYMid meet"
+      />
+    </g>
   );
 }
 
