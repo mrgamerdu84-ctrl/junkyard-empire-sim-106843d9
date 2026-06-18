@@ -207,9 +207,9 @@ function Vehicle({
   photoIdx?: number;
 }) {
   // Voitures civiles : sprites top-down orientés vers +x (sens d'avancée).
-  // Taille uniforme (toutes les voitures au même niveau).
-  const W = 60;
-  const H = W * 0.45;
+  // Taille identique aux taxis (48×48) pour un rendu cohérent.
+  const W = 48;
+  const H = 48;
   const href = CHARGER_IMAGES[photoIdx % CHARGER_IMAGES.length];
   return (
     <image
