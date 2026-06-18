@@ -103,7 +103,7 @@ export default function HomeScreen({ onPlay }: { onPlay: () => void }) {
         <button
           className="hs-btn"
           onClick={() => {
-            window.open("https://github.com/", "_blank", "noopener");
+            window.location.href = "/download";
           }}
         >
           <svg className="hs-apk-icon" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
