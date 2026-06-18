@@ -211,31 +211,28 @@ function Vehicle({
   variant?: VehicleVariant;
   photoIdx?: number;
 }) {
-  // Voitures civiles : on utilise les photos de Dodge Charger (vue 3/4 côté).
-  // Les photos ont le capot à gauche : on applique scaleX(-1) pour que le
-  // capot pointe vers +x (est), ce qui aligne le sprite avec l'angle du path
-  // (0° = est) lors de la rotation appliquée par le parent.
-  // Toutes les voitures civiles ont la même taille que les taxis (boîte 48px).
+  // Voitures civiles : sprites top-down (vue du ciel) au même format
+  // que les taxis. Le capot pointe vers +x (est), donc PAS de scaleX(-1).
+  // Taille uniforme (boîte 48px) pour cohérence avec les taxis.
   void kind; void scale;
   const W = 56;
-  const H = W * 0.6;
+  const H = W * 0.5;
   const href = CHARGER_IMAGES[photoIdx % CHARGER_IMAGES.length];
   return (
     <g>
-      <ellipse cx="0" cy={H * 0.18} rx={W / 2 + 2} ry={H / 2 - 2} fill="rgba(0,0,0,0.4)" />
-      <g transform="scale(-1,1)">
-        <image
-          href={href}
-          x={-W / 2}
-          y={-H / 2}
-          width={W}
-          height={H}
-          preserveAspectRatio="xMidYMid meet"
-        />
-      </g>
+      <ellipse cx="0" cy={H * 0.18} rx={W / 2 + 2} ry={H / 2 + 2} fill="rgba(0,0,0,0.4)" />
+      <image
+        href={href}
+        x={-W / 2}
+        y={-H / 2}
+        width={W}
+        height={H}
+        preserveAspectRatio="xMidYMid meet"
+      />
     </g>
   );
 }
+
 
 
 // Composants SVG conservés pour référence/legacy (non utilisés depuis l'image PNG).
