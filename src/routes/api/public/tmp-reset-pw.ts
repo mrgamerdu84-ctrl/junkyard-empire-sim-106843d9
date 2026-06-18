@@ -17,12 +17,20 @@ export const Route = createFileRoute("/api/public/tmp-reset-pw")({
         });
         if (listErr) return Response.json({ error: listErr.message }, { status: 500 });
         const user = list.users.find((u) => u.email?.toLowerCase() === body.email.toLowerCase());
-        if (!user) return Response.json({ error: "user not found" }, { status: 404 });
-        const { error } = await supabaseAdmin.auth.admin.updateUserById(user.id, {
+        if (user) {
+          const { error } = await supabaseAdmin.auth.admin.updateUserById(user.id, {
+            password: body.password,
+          });
+          if (error) return Response.json({ error: error.message }, { status: 500 });
+          return Response.json({ ok: true, action: "updated", userId: user.id });
+        }
+        const { data: created, error: createErr } = await supabaseAdmin.auth.admin.createUser({
+          email: body.email,
           password: body.password,
+          email_confirm: true,
         });
-        if (error) return Response.json({ error: error.message }, { status: 500 });
-        return Response.json({ ok: true, userId: user.id });
+        if (createErr) return Response.json({ error: createErr.message }, { status: 500 });
+        return Response.json({ ok: true, action: "created", userId: created.user?.id });
       },
     },
   },
