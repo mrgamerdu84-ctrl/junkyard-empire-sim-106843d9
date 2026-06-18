@@ -41,6 +41,7 @@ function TaxiTycoonPage() {
       `}</style>
       <img src={citymap} alt="Plan de la ville pour le jeu de taxi" className="tt-map" />
       <div className="tt-vignette" />
+      <CityTraffic />
       <TaxiTycoon />
       <AdminPanel />
       <RulesPanel />
