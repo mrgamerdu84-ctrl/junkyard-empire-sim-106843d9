@@ -102,6 +102,7 @@ function AuthPage() {
         <div className="auth-sep">ou</div>
 
         {err && <div className="auth-err">{err}</div>}
+        {info && <div className="auth-err" style={{ background:"#065f46", color:"#d1fae5" }}>{info}</div>}
 
         <form onSubmit={handleEmail}>
           {mode === "signup" && (
@@ -114,7 +115,32 @@ function AuthPage() {
           </button>
         </form>
 
+        {mode === "signin" && (
+          <button
+            className="auth-back"
+            style={{ color: "#f5c542", marginTop: 10 }}
+            onClick={async () => {
+              setErr(null); setInfo(null);
+              if (!email) { setErr("Entre ton email d'abord."); return; }
+              setLoading(true);
+              const { error } = await supabase.auth.resetPasswordForEmail(email, {
+                redirectTo: `${window.location.origin}/reset-password`,
+              });
+              setLoading(false);
+              if (error) setErr(error.message);
+              else { setInfo("📧 Email envoyé ! Vérifie ta boîte (et les spams)."); setShowReset(true); }
+            }}
+          >
+            🔑 Mot de passe oublié ?
+          </button>
+        )}
+
         <button className="auth-back" onClick={() => navigate({ to: "/" })}>← Retour au jeu</button>
+        {showReset && (
+          <p style={{ color:"#9ca3af", fontSize:11, textAlign:"center", marginTop:8 }}>
+            Tu recevras un lien pour choisir un nouveau mot de passe.
+          </p>
+        )}
       </div>
     </div>
   );
