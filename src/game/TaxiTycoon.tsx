@@ -649,10 +649,14 @@ export default function TaxiTycoon() {
     forceRender((n) => n + 1);
   }, [pathsReady, save.taxis, save.taxiSpeedLvl, admin.taxiSpeedMult, admin.hqX, admin.hqY]);
 
-  // Sync rival AI taxis fleet
+  // Sync rival AI taxis fleet — IA décide combien de taxis rouges déployer
+  // en fonction de la flotte du joueur (pas de joueurs multi pour l'instant).
   useEffect(() => {
     if (!pathsReady) return;
-    const target = admin.rivalEnabled ? Math.max(0, Math.min(6, admin.rivalTaxiCount)) : 0;
+    // IA : ~60% de la flotte joueur, min 1, max 6 ; 0 si rival désactivé.
+    const playerFleet = save.taxis.length;
+    const aiCount = Math.max(1, Math.min(6, Math.ceil(playerFleet * 0.6)));
+    const target = admin.rivalEnabled ? aiCount : 0;
     while (rivalTaxisRef.current.length < target) {
       const pos = closestOnPath(0, admin.rivalHQX, admin.rivalHQY);
       const spawnedRival: RivalTaxi = {
@@ -664,7 +668,7 @@ export default function TaxiTycoon() {
     }
     while (rivalTaxisRef.current.length > target) rivalTaxisRef.current.pop();
     forceRender((n) => n + 1);
-  }, [pathsReady, admin.rivalEnabled, admin.rivalTaxiCount, admin.rivalHQX, admin.rivalHQY]);
+  }, [pathsReady, admin.rivalEnabled, save.taxis.length, admin.rivalHQX, admin.rivalHQY]);
 
   // Sync police fleet (2 voitures qui patrouillent en permanence)
   useEffect(() => {
@@ -1591,7 +1595,7 @@ export default function TaxiTycoon() {
               <g transform={`translate(${p.x},${p.y}) rotate(${angle})`} filter="url(#taxi-shadow)">
                 <TaxiSprite image={TAXI_RED_URL} faceRight={true} withClient={r.mode === "to_dest"} moving={r.mode !== "idle"} />
               </g>
-              <text x={p.x} y={p.y - 22} fontSize="9" textAnchor="middle" fill="#ff4d5c" fontWeight="900" stroke="#0a0608" strokeWidth="2" paintOrder="stroke">R</text>
+              
             </g>
           );
         })}
@@ -1699,18 +1703,14 @@ export default function TaxiTycoon() {
               angle: -90 + admin.hqRotation, // taxi nez vers le bâtiment
             };
           };
-          // Détermine quels taxis sont parqués
+          // Tout taxi idle ou en dépôt est garé visuellement dans le QG
+          // (sa logique de retour s'est déjà assurée qu'il a rejoint le QG).
           const parked: { taxi: Taxi; slot: number }[] = [];
           const parkedIds = new Set<number>();
           taxisRef.current.forEach((t) => {
             if (t.mode === "depositing" || t.mode === "idle") {
-              const here = taxiXY(t);
-              const dx = here.x - admin.hqX;
-              const dy = here.y - admin.hqY;
-              if (dx * dx + dy * dy <= 70 * 70) {
-                parked.push({ taxi: t, slot: 0 });
-                parkedIds.add(t.id);
-              }
+              parked.push({ taxi: t, slot: 0 });
+              parkedIds.add(t.id);
             }
           });
 
