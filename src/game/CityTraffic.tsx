@@ -634,24 +634,8 @@ export default function CityTraffic() {
       <PhotoPedestrians pathRefs={pathRefs} />
 
 
-      {/* Piétons sur les trottoirs (densité moyenne : ~2x liste de base, sauf village) */}
-      {[...PEDESTRIANS, ...PEDESTRIANS.map(p => ({ ...p, delay: p.delay - 30, side: (p.side === 1 ? -1 : 1) as 1 | -1 }))]
-        .filter(p => !VILLAGE_PATHS.has(p.pathIdx))
-        .map((ped, i) => (
-        <g key={`ped-${i}`}>
-          <PedestrianSVG shirt={ped.shirt} pants={ped.pants} skin={ped.skin} side={ped.side} scale={ped.scale} />
-          <animateMotion
-            dur={`${ped.duration}s`}
-            begin={`${ped.delay}s`}
-            repeatCount="indefinite"
-            rotate="auto"
-            keyPoints={ped.flip ? "1;0" : "0;1"}
-            keyTimes="0;1"
-          >
-            <mpath href={`#jce-road-${ped.pathIdx}`} />
-          </animateMotion>
-        </g>
-      ))}
+      {/* Piétons cartoon SVG retirés — remplacés par les sprites top-down (PhotoPedestrians) */}
+
 
       {/* Feux rouges aux intersections + feux piétons synchronisés */}
       {lights.map((l) => {
