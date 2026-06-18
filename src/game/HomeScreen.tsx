@@ -1,11 +1,16 @@
 import { useState, useEffect } from "react";
+import { useNavigate } from "@tanstack/react-router";
 import bgAsset from "@/assets/home-bg.png.asset.json";
 import { UpdateNotification } from "@/components/UpdateNotification";
 import TutorialDialog from "@/components/TutorialDialog";
 import LeaderboardPanel from "@/components/LeaderboardPanel";
-import { hasSeenTutorial, resetTutorial, getPlayerName, setPlayerName } from "@/lib/leaderboard";
+import { hasSeenTutorial, resetTutorial, getPlayerName, setPlayerName, pushLocalScoresToCloud } from "@/lib/leaderboard";
+import { useAuth, signOut } from "@/lib/useAuth";
+import { supabase } from "@/integrations/supabase/client";
 
 export default function HomeScreen({ onPlay }: { onPlay: () => void }) {
+  const navigate = useNavigate();
+  const { user, pseudo: cloudPseudo } = useAuth();
   const [loading, setLoading] = useState(false);
   const [progress, setProgress] = useState(0);
   const [showTutorial, setShowTutorial] = useState(false);
@@ -14,10 +19,19 @@ export default function HomeScreen({ onPlay }: { onPlay: () => void }) {
   const [pseudoInput, setPseudoInput] = useState(getPlayerName());
   const [displayName, setDisplayName] = useState(getPlayerName());
 
+  // Pseudo affiché : cloud si connecté, sinon local
+  const effectiveName = user ? cloudPseudo : displayName;
+
+  // Quand on se connecte, on pousse les scores locaux vers le cloud
+  useEffect(() => {
+    if (user) pushLocalScoresToCloud().catch(() => {});
+  }, [user]);
+
   // Premier lancement → tuto auto
   useEffect(() => {
     if (!hasSeenTutorial()) setShowTutorial(true);
   }, []);
+
 
 
   useEffect(() => {
