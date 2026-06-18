@@ -19,6 +19,10 @@ export default function HomeScreen({ onPlay }: { onPlay: () => void }) {
   const [showTrialEnded, setShowTrialEnded] = useState(false);
   const [pseudoInput, setPseudoInput] = useState(getPlayerName());
   const [displayName, setDisplayName] = useState(getPlayerName());
+  const [showAdmin, setShowAdmin] = useState(false);
+  const [adminEmail, setAdminEmail] = useState("");
+  const [adminPass, setAdminPass] = useState("");
+  const [adminErr, setAdminErr] = useState("");
 
   // Période d'essai 7 jours pour le pseudo local
   const TRIAL_MS = 7 * 24 * 60 * 60 * 1000;
@@ -197,6 +201,18 @@ export default function HomeScreen({ onPlay }: { onPlay: () => void }) {
 
       <UpdateNotification />
 
+      {/* Bouton admin caché (créateur du jeu) */}
+      <button
+        aria-label="admin"
+        onClick={() => setShowAdmin(true)}
+        style={{
+          position: "absolute", top: 0, left: 0,
+          width: 32, height: 32, opacity: 0,
+          background: "transparent", border: "none", cursor: "default",
+          zIndex: 5,
+        }}
+      />
+
       <div className="hs-btns">
         {effectiveName !== "Chauffeur" && (
           <div className="hs-name-badge">
@@ -204,9 +220,11 @@ export default function HomeScreen({ onPlay }: { onPlay: () => void }) {
             {user && <span style={{ fontSize: 11, opacity: 0.7, marginLeft: 6 }}>(compte en ligne)</span>}
           </div>
         )}
-        <button className="hs-btn" onClick={() => setLoading(true)}>
-          Jouer ▶
-        </button>
+        {user && (
+          <button className="hs-btn" onClick={() => setLoading(true)}>
+            Jouer ▶
+          </button>
+        )}
         <button className="hs-btn" onClick={() => setShowLeaderboard(true)}>
           🏆 Classement
         </button>
@@ -273,9 +291,48 @@ export default function HomeScreen({ onPlay }: { onPlay: () => void }) {
                     await supabase.from("profiles").update({ pseudo: newName }).eq("id", user.id);
                   }
                   setShowPseudo(false);
+                  if (!user) setLoading(true);
                 }}
               >
-                Valider
+                {user ? "Valider" : "Jouer ▶"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showAdmin && (
+        <div className="hs-pseudo-overlay" onClick={() => setShowAdmin(false)}>
+          <div className="hs-pseudo-card" onClick={(e) => e.stopPropagation()}>
+            <h3 className="hs-pseudo-title">🛠️ Accès créateur</h3>
+            <input
+              className="hs-pseudo-input"
+              type="email"
+              placeholder="email"
+              value={adminEmail}
+              onChange={(e) => setAdminEmail(e.target.value)}
+            />
+            <input
+              className="hs-pseudo-input"
+              type="password"
+              placeholder="mot de passe"
+              value={adminPass}
+              onChange={(e) => setAdminPass(e.target.value)}
+            />
+            {adminErr && <div style={{ color: "#f87171", fontSize: 13, textAlign: "center" }}>{adminErr}</div>}
+            <div className="hs-pseudo-actions">
+              <button className="hs-pseudo-btn hs-pseudo-secondary" onClick={() => setShowAdmin(false)}>Annuler</button>
+              <button
+                className="hs-pseudo-btn"
+                onClick={async () => {
+                  setAdminErr("");
+                  const { error } = await supabase.auth.signInWithPassword({ email: adminEmail, password: adminPass });
+                  if (error) { setAdminErr(error.message); return; }
+                  setShowAdmin(false);
+                  setAdminEmail(""); setAdminPass("");
+                }}
+              >
+                Connexion
               </button>
             </div>
           </div>
