@@ -568,7 +568,7 @@ export default function TaxiTycoon() {
   const pathLen = pathLensRef.current[0] ?? 0;
 
   // === Helpers de rendu position (déclarés tôt pour usage dans les effets) ===
-  const SIDEWALK_OFFSET = 32;
+  const SIDEWALK_OFFSET = 48;
 
   // Trouve la longueur sur `pathIdx` la plus proche d'un point (x,y) du SVG.
   const closestOnPath = (pathIdx: number, x: number, y: number): number => {
