@@ -194,8 +194,51 @@ export default function HomeScreen({ onPlay }: { onPlay: () => void }) {
           border-radius: 10px;
           font-size: 16px;
         }
-        .hs-pseudo-secondary {
-          background: #374151; color: #fff;
+        .hs-center {
+          position: absolute;
+          top: 16vh;
+          left: 50%;
+          transform: translateX(-50%);
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          gap: 16px;
+          z-index: 2;
+          width: min(340px, 80vw);
+        }
+        .hs-title {
+          font-size: clamp(26px, 6vw, 44px);
+          font-weight: 900;
+          color: #f5c542;
+          text-shadow: 0 4px 12px rgba(0,0,0,0.6);
+          letter-spacing: 2px;
+          text-align: center;
+          margin: 0;
+          line-height: 1.1;
+        }
+        .hs-apk-link {
+          appearance: none;
+          text-decoration: none;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 10px;
+          background: linear-gradient(180deg, #10b981, #059669);
+          color: #fff;
+          font-size: clamp(16px, 4vw, 20px);
+          font-weight: 900;
+          letter-spacing: 1px;
+          padding: 14px 24px;
+          width: 100%;
+          border-radius: 14px;
+          box-shadow: 0 6px 0 #064e3b, 0 12px 20px rgba(0,0,0,0.5);
+          transition: transform 0.08s, box-shadow 0.08s, filter 0.15s;
+          text-transform: uppercase;
+          cursor: pointer;
+        }
+        .hs-apk-link:active {
+          transform: translateY(4px);
+          box-shadow: 0 2px 0 #064e3b, 0 4px 8px rgba(0,0,0,0.4);
         }
       `}</style>
 
@@ -212,6 +255,16 @@ export default function HomeScreen({ onPlay }: { onPlay: () => void }) {
           zIndex: 5,
         }}
       />
+
+      <div className="hs-center">
+        <h1 className="hs-title">My Taxi World Tycoon</h1>
+        <a href="/MyTaxiWorldTycoon.apk" download className="hs-apk-link">
+          <svg className="hs-apk-icon" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+            <path d="M17.6 9.48l1.84-3.2c.16-.27.07-.62-.2-.78-.27-.16-.62-.07-.78.2l-1.87 3.24c-1.52-.68-3.22-1.06-5.02-1.06-1.8 0-3.5.38-5.02 1.06L4.84 5.7c-.16-.27-.51-.36-.78-.2-.27.16-.36.51-.2.78l1.84 3.2C2.8 11.36 1 14.44 1 18h22c0-3.56-1.8-6.64-4.4-8.52zM7 15.25c-.69 0-1.25-.56-1.25-1.25s.56-1.25 1.25-1.25 1.25.56 1.25 1.25-.56 1.25-1.25 1.25zm10 0c-.69 0-1.25-.56-1.25-1.25s.56-1.25 1.25-1.25 1.25.56 1.25 1.25-.56 1.25-1.25 1.25z"/>
+          </svg>
+          Télécharger l'APK
+        </a>
+      </div>
 
       <div className="hs-btns">
         {effectiveName !== "Chauffeur" && (
