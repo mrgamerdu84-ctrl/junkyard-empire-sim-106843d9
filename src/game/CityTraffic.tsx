@@ -564,8 +564,6 @@ export default function CityTraffic() {
         ))}
       </g>
 
-      {/* Lampadaires alignés le long des trottoirs (hors chaussée) */}
-      <StreetLamps pathRefs={pathRefs} night={night} />
 
 
 
