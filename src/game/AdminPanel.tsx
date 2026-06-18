@@ -422,3 +422,92 @@ function ExportTab() {
     </>
   );
 }
+
+// ---------- Onglet Skins : remplacer un véhicule sans toucher au code ----------
+const SKIN_LABELS: Record<AssetKey, string> = {
+  "taxi.yellow": "Taxi jaune",
+  "taxi.black": "Taxi noir",
+  "taxi.red": "Taxi rouge",
+  "police.car": "Voiture police",
+  "civil.car.1": "Civile #1 (bleue)",
+  "civil.car.2": "Civile #2 (violette)",
+  "civil.car.3": "Civile #3 (orange)",
+  "civil.car.4": "Civile #4 (verte)",
+  "pedestrian.man": "Piéton homme",
+  "pedestrian.woman": "Piéton femme",
+  "audio.music": "Musique",
+};
+
+function SkinsTab() {
+  const [, force] = useState(0);
+  const reload = () => { window.location.reload(); };
+  const onFile = (key: AssetKey, f: File) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      setAssetOverride(key, String(reader.result));
+      force(v => v + 1);
+    };
+    reader.readAsDataURL(f);
+  };
+  const onUrl = (key: AssetKey) => {
+    const url = window.prompt(`URL du skin pour ${SKIN_LABELS[key]} :`, GAME_ASSETS[key]);
+    if (url == null) return;
+    setAssetOverride(key, url.trim() || null);
+    force(v => v + 1);
+  };
+  const onReset = (key: AssetKey) => {
+    setAssetOverride(key, null);
+    force(v => v + 1);
+  };
+  return (
+    <>
+      <div style={{ fontSize: 12, color: "#c8ccd2", lineHeight: 1.5, marginBottom: 8 }}>
+        🎨 <strong style={{ color: "#f5c542" }}>Skins remplaçables</strong>
+      </div>
+      <div style={{ fontSize: 11, color: "#8a8e94", lineHeight: 1.5, marginBottom: 10 }}>
+        Remplace un visuel à chaud (sans rebuild). Recharge pour appliquer.
+        Pour un remplacement permanent : édite <code style={{ color: "#f5c542" }}>src/game/gameAssets.ts</code>.
+      </div>
+      <div style={{ display: "grid", gap: 6 }}>
+        {listAssetKeys().filter(k => k !== "audio.music").map((key) => {
+          const url = GAME_ASSETS[key];
+          return (
+            <div key={key} style={{ background: "#1f242b", padding: 8, borderRadius: 6, display: "flex", alignItems: "center", gap: 8 }}>
+              <img src={url} alt="" style={{ width: 36, height: 36, objectFit: "contain", background: "#0a0c10", borderRadius: 4, flex: "0 0 auto" }} />
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontSize: 11, color: "#e8edf2", fontWeight: 600 }}>{SKIN_LABELS[key]}</div>
+                <div style={{ fontSize: 9, color: "#6a6e74", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{url.slice(0, 60)}</div>
+              </div>
+              <label style={{ fontSize: 10, padding: "4px 6px", background: "#14171c", border: "1px solid #3a3f48", borderRadius: 4, cursor: "pointer", color: "#e8edf2" }}>
+                📁
+                <input
+                  type="file"
+                  accept="image/*"
+                  style={{ display: "none" }}
+                  onChange={(e) => { const f = e.target.files?.[0]; if (f) onFile(key, f); }}
+                />
+              </label>
+              <button onClick={() => onUrl(key)} style={btnMini}>🔗</button>
+              <button onClick={() => onReset(key)} style={btnMini} title="Réinitialiser">↺</button>
+            </div>
+          );
+        })}
+      </div>
+      <button
+        onClick={reload}
+        style={{
+          width: "100%", marginTop: 10, padding: "8px 10px", borderRadius: 6,
+          border: "1px solid #f5c542", background: "#f5c542", color: "#14171c",
+          fontSize: 12, fontWeight: 700, cursor: "pointer",
+        }}
+      >
+        ↻ Recharger pour appliquer
+      </button>
+    </>
+  );
+}
+
+const btnMini: React.CSSProperties = {
+  fontSize: 10, padding: "4px 6px", background: "#14171c",
+  border: "1px solid #3a3f48", borderRadius: 4, cursor: "pointer", color: "#e8edf2",
+};
