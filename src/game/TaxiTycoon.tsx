@@ -431,7 +431,7 @@ export default function TaxiTycoon() {
   const policeCarsRef = useRef<PoliceCar[]>([]);
   const wantedRivalIdRef = useRef<number | null>(null);
   const wantedUntilRef = useRef<number>(0);
-  const lastViolationRef = useRef<number>(performance.now());
+  const lastViolationRef = useRef<number>(performance.now()); void lastViolationRef;
   const POLICE_SPEED = 92;     // px/s patrol
   const POLICE_CHASE_SPEED = 140;
   const POLICE_FINE = 200;
