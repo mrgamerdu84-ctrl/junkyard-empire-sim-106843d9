@@ -348,7 +348,7 @@ const PEDESTRIANS: PedSpec[] = [
   { pathIdx: 2, duration: 155, delay: -120,side:  1, shirt: "#ffffff", pants: "#0b1220", skin: "#a06c44", scale: 0.83 },
   { pathIdx: 2, duration: 200, delay: -170,side: -1, shirt: "#facc15", pants: "#374151", skin: "#f1c79b", flip: true, scale: 0.88 },
 ];
-void PEDESTRIANS;
+void PEDESTRIANS; void PedestrianSVG;
 
 
 // Largeur d'asphalte visible sur la carte ≈ 28-34px (stroke). On place
@@ -644,19 +644,7 @@ export default function CityTraffic() {
         );
       })}
 
-      {/* Piétons qui traversent UNIQUEMENT pendant la phase verte du feu piéton */}
-      {lights.map((l) => {
-        void lightsTick;
-        const st = getLightState(l, nowSeconds());
-        if (st !== "red") return null;
-        const phase = (nowSeconds() % 3) / 3;
-        const dx = (phase - 0.5) * 30;
-        return (
-          <g key={`pedx-${l.id}`} transform={`translate(${l.x + dx},${l.y + 28})`} pointerEvents="none">
-            <PedestrianSVG shirt="#22e36a" pants="#0f172a" skin="#e8b48a" side={0} scale={0.7} />
-          </g>
-        );
-      })}
+      {/* Plus aucun piéton ne marche/traverse sur la chaussée — exigence joueur. */}
 
       <rect width="1920" height="1080" fill="#0a1530" opacity={Math.max(0, (night - 0.15)) * 0.55} pointerEvents="none" />
     </svg>
