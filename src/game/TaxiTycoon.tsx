@@ -1674,7 +1674,7 @@ export default function TaxiTycoon() {
                 </circle>
               )}
               <g transform="rotate(90)">
-                <image href={POLICE_CAR_URL} x={-28} y={-28} width={56} height={56} preserveAspectRatio="xMidYMid meet" opacity={hidden ? 0.85 : 1} />
+                <image href={POLICE_CAR_URL} x={-20} y={-20} width={40} height={40} preserveAspectRatio="xMidYMid meet" opacity={hidden ? 0.85 : 1} />
               </g>
               {hidden && (
                 <text x="0" y="-32" textAnchor="middle" fontSize="3.4" fontWeight="900" fill="#fbbf24" stroke="#0b0d10" strokeWidth="0.8" paintOrder="stroke">PLANQUE</text>
