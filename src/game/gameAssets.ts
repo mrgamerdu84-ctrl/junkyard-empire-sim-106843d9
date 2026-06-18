@@ -26,7 +26,7 @@ import taxiRedAsset from "@/assets/taxi-red-top.png";
 import pedManTopAsset from "@/assets/pedestrian-man-top.png";
 import pedWomanTopAsset from "@/assets/pedestrian-woman-top.png";
 import musicAsset from "@/assets/midnight-fare.mp3.asset.json";
-void policeCarAsset_unused; void carBlueAsset_unused;
+
 
 
 // --- Clés stables utilisées par le code du jeu ---
