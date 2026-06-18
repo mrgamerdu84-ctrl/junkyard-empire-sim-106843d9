@@ -63,21 +63,55 @@ export default function HomeScreen({ onPlay }: { onPlay: () => void }) {
         .hs-home {
           position: fixed; inset: 0; z-index: 9999;
           background: #0a0c10 url('${bgAsset.url}') center center / cover no-repeat;
-          display: flex; flex-direction: column; align-items: center; justify-content: flex-end;
-          padding-bottom: 6vh;
           font-family: system-ui, -apple-system, sans-serif;
           overflow: hidden;
         }
-        .hs-tap {
-          position: absolute; inset: 0;
-          cursor: pointer;
+        .hs-btns {
+          position: absolute;
+          left: 50%; bottom: 6vh;
+          transform: translateX(-50%);
+          display: flex; flex-direction: column; gap: 14px;
+          width: min(280px, 70vw);
+          z-index: 2;
         }
+        .hs-btn {
+          appearance: none; border: none; cursor: pointer;
+          background: linear-gradient(180deg, #f5c542 0%, #e0a92a 100%);
+          color: #1a1208;
+          font-size: clamp(18px, 4.5vw, 22px);
+          font-weight: 900;
+          letter-spacing: 1px;
+          padding: 14px 0;
+          width: 100%;
+          border-radius: 14px;
+          box-shadow: 0 6px 0 #8a6510, 0 12px 20px rgba(0,0,0,0.5);
+          transition: transform 0.08s, box-shadow 0.08s, filter 0.15s;
+          display: flex; align-items: center; justify-content: center; gap: 10px;
+          text-transform: uppercase;
+        }
+        .hs-btn:active {
+          transform: translateY(4px);
+          box-shadow: 0 2px 0 #8a6510, 0 4px 8px rgba(0,0,0,0.4);
+        }
+        .hs-apk-icon { width: 22px; height: 22px; fill: #1a1208; }
       `}</style>
-      <button
-        className="hs-tap"
-        aria-label="Jouer"
-        onClick={() => setLoading(true)}
-      />
+
+      <div className="hs-btns">
+        <button className="hs-btn" onClick={() => setLoading(true)}>
+          Jouer ▶
+        </button>
+        <button
+          className="hs-btn"
+          onClick={() => {
+            window.open("https://github.com/", "_blank", "noopener");
+          }}
+        >
+          <svg className="hs-apk-icon" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+            <path d="M17.6 9.48l1.84-3.2c.16-.27.07-.62-.2-.78-.27-.16-.62-.07-.78.2l-1.87 3.24c-1.52-.68-3.22-1.06-5.02-1.06-1.8 0-3.5.38-5.02 1.06L4.84 5.7c-.16-.27-.51-.36-.78-.2-.27.16-.36.51-.2.78l1.84 3.2C2.8 11.36 1 14.44 1 18h22c0-3.56-1.8-6.64-4.4-8.52zM7 15.25c-.69 0-1.25-.56-1.25-1.25s.56-1.25 1.25-1.25 1.25.56 1.25 1.25-.56 1.25-1.25 1.25zm10 0c-.69 0-1.25-.56-1.25-1.25s.56-1.25 1.25-1.25 1.25.56 1.25 1.25-.56 1.25-1.25 1.25z"/>
+          </svg>
+          APK
+        </button>
+      </div>
     </div>
   );
 }
