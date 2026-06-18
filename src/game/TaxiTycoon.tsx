@@ -1,18 +1,16 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { ROADS, VILLAGE_PATHS } from "./CityTraffic";
-import taxiYellowAsset from "@/assets/taxi-yellow-top.png";
-import taxiBlackAsset from "@/assets/taxi-black-top.png";
-import taxiRedAsset from "@/assets/taxi-red-top.png";
-import policeCarAsset from "@/assets/police-car-top.png";
-import musicAsset from "@/assets/midnight-fare.mp3.asset.json";
+import { GAME_ASSETS } from "./gameAssets";
 import { shouldStopAhead, nowSeconds } from "./trafficLights";
 import { getAdmin, useAdminConfig } from "./adminConfig";
 
-const TAXI_YELLOW_URL = taxiYellowAsset;
-const TAXI_BLACK_URL = taxiBlackAsset;
-const TAXI_RED_URL = taxiRedAsset;
-const POLICE_CAR_URL = policeCarAsset;
-const MUSIC_URL = musicAsset.url;
+// Skins centralisés — pour changer un taxi / la voiture de police,
+// édite `src/game/gameAssets.ts` (clés "taxi.*" / "police.car").
+const TAXI_YELLOW_URL = GAME_ASSETS["taxi.yellow"];
+const TAXI_BLACK_URL = GAME_ASSETS["taxi.black"];
+const TAXI_RED_URL = GAME_ASSETS["taxi.red"];
+const POLICE_CAR_URL = GAME_ASSETS["police.car"];
+const MUSIC_URL = GAME_ASSETS["audio.music"];
 
 /* ============================================================
  * TAXI TYCOON — entreprise de taxis idle
