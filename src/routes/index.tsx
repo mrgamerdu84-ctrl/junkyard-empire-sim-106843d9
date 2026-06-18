@@ -1,10 +1,12 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { useState } from "react";
 import citymap from "@/assets/citymap2.jpg";
 import TaxiTycoon from "@/game/TaxiTycoon";
 import CityTraffic from "@/game/CityTraffic";
 import AdminPanel from "@/game/AdminPanel";
 import RulesPanel from "@/game/RulesPanel";
 import VersionBanner from "@/game/VersionBanner";
+import HomeScreen from "@/game/HomeScreen";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -20,6 +22,12 @@ export const Route = createFileRoute("/")({
 });
 
 function TaxiTycoonPage() {
+  const [started, setStarted] = useState(false);
+
+  if (!started) {
+    return <HomeScreen onPlay={() => setStarted(true)} />;
+  }
+
   return (
     <div className="tt-root">
       <style>{`
@@ -28,7 +36,6 @@ function TaxiTycoonPage() {
         .tt-root {
           position: relative;
           width: 100vw;
-          /* dvh = dynamic viewport, suit la rotation iOS/Android sans rogner */
           height: 100dvh;
           min-height: 100vh;
           overflow: hidden;
@@ -43,7 +50,6 @@ function TaxiTycoonPage() {
           position: absolute; inset: 0; z-index: 2; pointer-events: none;
           background: radial-gradient(ellipse at center, transparent 55%, rgba(0,0,0,0.55) 100%);
         }
-        /* Paysage sur petit écran (téléphone tourné) : compacter les paddings */
         @media (orientation: landscape) and (max-height: 500px) {
           .adm-panel { width: min(360px, 60vw) !important; padding: 10px 12px 14px !important; }
           .adm-btn { top: 8px !important; right: 8px !important; width: 38px !important; height: 38px !important; }
@@ -59,3 +65,4 @@ function TaxiTycoonPage() {
     </div>
   );
 }
+
