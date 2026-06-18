@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { ROADS, VILLAGE_PATHS } from "./CityTraffic";
+import { ROADS, VILLAGE_PATHS, SIDEWALK_LOCK_OFFSET, lockToSidewalk } from "./CityTraffic";
 import { GAME_ASSETS } from "./gameAssets";
 import { shouldStopAhead, nowSeconds } from "./trafficLights";
 import { getAdmin, useAdminConfig } from "./adminConfig";
