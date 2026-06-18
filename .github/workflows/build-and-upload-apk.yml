@@ -1,9 +1,9 @@
-name: Build & Upload APK
+name: Build & Upload APK (Debug)
 
-# À copier dans le repo de ton projet Android Studio (pas le projet web Lovable).
-# Build l'APK release signé à chaque push sur main, puis l'envoie dans le bucket
-# "apks" de Lovable Cloud (Supabase Storage). La page /download du jeu prendra
-# automatiquement le fichier le plus récent.
+# Workflow simplifié : build DEBUG (pas de signature, pas de keystore).
+# Tu n'as besoin que de 2 secrets GitHub :
+#   UPLOAD_URL  → https://junkyard-empire-sim.lovable.app/api/public/upload-apk
+#   UPLOAD_TOKEN → même valeur que côté Lovable Cloud secrets
 
 on:
   push:
@@ -12,7 +12,7 @@ on:
 
 jobs:
   build:
-    name: Build signed APK & upload
+    name: Build debug APK & upload
     runs-on: ubuntu-latest
 
     steps:
@@ -31,38 +31,21 @@ jobs:
       - name: Make gradlew executable
         run: chmod +x ./gradlew
 
-      # --- Signature release ---
-      # Décode le keystore base64 (secret KEYSTORE_BASE64) dans app/release.keystore
-      - name: Decode keystore
-        env:
-          KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
-        run: |
-          echo "$KEYSTORE_BASE64" | base64 -d > app/release.keystore
-          ls -lh app/release.keystore
-
-      - name: Build release APK
-        env:
-          KEYSTORE_PATH: ${{ github.workspace }}/app/release.keystore
-          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
-          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
-          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
-        run: ./gradlew assembleRelease --no-daemon
+      - name: Build debug APK
+        run: ./gradlew assembleDebug --no-daemon
 
       - name: Locate APK
         id: apk
         run: |
-          APK_PATH=$(find app/build/outputs/apk/release -name "*.apk" | head -n 1)
+          APK_PATH=$(find app/build/outputs/apk/debug -name "*.apk" | head -n 1)
           if [ -z "$APK_PATH" ]; then
-            echo "❌ Aucun APK trouvé sous app/build/outputs/apk/release/"
+            echo "❌ Aucun APK debug trouvé sous app/build/outputs/apk/debug/"
             exit 1
           fi
           echo "Found APK: $APK_PATH"
           echo "path=$APK_PATH" >> "$GITHUB_OUTPUT"
-          echo "name=MyTaxiWorldTycoon.apk" >> "$GITHUB_OUTPUT"
+          echo "name=MyTaxiWorldTycoon-debug.apk" >> "$GITHUB_OUTPUT"
 
-      # --- Upload via endpoint Lovable (recommandé) ---
-      # UPLOAD_URL : ex. https://junkyard-empire-sim.lovable.app/api/public/upload-apk
-      # UPLOAD_TOKEN : token partagé (même valeur que côté Lovable Cloud secrets)
       - name: Upload APK to Lovable
         env:
           UPLOAD_URL: ${{ secrets.UPLOAD_URL }}
@@ -90,6 +73,7 @@ jobs:
       - name: Upload APK as workflow artifact (debug)
         uses: actions/upload-artifact@v4
         with:
-          name: release-apk
+          name: debug-apk
           path: ${{ steps.apk.outputs.path }}
           retention-days: 14
+
