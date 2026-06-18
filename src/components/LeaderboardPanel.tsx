@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import { getLast7Days, isSpecialTaxiUnlocked, getBestWeekScore, getTodayScore } from "@/lib/leaderboard";
+import { getLast7Days, isSpecialTaxiUnlocked, getBestWeekScore, getTodayScore, getPlayerName } from "@/lib/leaderboard";
 import goldTaxi from "@/assets/taxi-gold.png.asset.json";
 
 const fmt = (n: number) => Math.round(n).toLocaleString("fr-FR");
