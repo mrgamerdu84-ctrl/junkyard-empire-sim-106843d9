@@ -28,9 +28,10 @@ import carBlueAsset from "@/assets/car-blue.png.asset.json";
 import carPurpleAsset from "@/assets/car-purple.png.asset.json";
 import carOrangeAsset from "@/assets/car-orange.png.asset.json";
 import carGreenAsset from "@/assets/car-green.png.asset.json";
-import pedManAsset from "@/assets/pedestrian-man.png.asset.json";
-import pedWomanAsset from "@/assets/pedestrian-woman.png.asset.json";
+import pedManTopAsset from "@/assets/pedestrian-man-top.png";
+import pedWomanTopAsset from "@/assets/pedestrian-woman-top.png";
 import musicAsset from "@/assets/midnight-fare.mp3.asset.json";
+
 
 // --- Clés stables utilisées par le code du jeu ---
 export type AssetKey =
@@ -55,8 +56,9 @@ const DEFAULTS: Record<AssetKey, string> = {
   "civil.car.2": carPurpleAsset.url,
   "civil.car.3": carOrangeAsset.url,
   "civil.car.4": carGreenAsset.url,
-  "pedestrian.man": pedManAsset.url,
-  "pedestrian.woman": pedWomanAsset.url,
+  "pedestrian.man": pedManTopAsset,
+  "pedestrian.woman": pedWomanTopAsset,
+
   "audio.music": musicAsset.url,
 };
 

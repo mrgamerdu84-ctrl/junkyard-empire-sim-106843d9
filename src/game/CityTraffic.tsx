@@ -211,35 +211,34 @@ function Vehicle({
   variant?: VehicleVariant;
   photoIdx?: number;
 }) {
-  // Voitures civiles : on utilise les photos de Dodge Charger (vue 3/4 côté).
-  // Les photos ont le capot à gauche : on applique scaleX(-1) pour que le
-  // capot pointe vers +x (est), ce qui aligne le sprite avec l'angle du path
-  // (0° = est) lors de la rotation appliquée par le parent.
-  // Toutes les voitures civiles ont la même taille que les taxis (boîte 48px).
+  // Voitures civiles : sprites top-down (vue du ciel) au même format
+  // que les taxis. Le capot pointe vers +x (est), donc PAS de scaleX(-1).
+  // Taille uniforme (boîte 48px) pour cohérence avec les taxis.
   void kind; void scale;
   const W = 56;
-  const H = W * 0.6;
+  const H = W * 0.5;
   const href = CHARGER_IMAGES[photoIdx % CHARGER_IMAGES.length];
   return (
     <g>
-      <ellipse cx="0" cy={H * 0.18} rx={W / 2 + 2} ry={H / 2 - 2} fill="rgba(0,0,0,0.4)" />
-      <g transform="scale(-1,1)">
-        <image
-          href={href}
-          x={-W / 2}
-          y={-H / 2}
-          width={W}
-          height={H}
-          preserveAspectRatio="xMidYMid meet"
-        />
-      </g>
+      <ellipse cx="0" cy={H * 0.18} rx={W / 2 + 2} ry={H / 2 + 2} fill="rgba(0,0,0,0.4)" />
+      <image
+        href={href}
+        x={-W / 2}
+        y={-H / 2}
+        width={W}
+        height={H}
+        preserveAspectRatio="xMidYMid meet"
+      />
     </g>
   );
 }
 
 
+
 // Composants SVG conservés pour référence/legacy (non utilisés depuis l'image PNG).
 void CarSVG; void VanSVG; void TruckSVG; void HatchSVG;
+
+
 
 // === Piétons photos qui marchent sur les trottoirs ===
 type PhotoPedSpec = {
@@ -291,7 +290,12 @@ function PhotoPedestrians({ pathRefs }: { pathRefs: React.MutableRefObject<(SVGP
         // perpendiculaire = trottoir
         const nx = -dy / L * PHOTO_PED_OFFSET * st.spec.side;
         const ny =  dx / L * PHOTO_PED_OFFSET * st.spec.side;
-        node.setAttribute("transform", `translate(${(p.x + nx).toFixed(2)},${(p.y + ny).toFixed(2)})`);
+        // angle de marche (le sprite top-down tourne dans la direction du mouvement)
+        const ang = (Math.atan2(dy, dx) * 180) / Math.PI;
+        node.setAttribute(
+          "transform",
+          `translate(${(p.x + nx).toFixed(2)},${(p.y + ny).toFixed(2)}) rotate(${ang.toFixed(2)})`,
+        );
       }
       raf = requestAnimationFrame(step);
     };
@@ -300,22 +304,27 @@ function PhotoPedestrians({ pathRefs }: { pathRefs: React.MutableRefObject<(SVGP
   }, [pathRefs]);
   return (
     <g pointerEvents="none">
-      {PHOTO_PEDS.map((spec, i) => (
-        <g key={i} ref={el => { nodes.current[i] = el; }}>
-          <ellipse cx="0" cy={10 * spec.scale} rx={6 * spec.scale} ry={2 * spec.scale} fill="rgba(0,0,0,0.45)" />
-          <image
-            href={PED_PHOTO_IMAGES[spec.imageIdx]}
-            x={-14 * spec.scale}
-            y={-22 * spec.scale}
-            width={28 * spec.scale}
-            height={36 * spec.scale}
-            preserveAspectRatio="xMidYMid meet"
-          />
-        </g>
-      ))}
+      {PHOTO_PEDS.map((spec, i) => {
+        // Sprites top-down ~36px (vue du ciel), rotation = sens de marche
+        const S = 36 * spec.scale;
+        return (
+          <g key={i} ref={el => { nodes.current[i] = el; }}>
+            <ellipse cx="0" cy={S * 0.2} rx={S * 0.35} ry={S * 0.18} fill="rgba(0,0,0,0.45)" />
+            <image
+              href={PED_PHOTO_IMAGES[spec.imageIdx]}
+              x={-S / 2}
+              y={-S / 2}
+              width={S}
+              height={S}
+              preserveAspectRatio="xMidYMid meet"
+            />
+          </g>
+        );
+      })}
     </g>
   );
 }
+
 
 
 type PedSpec = {
@@ -342,6 +351,8 @@ const PEDESTRIANS: PedSpec[] = [
   { pathIdx: 2, duration: 155, delay: -120,side:  1, shirt: "#ffffff", pants: "#0b1220", skin: "#a06c44", scale: 0.83 },
   { pathIdx: 2, duration: 200, delay: -170,side: -1, shirt: "#facc15", pants: "#374151", skin: "#f1c79b", flip: true, scale: 0.88 },
 ];
+void PEDESTRIANS;
+
 
 // Largeur d'asphalte visible sur la carte ≈ 28-34px (stroke). On place
 // les piétons à 34px du centre du path => clairement sur le trottoir,
@@ -627,24 +638,8 @@ export default function CityTraffic() {
       <PhotoPedestrians pathRefs={pathRefs} />
 
 
-      {/* Piétons sur les trottoirs (densité moyenne : ~2x liste de base, sauf village) */}
-      {[...PEDESTRIANS, ...PEDESTRIANS.map(p => ({ ...p, delay: p.delay - 30, side: (p.side === 1 ? -1 : 1) as 1 | -1 }))]
-        .filter(p => !VILLAGE_PATHS.has(p.pathIdx))
-        .map((ped, i) => (
-        <g key={`ped-${i}`}>
-          <PedestrianSVG shirt={ped.shirt} pants={ped.pants} skin={ped.skin} side={ped.side} scale={ped.scale} />
-          <animateMotion
-            dur={`${ped.duration}s`}
-            begin={`${ped.delay}s`}
-            repeatCount="indefinite"
-            rotate="auto"
-            keyPoints={ped.flip ? "1;0" : "0;1"}
-            keyTimes="0;1"
-          >
-            <mpath href={`#jce-road-${ped.pathIdx}`} />
-          </animateMotion>
-        </g>
-      ))}
+      {/* Piétons cartoon SVG retirés — remplacés par les sprites top-down (PhotoPedestrians) */}
+
 
       {/* Feux rouges aux intersections + feux piétons synchronisés */}
       {lights.map((l) => {
