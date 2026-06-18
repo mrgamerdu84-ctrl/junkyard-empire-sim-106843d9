@@ -1,15 +1,27 @@
-import { useMemo } from "react";
-import { getLast7Days, isSpecialTaxiUnlocked, getBestWeekScore, getTodayScore, getPlayerName } from "@/lib/leaderboard";
+import { useEffect, useState } from "react";
+import { getLast7Days, isSpecialTaxiUnlocked, getBestWeekScore, getTodayScore, getPlayerName, fetchCloudLast7Days } from "@/lib/leaderboard";
+import { useAuth } from "@/lib/useAuth";
 import goldTaxi from "@/assets/taxi-gold.png.asset.json";
 
 const fmt = (n: number) => Math.round(n).toLocaleString("fr-FR");
 
 export default function LeaderboardPanel({ onClose }: { onClose: () => void }) {
-  const days = useMemo(() => getLast7Days(), []);
+  const { user, pseudo: cloudPseudo } = useAuth();
+  const [days, setDays] = useState(() => getLast7Days());
   const unlocked = isSpecialTaxiUnlocked();
   const best = getBestWeekScore();
-  const todayScore = getTodayScore();
-  const playerName = getPlayerName();
+  const playerName = user ? cloudPseudo : getPlayerName();
+
+  useEffect(() => {
+    if (user) {
+      fetchCloudLast7Days().then((d) => { if (d) setDays(d); }).catch(() => {});
+    } else {
+      setDays(getLast7Days());
+    }
+  }, [user]);
+
+  const todayKey = days[0]?.date;
+  const todayScore = user ? (days.find((d) => d.date === todayKey)?.score ?? 0) : getTodayScore();
 
   // Tri par score décroissant pour le classement
   const ranked = [...days].sort((a, b) => b.score - a.score);
