@@ -2,5 +2,7 @@
   "version": "1.0.0",
   "buildId": "2026-06-18T10:41:31.047Z",
   "builtAt": 1781779291047,
-  "changelog": "Mise à jour automatique active"
+  "changelog": "Mise à jour automatique active",
+  "packageName": "com.mytaxiworldtycoon",
+  "displayName": "My Taxi World Tycoon"
 }

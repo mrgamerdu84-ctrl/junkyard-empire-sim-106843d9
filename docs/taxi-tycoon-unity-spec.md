@@ -183,3 +183,12 @@ Le visuel actuel est en SVG (vectoriel). À refaire en Unity :
 8. Contrats + bonus.
 9. Taxis rivaux.
 10. Panneau admin + sauvegarde + leaderboard.
+
+## 11. Build / Identité
+
+| Champ | Valeur |
+|-------|--------|
+| Nom affiché | My Taxi World Tycoon |
+| Package Android | `com.mytaxiworldtycoon` |
+| Package iOS | `com.mytaxiworldtycoon` (si portage) |
+| Version initiale | 1.0.0 |
