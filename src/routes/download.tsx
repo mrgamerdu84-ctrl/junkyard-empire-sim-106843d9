@@ -138,9 +138,13 @@ function DownloadPage() {
             <span style={{ color: "#9ca3af", fontSize: 13 }}>Mise à jour</span>
             <strong style={{ color: "#e5e7eb" }}>{apk ? formatDate(apk.updatedAt) : "—"}</strong>
           </div>
-          <div style={{ display: "flex", justifyContent: "space-between" }}>
+          <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 12 }}>
             <span style={{ color: "#9ca3af", fontSize: 13 }}>Taille</span>
             <strong style={{ color: "#e5e7eb" }}>{apk ? formatSize(apk.size) : "—"}</strong>
+          </div>
+          <div style={{ display: "flex", justifyContent: "space-between" }}>
+            <span style={{ color: "#9ca3af", fontSize: 13 }}>Package</span>
+            <strong style={{ color: "#e5e7eb", fontSize: 13 }}>com.mytaxiworldtycoon</strong>
           </div>
         </div>
 
