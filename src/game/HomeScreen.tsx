@@ -281,6 +281,26 @@ export default function HomeScreen({ onPlay }: { onPlay: () => void }) {
           </div>
         </div>
       )}
+
+      {showTrialEnded && (
+        <div className="hs-pseudo-overlay">
+          <div className="hs-pseudo-card">
+            <h3 className="hs-pseudo-title">⏰ Essai terminé</h3>
+            <p style={{ color: "#e5e7eb", fontSize: 15, lineHeight: 1.5, margin: 0, textAlign: "center" }}>
+              Ta période d'essai de 7 jours est terminée.<br />
+              Crée un compte pour garder ton pseudo et sauvegarder tes scores en ligne.
+            </p>
+            <div className="hs-pseudo-actions" style={{ justifyContent: "center" }}>
+              <button className="hs-pseudo-btn hs-pseudo-secondary" onClick={() => window.close()}>
+                Quitter
+              </button>
+              <button className="hs-pseudo-btn" onClick={() => { setShowTrialEnded(false); navigate({ to: "/auth" }); }}>
+                S'inscrire
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
