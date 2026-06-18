@@ -23,6 +23,8 @@ export default function HomeScreen({ onPlay }: { onPlay: () => void }) {
   const [adminEmail, setAdminEmail] = useState("");
   const [adminPass, setAdminPass] = useState("");
   const [adminErr, setAdminErr] = useState("");
+  const [titleTaps, setTitleTaps] = useState(0);
+  const [lastTap, setLastTap] = useState(0);
 
   // Période d'essai 7 jours pour le pseudo local
   const TRIAL_MS = 7 * 24 * 60 * 60 * 1000;
@@ -237,7 +239,22 @@ export default function HomeScreen({ onPlay }: { onPlay: () => void }) {
       />
 
       <div className="hs-center">
-        <h1 className="hs-title">My Taxi World Tycoon</h1>
+        <h1
+          className="hs-title"
+          onClick={() => {
+            const now = Date.now();
+            const next = now - lastTap < 800 ? titleTaps + 1 : 1;
+            setTitleTaps(next);
+            setLastTap(now);
+            if (next >= 5) {
+              setTitleTaps(0);
+              setShowAdmin(true);
+            }
+          }}
+          style={{ cursor: "default", userSelect: "none", WebkitUserSelect: "none" }}
+        >
+          My Taxi World Tycoon
+        </h1>
       </div>
 
       <div className="hs-btns">
