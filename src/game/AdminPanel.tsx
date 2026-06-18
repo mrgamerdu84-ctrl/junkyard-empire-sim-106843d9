@@ -417,8 +417,26 @@ function ExportTab() {
         </button>
       </div>
 
-      <div style={{ fontSize: 11, color: "#6a6e74", padding: "8px 10px", background: "#1f242b", borderRadius: 6 }}>
+      <div style={{ fontSize: 11, color: "#6a6e74", padding: "8px 10px", background: "#1f242b", borderRadius: 6, marginBottom: 10 }}>
         💡 Une bannière apparaîtra automatiquement dans le jeu dès qu'une nouvelle version sera publiée sur Lovable.
+      </div>
+
+      <div style={{ background: "#1f242b", padding: "10px 12px", borderRadius: 8 }}>
+        <div style={{ fontSize: 11, fontWeight: 700, color: "#f5c542", marginBottom: 6, letterSpacing: 0.3 }}>
+          📱 ROTATION ÉCRAN (Android)
+        </div>
+        <div style={{ fontSize: 11, color: "#c8ccd2", lineHeight: 1.5, marginBottom: 6 }}>
+          Pour autoriser la rotation portrait ↔ paysage dans l'APK, ouvre dans Android Studio :
+        </div>
+        <div style={{ background: "#0a0c10", padding: "6px 8px", borderRadius: 4, color: "#f5c542", fontFamily: "monospace", fontSize: 10, marginBottom: 6 }}>
+          android/app/src/main/AndroidManifest.xml
+        </div>
+        <div style={{ fontSize: 11, color: "#c8ccd2", lineHeight: 1.5, marginBottom: 6 }}>
+          et dans la balise <code style={{ color: "#f5c542" }}>&lt;activity&gt;</code> de <code style={{ color: "#f5c542" }}>MainActivity</code>, remplace l'attribut par :
+        </div>
+        <div style={{ background: "#0a0c10", padding: "6px 8px", borderRadius: 4, color: "#22c55e", fontFamily: "monospace", fontSize: 10 }}>
+          android:screenOrientation="fullSensor"
+        </div>
       </div>
     </>
   );
