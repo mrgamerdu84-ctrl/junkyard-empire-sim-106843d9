@@ -316,6 +316,94 @@ function PhotoPedestrians({ pathRefs }: { pathRefs: React.MutableRefObject<(SVGP
   );
 }
 
+// === Lampadaires alignés le long des trottoirs ===
+// Échantillonnés sur les paths 0 et 2 (rues principales), placés en
+// perpendiculaire à 46px du centre du path => clairement en dehors de
+// la chaussée. Ne bloquent aucune voiture (purement décoratifs, SVG).
+const LAMP_OFFSET = 46;
+const LAMP_PATHS = [0, 2];
+const LAMP_SPACING = 140; // px le long du path entre deux lampadaires
+
+function StreetLamps({
+  pathRefs,
+  night,
+}: {
+  pathRefs: React.MutableRefObject<(SVGPathElement | null)[]>;
+  night: number;
+}) {
+  const [positions, setPositions] = useState<
+    { x: number; y: number; angle: number; side: 1 | -1; key: string }[]
+  >([]);
+  useEffect(() => {
+    const out: { x: number; y: number; angle: number; side: 1 | -1; key: string }[] = [];
+    for (const pi of LAMP_PATHS) {
+      const path = pathRefs.current[pi];
+      if (!path) continue;
+      const len = path.getTotalLength();
+      if (len <= 1) continue;
+      for (let s = LAMP_SPACING / 2; s < len; s += LAMP_SPACING) {
+        const p = path.getPointAtLength(s);
+        const p2 = path.getPointAtLength(Math.min(len, s + 1));
+        const dx = p2.x - p.x;
+        const dy = p2.y - p.y;
+        const L = Math.hypot(dx, dy) || 1;
+        const angle = (Math.atan2(dy, dx) * 180) / Math.PI;
+        for (const side of [1, -1] as const) {
+          const nx = (-dy / L) * LAMP_OFFSET * side;
+          const ny = (dx / L) * LAMP_OFFSET * side;
+          out.push({
+            x: p.x + nx,
+            y: p.y + ny,
+            angle,
+            side,
+            key: `${pi}-${s}-${side}`,
+          });
+        }
+      }
+    }
+    setPositions(out);
+  }, [pathRefs]);
+  const glow = Math.max(0, night - 0.35);
+  return (
+    <g pointerEvents="none">
+      {positions.map((l) => (
+        <g key={l.key} transform={`translate(${l.x},${l.y}) rotate(${l.angle})`}>
+          {/* halo nocturne projeté vers la route */}
+          {glow > 0 && (
+            <ellipse
+              cx={0}
+              cy={-l.side * 14}
+              rx={22}
+              ry={14}
+              fill="#ffe2a3"
+              opacity={glow * 0.45}
+            />
+          )}
+          {/* socle */}
+          <circle r={2.2} fill="#1a1d22" />
+          {/* mât courbé vers la chaussée */}
+          <path
+            d={`M 0 0 Q 0 ${-l.side * 6} ${l.side * 0} ${-l.side * 12} L ${-l.side * 8} ${-l.side * 14}`}
+            stroke="#22262d"
+            strokeWidth={1.4}
+            fill="none"
+          />
+          {/* tête lumineuse */}
+          <rect
+            x={-l.side * 10}
+            y={-l.side * 15.4}
+            width={4}
+            height={2.2}
+            fill={glow > 0 ? "#ffe9b3" : "#3a3f47"}
+            stroke="#0b0d10"
+            strokeWidth={0.4}
+          />
+        </g>
+      ))}
+    </g>
+  );
+}
+
 
 
 type PedSpec = {
