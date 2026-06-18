@@ -1,29 +1,11 @@
-name: Build & Upload APK
+name: Build APK shortcut
 
 on:
-  push:
-    branches: [main]
   workflow_dispatch:
 
 jobs:
-  build:
+  use-main-apk-workflow:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-
-      - uses: actions/setup-java@v4
-        with:
-          distribution: temurin
-          java-version: '17'
-
-      - name: Build debug APK
-        run: ./gradlew assembleDebug
-
-      - name: Upload APK to Lovable
-        run: |
-          APK=$(find . -name "*-debug.apk" | head -n1)
-          echo "Uploading $APK"
-          curl -fSL -X POST "${{ secrets.UPLOAD_URL }}" \
-            -H "Authorization: Bearer ${{ secrets.UPLOAD_TOKEN }}" \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
-            -H "Content-Type: application/vnd.android.package-archive" \
-            --data-binary "@$APK"
+      - name: Use the real APK workflow
+        run: echo "Lance le workflow 'Build & Upload APK' : il build l'app web, synchronise Capacitor Android, compile l'APK puis l'upload."
