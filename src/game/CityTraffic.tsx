@@ -255,7 +255,7 @@ const PHOTO_PEDS: PhotoPedSpec[] = [
   { pathIdx: 2, side: 1,  speed: 18, startFrac: 0.56, imageIdx: 1, scale: 0.5 },
   { pathIdx: 2, side: -1, speed: 25, startFrac: 0.78, imageIdx: 1, scale: 0.55 },
 ];
-const PHOTO_PED_OFFSET = 38;
+const PHOTO_PED_OFFSET = 52;
 
 function PhotoPedestrians({ pathRefs }: { pathRefs: React.MutableRefObject<(SVGPathElement | null)[]> }) {
   const nodes = useRef<(SVGGElement | null)[]>([]);
