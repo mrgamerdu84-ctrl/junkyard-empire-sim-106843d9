@@ -3,6 +3,7 @@ import citymap from "@/assets/citymap2.jpg";
 import TaxiTycoon from "@/game/TaxiTycoon";
 import AdminPanel from "@/game/AdminPanel";
 import RulesPanel from "@/game/RulesPanel";
+import VersionBanner from "@/game/VersionBanner";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -42,6 +43,7 @@ function TaxiTycoonPage() {
       <TaxiTycoon />
       <AdminPanel />
       <RulesPanel />
+      <VersionBanner />
     </div>
   );
 }
