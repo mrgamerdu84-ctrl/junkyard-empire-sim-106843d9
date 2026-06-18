@@ -132,15 +132,19 @@ export default function HomeScreen({ onPlay }: { onPlay: () => void }) {
           letter-spacing: 1px;
           padding: 14px 0;
           width: 100%;
-          border-radius: 14px;
-          box-shadow: 0 6px 0 #8a6510, 0 12px 20px rgba(0,0,0,0.5);
+          border-radius: 16px;
+          border: 2px solid #fde047;
+          box-shadow: 0 6px 0 #8a6510, 0 12px 20px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.25);
           transition: transform 0.08s, box-shadow 0.08s, filter 0.15s;
           display: flex; align-items: center; justify-content: center; gap: 10px;
           text-transform: uppercase;
+          text-shadow: 0 1px 0 rgba(255,255,255,0.35);
+          text-decoration: none;
         }
+        .hs-btn:hover { filter: brightness(1.08); }
         .hs-btn:active {
           transform: translateY(4px);
-          box-shadow: 0 2px 0 #8a6510, 0 4px 8px rgba(0,0,0,0.4);
+          box-shadow: 0 2px 0 #8a6510, 0 4px 8px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.2);
         }
         .hs-apk-icon { width: 22px; height: 22px; fill: #1a1208; }
         .hs-name-badge {
@@ -216,30 +220,6 @@ export default function HomeScreen({ onPlay }: { onPlay: () => void }) {
           margin: 0;
           line-height: 1.1;
         }
-        .hs-apk-link {
-          appearance: none;
-          text-decoration: none;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          gap: 10px;
-          background: linear-gradient(180deg, #10b981, #059669);
-          color: #fff;
-          font-size: clamp(16px, 4vw, 20px);
-          font-weight: 900;
-          letter-spacing: 1px;
-          padding: 14px 24px;
-          width: 100%;
-          border-radius: 14px;
-          box-shadow: 0 6px 0 #064e3b, 0 12px 20px rgba(0,0,0,0.5);
-          transition: transform 0.08s, box-shadow 0.08s, filter 0.15s;
-          text-transform: uppercase;
-          cursor: pointer;
-        }
-        .hs-apk-link:active {
-          transform: translateY(4px);
-          box-shadow: 0 2px 0 #064e3b, 0 4px 8px rgba(0,0,0,0.4);
-        }
       `}</style>
 
       <UpdateNotification />
@@ -290,14 +270,20 @@ export default function HomeScreen({ onPlay }: { onPlay: () => void }) {
           ✏️ Pseudo {!user && (trialExpired ? "🔒" : `(${daysLeft}j)`)}
         </button>
         {user ? (
-          <button className="hs-btn" style={{ background: "linear-gradient(180deg,#6b7280,#374151)", color: "#fff", boxShadow: "0 6px 0 #1f2937, 0 12px 20px rgba(0,0,0,0.5)" }} onClick={() => signOut()}>
+          <button className="hs-btn" style={{ background: "linear-gradient(180deg,#6b7280,#374151)", color: "#fff", boxShadow: "0 6px 0 #1f2937, 0 12px 20px rgba(0,0,0,0.5)", border: "2px solid #6b7280", textShadow: "0 1px 0 rgba(0,0,0,0.3)" }} onClick={() => signOut()}>
             🚪 Déconnexion
           </button>
         ) : (
-          <button className="hs-btn" style={{ background: "linear-gradient(180deg,#10b981,#059669)", color: "#fff", boxShadow: "0 6px 0 #064e3b, 0 12px 20px rgba(0,0,0,0.5)" }} onClick={() => navigate({ to: "/auth" })}>
+          <button className="hs-btn" style={{ background: "linear-gradient(180deg,#10b981,#059669)", color: "#fff", boxShadow: "0 6px 0 #064e3b, 0 12px 20px rgba(0,0,0,0.5)", border: "2px solid #34d399", textShadow: "0 1px 0 rgba(0,0,0,0.3)" }} onClick={() => navigate({ to: "/auth" })}>
             🔐 Connexion
           </button>
         )}
+        <a href="/MyTaxiWorldTycoon.apk" download className="hs-btn">
+          <svg className="hs-apk-icon" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+            <path d="M17.6 9.48l1.84-3.2c.16-.27.07-.62-.2-.78-.27-.16-.62-.07-.78.2l-1.87 3.24c-1.52-.68-3.22-1.06-5.02-1.06-1.8 0-3.5.38-5.02 1.06L4.84 5.7c-.16-.27-.51-.36-.78-.2-.27.16-.36.51-.2.78l1.84 3.2C2.8 11.36 1 14.44 1 18h22c0-3.56-1.8-6.64-4.4-8.52zM7 15.25c-.69 0-1.25-.56-1.25-1.25s.56-1.25 1.25-1.25 1.25.56 1.25 1.25-.56 1.25-1.25 1.25zm10 0c-.69 0-1.25-.56-1.25-1.25s.56-1.25 1.25-1.25 1.25.56 1.25 1.25-.56 1.25-1.25 1.25z"/>
+          </svg>
+          Télécharger l'APK
+        </a>
       </div>
 
       {showTutorial && <TutorialDialog onClose={() => setShowTutorial(false)} />}
