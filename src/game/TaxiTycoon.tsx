@@ -1693,30 +1693,71 @@ export default function TaxiTycoon() {
         })}
 
 
-        {taxisRef.current.map((taxi) => {
-          const movingForward = taxi.target >= taxi.pos;
-          const p = taxi.lane ?? getLaneXY(taxi.pathIdx, taxi.pos, movingForward);
-          // eslint-disable-next-line @typescript-eslint/no-unused-vars
-          const _ = taxi.colorId;
-          const angle = p.angle;
-          const fuelPct = Math.max(0, Math.min(1, taxi.fuel / 100));
-          const fuelLow = taxi.fuel < FUEL_LOW_THRESHOLD;
-          return (
-            <g key={taxi.id}>
-              <g transform={`translate(${p.x},${p.y}) rotate(${angle})`} filter="url(#taxi-shadow)">
-                <TaxiSprite image={currentLivery.image} faceRight={currentLivery.faceRight} withClient={taxi.mode === "to_dest"} moving={taxi.mode !== "idle" && taxi.mode !== "refueling" && taxi.mode !== "depositing"} />
+        {(() => {
+          // Calcule les positions monde des places de parking du QG
+          const hqCx = depotXY.x;
+          const hqCy = depotXY.y - 18;
+          const scale = admin.hqScale;
+          const rot = (admin.hqRotation * Math.PI) / 180;
+          const cosR = Math.cos(rot);
+          const sinR = Math.sin(rot);
+          const W = 260;
+          const slotsCount = 4 + (save.hqCapacityLvl ?? 0);
+          const slotW = (W - 60) / slotsCount;
+          const slotWorld = (i: number) => {
+            const lx = -W / 2 + 30 + i * slotW + slotW / 2;
+            const ly = 30;
+            const sx = lx * scale;
+            const sy = ly * scale;
+            return {
+              x: hqCx + sx * cosR - sy * sinR,
+              y: hqCy + sx * sinR + sy * cosR,
+              angle: -90 + admin.hqRotation, // taxi nez vers le bâtiment
+            };
+          };
+          // Détermine quels taxis sont parqués
+          const parked: { taxi: Taxi; slot: number }[] = [];
+          const parkedIds = new Set<number>();
+          taxisRef.current.forEach((t) => {
+            if (t.mode === "depositing" || t.mode === "idle") {
+              const here = taxiXY(t);
+              const dx = here.x - admin.hqX;
+              const dy = here.y - admin.hqY;
+              if (dx * dx + dy * dy <= 70 * 70) {
+                parked.push({ taxi: t, slot: 0 });
+                parkedIds.add(t.id);
+              }
+            }
+          });
+
+          parked.forEach((p, i) => { p.slot = i % slotsCount; });
+
+          return taxisRef.current.map((taxi) => {
+            const movingForward = taxi.target >= taxi.pos;
+            const onPath = taxi.lane ?? getLaneXY(taxi.pathIdx, taxi.pos, movingForward);
+            const parkInfo = parked.find((q) => q.taxi.id === taxi.id);
+            const p = parkInfo ? slotWorld(parkInfo.slot) : onPath;
+            const angle = p.angle;
+            const fuelPct = Math.max(0, Math.min(1, taxi.fuel / 100));
+            const fuelLow = taxi.fuel < FUEL_LOW_THRESHOLD;
+            return (
+              <g key={taxi.id}>
+                <g transform={`translate(${p.x},${p.y}) rotate(${angle})`} filter="url(#taxi-shadow)">
+                  <TaxiSprite image={currentLivery.image} faceRight={currentLivery.faceRight} withClient={taxi.mode === "to_dest"} moving={taxi.mode !== "idle" && taxi.mode !== "refueling" && taxi.mode !== "depositing"} />
+                </g>
+                {/* Mini jauge essence sous le taxi */}
+                <g transform={`translate(${p.x - 12},${p.y + 22})`}>
+                  <rect x="0" y="0" width="24" height="3" rx="1" fill="#0a0c10" opacity="0.7" />
+                  <rect x="0" y="0" width={24 * fuelPct} height="3" rx="1" fill={fuelLow ? "#ef4444" : "#34d399"} />
+                </g>
+                {taxi.mode === "refueling" && (
+                  <text x={p.x} y={p.y - 30} fontSize="11" textAnchor="middle" fill="#fde68a" fontWeight="900">⛽</text>
+                )}
               </g>
-              {/* Mini jauge essence sous le taxi */}
-              <g transform={`translate(${p.x - 12},${p.y + 22})`}>
-                <rect x="0" y="0" width="24" height="3" rx="1" fill="#0a0c10" opacity="0.7" />
-                <rect x="0" y="0" width={24 * fuelPct} height="3" rx="1" fill={fuelLow ? "#ef4444" : "#34d399"} />
-              </g>
-              {taxi.mode === "refueling" && (
-                <text x={p.x} y={p.y - 30} fontSize="11" textAnchor="middle" fill="#fde68a" fontWeight="900">⛽</text>
-              )}
-            </g>
-          );
-        })}
+            );
+          });
+        })()}
+
 
         {/* Popups gains */}
         {popups.map((p) => (
