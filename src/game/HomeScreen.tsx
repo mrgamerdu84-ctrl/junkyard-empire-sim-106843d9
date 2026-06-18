@@ -163,6 +163,7 @@ export default function HomeScreen({ onPlay }: { onPlay: () => void }) {
         .hs-pseudo-secondary {
           background: #374151; color: #fff;
         }
+      `}</style>
 
       <UpdateNotification />
 
