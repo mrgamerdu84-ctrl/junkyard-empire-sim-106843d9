@@ -3,7 +3,7 @@ import bgAsset from "@/assets/home-bg.png.asset.json";
 import { UpdateNotification } from "@/components/UpdateNotification";
 import TutorialDialog from "@/components/TutorialDialog";
 import LeaderboardPanel from "@/components/LeaderboardPanel";
-import { hasSeenTutorial, resetTutorial } from "@/lib/leaderboard";
+import { hasSeenTutorial, resetTutorial, getPlayerName, setPlayerName } from "@/lib/leaderboard";
 
 export default function HomeScreen({ onPlay }: { onPlay: () => void }) {
   const [loading, setLoading] = useState(false);
