@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import splashAsset from "@/assets/garage-splash.png.asset.json";
+import splashAsset from "@/assets/taxi-tycoon-splash.png.asset.json";
 
 export default function SplashScreen({ onDone }: { onDone: () => void }) {
   const [phase, setPhase] = useState<"in" | "hold" | "out">("in");
@@ -23,16 +23,16 @@ export default function SplashScreen({ onDone }: { onDone: () => void }) {
         }
         .sp-img {
           position: absolute; inset: 0; width: 100%; height: 100%;
-          object-fit: cover; object-position: center 30%;
-          opacity: 0; transform: scale(1.08);
+          object-fit: cover; object-position: center 40%;
+          opacity: 0; transform: scale(1.06);
           transition: opacity 0.8s ease, transform 6s ease;
         }
         .sp-img.sp-in  { opacity: 1; transform: scale(1); }
-        .sp-img.sp-out { opacity: 0; transform: scale(1.05); }
+        .sp-img.sp-out { opacity: 0; transform: scale(1.03); }
 
         .sp-vignette {
           position: absolute; inset: 0; pointer-events: none;
-          background: linear-gradient(0deg, rgba(10,12,16,0.95) 0%, rgba(10,12,16,0.4) 35%, rgba(10,12,16,0.1) 55%, rgba(10,12,16,0.5) 100%);
+          background: linear-gradient(0deg, rgba(10,12,16,0.85) 0%, rgba(10,12,16,0.25) 40%, rgba(10,12,16,0.1) 60%, rgba(10,12,16,0.45) 100%);
         }
 
         .sp-content {
@@ -92,7 +92,6 @@ export default function SplashScreen({ onDone }: { onDone: () => void }) {
       <div className="sp-vignette" />
 
       <div className={`sp-content sp-${phase}`}>
-        <h1 className="sp-title">Taxi Tycoon</h1>
         <div className="sp-sub">City Cab Empire</div>
         <div className="sp-bar-wrap">
           <div className="sp-bar-fill" />
