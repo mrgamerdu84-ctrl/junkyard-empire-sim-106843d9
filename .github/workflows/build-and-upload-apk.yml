@@ -2,8 +2,9 @@ name: Build & Upload APK (Debug)
 
 # Workflow simplifié : build DEBUG (pas de signature, pas de keystore).
 # Tu n'as besoin que de 2 secrets GitHub :
-#   UPLOAD_URL  → https://junkyard-empire-sim.lovable.app/api/public/upload-apk
+#   UPLOAD_URL  → https://aljocjqlccsgfnqrsutx.supabase.co/functions/v1/upload-apk
 #   UPLOAD_TOKEN → même valeur que côté Lovable Cloud secrets
+
 
 on:
   push:
