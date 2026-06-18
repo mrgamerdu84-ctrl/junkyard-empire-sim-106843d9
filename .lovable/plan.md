@@ -1,79 +1,93 @@
-# Rendre la ville vivante (taxis, PNJ, trafic, jour/nuit)
 
-## 1. Nettoyage zone "village" (haut de la map)
-Dans `CityTraffic.tsx` et `TaxiTycoon.tsx` :
-- Définir une `NO_SPAWN_ZONE` couvrant toute la bande supérieure (villages).
-- Filtrer le spawn des clients, PNJ, voitures et camions pour qu'aucun n'apparaisse ni ne traverse cette zone.
-- Supprimer les routes/segments qui passent sur les maisons du village.
+## Réponse rapide à tes deux questions
 
-## 2. Suppression de l'ancien QG + nouveau QG "garage industriel chic"
-- Retirer `hq-taxi-depot.png` du rendu (asset gardé mais plus utilisé, ou supprimé).
-- Nouveau QG dessiné en SVG vue du ciel : grand toit plat gris béton, marquages jaunes au sol, rangée de places de parking pour taxis (visibles, taxis garés visibles quand inactifs), néons jaunes/noirs, enseigne "TAXI HQ", héliport optionnel niveau max.
-- Le QG évolue visuellement avec les upgrades de la boutique existante (+ places de parking visibles selon `hqCapacityLvl`, néons plus lumineux selon `hqRevenueLvl`, etc.).
+### 1. Mise à jour vraiment automatique → impossible avec ton setup actuel
 
-## 3. Feux rouges automatiques + code de la route
-Nouveau système dans `CityTraffic.tsx` :
-- Détecter automatiquement chaque intersection (croisement de routes).
-- À chaque intersection, créer un objet `TrafficLight` avec cycle vert 8s / orange 2s / rouge 10s, déphasé entre axes N-S et E-O.
-- Avant de franchir une intersection, chaque véhicule (taxi, voiture, camion) regarde le feu de sa direction :
-  - vert → passe
-  - orange → freine si encore loin, passe sinon
-  - rouge → s'arrête à la ligne d'arrêt (zone tampon ~20 px).
-- Passages piétons : zones marquées juste avant chaque feu. Quand feu véhicule = rouge, le feu piéton est vert → les PNJ peuvent traverser. Les véhicules ne redémarrent que si le passage est libre.
-- Respect de la priorité : à un croisement sans feu (ronds-points / petites rues), céder à la voiture déjà engagée.
+Tu utilises **Capacitor avec assets embarqués**. Ça veut dire que le code HTML/JS du jeu est *physiquement copié* à l'intérieur de ton APK quand Android Studio le compile. Tant que les assets restent embarqués, **aucune mise à jour ne peut atterrir sur le téléphone sans réinstaller l'APK** (= refaire un ZIP + rebuild). C'est une limite d'Android, pas de mon côté.
 
-## 4. Sprites vue du ciel uniformes
-Tous les acteurs en vue de dessus (top-down) cohérente avec les taxis :
-- PNJ : petit cercle/forme avec tête + épaules vus du dessus (SVG, ~14 px), couleurs variées.
-- Voitures civiles : rectangles arrondis vue du ciel avec pare-brise (différentes couleurs/tailles).
-- Camions : rectangle plus long avec cabine + remorque.
-- Feux rouges : pictogramme vu du ciel (3 pastilles rouge/orange/vert sur poteau, ombre courte).
-- Lampadaires : petit cercle lumineux sur trottoir, halo qui s'allume la nuit.
+Les deux seules façons d'avoir du vrai "auto-update" seraient :
+- charger l'URL Lovable directement en WebView (ce que tu as refusé)
+- utiliser un système type "Capacitor Live Updates" (payant, complexe)
 
-## 5. Cycle jour/nuit 5 minutes
-Nouveau hook `useDayNightCycle` :
-- Cycle complet 300 s : aube → jour → crépuscule → nuit.
-- Overlay SVG plein écran teinté (transparent jour, bleu nuit ~rgba(10,20,50,0.55) la nuit) au-dessus de la map sous l'UI.
-- Lampadaires et néons du QG : halo `<radialGradient>` activé quand `phase ∈ {dusk, night, dawn}`.
-- Phares des voitures la nuit : 2 petits cônes jaunes devant le véhicule.
-- Indicateur d'heure (petite horloge en haut) optionnel.
+Donc on reste sur ton workflow ZIP, mais on rend le rappel **automatique**.
 
-## 6. Boucle temps réel
-- Un seul `requestAnimationFrame` central calcule `dt` (delta-time en secondes) et le passe à : véhicules, PNJ, feux, cycle jour/nuit, clients.
-- Tous les mouvements deviennent `pos += speed * dt` au lieu de pas fixes → indépendant du framerate, sensation "temps réel".
+### 2. La "page blanche / task"
 
-## 7. PNJ piétons (densité moyenne)
-- ~25-40 PNJ actifs simultanément sur les trottoirs.
-- Marchent le long des trottoirs, traversent uniquement aux passages piétons quand feu piéton vert.
-- Spawn/despawn aux bords de la map (jamais dans la zone village).
+J'ai vérifié le code actuel :
+- `src/routes/index.tsx`, `TaxiTycoon`, `AdminPanel`, `CityTraffic` → propres
+- Aucune erreur dans les logs du serveur de dev
+- L'aperçu Lovable tourne (les animations défilent dans la session)
 
-## Détails techniques
+Donc côté **code, rien de cassé en ce moment**. La page blanche d'il y a quelques jours venait probablement d'un build cassé temporairement (logique de véhicules — message #210 où je te disais de revenir en arrière). C'est résolu.
 
-**Fichiers touchés**
-- `src/game/CityTraffic.tsx` : intersections, feux, passages piétons, sprites top-down, PNJ.
-- `src/game/TaxiTycoon.tsx` : nouveau QG SVG, suppression import `hq-taxi-depot`, intégration cycle jour/nuit overlay, respect des feux par les taxis.
-- `src/game/adminConfig.ts` : nouvelles options `dayNightSpeed`, `pedestrianDensity`, `trafficLightsEnabled`.
-- `src/game/AdminPanel.tsx` : toggles correspondants.
-- (optionnel) suppression de `src/assets/hq-taxi-depot.png.asset.json`.
+---
 
-**Structures clés**
+## Ce que je vais construire
+
+Un **système de notification de nouvelle version** : l'APK déjà installé sur ton téléphone, au lancement, vérifie discrètement s'il existe un ZIP plus récent côté Lovable. Si oui, une bannière apparaît dans le jeu.
+
+### Comment ça marche
+
 ```text
-TrafficLight { x, y, axis: 'NS'|'EO', state: 'green'|'orange'|'red', t: number }
-Intersection { x, y, lights: TrafficLight[2], crosswalks: Crosswalk[4] }
-Pedestrian { x, y, path, speed, waitingAt?: Crosswalk }
-DayNight { t: 0..1, phase: 'dawn'|'day'|'dusk'|'night' }
+Build du jeu                APK installé (téléphone)         Lovable (web publié)
+──────────────              ────────────────────────         ────────────────────
+genère version.json   ───►  /version.json (embarqué)         /version.json (live)
+{                           valeur figée au build            valeur mise à jour
+  buildId: "2026...",            │                            à chaque déploiement
+  builtAt: 1718...               │
+}                                ▼
+                          au démarrage, fetch la version live
+                          compare avec la version embarquée
+                                 │
+                                 ▼
+                          différente ? → bannière :
+                          "🆕 Nouvelle version dispo,
+                           demande à Lovable : fais-moi le zip"
 ```
 
-**Comportement véhicule (pseudo)**
-```text
-nextLight = lightAhead(vehicle, 60px)
-if nextLight.state === 'red'  → target speed 0 at stopLine
-if nextLight.state === 'orange' && dist > brakeDist → slow
-else → cruise
-if crosswalkAhead has pedestrian crossing → stop
-```
+### Étapes concrètes
 
-## Hors scope (à confirmer après)
-- Klaxons / sons d'ambiance nuit.
-- Météo (pluie, neige).
-- Voitures de police / urgences avec priorité.
+1. **Génération automatique d'un `version.json`** à chaque build
+   - Petit plugin Vite qui écrit `public/version.json` avec `{ buildId, builtAt }` dérivés du timestamp de build
+   - Embarqué dans le ZIP → finit dans l'APK
+   - Embarqué aussi dans le site Lovable publié
+
+2. **Hook `useVersionCheck()`** côté client
+   - Au démarrage, lit le `version.json` local (figé dans l'APK)
+   - Fetch `https://<ton-url>.lovable.app/version.json` (la version "live")
+   - Compare les `buildId` / `builtAt`
+   - Gestion gracieuse si pas de réseau : silence, pas d'erreur visible
+
+3. **Bannière discrète** en haut du jeu quand une nouvelle version est dispo
+   - Texte : *"🆕 Nouvelle version dispo (15 juin 14:30). Demande à Lovable : « fais-moi le zip »"*
+   - Bouton "×" pour la masquer
+   - Style cohérent avec l'UI du panel admin (fond `#14171c`, accent `#f5c542`)
+   - Affichée une fois par session, mémorise le dismiss en `localStorage`
+
+4. **Petit indicateur dans l'onglet Export** du panel admin
+   - Affiche la version installée (ex: *"v. 18/06 06:56"*)
+   - Affiche la version dispo en ligne
+   - Bouton "Vérifier maintenant" qui force un refetch
+
+### Détails techniques
+
+- Pas de serveur custom à déployer, juste un fichier statique `version.json`
+- L'URL Lovable est stable (`project--ab16a35f-...lovable.app`)
+- Si l'utilisateur est offline, pas de bannière, pas d'erreur, pas de log bruyant
+- Aucun changement à la logique du jeu, juste une couche d'info
+
+### Fichiers à toucher
+
+- `vite.config.ts` — petit plugin qui génère `public/version.json` au build
+- `src/lib/version-check.ts` — hook React + logique de comparaison (nouveau)
+- `src/game/VersionBanner.tsx` — composant bannière (nouveau)
+- `src/routes/index.tsx` — ajouter `<VersionBanner />`
+- `src/game/AdminPanel.tsx` — enrichir l'onglet Export avec les deux versions
+
+### Limites à connaître
+
+- **Première fois** : tu dois publier le site Lovable une fois (`Publish`) pour que la version "live" soit accessible. Ensuite chaque ZIP que je te donne contient la version au moment du build, et le site publié reflète la dernière version dès qu'on republie.
+- La bannière n'apparaîtra **que si je publie aussi le site web** après chaque modif (ou que tu cliques Publier). Sinon ton APK ne saura pas qu'il y a du neuf.
+- C'est un **rappel**, pas une vraie maj : tu devras toujours me demander "fais-moi le zip" et réimporter dans Android Studio.
+
+Tu valides ? Si oui, je passe en mode build.

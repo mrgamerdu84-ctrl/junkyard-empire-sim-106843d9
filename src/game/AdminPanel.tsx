@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { useAdminConfig, setAdmin, resetAdmin, type AdminConfig } from "./adminConfig";
+import { useVersionCheck, formatBuildDate } from "@/lib/version-check";
 
 /* Floating gear button + slide-in admin panel. */
 export default function AdminPanel() {
@@ -332,25 +333,7 @@ export default function AdminPanel() {
               </>
             )}
 
-            {tab === "export" && (
-              <>
-                <div style={{ fontSize: 12, color: "#c8ccd2", lineHeight: 1.5, marginBottom: 10 }}>
-                  📦 <strong style={{ color: "#f5c542" }}>Export du projet pour Android Studio</strong>
-                </div>
-                <div style={{ fontSize: 11, color: "#8a8e94", lineHeight: 1.6, marginBottom: 12 }}>
-                  Pour récupérer le ZIP à jour avec les dernières modifications, écris simplement à Lovable :
-                  <div style={{ background: "#1f242b", padding: "8px 10px", borderRadius: 6, marginTop: 8, color: "#f5c542", fontFamily: "monospace", fontSize: 12 }}>
-                    fais-moi le zip
-                  </div>
-                </div>
-                <div style={{ fontSize: 11, color: "#8a8e94", lineHeight: 1.6 }}>
-                  Le ZIP contient tout le code source (hors <code>node_modules</code>) prêt à être importé dans Android Studio via Capacitor / Bubblewrap.
-                </div>
-                <div style={{ fontSize: 11, color: "#6a6e74", marginTop: 14, padding: "8px 10px", background: "#1f242b", borderRadius: 6 }}>
-                  💡 Astuce : demande "fais-moi le zip" après chaque session de modifs pour avoir toujours la dernière version.
-                </div>
-              </>
-            )}
+            {tab === "export" && <ExportTab />}
 
 
             <button className="adm-reset" onClick={resetAdmin}>↺ Réinitialiser les valeurs</button>
@@ -383,3 +366,56 @@ function Slider({
 }
 
 export type { AdminConfig };
+
+function ExportTab() {
+  const { local, remote, hasUpdate, loading, refresh } = useVersionCheck();
+  const rowStyle = { display: "flex", justifyContent: "space-between", fontSize: 11, color: "#c8ccd2", padding: "4px 0" } as const;
+  const valStyle = { color: "#f5c542", fontVariantNumeric: "tabular-nums" as const, fontWeight: 600 };
+  return (
+    <>
+      <div style={{ fontSize: 12, color: "#c8ccd2", lineHeight: 1.5, marginBottom: 10 }}>
+        📦 <strong style={{ color: "#f5c542" }}>Export du projet pour Android Studio</strong>
+      </div>
+      <div style={{ fontSize: 11, color: "#8a8e94", lineHeight: 1.6, marginBottom: 12 }}>
+        Pour récupérer le ZIP à jour, écris simplement à Lovable :
+        <div style={{ background: "#1f242b", padding: "8px 10px", borderRadius: 6, marginTop: 8, color: "#f5c542", fontFamily: "monospace", fontSize: 12 }}>
+          fais-moi le zip
+        </div>
+      </div>
+
+      <div style={{ background: "#1f242b", padding: "10px 12px", borderRadius: 8, marginBottom: 10 }}>
+        <div style={{ fontSize: 11, fontWeight: 700, color: "#f5c542", marginBottom: 6, letterSpacing: 0.3 }}>
+          📡 ÉTAT DE LA VERSION
+        </div>
+        <div style={rowStyle}>
+          <span>Version installée</span>
+          <span style={valStyle}>{formatBuildDate(local)}</span>
+        </div>
+        <div style={rowStyle}>
+          <span>Dernière version en ligne</span>
+          <span style={valStyle}>{loading ? "…" : formatBuildDate(remote)}</span>
+        </div>
+        <div style={{ ...rowStyle, borderTop: "1px solid #2a2f38", marginTop: 4, paddingTop: 6 }}>
+          <span>Statut</span>
+          <span style={{ ...valStyle, color: hasUpdate ? "#22c55e" : remote ? "#8a8e94" : "#ef4444" }}>
+            {loading ? "Vérification…" : hasUpdate ? "🆕 Maj dispo" : remote ? "À jour" : "Hors ligne"}
+          </span>
+        </div>
+        <button
+          onClick={refresh}
+          style={{
+            width: "100%", marginTop: 8, padding: "6px 10px", borderRadius: 6,
+            border: "1px solid #3a3f48", background: "#14171c", color: "#e8edf2",
+            fontSize: 11, cursor: "pointer",
+          }}
+        >
+          ↻ Vérifier maintenant
+        </button>
+      </div>
+
+      <div style={{ fontSize: 11, color: "#6a6e74", padding: "8px 10px", background: "#1f242b", borderRadius: 6 }}>
+        💡 Une bannière apparaîtra automatiquement dans le jeu dès qu'une nouvelle version sera publiée sur Lovable.
+      </div>
+    </>
+  );
+}
