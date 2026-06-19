@@ -880,15 +880,25 @@ async function guessVehicleRotation(src: string): Promise<VehicleRotation> {
 }
 
 
+const TOPDOWN_PREF_KEY = "mttw.admin.alreadyTopDown";
+
 function CustomVehiclesSection() {
   const [items, setItems] = useState<CustomVehicle[]>(() => listCustomVehicles());
   const [name, setName] = useState("");
   const [category, setCategory] = useState<CustomVehicleCategory>("civil");
   const [pendingSrc, setPendingSrc] = useState<string | null>(null);
   const [rotation, setRotation] = useState<0 | 90 | 180 | 270>(0);
+  const [alreadyTopDown, setAlreadyTopDown] = useState<boolean>(() => {
+    try { return localStorage.getItem(TOPDOWN_PREF_KEY) === "1"; } catch { return false; }
+  });
   const fileRef = useRef<HTMLInputElement>(null);
 
   const refresh = () => setItems(listCustomVehicles());
+
+  const setAlreadyTopDownPref = (v: boolean) => {
+    setAlreadyTopDown(v);
+    try { localStorage.setItem(TOPDOWN_PREF_KEY, v ? "1" : "0"); } catch {}
+  };
 
   const onPickFile = (f: File) => {
     const reader = new FileReader();
@@ -896,7 +906,9 @@ function CustomVehiclesSection() {
       const src = String(reader.result);
       setPendingSrc(src);
       setRotation(0);
-      void guessVehicleRotation(src).then(setRotation).catch(() => {});
+      if (!alreadyTopDown) {
+        void guessVehicleRotation(src).then(setRotation).catch(() => {});
+      }
       if (fileRef.current) fileRef.current.value = "";
     };
     reader.readAsDataURL(f);
@@ -908,8 +920,11 @@ function CustomVehiclesSection() {
     const src = url.trim();
     setPendingSrc(src);
     setRotation(0);
-    void guessVehicleRotation(src).then(setRotation).catch(() => {});
+    if (!alreadyTopDown) {
+      void guessVehicleRotation(src).then(setRotation).catch(() => {});
+    }
   };
+
 
   const confirmAdd = async () => {
     if (!pendingSrc) return;
@@ -974,6 +989,16 @@ function CustomVehiclesSection() {
           <option key={k} value={k}>{VEHICLE_CATEGORY_LABELS[k]}</option>
         ))}
       </select>
+
+      <label style={{ display: "flex", alignItems: "center", gap: 8, padding: "6px 8px", background: "#14171c", border: "1px solid #3a3f48", borderRadius: 4, marginBottom: 8, cursor: "pointer", fontSize: 11, color: "#e8edf2" }}>
+        <input
+          type="checkbox"
+          checked={alreadyTopDown}
+          onChange={(e) => setAlreadyTopDownPref(e.target.checked)}
+          style={{ accentColor: "#f5c542" }}
+        />
+        <span>🛸 Image déjà en <strong style={{ color: "#f5c542" }}>vue du ciel</strong> (ne pas tourner)</span>
+      </label>
 
       {!pendingSrc ? (
         <div style={{ display: "flex", gap: 6 }}>
