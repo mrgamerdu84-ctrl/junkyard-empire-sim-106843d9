@@ -1,6 +1,6 @@
 {
-  "version": "1.1.0",
-  "buildId": "2026-06-19T09:10:00.000Z",
-  "builtAt": 1781860200000,
-  "changelog": "Upload de nouveaux véhicules depuis le panel admin"
+  "version": "1.2.0",
+  "buildId": "2026-06-19T09:30:00.000Z",
+  "builtAt": 1781861400000,
+  "changelog": "Personnalisation du taxi dans le profil + skins admin disponibles pour tous"
 }
