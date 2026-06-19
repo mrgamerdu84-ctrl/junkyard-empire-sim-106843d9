@@ -246,6 +246,7 @@ export default function TaxiRadio() {
 
   const pick = (id: string) => {
     setStationId(id);
+    setPaused(false);
     try { localStorage.setItem(STORAGE_KEY, id); } catch {}
     // déblocage TTS au clic (sur la bonne piste utilisateur)
     if (id === "infos" && typeof window !== "undefined" && "speechSynthesis" in window) {
@@ -257,6 +258,37 @@ export default function TaxiRadio() {
       } catch {}
     }
   };
+
+  const playableStations = STATIONS;
+  const stepStation = (dir: 1 | -1) => {
+    const idx = playableStations.findIndex((s) => s.id === stationId);
+    const base = idx < 0 ? 0 : idx;
+    const next = (base + dir + playableStations.length) % playableStations.length;
+    pick(playableStations[next].id);
+  };
+  const togglePlay = () => {
+    const a = audioRef.current;
+    const st = STATIONS.find((s) => s.id === stationId);
+    if (paused) {
+      setPaused(false);
+      if (st?.tts) {
+        // relance le cycle des brèves
+        setStationId((s) => s); // no-op; force user to re-pick
+        pick("infos");
+      } else if (a) {
+        a.play().catch(() => {});
+      }
+    } else {
+      setPaused(true);
+      if (a) { try { a.pause(); } catch {} }
+      if (ttsAudioRef.current) { try { ttsAudioRef.current.pause(); } catch {} }
+      if (ambientTimerRef.current) { window.clearInterval(ambientTimerRef.current); ambientTimerRef.current = null; }
+      if (typeof window !== "undefined" && "speechSynthesis" in window) {
+        try { window.speechSynthesis.cancel(); } catch {}
+      }
+    }
+  };
+
 
   const setLanguage = (l: "fr" | "en") => {
     setLang(l);
