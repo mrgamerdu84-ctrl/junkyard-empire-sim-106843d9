@@ -1,6 +1,6 @@
 {
-  "version": "1.0.0",
-  "buildId": "2026-06-19T07:39:18.058Z",
-  "builtAt": 1781854758058,
-  "changelog": "Mise à jour automatique active"
+  "version": "1.0.1",
+  "buildId": "2026-06-19T08:00:00.000Z",
+  "builtAt": 1781856000000,
+  "changelog": "Panel admin renforcé (toujours visible), vraie voiture de police, slider nombre de police"
 }
