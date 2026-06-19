@@ -69,6 +69,34 @@ export default function TaxiRadio() {
   const weatherFetchedAtRef = useRef<number>(0);
   const [weatherState, setWeatherState] = useState<{ tempC: number; code: number; city: string } | null>(null);
   const [nowTick, setNowTick] = useState<number | null>(null);
+  // "Heure des infos" : à chaque xx:00, toutes les radios passent aux infos pendant 10 min
+  const [newsHour, setNewsHour] = useState<boolean>(false);
+  const newsHourRef = useRef<boolean>(false);
+  useEffect(() => { newsHourRef.current = newsHour; }, [newsHour]);
+  useEffect(() => {
+    const check = () => {
+      const m = new Date().getMinutes();
+      const active = m < 10;
+      setNewsHour((prev) => (prev !== active ? active : prev));
+    };
+    check();
+    const t = window.setInterval(check, 20 * 1000);
+    return () => window.clearInterval(t);
+  }, []);
+  const interludeRef = useRef<HTMLAudioElement | null>(null);
+  const playMusicInterlude = (url: string, ms: number = 15000) => {
+    try {
+      if (interludeRef.current) { try { interludeRef.current.pause(); } catch {} }
+      const a = new Audio(url);
+      a.volume = 0.5;
+      interludeRef.current = a;
+      a.play().catch(() => {});
+      window.setTimeout(() => {
+        try { a.pause(); } catch {}
+        if (interludeRef.current === a) interludeRef.current = null;
+      }, ms);
+    } catch {}
+  };
 
   // Tick toutes les 30s pour rafraîchir l'horloge + fetch météo au montage et toutes les 30 min
   useEffect(() => {
