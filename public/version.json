@@ -1,6 +1,6 @@
 {
-  "version": "1.12.1",
-  "buildId": "2026-06-19T22:55:00.000Z",
-  "builtAt": 1781909700000,
-  "changelog": "Bascule infos alignée sur l'horloge murale (xx:00 / xx:10) — synchrone après reload ou changement d'onglet"
+  "version": "1.13.0",
+  "buildId": "2026-06-19T23:30:00.000Z",
+  "builtAt": 1781912100000,
+  "changelog": "Menu en jeu (☰) : profil, classement, tuto, retour à l'accueil, déconnexion"
 }

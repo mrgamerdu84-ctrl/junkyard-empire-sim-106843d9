@@ -8,6 +8,7 @@ import RulesPanel from "@/game/RulesPanel";
 import VersionBanner from "@/game/VersionBanner";
 import HomeScreen from "@/game/HomeScreen";
 import SplashScreen from "@/game/SplashScreen";
+import GameMenu from "@/game/GameMenu";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -67,6 +68,7 @@ function TaxiTycoonPage() {
       <AdminPanel />
       <RulesPanel />
       <VersionBanner />
+      <GameMenu onHome={() => setPhase("home")} />
     </div>
   );
 }
