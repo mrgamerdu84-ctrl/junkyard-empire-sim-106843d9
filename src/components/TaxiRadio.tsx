@@ -280,7 +280,7 @@ export default function TaxiRadio() {
       };
       // premier passage après 35-55s pour annoncer la station
       djTimerRef.current = window.setTimeout(() => {
-        if (!paused) playDjLine(st.name);
+        if (!pausedRef.current) playDjLine(st.name);
         scheduleDj();
       }, 35000 + Math.random() * 20000) as unknown as number;
     }
