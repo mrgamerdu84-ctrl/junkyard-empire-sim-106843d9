@@ -98,34 +98,51 @@ export default function TaxiRadio() {
     tickerTimerRef.current = window.setTimeout(() => setTicker(""), 9000);
   };
 
-  // Lit une brève (TTS + bandeau visuel)
-  const speak = (news: RadioNews) => {
+  const ttsAudioRef = useRef<HTMLAudioElement | null>(null);
+
+  // Lit une brève via le serveur (Lovable AI) → audio mp3 réel (marche partout, incl. WebView Android)
+  const speak = async (news: RadioNews) => {
     const l = langRef.current;
     const text = l === "en" ? news.en : news.fr;
     showTicker(text);
-    if (typeof window === "undefined" || !("speechSynthesis" in window)) return;
     try {
-      const synth = window.speechSynthesis;
-      try { synth.cancel(); } catch {}
-      try { synth.resume(); } catch {}
-      const trySpeak = () => {
-        const u = new SpeechSynthesisUtterance(text);
-        u.lang = l === "en" ? "en-US" : "fr-FR";
-        const v = pickVoice(l);
-        if (v) u.voice = v;
-        u.rate = 1.0; u.pitch = 1.0; u.volume = 1.0;
-        synth.speak(u);
-        ttsUnlockedRef.current = true;
-      };
-      if (synth.getVoices().length === 0) {
-        // attend que les voix soient chargées puis parle
-        const onReady = () => { trySpeak(); synth.onvoiceschanged = null; };
-        synth.onvoiceschanged = onReady;
-        window.setTimeout(trySpeak, 250);
-      } else {
-        trySpeak();
+      // coupe l'audio précédent
+      if (ttsAudioRef.current) {
+        try { ttsAudioRef.current.pause(); } catch {}
+        ttsAudioRef.current.src = "";
+        ttsAudioRef.current = null;
       }
-    } catch {}
+      const res = await fetch("/api/public/radio-tts", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ text, lang: l }),
+      });
+      if (!res.ok) {
+        console.warn("[Radio] TTS HTTP", res.status, await res.text().catch(() => ""));
+        // fallback navigateur
+        if (typeof window !== "undefined" && "speechSynthesis" in window) {
+          try {
+            const u = new SpeechSynthesisUtterance(text);
+            u.lang = l === "en" ? "en-US" : "fr-FR";
+            const v = pickVoice(l); if (v) u.voice = v;
+            window.speechSynthesis.cancel();
+            window.speechSynthesis.speak(u);
+          } catch {}
+        }
+        return;
+      }
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = new Audio(url);
+      a.volume = 1.0;
+      ttsAudioRef.current = a;
+      a.onended = () => { URL.revokeObjectURL(url); if (ttsAudioRef.current === a) ttsAudioRef.current = null; };
+      a.onerror = () => { URL.revokeObjectURL(url); console.warn("[Radio] audio playback error"); };
+      try { await a.play(); ttsUnlockedRef.current = true; }
+      catch (err) { console.warn("[Radio] play() bloqué:", err); }
+    } catch (err) {
+      console.warn("[Radio] speak error:", err);
+    }
   };
 
   // Stations

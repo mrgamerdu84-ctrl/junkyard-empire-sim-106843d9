@@ -14,6 +14,7 @@ import { Route as DownloadRouteImport } from './routes/download'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as ApiPublicUploadApkRouteImport } from './routes/api/public/upload-apk'
+import { Route as ApiPublicRadioTtsRouteImport } from './routes/api/public/radio-tts'
 
 const ResetPasswordRoute = ResetPasswordRouteImport.update({
   id: '/reset-password',
@@ -40,12 +41,18 @@ const ApiPublicUploadApkRoute = ApiPublicUploadApkRouteImport.update({
   path: '/api/public/upload-apk',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiPublicRadioTtsRoute = ApiPublicRadioTtsRouteImport.update({
+  id: '/api/public/radio-tts',
+  path: '/api/public/radio-tts',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
   '/download': typeof DownloadRoute
   '/reset-password': typeof ResetPasswordRoute
+  '/api/public/radio-tts': typeof ApiPublicRadioTtsRoute
   '/api/public/upload-apk': typeof ApiPublicUploadApkRoute
 }
 export interface FileRoutesByTo {
@@ -53,6 +60,7 @@ export interface FileRoutesByTo {
   '/auth': typeof AuthRoute
   '/download': typeof DownloadRoute
   '/reset-password': typeof ResetPasswordRoute
+  '/api/public/radio-tts': typeof ApiPublicRadioTtsRoute
   '/api/public/upload-apk': typeof ApiPublicUploadApkRoute
 }
 export interface FileRoutesById {
@@ -61,6 +69,7 @@ export interface FileRoutesById {
   '/auth': typeof AuthRoute
   '/download': typeof DownloadRoute
   '/reset-password': typeof ResetPasswordRoute
+  '/api/public/radio-tts': typeof ApiPublicRadioTtsRoute
   '/api/public/upload-apk': typeof ApiPublicUploadApkRoute
 }
 export interface FileRouteTypes {
@@ -70,15 +79,23 @@ export interface FileRouteTypes {
     | '/auth'
     | '/download'
     | '/reset-password'
+    | '/api/public/radio-tts'
     | '/api/public/upload-apk'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/auth' | '/download' | '/reset-password' | '/api/public/upload-apk'
+  to:
+    | '/'
+    | '/auth'
+    | '/download'
+    | '/reset-password'
+    | '/api/public/radio-tts'
+    | '/api/public/upload-apk'
   id:
     | '__root__'
     | '/'
     | '/auth'
     | '/download'
     | '/reset-password'
+    | '/api/public/radio-tts'
     | '/api/public/upload-apk'
   fileRoutesById: FileRoutesById
 }
@@ -87,6 +104,7 @@ export interface RootRouteChildren {
   AuthRoute: typeof AuthRoute
   DownloadRoute: typeof DownloadRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
+  ApiPublicRadioTtsRoute: typeof ApiPublicRadioTtsRoute
   ApiPublicUploadApkRoute: typeof ApiPublicUploadApkRoute
 }
 
@@ -127,6 +145,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicUploadApkRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/radio-tts': {
+      id: '/api/public/radio-tts'
+      path: '/api/public/radio-tts'
+      fullPath: '/api/public/radio-tts'
+      preLoaderRoute: typeof ApiPublicRadioTtsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -135,6 +160,7 @@ const rootRouteChildren: RootRouteChildren = {
   AuthRoute: AuthRoute,
   DownloadRoute: DownloadRoute,
   ResetPasswordRoute: ResetPasswordRoute,
+  ApiPublicRadioTtsRoute: ApiPublicRadioTtsRoute,
   ApiPublicUploadApkRoute: ApiPublicUploadApkRoute,
 }
 export const routeTree = rootRouteImport
