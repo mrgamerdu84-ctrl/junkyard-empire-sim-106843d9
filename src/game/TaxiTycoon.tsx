@@ -2632,6 +2632,17 @@ export default function TaxiTycoon() {
         .tt-modal-h h3 { margin: 0; color: #fde68a; font-size: 15px; letter-spacing: 0.5px; }
         .tt-modal-x { background: transparent; border: none; color: #8a8e94; font-size: 26px; line-height: 1; cursor: pointer; padding: 0 4px; }
         .tt-modal-sub { color: #9ca3af; font-size: 11px; margin: 0 0 12px; }
+        .tt-paint-grid {
+          display: grid; grid-template-columns: repeat(auto-fit, minmax(92px, 1fr));
+          gap: 8px; margin-bottom: 14px;
+        }
+        .tt-paint {
+          min-height: 38px; display: flex; align-items: center; justify-content: center; gap: 7px;
+          background: #14171c; border: 2px solid #2a2f38; border-radius: 8px;
+          color: #e8edf2; font-size: 11px; font-weight: 800; cursor: pointer;
+        }
+        .tt-paint span { width: 16px; height: 16px; border-radius: 50%; border: 2px solid rgba(255,255,255,0.65); box-shadow: 0 2px 6px rgba(0,0,0,0.5); }
+        .tt-paint.selected { border-color: #f5c542; background: #20231a; }
         .tt-livery-grid {
           display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
           gap: 8px;
