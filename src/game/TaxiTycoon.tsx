@@ -224,12 +224,16 @@ function TaxiSprite({
   moving,
   image,
   faceRight,
+  paintFilter = "none",
+  markerColor,
   size = 36,
 }: {
   withClient: boolean;
   moving: boolean;
   image: string;
   faceRight: boolean;
+  paintFilter?: string;
+  markerColor?: string;
   size?: number;
 }) {
   // Side-view PNG on transparent square. Car body fills ~70% of width and
@@ -245,8 +249,9 @@ function TaxiSprite({
           <animateTransform attributeName="transform" type="translate" values="0 -0.3; 0 0.3; 0 -0.3" dur="0.22s" repeatCount="indefinite" />
         )}
         <g transform={faceRight ? "rotate(90)" : "rotate(-90)"}>
-          <image href={image} x={-S / 2} y={-S / 2} width={S} height={S} preserveAspectRatio="xMidYMid meet" />
+          <image href={image} x={-S / 2} y={-S / 2} width={S} height={S} preserveAspectRatio="xMidYMid meet" style={{ filter: paintFilter }} />
         </g>
+        {markerColor && <circle cx="0" cy={-S * 0.56} r="4.2" fill={markerColor} stroke="#0a0c10" strokeWidth="1.2" />}
         {withClient && (
           <g transform="translate(0,-4)">
             <circle r="3" fill="#ffd9b0" stroke="#1a1d22" strokeWidth="0.5" />
