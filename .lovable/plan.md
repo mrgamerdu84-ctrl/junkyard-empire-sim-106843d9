@@ -1,52 +1,44 @@
-## Objectifs
+## Objectif
+1) Renforcer le système d'accidents (police + ambulance + pompiers liés, minuterie claire).
+2) Désencombrer l'écran de jeu en regroupant les infos dans un menu/panel unique.
 
-Améliorer le réalisme de la circulation : police active, radars fixes, piétons bien placés, plus de trafic, et véhicules toujours orientés dans le bon sens de la route.
+## 1. Accidents — secours coordonnés + minuterie visible
 
-## 1. Police — contrôles aléatoires de civils
+Aujourd'hui, les 3 véhicules d'urgence (ambulance, pompiers, police) sont déjà spawn et la minuterie existe — mais ils partent en ordre dispersé et la minuterie démarre seulement quand le 1er arrive, ce qui n'est pas clair.
 
-- Ajouter un comportement « patrouille » à chaque voiture de police (state machine : `patrolling` → `pursuing` → `stopped_control` → `returning`).
-- Toutes les 20–60 s (aléatoire), une voiture de police choisit une cible civile proche sur la même route.
-- La police rattrape la cible, les deux véhicules s'arrêtent sur le bas-côté (offset latéral vers le trottoir).
-- Un sprite policier (piéton) sort de la voiture de police, marche jusqu'à la portière du civil, attend 4–8 s (contrôle des papiers), puis remonte dans sa voiture.
-- Les deux véhicules redémarrent dans le sens de la route d'origine.
-- Paramètres exposés dans l'AdminPanel : fréquence des contrôles, durée du contrôle, probabilité.
+Changements dans `src/game/TaxiTycoon.tsx` :
+- Quand un accident est créé, **tous les 3 véhicules** (ambulance + pompiers + police) sont dispatchés ensemble vers le même accident (pas seulement ceux en `patrol`).
+- L'accident n'est "clos" que quand **les 3 sont arrivés sur place** (`responders.size === 3`), à ce moment la minuterie démarre (`clearAt = tMs + ACCIDENT_BLOCK_MIN_MS`).
+- Affichage de la minuterie amélioré :
+  - Avant arrivée des secours : badge "🚨 Secours en route" + petits indicateurs 🚑/🚒/🚓 qui passent au vert dès qu'ils sont sur place.
+  - Après : compte à rebours numérique grand et lisible "⏱ 12s" centré au-dessus de l'accident.
+- Les cônes oranges restent centrés (déjà OK).
 
-## 2. Radars fixes sur trottoirs
+## 2. UI in-game — regrouper dans un panneau "Missions"
 
-- Nouveau type d'entité `Radar` (position figée, pas de mouvement, pas de pathfinding).
-- Placement : sur le trottoir (offset perpendiculaire à la route, côté droit), pas au milieu de la chaussée.
-- Slider AdminPanel : nombre de radars (0–10), répartis aléatoirement sur les segments de route au spawn.
-- Sprite radar orienté face à la circulation ; flash visuel quand un véhicule passe au-dessus d'un seuil de vitesse.
+Constat : plusieurs cartes flottantes (depot stats en haut, contrats sur le côté, alertes, profil, garage FAB, leaderboard, etc.) saturent l'écran, surtout sur mobile.
 
-## 3. Piétons — repositionnement
+Plan de nettoyage dans `src/game/TaxiTycoon.tsx` (UI uniquement, pas de logique métier) :
 
-- Forcer les piétons à spawn et marcher sur les `sidewalk` (trottoirs), pas sur la chaussée.
-- Recalculer l'offset latéral depuis l'axe de route : `roadHalfWidth + sidewalkOffset`.
-- Vérifier les passages piétons : traversée uniquement aux intersections marquées.
+- **Garder visible en permanence** (HUD minimal) :
+  - Barre du haut : argent + niveau ville + score (compactée).
+  - Boutons d'action en bas (conduire, etc.).
+  - Alertes critiques (accidents, contrôle police) — temporaires.
 
-## 4. Trafic — plus de véhicules
+- **Déplacer dans un nouveau panneau "📋 Missions"** (bouton FAB en haut à droite qui ouvre un panneau latéral coulissant) :
+  - Liste des contrats en cours (actuellement affichée en permanence à droite).
+  - Missions joueur spéciales.
+  - Stats du dépôt (revenus, courses…).
+  - Mini-onglets : "Contrats" / "Missions" / "Stats".
 
-- Augmenter les valeurs par défaut dans `adminConfig.ts` : `civilCarCount` 8 → 16, `taxiCount` par défaut +50 %.
-- Slider AdminPanel déjà présent : élargir la plage max (ex. 30 civils, 10 police).
-- Vérifier que le spawner ne plafonne pas en dessous des valeurs admin.
+- **Cacher par défaut** (déjà via boutons existants) : Garage, Boutique, Profil, Leaderboard, Règles, Admin.
 
-## 5. Orientation des véhicules (CRITIQUE)
+Résultat : l'écran de jeu n'a plus que la map + 1 barre haut + 1 barre bas + 1 bouton "Missions" → beaucoup plus lisible.
 
-Bug actuel : certaines voitures roulent en marche arrière selon le sens de spawn.
+## Fichiers touchés
+- `src/game/TaxiTycoon.tsx` (logique accidents + refonte UI overlays)
+- `public/version.json` → `1.3.7`
 
-- Centraliser le calcul `rotation = atan2(velocity.y, velocity.x) + spriteBaseOffset`.
-- `spriteBaseOffset` par asset (les sprites top-down regardent vers le haut → +π/2).
-- Au spawn, choisir la voie selon le sens de la route (conduite à droite) et initialiser `velocity` colinéaire à la tangente de route.
-- Au demi-tour aux extrémités, recalculer la voie + la direction au lieu d'inverser la vitesse.
-- Test de validation : ajouter un véhicule via l'admin et vérifier visuellement que le capot pointe dans le sens de marche sur tous les segments.
-
-## Détails techniques
-
-- Fichiers touchés : `src/game/TaxiTycoon.tsx` (boucle de simulation, spawn), `src/game/CityTraffic.tsx` (vehicles + pedestrians), `src/game/AdminPanel.tsx` (sliders radars/police/contrôles), `src/game/adminConfig.ts` (defaults + champs `radarCount`, `policeControlFrequency`, `policeControlDuration`), `src/game/gameAssets.ts` (asset radar + sprite policier piéton si manquant).
-- Nouveaux assets si absents : `radar-top.png`, `police-officer-walk.png` (générés si nécessaires).
-- Pas de changement backend.
-
-## Validation finale
-
-- Lancer une partie, ouvrir l'admin, régler 4 polices + 3 radars + 20 civils.
-- Observer pendant 60 s : au moins un contrôle police déclenché, radars immobiles sur trottoirs, piétons sur trottoirs, aucun véhicule en marche arrière.
+## Hors scope
+- Pas de changement aux véhicules uploadés, à la couleur du taxi joueur, ni au mot de passe admin.
+- Pas de changement aux règles de gameplay/économie.
