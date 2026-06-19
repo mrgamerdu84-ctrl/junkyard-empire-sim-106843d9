@@ -1,6 +1,6 @@
 {
-  "version": "1.4.2",
-  "buildId": "2026-06-19T11:15:00.000Z",
-  "builtAt": 1781867700000,
-  "changelog": "Gyrophares correctement orientés en travers du toit des véhicules d'urgence"
+  "version": "1.5.0",
+  "buildId": "2026-06-19T11:45:00.000Z",
+  "builtAt": 1781869500000,
+  "changelog": "Nouvelle station 📰 Radio Infos (FR/EN) qui annonce les événements de la ville"
 }
