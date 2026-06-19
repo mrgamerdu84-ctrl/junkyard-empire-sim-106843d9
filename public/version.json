@@ -1,6 +1,6 @@
 {
-  "version": "1.0.5",
-  "buildId": "2026-06-19T11:30:00.000Z",
-  "builtAt": 1781869200000,
-  "changelog": "Système d'accidents aléatoires : collisions véhicules/piétons, blocage de la route, ambulance + pompiers en intervention puis dégagement"
+  "version": "1.0.6",
+  "buildId": "2026-06-19T12:00:00.000Z",
+  "builtAt": 1781871000000,
+  "changelog": "Trafic civil totalement aléatoire : path/direction/durée tirés au sort à chaque tour, plus jamais les mêmes trajets que les taxis"
 }
