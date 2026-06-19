@@ -277,50 +277,53 @@ function DownloadPage() {
           </div>
         )}
 
-        {/* Upload zone */}
-        <div style={{
-          marginTop: 20, padding: 16,
-          background: "#0f1320", border: "1px dashed #3b82f6", borderRadius: 14, textAlign: "left",
-        }}>
-          <div style={{ fontSize: 13, color: "#93c5fd", fontWeight: 700, marginBottom: 8 }}>
-            🔧 Espace admin — Mettre à jour l'APK
-          </div>
-          <input
-            ref={fileRef}
-            type="file"
-            accept=".apk,application/vnd.android.package-archive"
-            disabled={uploading}
-            onChange={(e) => {
-              const f = e.target.files?.[0];
-              if (f) handleUpload(f);
-            }}
-            style={{ display: "none" }}
-          />
-          <button
-            type="button"
-            disabled={uploading}
-            onClick={() => fileRef.current?.click()}
-            style={{
-              width: "100%", padding: "12px 0", borderRadius: 10, border: "none",
-              background: uploading ? "#374151" : "linear-gradient(180deg, #3b82f6 0%, #1d4ed8 100%)",
-              color: "white", fontSize: 15, fontWeight: 700, cursor: uploading ? "wait" : "pointer",
-              boxShadow: uploading ? "none" : "0 4px 0 #1e3a8a",
-            }}
-          >
-            {uploading ? `Upload… ${progress}%` : "📤 Uploader un nouveau .apk"}
-          </button>
-          {progress > 0 && (
-            <div style={{ marginTop: 10, height: 6, background: "#1f2937", borderRadius: 3, overflow: "hidden" }}>
-              <div style={{ width: `${progress}%`, height: "100%", background: "#3b82f6", transition: "width 0.3s" }} />
+        {/* Upload zone (admins only) */}
+        {isAdmin && (
+          <div style={{
+            marginTop: 20, padding: 16,
+            background: "#0f1320", border: "1px dashed #3b82f6", borderRadius: 14, textAlign: "left",
+          }}>
+            <div style={{ fontSize: 13, color: "#93c5fd", fontWeight: 700, marginBottom: 8 }}>
+              🔧 Espace admin — Mettre à jour l'APK
             </div>
-          )}
-          {error && (
-            <div style={{ marginTop: 10, color: "#fca5a5", fontSize: 12 }}>⚠ {error}</div>
-          )}
-          <div style={{ marginTop: 8, color: "#6b7280", fontSize: 11 }}>
-            Le fichier remplace automatiquement l'ancien APK et apparaît en téléchargement pour tous les joueurs.
+            <input
+              ref={fileRef}
+              type="file"
+              accept=".apk,application/vnd.android.package-archive"
+              disabled={uploading}
+              onChange={(e) => {
+                const f = e.target.files?.[0];
+                if (f) handleUpload(f);
+              }}
+              style={{ display: "none" }}
+            />
+            <button
+              type="button"
+              disabled={uploading}
+              onClick={() => fileRef.current?.click()}
+              style={{
+                width: "100%", padding: "12px 0", borderRadius: 10, border: "none",
+                background: uploading ? "#374151" : "linear-gradient(180deg, #3b82f6 0%, #1d4ed8 100%)",
+                color: "white", fontSize: 15, fontWeight: 700, cursor: uploading ? "wait" : "pointer",
+                boxShadow: uploading ? "none" : "0 4px 0 #1e3a8a",
+              }}
+            >
+              {uploading ? `Upload… ${progress}%` : "📤 Uploader un nouveau .apk"}
+            </button>
+            {progress > 0 && (
+              <div style={{ marginTop: 10, height: 6, background: "#1f2937", borderRadius: 3, overflow: "hidden" }}>
+                <div style={{ width: `${progress}%`, height: "100%", background: "#3b82f6", transition: "width 0.3s" }} />
+              </div>
+            )}
+            {error && (
+              <div style={{ marginTop: 10, color: "#fca5a5", fontSize: 12 }}>⚠ {error}</div>
+            )}
+            <div style={{ marginTop: 8, color: "#6b7280", fontSize: 11 }}>
+              Le fichier remplace automatiquement l'ancien APK et apparaît en téléchargement pour tous les joueurs.
+            </div>
           </div>
-        </div>
+        )}
+
 
         <div style={{
           marginTop: 20, padding: 16,
