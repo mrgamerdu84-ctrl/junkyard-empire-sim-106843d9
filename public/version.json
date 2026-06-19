@@ -1,6 +1,6 @@
 {
-  "version": "1.10.1",
-  "buildId": "2026-06-19T19:18:00.000Z",
-  "builtAt": 1781896680000,
-  "changelog": "Animateur radio : le DJ parle dès qu'une station musicale démarre, puis régulièrement, avec bandeau visible sur toutes les radios"
+  "version": "1.11.0",
+  "buildId": "2026-06-19T22:00:00.000Z",
+  "builtAt": 1781906400000,
+  "changelog": "Radios: l'animateur annonce l'heure réelle et la météo réelle (Open-Meteo)"
 }

@@ -65,9 +65,72 @@ export default function TaxiRadio() {
   const djTimerRef = useRef<number | null>(null);
   const djRestoreRef = useRef<number | null>(null);
   const pausedRef = useRef<boolean>(false);
+  const weatherRef = useRef<{ tempC: number; code: number; city: string } | null>(null);
+  const weatherFetchedAtRef = useRef<number>(0);
 
   useEffect(() => { langRef.current = lang; }, [lang]);
   useEffect(() => { pausedRef.current = paused; }, [paused]);
+
+  // ====== Météo réelle (Open-Meteo, sans clé) ======
+  const weatherCodeText = (code: number, l: "fr" | "en"): string => {
+    const fr: Record<number, string> = {
+      0: "ciel dégagé", 1: "plutôt ensoleillé", 2: "partiellement nuageux", 3: "couvert",
+      45: "brouillard", 48: "brouillard givrant",
+      51: "bruine légère", 53: "bruine", 55: "forte bruine",
+      61: "pluie faible", 63: "pluie", 65: "forte pluie",
+      71: "neige faible", 73: "neige", 75: "forte neige",
+      80: "averses", 81: "averses", 82: "violentes averses",
+      95: "orage", 96: "orage avec grêle", 99: "violent orage",
+    };
+    const en: Record<number, string> = {
+      0: "clear sky", 1: "mostly sunny", 2: "partly cloudy", 3: "overcast",
+      45: "foggy", 48: "freezing fog",
+      51: "light drizzle", 53: "drizzle", 55: "heavy drizzle",
+      61: "light rain", 63: "rain", 65: "heavy rain",
+      71: "light snow", 73: "snow", 75: "heavy snow",
+      80: "showers", 81: "showers", 82: "violent showers",
+      95: "thunderstorm", 96: "thunderstorm with hail", 99: "violent thunderstorm",
+    };
+    return (l === "fr" ? fr : en)[code] ?? (l === "fr" ? "temps changeant" : "changing weather");
+  };
+
+  const fetchWeather = async () => {
+    const now = Date.now();
+    if (weatherRef.current && now - weatherFetchedAtRef.current < 30 * 60 * 1000) return;
+    const tryFetch = async (lat: number, lon: number, city: string) => {
+      try {
+        const r = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,weather_code`);
+        const j = await r.json();
+        const tempC = Math.round(j?.current?.temperature_2m ?? 0);
+        const code = Number(j?.current?.weather_code ?? 0);
+        weatherRef.current = { tempC, code, city };
+        weatherFetchedAtRef.current = Date.now();
+      } catch {}
+    };
+    const fallback = () => tryFetch(48.8566, 2.3522, "Paris");
+    if (typeof navigator !== "undefined" && navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        async (pos) => {
+          try {
+            const { latitude, longitude } = pos.coords;
+            // reverse geocode best-effort
+            let city = "";
+            try {
+              const g = await fetch(`https://geocoding-api.open-meteo.com/v1/reverse?latitude=${latitude}&longitude=${longitude}&language=fr&count=1`);
+              const gj = await g.json();
+              city = gj?.results?.[0]?.name ?? "";
+            } catch {}
+            await tryFetch(latitude, longitude, city || (langRef.current === "fr" ? "votre région" : "your area"));
+          } catch { fallback(); }
+        },
+        () => { fallback(); },
+        { timeout: 4000, maximumAge: 30 * 60 * 1000 }
+      );
+    } else {
+      fallback();
+    }
+  };
+
 
 
   // Débloque la synthèse vocale au premier geste utilisateur (requis sur mobile)
@@ -182,26 +245,38 @@ export default function TaxiRadio() {
 
   // ====== Animateur radio (DJ) ======
   const djLine = (stationName: string): RadioNews => {
-    const intros = [
-      { fr: `Vous écoutez ${stationName} sur Junky Empire ! Ça va chauffer, on enchaîne avec un titre du tonnerre, restez branchés !`,
-        en: `You're listening to ${stationName} on Junky Empire! Buckle up, the next track is fire — stay tuned!` },
-      { fr: `Ici ${stationName}, la radio préférée des taxis ! Prochain morceau dans un instant, gardez le volume à fond !`,
-        en: `This is ${stationName}, the taxi drivers' favorite station! Next track coming up, keep the volume loud!` },
-      { fr: `Salut à tous les chauffeurs ! ${stationName} vous accompagne sur la route. On continue avec une pépite, c'est cadeau !`,
-        en: `Hey drivers! ${stationName} keeps you company on the road. Up next, a real gem — enjoy!` },
-      { fr: `${stationName} ! On vient de passer un classique, et croyez-moi, le prochain titre est encore meilleur. Roulez prudemment !`,
-        en: `${stationName}! That was a classic, and trust me, what's next is even better. Drive safe!` },
-      { fr: `Bienvenue de retour sur ${stationName} ! Météo au beau fixe, trafic fluide, et la musique qui envoie. Prochain morceau, c'est parti !`,
-        en: `Welcome back to ${stationName}! Weather's great, traffic's smooth, and the music's pumping. Next track, here we go!` },
-      { fr: `Vous êtes sur ${stationName}, la station qui fait vibrer Junky City ! On continue le marathon musical, tenez bon !`,
-        en: `You're on ${stationName}, the station that makes Junky City vibrate! The music marathon continues, hold on tight!` },
-      { fr: `${stationName} en direct ! Un grand merci aux taxis qui nous écoutent. Le prochain titre, vous allez kiffer, promis !`,
-        en: `${stationName} live! Big shout-out to all the taxis tuned in. You're gonna love the next one, I promise!` },
+    const l = langRef.current;
+    const now = new Date();
+    const hh = now.getHours();
+    const mm = now.getMinutes();
+    const timeFr = `${hh} heure${hh > 1 ? "s" : ""}${mm ? " " + mm : ""}`;
+    const timeEn = `${((hh + 11) % 12) + 1}:${mm.toString().padStart(2, "0")} ${hh < 12 ? "AM" : "PM"}`;
+    const w = weatherRef.current;
+    const weatherFr = w ? `${weatherCodeText(w.code, "fr")}, ${w.tempC}°C${w.city ? " à " + w.city : ""}` : "météo en cours de mise à jour";
+    const weatherEn = w ? `${weatherCodeText(w.code, "en")}, ${w.tempC}°C${w.city ? " in " + w.city : ""}` : "weather updating";
+    const intros: RadioNews[] = [
+      { fr: `Il est ${timeFr} sur ${stationName} ! Côté météo : ${weatherFr}. On enchaîne avec un titre du tonnerre, restez branchés !`,
+        en: `It's ${timeEn} on ${stationName}! Weather report: ${weatherEn}. Next track is fire — stay tuned!` },
+      { fr: `Ici ${stationName}, ${timeFr} pile ! ${weatherFr.charAt(0).toUpperCase() + weatherFr.slice(1)} dehors, parfait pour rouler. Prochain morceau dans un instant !`,
+        en: `This is ${stationName}, ${timeEn} sharp! ${weatherEn} outside, perfect driving weather. Next track coming up!` },
+      { fr: `Salut les chauffeurs, ${stationName} vous accompagne. Il est ${timeFr}, ${weatherFr}. On continue avec une pépite, c'est cadeau !`,
+        en: `Hey drivers, ${stationName} keeps you company. It's ${timeEn}, ${weatherEn}. Up next, a real gem — enjoy!` },
+      { fr: `${stationName} ! ${timeFr}, et dehors c'est ${weatherFr}. Le prochain titre est encore meilleur. Roulez prudemment !`,
+        en: `${stationName}! ${timeEn}, and outside it's ${weatherEn}. What's next is even better. Drive safe!` },
+      { fr: `Bienvenue de retour sur ${stationName} ! Il est ${timeFr}, météo : ${weatherFr}. La musique qui envoie, c'est parti !`,
+        en: `Welcome back to ${stationName}! It's ${timeEn}, weather: ${weatherEn}. Pumping music, here we go!` },
+      { fr: `Vous êtes sur ${stationName} ! ${timeFr}, ${weatherFr} sur Junky City. Marathon musical, tenez bon !`,
+        en: `You're on ${stationName}! ${timeEn}, ${weatherEn} over Junky City. Music marathon, hold tight!` },
+      { fr: `${stationName} en direct ! ${timeFr} à l'horloge, ${weatherFr} au thermomètre. Le prochain titre, vous allez kiffer !`,
+        en: `${stationName} live! ${timeEn} on the clock, ${weatherEn} on the thermometer. You're gonna love the next one!` },
     ];
     return intros[Math.floor(Math.random() * intros.length)];
   };
 
+
   const playDjLine = (stationName: string) => {
+    // rafraîchit la météo si besoin (cache 30 min)
+    fetchWeather();
     const a = audioRef.current;
     const originalVol = a ? a.volume : 0.5;
     // duck la musique
