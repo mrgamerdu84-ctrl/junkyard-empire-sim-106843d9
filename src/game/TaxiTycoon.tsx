@@ -1026,7 +1026,7 @@ export default function TaxiTycoon() {
 
       // ====== Radars fixes : flash + amende automatique aux taxis en excès ======
       {
-        const performance.now() = performance.now();
+        const nowMs = performance.now();
         for (const taxi of taxisRef.current) {
           if (taxi.mode === "idle" || taxi.mode === "refueling" || taxi.mode === "depositing") continue;
           if (taxi.speed <= SPEED_LIMIT) continue;
@@ -1057,7 +1057,7 @@ export default function TaxiTycoon() {
 
       // ====== Police : patrouille, course-poursuite rivaux, planques + piège joueur ======
       if (policeCarsRef.current.length > 0) {
-        const performance.now() = performance.now();
+        const nowMs = performance.now();
 
         // 1) Plus de déclenchement aléatoire : la police n'arrête JAMAIS
         //    rivaux/PNJ sans raison. Une arrestation ne survient que sur
