@@ -343,8 +343,6 @@ function Depot({ tier, x, y, scale = 1, rotation = 0, capLvl = 0, revLvl = 0, pr
           return (
             <g key={i}>
               <rect x={px - slotW / 2 + 3} y={py - 18} width={slotW - 6} height="36" rx="2" fill="#1f2228" stroke="#f5c542" strokeWidth="1.2" strokeDasharray="3 2" opacity="0.9" />
-              {/* numéro */}
-              <text x={px} y={py + 24} fontSize="6" textAnchor="middle" fill="#f5c542" opacity="0.6">{String(i + 1).padStart(2, "0")}</text>
             </g>
           );
         })}
