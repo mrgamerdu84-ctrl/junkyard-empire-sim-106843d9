@@ -442,6 +442,7 @@ export default function TaxiTycoon() {
   const rivalTaxisRef = useRef<RivalTaxi[]>([]);
   const rivalJobsRef = useRef<Job[]>([]); // courses prises en charge par l'IA
   const [rivalStolen, setRivalStolen] = useState(0);
+  const [rivalEarnings, setRivalEarnings] = useState(0);
   const [rivalTaunt, setRivalTaunt] = useState<string | null>(null);
 
   // === Police ===
