@@ -426,6 +426,58 @@ export default function TaxiRadio() {
           )}
         </div>
       )}
+
+      {/* Mini dock contrôles radio en bas de la carte */}
+      <div
+        style={{
+          position: "fixed", bottom: 8, left: "50%", transform: "translateX(-50%)",
+          zIndex: 9998, display: "flex", alignItems: "center", gap: 6,
+          padding: "4px 8px", borderRadius: 999,
+          background: "rgba(15,23,42,0.75)",
+          border: "1px solid rgba(253,224,71,0.55)",
+          color: "#fff7d6", fontFamily: "system-ui, sans-serif",
+          boxShadow: "0 4px 12px rgba(0,0,0,0.45)",
+          backdropFilter: "blur(4px)",
+        }}
+      >
+        <button
+          type="button"
+          onClick={() => stepStation(-1)}
+          title="Station précédente"
+          aria-label="Station précédente"
+          style={miniBtn}
+        >⏮</button>
+        <button
+          type="button"
+          onClick={togglePlay}
+          title={paused ? "Lecture" : "Pause"}
+          aria-label={paused ? "Lecture" : "Pause"}
+          style={{ ...miniBtn, fontSize: 14 }}
+        >{paused ? "▶" : "⏸"}</button>
+        <button
+          type="button"
+          onClick={() => stepStation(1)}
+          title="Station suivante"
+          aria-label="Station suivante"
+          style={miniBtn}
+        >⏭</button>
+        <span style={{
+          fontSize: 10, fontWeight: 700, opacity: 0.9,
+          maxWidth: 100, overflow: "hidden", textOverflow: "ellipsis",
+          whiteSpace: "nowrap", paddingRight: 4,
+        }}>
+          {current ? `${current.emoji} ${current.name}` : "🔇"}
+        </span>
+      </div>
     </>
   );
 }
+
+const miniBtn: React.CSSProperties = {
+  width: 28, height: 28, borderRadius: "50%",
+  border: "1px solid rgba(253,224,71,0.6)",
+  background: "linear-gradient(180deg,#ef4444,#991b1b)",
+  color: "#fff7d6", fontSize: 12, fontWeight: 900, cursor: "pointer",
+  display: "flex", alignItems: "center", justifyContent: "center",
+  padding: 0, lineHeight: 1,
+};
