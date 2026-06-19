@@ -516,6 +516,9 @@ const SKIN_LABELS: Record<AssetKey, string> = {
   "taxi.black": "Taxi noir",
   "taxi.red": "Taxi rouge",
   "police.car": "Voiture police",
+  "emergency.ambulance": "Ambulance",
+  "emergency.firetruck": "Camion pompiers",
+
   "civil.car.1": "Civile #1 (bleue)",
   "civil.car.2": "Civile #2 (violette)",
   "civil.car.3": "Civile #3 (orange)",
