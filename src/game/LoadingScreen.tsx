@@ -47,12 +47,15 @@ export default function LoadingScreen({ progress }: { progress: number }) {
       z: number;
       pz: number;
     }
-    const stars: Star[] = Array.from({ length: 300 }, () => ({
-      x: (Math.random() - 0.5) * 2000,
-      y: (Math.random() - 0.5) * 2000,
-      z: Math.random() * 2000,
-      pz: 0,
-    }));
+    const stars: Star[] = Array.from({ length: 300 }, () => {
+      const z = Math.random() * 1800 + 200;
+      return {
+        x: (Math.random() - 0.5) * 2000,
+        y: (Math.random() - 0.5) * 2000,
+        z,
+        pz: z,
+      };
+    });
 
     const speedLines: { x: number; y: number; len: number; speed: number; alpha: number }[] =
       Array.from({ length: 40 }, () => ({
