@@ -2376,9 +2376,9 @@ export default function TaxiTycoon() {
                 )}
                 </RoadAlignedVehicleSprite>
               </g>
-              {alerting && (
+              {alerting && ev.kind === "ambulance" && (
                 <text x="0" y="32" textAnchor="middle" fontSize="3.6" fontWeight="900" fill="#fbbf24" stroke="#0b0d10" strokeWidth="0.8" paintOrder="stroke">
-                  {ev.kind === "ambulance" ? "URGENCE" : ev.kind === "firetruck" ? "POMPIERS" : "POLICE"}
+                  URGENCE
                 </text>
               )}
             </g>
