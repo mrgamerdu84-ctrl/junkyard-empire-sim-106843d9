@@ -48,6 +48,14 @@ export const TAXI_COLORS = [
   { id: "yellow", name: "Jaune", body: "#f5c542", trim: "#9c7a1c" },
 ];
 
+export const TAXI_PAINTS = [
+  { id: "blue", name: "Bleu joueur", color: "#38bdf8", filter: "hue-rotate(172deg) saturate(1.65) brightness(1.03)" },
+  { id: "yellow", name: "Jaune taxi", color: "#f5c542", filter: "none" },
+  { id: "green", name: "Vert", color: "#22c55e", filter: "hue-rotate(92deg) saturate(1.55) brightness(0.96)" },
+  { id: "pink", name: "Rose", color: "#ec4899", filter: "hue-rotate(305deg) saturate(1.45) brightness(1.05)" },
+  { id: "white", name: "Blanc", color: "#f8fafc", filter: "grayscale(1) brightness(1.45) contrast(0.95)" },
+] as const;
+
 type TaxiMode = "idle" | "to_pickup" | "to_dest" | "returning" | "to_gas" | "refueling" | "depositing";
 type LanePosition = { x: number; y: number; angle: number };
 type Taxi = {
@@ -150,6 +158,7 @@ type SaveData = {
   hqProductionLvl: number; // -15% cooldown sortie par niveau (0..5)
   hqRevenueLvl: number;    // +10% revenu par niveau (0..5)
   cityFund: number;        // 💰 Caisse de la ville (alimentée par les amendes)
+  playerTaxiColor: string; // couleur visuelle du taxi joueur
 };
 
 const HQ_UPGRADE_MAX = 5;
@@ -188,6 +197,7 @@ const DEFAULT_SAVE: SaveData = {
   hqProductionLvl: 0,
   hqRevenueLvl: 0,
   cityFund: 0,
+  playerTaxiColor: "blue",
 };
 
 
