@@ -1303,6 +1303,34 @@ export default function TaxiTycoon() {
       rivalTaxisRef.current.forEach(syncVehicleLane);
       policeCarsRef.current.forEach(syncVehicleLane);
 
+      // ====== Véhicules d'urgence (ambulance / pompiers) ======
+      for (const ev of emergencyRef.current) {
+        const plen = pathLensRef.current[ev.pathIdx] ?? 0;
+        if (plen <= 1) continue;
+        // Déclenche aléatoirement une intervention (sirène + vitesse)
+        if (ev.alertUntil === 0 && nowMs >= ev.nextAlertAt) {
+          ev.alertUntil = nowMs + 8000 + Math.random() * 7000;
+        }
+        if (nowMs >= ev.alertUntil && ev.alertUntil !== 0) {
+          ev.alertUntil = 0;
+          ev.nextAlertAt = nowMs + 25000 + Math.random() * 35000;
+        }
+        const alerting = ev.alertUntil > 0;
+        const baseSpeed = alerting ? EMERGENCY_RUSH_SPEED : EMERGENCY_SPEED;
+        const diff = ev.target - ev.pos;
+        const step = baseSpeed * dt;
+        if (Math.abs(diff) <= step) {
+          ev.target = ev.target > 1 ? 1 : Math.max(1, plen - 1);
+        } else {
+          const forward = diff > 0;
+          if (alerting || !shouldStopAhead(ev.pathIdx, ev.pos, forward, nowSeconds())) {
+            ev.pos += Math.sign(diff) * step;
+          }
+        }
+      }
+      emergencyRef.current.forEach(syncVehicleLane);
+
+
       // ====== Circuit taxis : avance le long de la boucle ======
       const cInfo = circuitInfoRef.current;
       if (circuitTaxisRef.current.length > 0 && cInfo.total > 0) {
