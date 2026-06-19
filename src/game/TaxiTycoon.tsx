@@ -2262,6 +2262,12 @@ export default function TaxiTycoon() {
                 )}
                 </RoadAlignedVehicleSprite>
               </g>
+              {hidden && (
+                <text x="0" y="-32" textAnchor="middle" fontSize="3.4" fontWeight="900" fill="#fbbf24" stroke="#0b0d10" strokeWidth="0.8" paintOrder="stroke">PLANQUE</text>
+              )}
+              {controlling && (
+                <text x="0" y="36" textAnchor="middle" fontSize="3.6" fontWeight="900" fill="#fbbf24" stroke="#0b0d10" strokeWidth="0.8" paintOrder="stroke">CONTRÔLE</text>
+              )}
             </g>
           );
         })}
@@ -2370,6 +2376,11 @@ export default function TaxiTycoon() {
                 )}
                 </RoadAlignedVehicleSprite>
               </g>
+              {alerting && (
+                <text x="0" y="32" textAnchor="middle" fontSize="3.6" fontWeight="900" fill="#fbbf24" stroke="#0b0d10" strokeWidth="0.8" paintOrder="stroke">
+                  {ev.kind === "ambulance" ? "URGENCE" : ev.kind === "firetruck" ? "POMPIERS" : "POLICE"}
+                </text>
+              )}
             </g>
           );
         })}
