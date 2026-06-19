@@ -890,7 +890,7 @@ export default function CityTraffic() {
 
       {/* Plus aucun piéton ne marche/traverse sur la chaussée — exigence joueur. */}
 
-      <rect width="1920" height="1080" fill="#0a1530" opacity={Math.max(0, (night - 0.15)) * 0.55} pointerEvents="none" />
+      <rect width={WORLD_W} height={WORLD_H} fill="#0a1530" opacity={Math.max(0, (night - 0.15)) * 0.55} pointerEvents="none" />
     </svg>
   );
 }
