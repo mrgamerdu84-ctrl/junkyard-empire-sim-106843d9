@@ -1317,32 +1317,109 @@ export default function TaxiTycoon() {
       rivalTaxisRef.current.forEach(syncVehicleLane);
       policeCarsRef.current.forEach(syncVehicleLane);
 
-      // ====== Véhicules d'urgence (ambulance / pompiers) ======
-      for (const ev of emergencyRef.current) {
-        const plen = pathLensRef.current[ev.pathIdx] ?? 0;
-        if (plen <= 1) continue;
-        // Déclenche aléatoirement une intervention (sirène + vitesse)
-        if (ev.alertUntil === 0 && performance.now() >= ev.nextAlertAt) {
-          ev.alertUntil = performance.now() + 8000 + Math.random() * 7000;
+      // ====== Accidents aléatoires + dispatch des secours ======
+      {
+        const tMs = performance.now();
+        // Spawn d'un nouvel accident périodique (1 max à la fois pour éviter le chaos)
+        if (accidentsRef.current.length === 0 && tMs >= nextAccidentAtRef.current) {
+          const allowed: number[] = [];
+          for (let i = 0; i < pathRefs.current.length; i++) if (!VILLAGE_PATHS.has(i)) allowed.push(i);
+          if (allowed.length > 0) {
+            const pIdx = allowed[Math.floor(Math.random() * allowed.length)];
+            const plen = pathLensRef.current[pIdx] ?? 0;
+            const sPos = 80 + Math.random() * Math.max(80, plen - 160);
+            const pt = pathRefs.current[pIdx]?.getPointAtLength(sPos);
+            if (pt) {
+              const id = ++accidentIdRef.current;
+              const kind: "vehicle" | "pedestrian" = Math.random() < 0.7 ? "vehicle" : "pedestrian";
+              const acc: Accident = {
+                id, pathIdx: pIdx, s: sPos, x: pt.x, y: pt.y, kind,
+                startedAt: tMs, clearAt: null, responders: new Set(),
+              };
+              accidentsRef.current.push(acc);
+              registerAccident({ id, pathIdx: pIdx, s: sPos, x: pt.x, y: pt.y, kind });
+              showToast(kind === "vehicle" ? "💥 Accident signalé ! Secours en route…" : "🚑 Piéton renversé ! Ambulance en route…");
+            }
+          }
+          nextAccidentAtRef.current = tMs + 40000 + Math.random() * 40000;
         }
-        if (performance.now() >= ev.alertUntil && ev.alertUntil !== 0) {
-          ev.alertUntil = 0;
-          ev.nextAlertAt = performance.now() + 25000 + Math.random() * 35000;
+
+        // Dispatch : tous les EV en patrol -> respond vers l'accident le plus proche
+        for (const ev of emergencyRef.current) {
+          if (ev.mode === "patrol" && accidentsRef.current.length > 0) {
+            const acc = accidentsRef.current[0];
+            ev.mode = "respond";
+            ev.accidentId = acc.id;
+            // snap sur le path de l'accident
+            const here = pathRefs.current[ev.pathIdx]?.getPointAtLength(ev.pos);
+            ev.pathIdx = acc.pathIdx;
+            ev.pos = here ? closestOnPath(acc.pathIdx, here.x, here.y) : ev.pos;
+            ev.target = acc.s;
+          }
         }
-        const alerting = ev.alertUntil > 0;
-        const baseSpeed = alerting ? EMERGENCY_RUSH_SPEED : EMERGENCY_SPEED;
-        const diff = ev.target - ev.pos;
-        const step = baseSpeed * dt;
-        if (Math.abs(diff) <= step) {
-          ev.target = ev.target > 1 ? 1 : Math.max(1, plen - 1);
-        } else {
-          const forward = diff > 0;
-          if (alerting || !shouldStopAhead(ev.pathIdx, ev.pos, forward, nowSeconds())) {
-            ev.pos += Math.sign(diff) * step;
+
+        // MAJ chaque véhicule d'urgence
+        for (const ev of emergencyRef.current) {
+          const plen = pathLensRef.current[ev.pathIdx] ?? 0;
+          if (plen <= 1) continue;
+          const acc = ev.accidentId != null ? accidentsRef.current.find(a => a.id === ev.accidentId) ?? null : null;
+
+          if (ev.mode === "onsite") {
+            if (acc) acc.responders.add(ev.id);
+            if (tMs >= ev.onsiteUntil) {
+              // Fin d'intervention pour ce véhicule
+              ev.mode = "patrol";
+              ev.accidentId = null;
+              ev.onsiteUntil = 0;
+              ev.target = ev.pos < plen / 2 ? plen - 1 : 1;
+            }
+            continue;
+          }
+
+          if (ev.mode === "respond") {
+            if (!acc) { ev.mode = "patrol"; ev.accidentId = null; continue; }
+            const diff = acc.s - ev.pos;
+            const step = EMERGENCY_RUSH_SPEED * dt;
+            if (Math.abs(diff) <= step) {
+              ev.pos = acc.s;
+              ev.mode = "onsite";
+              ev.onsiteUntil = tMs + ACCIDENT_BLOCK_MIN_MS + Math.random() * 4000;
+              acc.responders.add(ev.id);
+              if (!acc.clearAt) acc.clearAt = tMs + ACCIDENT_BLOCK_MIN_MS;
+            } else {
+              ev.pos += Math.sign(diff) * step;
+            }
+            continue;
+          }
+
+          // patrol
+          const diff = ev.target - ev.pos;
+          const step = EMERGENCY_SPEED * dt;
+          if (Math.abs(diff) <= step) {
+            ev.target = ev.target > 1 ? 1 : Math.max(1, plen - 1);
+          } else {
+            const forward = diff > 0;
+            if (!shouldStopAhead(ev.pathIdx, ev.pos, forward, nowSeconds())) {
+              ev.pos += Math.sign(diff) * step;
+            }
+          }
+        }
+
+        // Clôture des accidents : quand les responders ont fini ET clearAt atteint
+        for (let i = accidentsRef.current.length - 1; i >= 0; i--) {
+          const a = accidentsRef.current[i];
+          if (a.clearAt && tMs >= a.clearAt && a.responders.size > 0) {
+            const stillOnsite = emergencyRef.current.some(e => e.accidentId === a.id && e.mode === "onsite");
+            if (!stillOnsite) {
+              clearAccident(a.id);
+              accidentsRef.current.splice(i, 1);
+              showToast("✅ Accident dégagé, circulation rétablie.");
+            }
           }
         }
       }
       emergencyRef.current.forEach(syncVehicleLane);
+
 
 
       // ====== Circuit taxis : avance le long de la boucle ======
