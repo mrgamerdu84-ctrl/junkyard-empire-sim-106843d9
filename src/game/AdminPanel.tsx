@@ -611,23 +611,38 @@ function loadImage(src: string): Promise<HTMLImageElement> {
   });
 }
 
-/** Applique une rotation (0/90/180/270°) à une image et renvoie un data URL PNG.
- *  Le jeu attend des sprites top-down "avant vers le haut" (nord). */
+/** Applique la rotation (0/90/180/270°) ET normalise dans un canvas carré 256×256
+ *  où le véhicule remplit toute la largeur. Cela garantit que tous les sprites
+ *  uploadés roulent à la même taille que les taxis officiels dans le jeu. */
 async function rotateToDataUrl(src: string, deg: 0 | 90 | 180 | 270): Promise<string> {
   const img = await loadImage(src);
   const w = img.naturalWidth, h = img.naturalHeight;
   const swap = deg === 90 || deg === 270;
-  const cw = swap ? h : w;
-  const ch = swap ? w : h;
+  const rotW = swap ? h : w;
+  const rotH = swap ? w : h;
+
+  // Taille de sortie standard — identique pour tous les véhicules.
+  const SIZE = 256;
+  // Le véhicule remplit toute la largeur (sens latéral du sprite "tête au nord").
+  const scale = SIZE / rotW;
+  const drawW = rotW * scale;
+  const drawH = rotH * scale;
+
   const canvas = document.createElement("canvas");
-  canvas.width = cw;
-  canvas.height = ch;
+  canvas.width = SIZE;
+  canvas.height = SIZE;
   const ctx = canvas.getContext("2d")!;
-  ctx.translate(cw / 2, ch / 2);
+  ctx.imageSmoothingQuality = "high";
+  // Centre et applique la rotation autour du centre.
+  ctx.translate(SIZE / 2, SIZE / 2);
   ctx.rotate((deg * Math.PI) / 180);
-  ctx.drawImage(img, -w / 2, -h / 2);
+  // Dessine l'image originale centrée, à l'échelle pré-rotation.
+  const preW = swap ? drawH : drawW;
+  const preH = swap ? drawW : drawH;
+  ctx.drawImage(img, -preW / 2, -preH / 2, preW, preH);
   return canvas.toDataURL("image/png");
 }
+
 
 function CustomVehiclesSection() {
   const [items, setItems] = useState<CustomVehicle[]>(() => listCustomVehicles());
@@ -659,7 +674,7 @@ function CustomVehiclesSection() {
   const confirmAdd = async () => {
     if (!pendingSrc) return;
     try {
-      const finalUrl = rotation === 0 ? pendingSrc : await rotateToDataUrl(pendingSrc, rotation);
+      const finalUrl = await rotateToDataUrl(pendingSrc, rotation);
       addCustomVehicle({
         name: name.trim() || VEHICLE_CATEGORY_LABELS[category].replace(/^\S+\s/, ""),
         url: finalUrl,
