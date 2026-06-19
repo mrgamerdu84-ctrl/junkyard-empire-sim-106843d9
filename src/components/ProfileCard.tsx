@@ -25,6 +25,25 @@ export default function ProfileCard({ onClose }: { onClose: () => void }) {
   const [err, setErr] = useState<string | null>(null);
   const fileRef = useRef<HTMLInputElement | null>(null);
 
+  // Personnalisation taxi — lue/écrite dans la save locale du jeu
+  const liveries = getAllLiveries();
+  const [liveryId, setLiveryId] = useState<string>(() => {
+    try {
+      const raw = localStorage.getItem(TT_SAVE_KEY);
+      if (raw) return JSON.parse(raw).liveryId ?? "classic";
+    } catch {}
+    return "classic";
+  });
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(TT_SAVE_KEY);
+      const save = raw ? JSON.parse(raw) : {};
+      save.liveryId = liveryId;
+      localStorage.setItem(TT_SAVE_KEY, JSON.stringify(save));
+      window.dispatchEvent(new CustomEvent("jce:livery-changed", { detail: liveryId }));
+    } catch {}
+  }, [liveryId]);
+
   if (!user) return null;
 
   const onPickFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
