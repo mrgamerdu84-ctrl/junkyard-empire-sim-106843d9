@@ -514,6 +514,39 @@ export default function AdminPanel() {
             {tab === "skins" && <SkinsTab />}
             {tab === "export" && <ExportTab />}
 
+            <div className="adm-section" style={{ marginTop: 14, paddingTop: 12, borderTop: "1px solid #2a2f38" }}>
+              <button className="adm-reset" type="button" onClick={() => setAdminPwdOpen((v) => !v)}>
+                🔑 Changer le mot de passe admin
+              </button>
+              {adminPwdOpen && (
+                <div style={{ display: "flex", flexDirection: "column", gap: 8, marginTop: 8 }}>
+                  <input
+                    type="password"
+                    value={adminPwdNew}
+                    onChange={(e) => setAdminPwdNew(e.target.value)}
+                    placeholder="Nouveau mot de passe"
+                    style={{ padding: "9px 10px", borderRadius: 8, border: "1px solid #444", background: "#111", color: "#fff", fontSize: 13 }}
+                  />
+                  <input
+                    type="password"
+                    value={adminPwdNew2}
+                    onChange={(e) => setAdminPwdNew2(e.target.value)}
+                    onKeyDown={(e) => { if (e.key === "Enter") void changeAdminPassword(); }}
+                    placeholder="Confirme le mot de passe"
+                    style={{ padding: "9px 10px", borderRadius: 8, border: "1px solid #444", background: "#111", color: "#fff", fontSize: 13 }}
+                  />
+                  {adminPwdMsg && <div style={{ color: adminPwdMsg.startsWith("✅") ? "#4ade80" : "#ff6b6b", fontSize: 12 }}>{adminPwdMsg}</div>}
+                  <button
+                    className="adm-place active"
+                    type="button"
+                    onClick={() => void changeAdminPassword()}
+                    style={{ marginTop: 0 }}
+                  >
+                    Enregistrer le mot de passe
+                  </button>
+                </div>
+              )}
+            </div>
 
             <button className="adm-reset" onClick={resetAdmin}>↺ Réinitialiser les valeurs</button>
           </div>
