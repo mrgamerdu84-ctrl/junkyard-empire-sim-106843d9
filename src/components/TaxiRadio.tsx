@@ -1,31 +1,36 @@
 import { useEffect, useRef, useState } from "react";
+import { GAME_ASSETS } from "@/game/gameAssets";
 
 type Station = {
   id: string;
   name: string;
   emoji: string;
   url: string;
+  loop?: boolean;
+  volume?: number;
 };
 
 const STATIONS: Station[] = [
-  { id: "pop",    name: "Radio Pop",    emoji: "🎤", url: "https://ice1.somafm.com/poptron-128-mp3" },
-  { id: "electro", name: "Radio Electro", emoji: "🎧", url: "https://ice1.somafm.com/groovesalad-128-mp3" },
-  { id: "rock",   name: "Radio Rock",   emoji: "🎸", url: "https://ice6.somafm.com/thetrip-128-mp3" },
+  { id: "main",    name: "Musique du jeu", emoji: "🎵", url: GAME_ASSETS["audio.music"], loop: true, volume: 0.4 },
+  { id: "pop",     name: "Radio Pop",      emoji: "🎤", url: "https://ice1.somafm.com/poptron-128-mp3", volume: 0.5 },
+  { id: "electro", name: "Radio Electro",  emoji: "🎧", url: "https://ice1.somafm.com/groovesalad-128-mp3", volume: 0.5 },
+  { id: "rock",    name: "Radio Rock",     emoji: "🎸", url: "https://ice6.somafm.com/thetrip-128-mp3", volume: 0.5 },
 ];
 
-const STORAGE_KEY = "mttw.taxiRadio"; // stocke l'id de la station ou "off"
+const STORAGE_KEY = "mttw.taxiRadio"; // id de la station, ou "off"
 
 function readPref(): string {
   try {
-    return localStorage.getItem(STORAGE_KEY) ?? "off";
+    const v = localStorage.getItem(STORAGE_KEY);
+    return v ?? "main"; // par défaut : musique du jeu
   } catch {
-    return "off";
+    return "main";
   }
 }
 
 export default function TaxiRadio() {
   const audioRef = useRef<HTMLAudioElement | null>(null);
-  const [stationId, setStationId] = useState<string>("off");
+  const [stationId, setStationId] = useState<string>("main");
   const [open, setOpen] = useState(false);
   const [ready, setReady] = useState(false);
 
@@ -34,33 +39,30 @@ export default function TaxiRadio() {
     setReady(true);
   }, []);
 
-  // Applique l'état audio + notifie la musique principale
+  // Applique l'état audio
   useEffect(() => {
     if (!ready) return;
     const a = audioRef.current;
-    const active = stationId !== "off";
-    window.dispatchEvent(new CustomEvent("jce:taxi-radio", { detail: { active } }));
     if (!a) return;
-    if (active) {
-      const st = STATIONS.find((s) => s.id === stationId);
-      if (st) {
-        if (a.src !== st.url) a.src = st.url;
-        a.volume = 0.5;
-        a.play().catch(() => {
-          const start = () => {
-            a.play().catch(() => {});
-            window.removeEventListener("pointerdown", start);
-            window.removeEventListener("keydown", start);
-            window.removeEventListener("touchstart", start);
-          };
-          window.addEventListener("pointerdown", start, { once: true });
-          window.addEventListener("keydown", start, { once: true });
-          window.addEventListener("touchstart", start, { once: true });
-        });
-      }
-    } else {
+    const st = STATIONS.find((s) => s.id === stationId);
+    if (!st) {
       a.pause();
+      return;
     }
+    if (a.src !== st.url) a.src = st.url;
+    a.loop = !!st.loop;
+    a.volume = st.volume ?? 0.5;
+    a.play().catch(() => {
+      const start = () => {
+        a.play().catch(() => {});
+        window.removeEventListener("pointerdown", start);
+        window.removeEventListener("keydown", start);
+        window.removeEventListener("touchstart", start);
+      };
+      window.addEventListener("pointerdown", start, { once: true });
+      window.addEventListener("keydown", start, { once: true });
+      window.addEventListener("touchstart", start, { once: true });
+    });
   }, [stationId, ready]);
 
   const pick = (id: string) => {
@@ -73,7 +75,18 @@ export default function TaxiRadio() {
 
   return (
     <>
-      <audio ref={audioRef} preload="none" />
+      <audio
+        ref={audioRef}
+        preload="auto"
+        onEnded={(e) => {
+          const a = e.currentTarget;
+          const st = STATIONS.find((s) => s.id === stationId);
+          if (st?.loop) {
+            a.currentTime = 0;
+            a.play().catch(() => {});
+          }
+        }}
+      />
 
       <button
         type="button"
@@ -83,7 +96,7 @@ export default function TaxiRadio() {
         style={{
           position: "fixed",
           top: 12,
-          right: 64,
+          right: 12,
           zIndex: 10000,
           width: 44,
           height: 44,
@@ -118,7 +131,7 @@ export default function TaxiRadio() {
             border: "2px solid #fde047",
             borderRadius: 12,
             padding: 10,
-            minWidth: 200,
+            minWidth: 210,
             boxShadow: "0 10px 30px rgba(0,0,0,0.6)",
             color: "#fff7d6",
             fontFamily: "system-ui, sans-serif",
@@ -169,9 +182,6 @@ export default function TaxiRadio() {
               En cours : {current.name}
             </div>
           )}
-          <div style={{ fontSize: 10, opacity: 0.55, marginTop: 6, textAlign: "center" }}>
-            La musique du jeu se coupe quand la radio joue.
-          </div>
         </div>
       )}
     </>
