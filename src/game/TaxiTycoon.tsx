@@ -12,6 +12,9 @@ const TAXI_YELLOW_URL = GAME_ASSETS["taxi.yellow"];
 const TAXI_BLACK_URL = GAME_ASSETS["taxi.black"];
 const TAXI_RED_URL = GAME_ASSETS["taxi.red"];
 const POLICE_CAR_URL = GAME_ASSETS["police.car"];
+const AMBULANCE_URL = GAME_ASSETS["emergency.ambulance"];
+const FIRETRUCK_URL = GAME_ASSETS["emergency.firetruck"];
+
 const MUSIC_URL = GAME_ASSETS["audio.music"];
 
 /* ============================================================
@@ -459,11 +462,13 @@ export default function TaxiTycoon() {
   const wantedUntilRef = useRef<number>(0);
   const lastViolationRef = useRef<number>(performance.now()); void lastViolationRef;
   const lastCivilControlRef = useRef<number>(performance.now());
-  const POLICE_SPEED = 92;     // px/s patrol
-  const POLICE_CHASE_SPEED = 140;
+  const POLICE_SPEED = 55;        // px/s patrouille lente (rondes)
+  const POLICE_RESPONSE_SPEED = 150; // px/s vers un contrôle (gyrophares)
+  const POLICE_CHASE_SPEED = 160;
   const POLICE_FINE = 200;
   const POLICE_CATCH_DIST = 48; // px
   const CIVIL_CONTROL_DURATION_MS = 6500; // durée d'un contrôle
+
 
   // === Radars fixes & planques police (Speed Traps) ===
   // Radars : couples (pathIdx, posFraction) -> position le long du path.
@@ -496,6 +501,22 @@ export default function TaxiTycoon() {
   const wantedPlayerTaxiIdRef = useRef<number | null>(null);
   const wantedPlayerUntilRef = useRef<number>(0);
   const lastStakeoutTriggerRef = useRef<number>(performance.now());
+
+  // === Véhicules d'urgence (ambulance / pompiers) ===
+  type EmergencyVehicle = {
+    id: number;
+    kind: "ambulance" | "firetruck";
+    pathIdx: number;
+    pos: number;
+    target: number;
+    lane?: LanePosition;
+    alertUntil: number;     // ms — si > now: sirène + vitesse rapide
+    nextAlertAt: number;    // ms — prochain déclenchement aléatoire
+  };
+  const emergencyRef = useRef<EmergencyVehicle[]>([]);
+  const EMERGENCY_SPEED = 70;      // px/s normal
+  const EMERGENCY_RUSH_SPEED = 165;// px/s en intervention
+
 
 
 
@@ -726,6 +747,40 @@ export default function TaxiTycoon() {
     forceRender((n) => n + 1);
   }, [pathsReady, admin.policeCarCount]);
 
+  // Spawn ambulance + camion pompiers (1 de chaque) qui patrouillent
+  useEffect(() => {
+    if (!pathsReady) return;
+    const N = pathLensRef.current.length;
+    if (N === 0) return;
+    const allowed: number[] = [];
+    for (let i = 0; i < N; i++) if (!VILLAGE_PATHS.has(i)) allowed.push(i);
+    if (allowed.length < 1) return;
+    if (emergencyRef.current.length === 0) {
+      const now = performance.now();
+      const mkVeh = (kind: "ambulance" | "firetruck", i: number): EmergencyVehicle => {
+        const pIdx = allowed[i % allowed.length];
+        const plen = pathLensRef.current[pIdx] ?? 0;
+        const v: EmergencyVehicle = {
+          id: 40000 + i,
+          kind,
+          pathIdx: pIdx,
+          pos: (i / 2) * plen,
+          target: plen - 1,
+          alertUntil: 0,
+          nextAlertAt: now + 25000 + Math.random() * 35000,
+        };
+        syncVehicleLane(v);
+        return v;
+      };
+      emergencyRef.current.push(mkVeh("ambulance", 0));
+      emergencyRef.current.push(mkVeh("firetruck", 1));
+    }
+    forceRender((n) => n + 1);
+  }, [pathsReady]);
+
+
+
+
 
 
 
@@ -918,7 +973,7 @@ export default function TaxiTycoon() {
             // cherche une course offerte assez ancienne pour être sniped
             const candidate = jobsRef.current.find((j) => {
               if (j.status !== "offered") return false;
-              const age = nowMs - (j.deadline - j.duration);
+              const age = performance.now() - (j.deadline - j.duration);
               return age >= reactMs;
             });
             if (candidate) {
@@ -982,12 +1037,12 @@ export default function TaxiTycoon() {
             const rdPos = rd.posFrac * plen;
             if (Math.abs(taxi.pos - rdPos) > RADAR_TRIGGER_DIST) continue;
             const key = `${rd.id}:${taxi.id}`;
-            if (nowMs - (radarLastHitRef.current[key] ?? 0) < RADAR_COOLDOWN_MS) continue;
-            radarLastHitRef.current[key] = nowMs;
+            if (performance.now() - (radarLastHitRef.current[key] ?? 0) < RADAR_COOLDOWN_MS) continue;
+            radarLastHitRef.current[key] = performance.now();
             const pt = pathRefs.current[rd.pathIdx]?.getPointAtLength(rdPos);
             setSave(s => ({ ...s, money: Math.max(0, s.money - RADAR_FINE), cityFund: s.cityFund + RADAR_FINE }));
             if (pt) {
-              radarFlashRef.current = { id: rd.id, x: pt.x, y: pt.y, t: nowMs };
+              radarFlashRef.current = { id: rd.id, x: pt.x, y: pt.y, t: performance.now() };
               setRadarFlashTick(n => (n + 1) % 1_000_000);
               popFloat(`-${RADAR_FINE}$ radar`, pt.x, pt.y - 10);
             }
@@ -995,7 +1050,7 @@ export default function TaxiTycoon() {
           }
         }
         // expire le flash après 300ms
-        if (radarFlashRef.current && nowMs - radarFlashRef.current.t > 300) {
+        if (radarFlashRef.current && performance.now() - radarFlashRef.current.t > 300) {
           radarFlashRef.current = null;
         }
       }
@@ -1008,10 +1063,10 @@ export default function TaxiTycoon() {
         //    rivaux/PNJ sans raison. Une arrestation ne survient que sur
         //    vraie infraction (radar = excès de vitesse, planque = excès
         //    de vitesse, ou collision déclenchée ailleurs dans le code).
-        if (wantedRivalIdRef.current !== null && nowMs > wantedUntilRef.current) {
+        if (wantedRivalIdRef.current !== null && performance.now() > wantedUntilRef.current) {
           wantedRivalIdRef.current = null;
         }
-        if (wantedPlayerTaxiIdRef.current !== null && nowMs > wantedPlayerUntilRef.current) {
+        if (wantedPlayerTaxiIdRef.current !== null && performance.now() > wantedPlayerUntilRef.current) {
           wantedPlayerTaxiIdRef.current = null;
         }
 
@@ -1025,7 +1080,7 @@ export default function TaxiTycoon() {
         // 2) Périodiquement, une police libre va se planquer (toutes les ~30-45s)
         if (
           !wantedRival && !wantedPlayer &&
-          nowMs - lastStakeoutTriggerRef.current > 30000 + Math.random() * 15000
+          performance.now() - lastStakeoutTriggerRef.current > 30000 + Math.random() * 15000
         ) {
           const patrolling = policeCarsRef.current.filter(p => p.mode === "patrol");
           const usedHideouts = new Set(Object.values(stakeoutHideoutRef.current));
@@ -1051,10 +1106,10 @@ export default function TaxiTycoon() {
             pc.pos = here ? closestOnPath(bestIdx, here.x, here.y) : bestPos;
             pc.target = bestPos;
             stakeoutHideoutRef.current[pc.id] = ho.id;
-            stakeoutUntilRef.current[pc.id] = nowMs + STAKEOUT_DURATION_MS;
-            lastStakeoutTriggerRef.current = nowMs;
+            stakeoutUntilRef.current[pc.id] = performance.now() + STAKEOUT_DURATION_MS;
+            lastStakeoutTriggerRef.current = performance.now();
           } else {
-            lastStakeoutTriggerRef.current = nowMs;
+            lastStakeoutTriggerRef.current = performance.now();
           }
         }
 
@@ -1063,18 +1118,24 @@ export default function TaxiTycoon() {
         //        gyrophares allumés pour "contrôler les papiers" d'un civil.
         if (
           !wantedRival && !wantedPlayer &&
-          nowMs - lastCivilControlRef.current > 20000 + Math.random() * 25000
+          performance.now() - lastCivilControlRef.current > 20000 + Math.random() * 25000
         ) {
           const freePatrol = policeCarsRef.current.filter(p => p.mode === "patrol");
           if (freePatrol.length > 0) {
             const pc = freePatrol[Math.floor(Math.random() * freePatrol.length)];
-            pc.mode = "control_wait";
-            pc.controlUntil = nowMs + CIVIL_CONTROL_DURATION_MS;
-            pc.controlStoppedPos = pc.pos;
-            showToast("🚓 Contrôle de police en cours…");
+            const plen = pathLensRef.current[pc.pathIdx] ?? 0;
+            // Roule en alerte (gyrophares) vers un point ~120-220 px devant
+            const forwardDist = 120 + Math.random() * 100;
+            const dir = pc.target >= pc.pos ? 1 : -1;
+            const tgt = Math.max(2, Math.min(plen - 2, pc.pos + dir * forwardDist));
+            pc.mode = "control_drive";
+            pc.target = tgt;
+            pc.controlUntil = performance.now() + CIVIL_CONTROL_DURATION_MS;
+            showToast("🚨 Police en intervention — contrôle imminent…");
           }
-          lastCivilControlRef.current = nowMs;
+          lastCivilControlRef.current = performance.now();
         }
+
 
         // 3) MAJ chaque police
         for (const pc of policeCarsRef.current) {
@@ -1114,6 +1175,7 @@ export default function TaxiTycoon() {
               const diff = pc.target - pc.pos;
               const step = POLICE_CHASE_SPEED * dt;
               if (Math.abs(diff) > 0.5) pc.pos += Math.sign(diff) * Math.min(step, Math.abs(diff));
+
 
               const pcPt = pathRefs.current[pc.pathIdx]?.getPointAtLength(pc.pos);
               const tPt = pathRefs.current[targetTaxi.pathIdx]?.getPointAtLength(targetTaxi.pos);
@@ -1170,7 +1232,7 @@ export default function TaxiTycoon() {
                 const d = Math.hypot(pcPt.x - tPt.x, pcPt.y - tPt.y);
                 if (d < HIDEOUT_TRAP_DIST) {
                   wantedPlayerTaxiIdRef.current = taxi.id;
-                  wantedPlayerUntilRef.current = nowMs + 15000;
+                  wantedPlayerUntilRef.current = performance.now() + 15000;
                   pc.mode = "chase";
                   pc.chasePlayerTaxiId = taxi.id;
                   pc.chaseRivalId = null;
@@ -1182,7 +1244,7 @@ export default function TaxiTycoon() {
               }
             }
             // Expire la planque sans capture
-            if (pc.mode === "stakeout_wait" && nowMs > (stakeoutUntilRef.current[pc.id] ?? 0)) {
+            if (pc.mode === "stakeout_wait" && performance.now() > (stakeoutUntilRef.current[pc.id] ?? 0)) {
               pc.mode = "patrol";
               delete stakeoutHideoutRef.current[pc.id];
               delete stakeoutUntilRef.current[pc.id];
@@ -1192,10 +1254,26 @@ export default function TaxiTycoon() {
             continue;
           }
 
+          // ----- Mode CONTROL_DRIVE : fonce gyrophares allumés vers le point de contrôle -----
+          if (pc.mode === "control_drive") {
+            const diff = pc.target - pc.pos;
+            const stepD = POLICE_RESPONSE_SPEED * dt;
+            if (Math.abs(diff) <= stepD) {
+              pc.pos = pc.target;
+              pc.mode = "control_wait";
+              pc.controlStoppedPos = pc.pos;
+              pc.controlUntil = performance.now() + CIVIL_CONTROL_DURATION_MS;
+              showToast("🚓 Contrôle de papiers en cours…");
+            } else {
+              pc.pos += Math.sign(diff) * stepD;
+            }
+            continue;
+          }
+
           // ----- Mode CONTROL_WAIT : voiture stoppée, gyrophares, "contrôle" -----
           if (pc.mode === "control_wait") {
             if (pc.controlStoppedPos !== undefined) pc.pos = pc.controlStoppedPos;
-            if (nowMs > (pc.controlUntil ?? 0)) {
+            if (performance.now() > (pc.controlUntil ?? 0)) {
               pc.mode = "patrol";
               pc.controlUntil = undefined;
               pc.controlStoppedPos = undefined;
@@ -1204,6 +1282,7 @@ export default function TaxiTycoon() {
             }
             continue;
           }
+
 
           // ----- Mode PATROL : aller-retour -----
           const diff = pc.target - pc.pos;
@@ -1223,6 +1302,34 @@ export default function TaxiTycoon() {
       taxisRef.current.forEach(syncVehicleLane);
       rivalTaxisRef.current.forEach(syncVehicleLane);
       policeCarsRef.current.forEach(syncVehicleLane);
+
+      // ====== Véhicules d'urgence (ambulance / pompiers) ======
+      for (const ev of emergencyRef.current) {
+        const plen = pathLensRef.current[ev.pathIdx] ?? 0;
+        if (plen <= 1) continue;
+        // Déclenche aléatoirement une intervention (sirène + vitesse)
+        if (ev.alertUntil === 0 && performance.now() >= ev.nextAlertAt) {
+          ev.alertUntil = performance.now() + 8000 + Math.random() * 7000;
+        }
+        if (performance.now() >= ev.alertUntil && ev.alertUntil !== 0) {
+          ev.alertUntil = 0;
+          ev.nextAlertAt = performance.now() + 25000 + Math.random() * 35000;
+        }
+        const alerting = ev.alertUntil > 0;
+        const baseSpeed = alerting ? EMERGENCY_RUSH_SPEED : EMERGENCY_SPEED;
+        const diff = ev.target - ev.pos;
+        const step = baseSpeed * dt;
+        if (Math.abs(diff) <= step) {
+          ev.target = ev.target > 1 ? 1 : Math.max(1, plen - 1);
+        } else {
+          const forward = diff > 0;
+          if (alerting || !shouldStopAhead(ev.pathIdx, ev.pos, forward, nowSeconds())) {
+            ev.pos += Math.sign(diff) * step;
+          }
+        }
+      }
+      emergencyRef.current.forEach(syncVehicleLane);
+
 
       // ====== Circuit taxis : avance le long de la boucle ======
       const cInfo = circuitInfoRef.current;
@@ -1725,12 +1832,13 @@ export default function TaxiTycoon() {
             ? { x: pc.hideoutXY!.x, y: pc.hideoutXY!.y, angle: 0 }
             : (pc.lane ?? getLaneXY(pc.pathIdx, pc.pos, movingForward));
           const chasing = pc.mode === "chase";
-          const controlling = pc.mode === "control_wait";
+          const controlling = pc.mode === "control_wait" || pc.mode === "control_drive";
           const t = Math.floor(performance.now() / 200) % 2;
           const flashing = chasing || controlling;
           const ledA = flashing ? (t === 0 ? "#3b82f6" : "#ef4444") : "#1f2937";
           const ledB = flashing ? (t === 0 ? "#ef4444" : "#3b82f6") : "#1f2937";
           void ledA; void ledB;
+
           return (
             <g key={pc.id} transform={`translate(${p.x},${p.y}) rotate(${p.angle})`} filter="url(#taxi-shadow)">
               {flashing && (
@@ -1760,6 +1868,35 @@ export default function TaxiTycoon() {
             </g>
           );
         })}
+
+        {/* Véhicules d'urgence : ambulance + pompiers (sirène en intervention) */}
+        {emergencyRef.current.map((ev) => {
+          const movingForward = ev.target >= ev.pos;
+          const p = ev.lane ?? getLaneXY(ev.pathIdx, ev.pos, movingForward);
+          const alerting = ev.alertUntil > 0;
+          const t = Math.floor(performance.now() / 200) % 2;
+          const href = ev.kind === "ambulance" ? AMBULANCE_URL : FIRETRUCK_URL;
+          const W = ev.kind === "firetruck" ? 46 : 42;
+          return (
+            <g key={ev.id} transform={`translate(${p.x},${p.y}) rotate(${p.angle})`} filter="url(#taxi-shadow)">
+              {alerting && (
+                <circle r="26" fill={t === 0 ? "#3b82f6" : "#ef4444"} opacity="0.3">
+                  <animate attributeName="r" values="22;30;22" dur="0.5s" repeatCount="indefinite" />
+                </circle>
+              )}
+              <g transform="rotate(90)">
+                <image href={href} x={-W / 2} y={-W / 2} width={W} height={W} preserveAspectRatio="xMidYMid meet" />
+              </g>
+              {alerting && (
+                <text x="0" y="32" textAnchor="middle" fontSize="3.6" fontWeight="900" fill="#fbbf24" stroke="#0b0d10" strokeWidth="0.8" paintOrder="stroke">
+                  {ev.kind === "ambulance" ? "URGENCE" : "POMPIERS"}
+                </text>
+              )}
+            </g>
+          );
+        })}
+
+
 
 
         {(() => {

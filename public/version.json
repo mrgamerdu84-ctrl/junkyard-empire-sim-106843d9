@@ -1,6 +1,6 @@
 {
-  "version": "1.0.3",
-  "buildId": "2026-06-19T10:30:00.000Z",
-  "builtAt": 1781865000000,
-  "changelog": "Bouton admin déplacé en bas-droite, carte de chauffeur (avatar homme/femme/photo), case Se souvenir, auto-login"
+  "version": "1.0.4",
+  "buildId": "2026-06-19T11:00:00.000Z",
+  "builtAt": 1781867400000,
+  "changelog": "Police plus lente en patrouille, gyrophares uniquement en intervention/contrôle, piétons mieux calés sur trottoirs, ajout ambulance + camion pompiers en patrouille avec sirènes aléatoires"
 }

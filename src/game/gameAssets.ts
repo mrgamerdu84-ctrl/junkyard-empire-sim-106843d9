@@ -24,9 +24,12 @@ import taxiYellowAsset from "@/assets/taxi-yellow-top.png";
 import taxiBlackAsset from "@/assets/taxi-black-top.png";
 import taxiRedAsset from "@/assets/taxi-red-top.png";
 import policeCarAsset from "@/assets/police-car-top.png";
+import ambulanceAsset from "@/assets/ambulance-top.png";
+import firetruckAsset from "@/assets/firetruck-top.png";
 import pedManTopAsset from "@/assets/pedestrian-man-top.png";
 import pedWomanTopAsset from "@/assets/pedestrian-woman-top.png";
 import musicAsset from "@/assets/midnight-fare.mp3.asset.json";
+
 
 
 
@@ -36,6 +39,8 @@ export type AssetKey =
   | "taxi.black"
   | "taxi.red"
   | "police.car"
+  | "emergency.ambulance"
+  | "emergency.firetruck"
   | "civil.car.1"
   | "civil.car.2"
   | "civil.car.3"
@@ -48,9 +53,9 @@ const DEFAULTS: Record<AssetKey, string> = {
   "taxi.yellow": taxiYellowAsset,
   "taxi.black": taxiBlackAsset,
   "taxi.red": taxiRedAsset,
-  // Vrai sprite police (gyrophares + livrée) — top-down, nez vers le nord.
   "police.car": policeCarAsset,
-  // Voitures civiles = variantes de couleur des taxis (top-down).
+  "emergency.ambulance": ambulanceAsset,
+  "emergency.firetruck": firetruckAsset,
   "civil.car.1": taxiBlackAsset,
   "civil.car.2": taxiRedAsset,
   "civil.car.3": taxiYellowAsset,
@@ -60,6 +65,7 @@ const DEFAULTS: Record<AssetKey, string> = {
 
   "audio.music": musicAsset.url,
 };
+
 
 const OVERRIDE_KEY = "jce.assetOverrides";
 

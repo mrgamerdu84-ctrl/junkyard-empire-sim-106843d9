@@ -269,8 +269,9 @@ const PHOTO_PEDS: PhotoPedSpec[] = [
 // La largeur visible d'une route ≈ 46 px ; on garde une marge confortable
 // pour qu'AUCUN piéton ne puisse glisser sur la chaussée — même si une IA,
 // une collision ou un futur effet tentait d'altérer sa position.
-export const SIDEWALK_LOCK_OFFSET = 52;
+export const SIDEWALK_LOCK_OFFSET = 64;
 const PHOTO_PED_OFFSET = SIDEWALK_LOCK_OFFSET;
+
 
 /** Verrouille une coordonnée XY sur le trottoir : si elle est plus proche
  *  de l'axe que `SIDEWALK_LOCK_OFFSET`, on la repousse vers `side`. */
