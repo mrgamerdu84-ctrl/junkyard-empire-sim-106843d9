@@ -263,6 +263,22 @@ function TaxiSprite({
   );
 }
 
+function RoadAlignedVehicleSprite({
+  image,
+  size = 40,
+  opacity = 1,
+}: {
+  image: string;
+  size?: number;
+  opacity?: number;
+}) {
+  return (
+    <g transform="rotate(90)">
+      <image href={image} x={-size / 2} y={-size / 2} width={size} height={size} preserveAspectRatio="xMidYMid meet" opacity={opacity} />
+    </g>
+  );
+}
+
 
 
 
@@ -2086,8 +2102,8 @@ export default function TaxiTycoon() {
                   <animate attributeName="r" values="20;28;20" dur="0.5s" repeatCount="indefinite" />
                 </circle>
               )}
-              <g transform="rotate(90)">
-                <image href={POLICE_CAR_URL} x={-20} y={-20} width={40} height={40} preserveAspectRatio="xMidYMid meet" opacity={hidden ? 0.85 : 1} />
+              <g>
+                <RoadAlignedVehicleSprite image={POLICE_CAR_URL} opacity={hidden ? 0.85 : 1} />
                 {/* Voiture civile contrôlée, juste devant la police */}
                 {controlling && (
                   <g transform="translate(0,-34)">
@@ -2198,8 +2214,8 @@ export default function TaxiTycoon() {
           const blueOn = t === 0;
           return (
             <g key={ev.id} transform={`translate(${p.x},${p.y}) rotate(${p.angle})`} filter="url(#taxi-shadow)">
-              <g transform="rotate(90)">
-                <image href={href} x={-W / 2} y={-W / 2} width={W} height={W} preserveAspectRatio="xMidYMid meet" />
+              <g>
+                <RoadAlignedVehicleSprite image={href} size={W} />
                 {alerting && (
                   <g>
                     {/* halo lumineux localisé autour de chaque dôme */}
