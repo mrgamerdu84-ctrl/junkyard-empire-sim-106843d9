@@ -583,6 +583,9 @@ function SkinsTab() {
           );
         })}
       </div>
+
+      <CustomVehiclesSection />
+
       <button
         onClick={reload}
         style={{
@@ -594,6 +597,103 @@ function SkinsTab() {
         ↻ Recharger pour appliquer
       </button>
     </>
+  );
+}
+
+function CustomVehiclesSection() {
+  const [items, setItems] = useState<CustomVehicle[]>(() => listCustomVehicles());
+  const [name, setName] = useState("");
+  const [category, setCategory] = useState<"civil" | "taxi">("civil");
+  const fileRef = useRef<HTMLInputElement>(null);
+
+  const refresh = () => setItems(listCustomVehicles());
+
+  const onPick = (f: File) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      const url = String(reader.result);
+      addCustomVehicle({ name: name.trim() || f.name.replace(/\.[^.]+$/, ""), url, category });
+      setName("");
+      if (fileRef.current) fileRef.current.value = "";
+      refresh();
+    };
+    reader.readAsDataURL(f);
+  };
+
+  const onUrl = () => {
+    const url = window.prompt("URL de l'image du véhicule (PNG vue de dessus) :", "");
+    if (!url) return;
+    addCustomVehicle({ name: name.trim() || "Véhicule custom", url: url.trim(), category });
+    setName("");
+    refresh();
+  };
+
+  const onDel = (id: string) => {
+    if (!window.confirm("Supprimer ce véhicule ?")) return;
+    removeCustomVehicle(id);
+    refresh();
+  };
+
+  return (
+    <div style={{ marginTop: 14, padding: 10, background: "#1f242b", borderRadius: 8, border: "1px dashed #3a3f48" }}>
+      <div style={{ fontSize: 12, fontWeight: 700, color: "#f5c542", marginBottom: 6 }}>
+        ➕ Ajouter un nouveau véhicule
+      </div>
+      <div style={{ fontSize: 11, color: "#8a8e94", lineHeight: 1.5, marginBottom: 8 }}>
+        Upload un PNG vue de dessus (avant vers le haut). Il sera ajouté au trafic civil.
+      </div>
+
+      <input
+        type="text"
+        placeholder="Nom (optionnel)"
+        value={name}
+        onChange={(e) => setName(e.target.value)}
+        style={{ width: "100%", padding: "6px 8px", borderRadius: 4, border: "1px solid #3a3f48", background: "#14171c", color: "#e8edf2", fontSize: 12, marginBottom: 6 }}
+      />
+
+      <div style={{ display: "flex", gap: 6, marginBottom: 8 }}>
+        <select
+          value={category}
+          onChange={(e) => setCategory(e.target.value as "civil" | "taxi")}
+          style={{ flex: 1, padding: "6px 8px", borderRadius: 4, border: "1px solid #3a3f48", background: "#14171c", color: "#e8edf2", fontSize: 12 }}
+        >
+          <option value="civil">Trafic civil</option>
+          <option value="taxi">Taxi (futur)</option>
+        </select>
+      </div>
+
+      <div style={{ display: "flex", gap: 6 }}>
+        <label style={{ flex: 1, textAlign: "center", padding: "8px", background: "#14171c", border: "1px solid #f5c542", borderRadius: 4, cursor: "pointer", color: "#f5c542", fontSize: 11, fontWeight: 700 }}>
+          📁 Fichier
+          <input
+            ref={fileRef}
+            type="file"
+            accept="image/*"
+            style={{ display: "none" }}
+            onChange={(e) => { const f = e.target.files?.[0]; if (f) onPick(f); }}
+          />
+        </label>
+        <button onClick={onUrl} style={{ flex: 1, padding: "8px", background: "#14171c", border: "1px solid #3a3f48", borderRadius: 4, cursor: "pointer", color: "#e8edf2", fontSize: 11, fontWeight: 700 }}>
+          🔗 URL
+        </button>
+      </div>
+
+      {items.length > 0 && (
+        <div style={{ marginTop: 10, display: "grid", gap: 4 }}>
+          <div style={{ fontSize: 10, color: "#8a8e94", marginBottom: 2 }}>Mes véhicules ({items.length})</div>
+          {items.map((v) => (
+            <div key={v.id} style={{ display: "flex", alignItems: "center", gap: 6, padding: 4, background: "#14171c", borderRadius: 4 }}>
+              <img src={v.url} alt="" style={{ width: 28, height: 28, objectFit: "contain", background: "#0a0c10", borderRadius: 3 }} />
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontSize: 11, color: "#e8edf2", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{v.name}</div>
+                <div style={{ fontSize: 9, color: "#6a6e74" }}>{v.category}</div>
+              </div>
+              <button onClick={() => onDel(v.id)} style={{ ...btnMini, color: "#ff6b6b", borderColor: "#5a2a2a" }}>🗑</button>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
   );
 }
 
