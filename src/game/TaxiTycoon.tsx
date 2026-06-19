@@ -447,19 +447,23 @@ export default function TaxiTycoon() {
     pos: number;
     target: number;
     lane?: LanePosition;
-    mode: "patrol" | "chase" | "stakeout_drive" | "stakeout_wait";
+    mode: "patrol" | "chase" | "stakeout_drive" | "stakeout_wait" | "control_drive" | "control_wait";
     chaseRivalId: number | null;
     chasePlayerTaxiId: number | null;
     hideoutXY?: { x: number; y: number };
+    controlUntil?: number;     // ms — fin du contrôle civil
+    controlStoppedPos?: number; // pos figée pendant le contrôle
   };
   const policeCarsRef = useRef<PoliceCar[]>([]);
   const wantedRivalIdRef = useRef<number | null>(null);
   const wantedUntilRef = useRef<number>(0);
   const lastViolationRef = useRef<number>(performance.now()); void lastViolationRef;
+  const lastCivilControlRef = useRef<number>(performance.now());
   const POLICE_SPEED = 92;     // px/s patrol
   const POLICE_CHASE_SPEED = 140;
   const POLICE_FINE = 200;
   const POLICE_CATCH_DIST = 48; // px
+  const CIVIL_CONTROL_DURATION_MS = 6500; // durée d'un contrôle
 
   // === Radars fixes & planques police (Speed Traps) ===
   // Radars : couples (pathIdx, posFraction) -> position le long du path.
