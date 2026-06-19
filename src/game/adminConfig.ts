@@ -36,6 +36,9 @@ export type AdminConfig = {
   rivalReactionTime: number;     // 1..15 — délai (s) avant qu'un taxi IA ne snipe une course
   rivalSpeedMult: number;        // 0.5..2.5
 
+  // ====== Police ======
+  policeCarCount: number;        // 0..6 — nb de voitures de police qui patrouillent
+
   // ====== Circuit personnalisé ======
   circuitPoints: { x: number; y: number }[]; // polyligne dessinée par le joueur
   circuitTaxiCount: number;      // 0..8 — nb de taxis qui tournent en boucle
@@ -70,6 +73,8 @@ export const DEFAULT_ADMIN: AdminConfig = {
   rivalTaxiCount: 2,
   rivalReactionTime: 5,
   rivalSpeedMult: 1,
+
+  policeCarCount: 2,
 
   circuitPoints: [],
   circuitTaxiCount: 0,

@@ -131,21 +131,24 @@ export default function AdminPanel() {
     <>
       <style>{`
         .adm-btn {
-          position: absolute; top: 14px; right: 14px; z-index: 50;
-          width: 44px; height: 44px; border-radius: 50%; border: none;
-          background: rgba(20,22,28,0.85); color: #f5c542; font-size: 22px;
-          cursor: pointer; box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+          position: fixed;
+          top: max(14px, env(safe-area-inset-top, 0px));
+          right: max(14px, env(safe-area-inset-right, 0px));
+          z-index: 9999;
+          width: 48px; height: 48px; border-radius: 50%; border: 2px solid #f5c542;
+          background: rgba(20,22,28,0.92); color: #f5c542; font-size: 24px;
+          cursor: pointer; box-shadow: 0 4px 14px rgba(0,0,0,0.6);
           display: flex; align-items: center; justify-content: center;
           backdrop-filter: blur(8px);
         }
         .adm-btn:hover { background: rgba(40,42,50,0.95); }
         .adm-overlay {
-          position: absolute; inset: 0; z-index: 49;
+          position: fixed; inset: 0; z-index: 9998;
           background: rgba(0,0,0,0.5);
         }
         .adm-panel {
-          position: absolute; top: 0; right: 0; bottom: 0; width: min(380px, 92vw);
-          z-index: 50; background: #14171c; color: #e8edf2;
+          position: fixed; top: 0; right: 0; bottom: 0; width: min(380px, 92vw);
+          z-index: 9999; background: #14171c; color: #e8edf2;
           box-shadow: -8px 0 32px rgba(0,0,0,0.6);
           padding: 18px 18px 24px; overflow-y: auto;
           font-family: system-ui, -apple-system, sans-serif;
@@ -306,6 +309,9 @@ export default function AdminPanel() {
                 <Slider label="Nombre de véhicules civils" hint="Voitures, vans et camions sur les routes"
                   value={cfg.civilVehicleCount} min={0} max={24} step={1}
                   format={(v) => v.toFixed(0)} onChange={(v) => setAdmin({ civilVehicleCount: v })} />
+                <Slider label="🚓 Voitures de police" hint="0 = aucune patrouille, 6 = ville sous surveillance"
+                  value={cfg.policeCarCount} min={0} max={6} step={1}
+                  format={(v) => v.toFixed(0)} onChange={(v) => setAdmin({ policeCarCount: v })} />
               </>
             )}
 

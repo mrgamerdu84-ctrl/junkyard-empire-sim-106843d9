@@ -23,6 +23,7 @@
 import taxiYellowAsset from "@/assets/taxi-yellow-top.png";
 import taxiBlackAsset from "@/assets/taxi-black-top.png";
 import taxiRedAsset from "@/assets/taxi-red-top.png";
+import policeCarAsset from "@/assets/police-car-top.png";
 import pedManTopAsset from "@/assets/pedestrian-man-top.png";
 import pedWomanTopAsset from "@/assets/pedestrian-woman-top.png";
 import musicAsset from "@/assets/midnight-fare.mp3.asset.json";
@@ -47,10 +48,9 @@ const DEFAULTS: Record<AssetKey, string> = {
   "taxi.yellow": taxiYellowAsset,
   "taxi.black": taxiBlackAsset,
   "taxi.red": taxiRedAsset,
-  // Police = même modèle que les taxis (silhouette identique, couleur sombre).
-  // Les gyrophares animés (chase) la distinguent visuellement à l'écran.
-  "police.car": taxiBlackAsset,
-  // Voitures civiles = même modèle que les taxis, simples variantes de couleur.
+  // Vrai sprite police (gyrophares + livrée) — top-down, nez vers le nord.
+  "police.car": policeCarAsset,
+  // Voitures civiles = variantes de couleur des taxis (top-down).
   "civil.car.1": taxiBlackAsset,
   "civil.car.2": taxiRedAsset,
   "civil.car.3": taxiYellowAsset,
