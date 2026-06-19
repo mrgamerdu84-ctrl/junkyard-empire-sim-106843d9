@@ -816,14 +816,14 @@ export default function TaxiTycoon() {
     for (let i = 0; i < N; i++) if (!VILLAGE_PATHS.has(i)) allowed.push(i);
     if (allowed.length < 1) return;
     if (emergencyRef.current.length === 0) {
-      const mkVeh = (kind: "ambulance" | "firetruck", i: number): EmergencyVehicle => {
+      const mkVeh = (kind: "ambulance" | "firetruck" | "police", i: number): EmergencyVehicle => {
         const pIdx = allowed[i % allowed.length];
         const plen = pathLensRef.current[pIdx] ?? 0;
         const v: EmergencyVehicle = {
           id: 40000 + i,
           kind,
           pathIdx: pIdx,
-          pos: (i / 2) * plen,
+          pos: (i / 3) * plen,
           target: plen - 1,
           mode: "patrol",
           onsiteUntil: 0,
@@ -834,6 +834,7 @@ export default function TaxiTycoon() {
       };
       emergencyRef.current.push(mkVeh("ambulance", 0));
       emergencyRef.current.push(mkVeh("firetruck", 1));
+      emergencyRef.current.push(mkVeh("police", 2));
     }
 
     forceRender((n) => n + 1);
