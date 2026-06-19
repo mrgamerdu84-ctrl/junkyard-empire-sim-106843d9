@@ -1960,7 +1960,31 @@ export default function TaxiTycoon() {
           );
         })}
 
-        {/* Véhicules d'urgence : ambulance + pompiers (sirène en intervention) */}
+        {/* Marqueurs d'accidents (triangle + fumée) */}
+        {accidentsRef.current.map((a) => (
+          <g key={`acc-${a.id}`} transform={`translate(${a.x},${a.y})`} pointerEvents="none">
+            <circle r="22" fill="#ef4444" opacity="0.18">
+              <animate attributeName="r" values="18;28;18" dur="1.4s" repeatCount="indefinite" />
+            </circle>
+            {/* fumée */}
+            <circle cx="-4" cy="-8" r="5" fill="#1f2937" opacity="0.55">
+              <animate attributeName="cy" values="-8;-16;-8" dur="2.4s" repeatCount="indefinite" />
+              <animate attributeName="opacity" values="0.55;0.1;0.55" dur="2.4s" repeatCount="indefinite" />
+            </circle>
+            <circle cx="5" cy="-10" r="4" fill="#374151" opacity="0.5">
+              <animate attributeName="cy" values="-10;-18;-10" dur="2.8s" repeatCount="indefinite" />
+              <animate attributeName="opacity" values="0.5;0.05;0.5" dur="2.8s" repeatCount="indefinite" />
+            </circle>
+            {/* triangle de signalisation */}
+            <polygon points="0,-9 8,5 -8,5" fill="#fbbf24" stroke="#0b0d10" strokeWidth="1.2" />
+            <text x="0" y="3" textAnchor="middle" fontSize="7" fontWeight="900" fill="#0b0d10">!</text>
+            <text x="0" y="18" textAnchor="middle" fontSize="3.6" fontWeight="900" fill="#fbbf24" stroke="#0b0d10" strokeWidth="0.8" paintOrder="stroke">
+              {a.kind === "vehicle" ? "ACCIDENT" : "BLESSÉ"}
+            </text>
+          </g>
+        ))}
+
+
         {emergencyRef.current.map((ev) => {
           const movingForward = ev.target >= ev.pos;
           const p = ev.lane ?? getLaneXY(ev.pathIdx, ev.pos, movingForward);
