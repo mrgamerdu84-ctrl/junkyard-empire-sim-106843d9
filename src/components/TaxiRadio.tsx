@@ -174,6 +174,48 @@ export default function TaxiRadio() {
     }
   };
 
+  // ====== Animateur radio (DJ) ======
+  const djLine = (stationName: string): RadioNews => {
+    const intros = [
+      { fr: `Vous écoutez ${stationName} sur Junky Empire ! Ça va chauffer, on enchaîne avec un titre du tonnerre, restez branchés !`,
+        en: `You're listening to ${stationName} on Junky Empire! Buckle up, the next track is fire — stay tuned!` },
+      { fr: `Ici ${stationName}, la radio préférée des taxis ! Prochain morceau dans un instant, gardez le volume à fond !`,
+        en: `This is ${stationName}, the taxi drivers' favorite station! Next track coming up, keep the volume loud!` },
+      { fr: `Salut à tous les chauffeurs ! ${stationName} vous accompagne sur la route. On continue avec une pépite, c'est cadeau !`,
+        en: `Hey drivers! ${stationName} keeps you company on the road. Up next, a real gem — enjoy!` },
+      { fr: `${stationName} ! On vient de passer un classique, et croyez-moi, le prochain titre est encore meilleur. Roulez prudemment !`,
+        en: `${stationName}! That was a classic, and trust me, what's next is even better. Drive safe!` },
+      { fr: `Bienvenue de retour sur ${stationName} ! Météo au beau fixe, trafic fluide, et la musique qui envoie. Prochain morceau, c'est parti !`,
+        en: `Welcome back to ${stationName}! Weather's great, traffic's smooth, and the music's pumping. Next track, here we go!` },
+      { fr: `Vous êtes sur ${stationName}, la station qui fait vibrer Junky City ! On continue le marathon musical, tenez bon !`,
+        en: `You're on ${stationName}, the station that makes Junky City vibrate! The music marathon continues, hold on tight!` },
+      { fr: `${stationName} en direct ! Un grand merci aux taxis qui nous écoutent. Le prochain titre, vous allez kiffer, promis !`,
+        en: `${stationName} live! Big shout-out to all the taxis tuned in. You're gonna love the next one, I promise!` },
+    ];
+    return intros[Math.floor(Math.random() * intros.length)];
+  };
+
+  const playDjLine = (stationName: string) => {
+    const a = audioRef.current;
+    const originalVol = a ? a.volume : 0.5;
+    // duck la musique
+    if (a) { try { a.volume = Math.max(0.05, originalVol * 0.18); } catch {} }
+    speak(djLine(stationName));
+    // surveille la fin de la TTS pour restaurer le volume
+    if (djRestoreRef.current) window.clearInterval(djRestoreRef.current);
+    djRestoreRef.current = window.setInterval(() => {
+      if (!ttsAudioRef.current) {
+        if (a) { try { a.volume = originalVol; } catch {} }
+        if (djRestoreRef.current) { window.clearInterval(djRestoreRef.current); djRestoreRef.current = null; }
+      }
+    }, 300);
+    // fail-safe : restaure dans 20s max
+    window.setTimeout(() => {
+      if (a) { try { a.volume = originalVol; } catch {} }
+      if (djRestoreRef.current) { window.clearInterval(djRestoreRef.current); djRestoreRef.current = null; }
+    }, 20000);
+  };
+
   // Stations
   useEffect(() => {
     if (!ready) return;
@@ -184,6 +226,8 @@ export default function TaxiRadio() {
       try { window.speechSynthesis.cancel(); } catch {}
     }
     if (ambientTimerRef.current) { window.clearInterval(ambientTimerRef.current); ambientTimerRef.current = null; }
+    if (djTimerRef.current) { window.clearInterval(djTimerRef.current); djTimerRef.current = null; }
+    if (djRestoreRef.current) { window.clearInterval(djRestoreRef.current); djRestoreRef.current = null; }
     setTicker("");
 
     if (!a) return;
@@ -222,8 +266,23 @@ export default function TaxiRadio() {
         window.addEventListener("keydown", start, { once: true });
         window.addEventListener("touchstart", start, { once: true });
       });
+
+      // Animateur radio : intervient toutes les 75-120s sur les stations musicales
+      const scheduleDj = () => {
+        const delay = 75000 + Math.random() * 45000;
+        djTimerRef.current = window.setTimeout(() => {
+          if (!paused) playDjLine(st.name);
+          scheduleDj();
+        }, delay) as unknown as number;
+      };
+      // premier passage après 35-55s pour annoncer la station
+      djTimerRef.current = window.setTimeout(() => {
+        if (!paused) playDjLine(st.name);
+        scheduleDj();
+      }, 35000 + Math.random() * 20000) as unknown as number;
     }
   }, [stationId, ready]);
+
 
   useEffect(() => {
     const onNews = (e: Event) => {
