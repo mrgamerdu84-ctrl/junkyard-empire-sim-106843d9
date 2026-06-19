@@ -1050,6 +1050,8 @@ export default function TaxiTycoon() {
                 r.target = closestOnPath(r.pathIdx, admin.rivalHQX, admin.rivalHQY);
               }
             } else if (r.mode === "to_dest") {
+              const job = rivalJobsRef.current.find((x) => x.id === r.jobId);
+              if (job) setRivalEarnings((n) => n + Math.round(job.fare * 0.9));
               rivalJobsRef.current = rivalJobsRef.current.filter((x) => x.id !== r.jobId);
               r.jobId = null;
               r.target = closestOnPath(r.pathIdx, admin.rivalHQX, admin.rivalHQY);
