@@ -90,6 +90,19 @@ const CARS: CarSpec[] = [
   { kind: "sedan", color: "#7c3aed", accent: "#3b1d72", duration: 46, delay: -50, pathIdx: 0, scale: 0.62 },
   { kind: "hatch", color: "#22c55e", accent: "#0f5132", duration: 24, delay: -10, pathIdx: 1, scale: 0.6, variant: "red" },
   { kind: "sedan", color: "#0ea5e9", accent: "#075985", duration: 48, delay: -48, pathIdx: 2, scale: 0.62 },
+  // Trafic dense supplémentaire (path 0)
+  { kind: "hatch", color: "#f43f5e", accent: "#7a1024", duration: 39, delay: -12, pathIdx: 0, scale: 0.58, variant: "red" },
+  { kind: "van",   color: "#0891b2", accent: "#053848", duration: 47, delay: -28, pathIdx: 0, scale: 0.68 },
+  { kind: "sedan", color: "#a3e635", accent: "#3f6212", duration: 41, delay: -44, pathIdx: 0, scale: 0.62 },
+  { kind: "truck", color: "#f59e0b", accent: "#78350f", duration: 52, delay: -16, pathIdx: 0, scale: 0.72 },
+  // Trafic dense supplémentaire (path 2)
+  { kind: "hatch", color: "#ec4899", accent: "#831843", duration: 43, delay: -18, pathIdx: 2, scale: 0.58 },
+  { kind: "sedan", color: "#64748b", accent: "#1e293b", duration: 40, delay: -34, pathIdx: 2, scale: 0.62, variant: "red" },
+  { kind: "van",   color: "#84cc16", accent: "#3f6212", duration: 46, delay: -52, pathIdx: 2, scale: 0.68 },
+  { kind: "truck", color: "#9333ea", accent: "#4c1d95", duration: 54, delay: -6,  pathIdx: 2, scale: 0.72 },
+  // Path 1 — voie courte (renforcée)
+  { kind: "sedan", color: "#06b6d4", accent: "#0e7490", duration: 21, delay: -16, pathIdx: 1, scale: 0.6 },
+  { kind: "hatch", color: "#fbbf24", accent: "#78350f", duration: 23, delay: -4,  pathIdx: 1, scale: 0.58, variant: "red" },
 ];
 
 
