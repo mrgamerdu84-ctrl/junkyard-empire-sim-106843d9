@@ -175,13 +175,17 @@ export default function TaxiRadio() {
         weatherFetchedAtRef.current = Date.now();
       } catch {}
     };
-    const fallback = () => tryFetch(48.8566, 2.3522, "Paris");
+    // Météo strictement locale : si la géoloc est refusée/indisponible, pas de fallback Paris.
+    const noGeo = () => {
+      weatherRef.current = null;
+      setWeatherState(null);
+      weatherFetchedAtRef.current = Date.now();
+    };
     if (typeof navigator !== "undefined" && navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
         async (pos) => {
           try {
             const { latitude, longitude } = pos.coords;
-            // reverse geocode best-effort
             let city = "";
             try {
               const g = await fetch(`https://geocoding-api.open-meteo.com/v1/reverse?latitude=${latitude}&longitude=${longitude}&language=fr&count=1`);
@@ -189,13 +193,13 @@ export default function TaxiRadio() {
               city = gj?.results?.[0]?.name ?? "";
             } catch {}
             await tryFetch(latitude, longitude, city || (langRef.current === "fr" ? "votre région" : "your area"));
-          } catch { fallback(); }
+          } catch { noGeo(); }
         },
-        () => { fallback(); },
+        () => { noGeo(); },
         { timeout: 4000, maximumAge: 30 * 60 * 1000 }
       );
     } else {
-      fallback();
+      noGeo();
     }
   };
 
