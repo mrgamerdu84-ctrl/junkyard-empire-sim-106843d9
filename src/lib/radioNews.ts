@@ -21,8 +21,8 @@ export const RADIO_NEWS_EVENT = EVENT;
 
 // Jingle de bienvenue (joué à l'ouverture de la radio infos)
 export const WELCOME_JINGLE: RadioNews = {
-  fr: "Bienvenue dans la radio Junky Empire Taxi, votre radio préférée au volant !",
-  en: "Welcome to Junky Empire Taxi Radio, your favorite radio behind the wheel!",
+  fr: "Bienvenue dans la radio Junky Empire Taxi, votre radio préférée au volant ! Et n'oubliez pas de télécharger aussi l'application La Jungle de l'Arcade, c'est pas mal pas mal !",
+  en: "Welcome to Junky Empire Taxi Radio, your favorite radio behind the wheel! And don't forget to download the La Jungle de l'Arcade app too, it's pretty cool!",
 };
 
 // Brèves d'ambiance — météo, événements de la ville, animations.
@@ -31,6 +31,10 @@ export const AMBIENT_NEWS: RadioNews[] = [
   {
     fr: "Vous écoutez Junky Empire Taxi, la radio qui roule avec vous !",
     en: "You're listening to Junky Empire Taxi, the radio that rides with you!",
+  },
+  {
+    fr: "Pub partenaire : téléchargez l'application La Jungle de l'Arcade, plein de jeux rétro à découvrir, c'est pas mal pas mal !",
+    en: "Sponsor break: download the La Jungle de l'Arcade app, tons of retro games to discover, pretty cool stuff!",
   },
   {
     fr: "Météo du jour : grand ciel bleu sur toute la ville, parfait pour enchaîner les courses.",
@@ -51,6 +55,10 @@ export const AMBIENT_NEWS: RadioNews[] = [
   {
     fr: "Côté vie locale : le maire annonce des travaux de rénovation grâce à la caisse de la ville.",
     en: "Local news: the mayor announces renovation works funded by the city treasury.",
+  },
+  {
+    fr: "Rappel auditeurs : l'application La Jungle de l'Arcade est dispo au téléchargement, foncez les amis !",
+    en: "Listener reminder: the La Jungle de l'Arcade app is available to download, go grab it folks!",
   },
   {
     fr: "Conseil prudence : bouclez votre ceinture, respectez les feux, et évitez les radars.",
