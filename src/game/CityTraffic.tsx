@@ -249,6 +249,124 @@ function Vehicle({
 // Composants SVG conservés pour référence/legacy (non utilisés depuis l'image PNG).
 void CarSVG; void VanSVG; void TruckSVG; void HatchSVG;
 
+// === Nouveaux quartiers procéduraux (3 quadrants restants de la carte 2×) ===
+// Quadrant TR (1920..3840, 0..1080) — Résidentiel
+// Quadrant BL (0..1920, 1080..2160) — Industriel
+// Quadrant BR (1920..3840, 1080..2160) — Périphérique (rocade + champs)
+function NewDistricts() {
+  const rnd = (seed: number) => {
+    let s = seed >>> 0;
+    return () => {
+      s = (s * 1664525 + 1013904223) >>> 0;
+      return s / 0x100000000;
+    };
+  };
+
+  const resi = rnd(101);
+  const houses: { x: number; y: number; w: number; h: number; roof: string }[] = [];
+  for (let row = 0; row < 6; row++) {
+    for (let col = 0; col < 10; col++) {
+      const bx = 1920 + 60 + col * 178 + resi() * 12;
+      const by = 60 + row * 160 + resi() * 10;
+      houses.push({
+        x: bx, y: by,
+        w: 90 + resi() * 30, h: 70 + resi() * 25,
+        roof: ["#7a3b2e", "#8a4438", "#6c4a3a", "#5d6d4e", "#7a5a3a"][Math.floor(resi() * 5)],
+      });
+    }
+  }
+
+  const ind = rnd(202);
+  const warehouses: { x: number; y: number; w: number; h: number }[] = [];
+  for (let row = 0; row < 4; row++) {
+    for (let col = 0; col < 5; col++) {
+      warehouses.push({
+        x: 60 + col * 360 + ind() * 30,
+        y: 1140 + row * 240 + ind() * 25,
+        w: 280 + ind() * 60,
+        h: 170 + ind() * 40,
+      });
+    }
+  }
+
+  const per = rnd(303);
+  const fields: { x: number; y: number; w: number; h: number; c: string }[] = [];
+  for (let row = 0; row < 5; row++) {
+    for (let col = 0; col < 6; col++) {
+      fields.push({
+        x: 1920 + 40 + col * 300 + per() * 25,
+        y: 1100 + row * 200 + per() * 20,
+        w: 240 + per() * 60,
+        h: 140 + per() * 50,
+        c: ["#3d5a36", "#5a6b3a", "#4a5e32", "#6b7a44", "#3a5230"][Math.floor(per() * 5)],
+      });
+    }
+  }
+
+  return (
+    <g pointerEvents="none">
+      {/* Résidentiel (TR) */}
+      <rect x={1920} y={0} width={1920} height={1080} fill="#5a6e4a" />
+      {[0, 1, 2, 3, 4, 5].map((i) => (
+        <rect key={`tr-h-${i}`} x={1920} y={i * 180 + 30} width={1920} height={18} fill="#2a2d33" />
+      ))}
+      {[0, 1, 2, 3, 4, 5, 6, 7, 8, 9].map((i) => (
+        <rect key={`tr-v-${i}`} x={1920 + 60 + i * 188} y={0} width={18} height={1080} fill="#2a2d33" />
+      ))}
+      {houses.map((h, i) => (
+        <g key={`tr-h2-${i}`}>
+          <rect x={h.x} y={h.y} width={h.w} height={h.h} fill="#d4c6a8" stroke="#1a1d22" strokeWidth={1.2} />
+          <rect x={h.x} y={h.y} width={h.w} height={h.h * 0.42} fill={h.roof} stroke="#1a1d22" strokeWidth={1} />
+          <rect x={h.x + h.w * 0.4} y={h.y + h.h * 0.5} width={h.w * 0.2} height={h.h * 0.5} fill="#4a3a2a" />
+        </g>
+      ))}
+      <text x={1920 + 960} y={70} fontSize={32} fontWeight={900} textAnchor="middle" fill="#1a1d22" opacity={0.55} letterSpacing={4}>RÉSIDENTIEL</text>
+
+      {/* Industriel (BL) */}
+      <rect x={0} y={1080} width={1920} height={1080} fill="#3a3d44" />
+      {[0, 1, 2, 3].map((i) => (
+        <rect key={`bl-h-${i}`} x={0} y={1080 + 40 + i * 250} width={1920} height={26} fill="#1a1d22" />
+      ))}
+      {[0, 1, 2, 3, 4, 5].map((i) => (
+        <rect key={`bl-v-${i}`} x={40 + i * 320} y={1080} width={26} height={1080} fill="#1a1d22" />
+      ))}
+      {warehouses.map((w, i) => (
+        <g key={`bl-w-${i}`}>
+          <rect x={w.x} y={w.y} width={w.w} height={w.h} fill="#6c7280" stroke="#0a0c10" strokeWidth={2} />
+          {Array.from({ length: 6 }).map((_, k) => (
+            <line key={k} x1={w.x + (k + 1) * (w.w / 7)} y1={w.y} x2={w.x + (k + 1) * (w.w / 7)} y2={w.y + w.h} stroke="#3a3d44" strokeWidth={1.5} />
+          ))}
+          <rect x={w.x + 10} y={w.y + w.h - 18} width={w.w - 20} height={14} fill="#2a2d33" />
+        </g>
+      ))}
+      <text x={960} y={1140} fontSize={32} fontWeight={900} textAnchor="middle" fill="#0a0c10" opacity={0.55} letterSpacing={4}>ZONE INDUSTRIELLE</text>
+
+      {/* Périphérique (BR) */}
+      <rect x={1920} y={1080} width={1920} height={1080} fill="#4a5e3a" />
+      <path d={`M ${1920 + 60} 1120 L ${3840 - 60} 1120 L ${3840 - 60} ${2160 - 60} L ${1920 + 60} ${2160 - 60} Z`}
+        fill="none" stroke="#2a2d33" strokeWidth={36} strokeLinejoin="round" />
+      <path d={`M ${1920 + 60} 1120 L ${3840 - 60} 1120 L ${3840 - 60} ${2160 - 60} L ${1920 + 60} ${2160 - 60} Z`}
+        fill="none" stroke="#f6d56a" strokeWidth={2.4} strokeDasharray="18 18" opacity={0.7} />
+      {fields.map((f, i) => (
+        <g key={`br-f-${i}`}>
+          <rect x={f.x} y={f.y} width={f.w} height={f.h} fill={f.c} stroke="#2a3a20" strokeWidth={1} />
+          {Array.from({ length: 8 }).map((_, k) => (
+            <line key={k} x1={f.x} y1={f.y + (k + 1) * (f.h / 9)} x2={f.x + f.w} y2={f.y + (k + 1) * (f.h / 9)} stroke="#2a3a20" strokeWidth={0.6} opacity={0.5} />
+          ))}
+        </g>
+      ))}
+      {Array.from({ length: 18 }).map((_, i) => {
+        const tx = 1920 + 100 + (i * 113) % 1700;
+        const ty = 1100 + (i * 197) % 940;
+        return <circle key={`br-t-${i}`} cx={tx} cy={ty} r={14} fill="#1e3a1e" opacity={0.85} />;
+      })}
+      <text x={1920 + 960} y={1140} fontSize={32} fontWeight={900} textAnchor="middle" fill="#1a1d22" opacity={0.55} letterSpacing={4}>PÉRIPHÉRIQUE</text>
+    </g>
+  );
+}
+
+
+
 
 
 // === Piétons photos qui marchent sur les trottoirs ===
