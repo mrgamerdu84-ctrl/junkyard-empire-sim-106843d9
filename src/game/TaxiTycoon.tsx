@@ -2094,7 +2094,7 @@ export default function TaxiTycoon() {
           const p = ev.lane ?? getLaneXY(ev.pathIdx, ev.pos, movingForward);
           const alerting = ev.mode === "respond" || ev.mode === "onsite";
           const t = Math.floor(performance.now() / 200) % 2;
-          const href = ev.kind === "ambulance" ? AMBULANCE_URL : FIRETRUCK_URL;
+          const href = ev.kind === "ambulance" ? AMBULANCE_URL : ev.kind === "firetruck" ? FIRETRUCK_URL : POLICE_CAR_URL;
           const W = 40; // même taille que la police pour rester aligné sur les voies
           return (
             <g key={ev.id} transform={`translate(${p.x},${p.y}) rotate(${p.angle})`} filter="url(#taxi-shadow)">
@@ -2108,7 +2108,7 @@ export default function TaxiTycoon() {
               </g>
               {alerting && (
                 <text x="0" y="32" textAnchor="middle" fontSize="3.6" fontWeight="900" fill="#fbbf24" stroke="#0b0d10" strokeWidth="0.8" paintOrder="stroke">
-                  {ev.kind === "ambulance" ? "URGENCE" : "POMPIERS"}
+                  {ev.kind === "ambulance" ? "URGENCE" : ev.kind === "firetruck" ? "POMPIERS" : "POLICE"}
                 </text>
               )}
             </g>
