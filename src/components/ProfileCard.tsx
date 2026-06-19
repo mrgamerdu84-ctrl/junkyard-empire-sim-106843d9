@@ -165,18 +165,71 @@ export default function ProfileCard({ onClose }: { onClose: () => void }) {
             <img src={previewSrc} alt="avatar" />
           </div>
           <div className="pc-info">
-            <div className="pc-pseudo">{pseudoInput || pseudo}</div>
+            <div className="pc-pseudo">{driverNameInput || pseudoInput || pseudo}</div>
             <div style={{ color: "#9ca3af", fontSize: 11 }}>ID&nbsp;: {user.id.slice(0, 8).toUpperCase()}</div>
             <div style={{ color: "#9ca3af", fontSize: 11 }}>Depuis&nbsp;: {new Date(user.created_at).toLocaleDateString()}</div>
           </div>
         </div>
 
+        {(() => {
+          const t = tierFor(licenseLevel);
+          const nextXp = t.nextXp;
+          const pct = nextXp ? Math.min(100, Math.round(((licenseXp - t.minXp) / (nextXp - t.minXp)) * 100)) : 100;
+          return (
+            <div style={{
+              background: "linear-gradient(160deg,#0a0c10,#1f2937)",
+              border: "2px solid #f5c542", borderRadius: 12, padding: 12, marginBottom: 12,
+            }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
+                <div style={{ color: "#f5c542", fontWeight: 900, fontSize: 13, letterSpacing: 0.5 }}>
+                  {t.badge} PERMIS — Niv. {t.level} {t.name}
+                </div>
+                <div style={{ color: "#fde047", fontSize: 11, fontWeight: 700 }}>
+                  {nextXp ? `${licenseXp} / ${nextXp} XP` : `${licenseXp} XP (max)`}
+                </div>
+              </div>
+              <div style={{ height: 8, background: "#0a0c10", borderRadius: 4, overflow: "hidden", border: "1px solid #374151" }}>
+                <div style={{ width: `${pct}%`, height: "100%", background: "linear-gradient(90deg,#f59e0b,#fde047)", transition: "width .3s" }} />
+              </div>
+              <div style={{ marginTop: 6, fontSize: 11, color: "#9ca3af" }}>
+                {t.level >= 4 ? "⭐ Clients STAR débloqués (+100% pourboire)" :
+                 t.level >= 3 ? "🥈 Clients VIP débloqués (+50% pourboire). STAR à Niv. 4." :
+                 t.level >= 2 ? "Encore un peu : clients VIP à Niv. 3 🥈" :
+                                "Termine des courses pour monter de niveau et débloquer les clients VIP / STAR."}
+              </div>
+            </div>
+          );
+        })()}
+
         {err && <div className="pc-err">{err}</div>}
+        {savedMsg && (
+          <div style={{ background: "#065f46", color: "#a7f3d0", padding: "8px 12px", borderRadius: 8, fontSize: 12, marginBottom: 10, fontWeight: 700 }}>
+            {savedMsg}
+          </div>
+        )}
 
         <div className="pc-row">
-          <div className="pc-label">Pseudo</div>
-          <input className="pc-input" maxLength={16} value={pseudoInput} onChange={(e) => setPseudoInput(e.target.value)} />
+          <div className="pc-label">🪪 Nom du chauffeur (carte pro)</div>
+          <input
+            className="pc-input"
+            maxLength={40}
+            placeholder="Ex. Jean Dupont"
+            value={driverNameInput}
+            onChange={(e) => setDriverNameInput(e.target.value)}
+          />
         </div>
+
+        <div className="pc-row">
+          <div className="pc-label">Pseudo (visible en jeu)</div>
+          <input
+            className="pc-input"
+            maxLength={16}
+            placeholder="Ex. TaxiKing"
+            value={pseudoInput}
+            onChange={(e) => setPseudoInput(e.target.value)}
+          />
+        </div>
+
 
         <div className="pc-row">
           <div className="pc-label">Avatar</div>
