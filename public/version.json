@@ -1,6 +1,6 @@
 {
-  "version": "1.3.1",
-  "buildId": "2026-06-19T10:15:00.000Z",
-  "builtAt": 1781864100000,
-  "changelog": "Normalisation taille véhicules uploadés (même format que les taxis)"
+  "version": "1.3.2",
+  "buildId": "2026-06-19T11:00:00.000Z",
+  "builtAt": 1781866800000,
+  "changelog": "Réinitialisation du mot de passe admin depuis l'écran de verrouillage"
 }
