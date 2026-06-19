@@ -1,6 +1,6 @@
 {
-  "version": "1.0.0",
-  "buildId": "2026-06-19T15:44:06.766Z",
-  "builtAt": 1781883846766,
-  "changelog": "Mise à jour automatique active"
+  "version": "1.8.0",
+  "buildId": "2026-06-19T16:30:00.000Z",
+  "builtAt": 1781889000000,
+  "changelog": "QG compact en bas-gauche, 3 taxis concurrents, circuit VIP de session invisible"
 }
