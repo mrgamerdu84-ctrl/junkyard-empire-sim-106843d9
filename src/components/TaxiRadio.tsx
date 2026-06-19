@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { GAME_ASSETS } from "@/game/gameAssets";
-import { RADIO_NEWS_EVENT, AMBIENT_NEWS, type RadioNews } from "@/lib/radioNews";
+import { RADIO_NEWS_EVENT, AMBIENT_NEWS, WELCOME_JINGLE, type RadioNews } from "@/lib/radioNews";
 
 type Station = {
   id: string;
@@ -13,11 +13,13 @@ type Station = {
 };
 
 const STATIONS: Station[] = [
-  { id: "main",    name: "Musique du jeu", emoji: "🎵", url: GAME_ASSETS["audio.music"], loop: true, volume: 0.4 },
-  { id: "infos",   name: "Radio Infos",    emoji: "📰", tts: true },
-  { id: "pop",     name: "Radio Pop",      emoji: "🎤", url: "https://ice1.somafm.com/poptron-128-mp3", volume: 0.5 },
-  { id: "electro", name: "Radio Electro",  emoji: "🎧", url: "https://ice1.somafm.com/groovesalad-128-mp3", volume: 0.5 },
-  { id: "rock",    name: "Radio Rock",     emoji: "🎸", url: "https://ice6.somafm.com/thetrip-128-mp3", volume: 0.5 },
+  { id: "main",     name: "Junky Empire Taxi",  emoji: "🚖", url: GAME_ASSETS["audio.music"], loop: true, volume: 0.4 },
+  { id: "infos",    name: "Junky Infos",        emoji: "📰", tts: true },
+  { id: "pop",      name: "Radio Pop",          emoji: "🎤", url: "https://ice1.somafm.com/poptron-128-mp3", volume: 0.5 },
+  { id: "electro",  name: "Radio Electro",      emoji: "🎧", url: "https://ice1.somafm.com/groovesalad-128-mp3", volume: 0.5 },
+  { id: "rock",     name: "Radio Rock",         emoji: "🎸", url: "https://ice6.somafm.com/thetrip-128-mp3", volume: 0.5 },
+  { id: "emotions", name: "Radio Émotions",     emoji: "💖", url: "https://ice1.somafm.com/lush-128-mp3", volume: 0.5 },
+  { id: "kids",     name: "Radio Kids",         emoji: "🧸", url: "https://ice1.somafm.com/fluid-128-mp3", volume: 0.5 },
 ];
 
 const STORAGE_KEY = "mttw.taxiRadio";
@@ -162,18 +164,19 @@ export default function TaxiRadio() {
 
     if (st.tts) {
       a.pause();
-      speak({ fr: "Radio Infos, votre ville en direct.", en: "Taxi News Radio, your city live." });
-      // première brève rapidement
+      speak(WELCOME_JINGLE);
+      // première brève rapidement (météo / événement / trafic)
       window.setTimeout(() => {
         const idx = ambientIdxRef.current % AMBIENT_NEWS.length;
         ambientIdxRef.current++;
         speak(AMBIENT_NEWS[idx]);
-      }, 4500);
+      }, 6000);
+      // puis enchaîne toutes les ~18s
       ambientTimerRef.current = window.setInterval(() => {
         const idx = ambientIdxRef.current % AMBIENT_NEWS.length;
         ambientIdxRef.current++;
         speak(AMBIENT_NEWS[idx]);
-      }, 25000);
+      }, 18000);
       return;
     }
 
@@ -304,7 +307,7 @@ export default function TaxiRadio() {
           }}
         >
           <div style={{ fontWeight: 900, fontSize: 13, marginBottom: 8, textAlign: "center" }}>
-            📻 Radio Taxi
+            📻 Junky Empire Taxi
           </div>
           <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
             {STATIONS.map((s) => (

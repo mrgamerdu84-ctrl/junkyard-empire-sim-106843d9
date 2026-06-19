@@ -1035,6 +1035,7 @@ function CustomVehiclesSection() {
                 <div style={{ fontSize: 9, color: "#6a6e74" }}>{VEHICLE_CATEGORY_LABELS[v.category as CustomVehicleCategory] ?? v.category}</div>
               </div>
               <button onClick={() => rotateSaved(v, 270)} style={btnMini} title="Tourner à gauche">↺</button>
+              <button onClick={() => rotateSaved(v, 180)} style={btnMini} title="Retourner (haut/bas)">↑</button>
               <button onClick={() => rotateSaved(v, 90)} style={btnMini} title="Tourner à droite">↻</button>
               <button onClick={() => onDel(v.id)} style={{ ...btnMini, color: "#ff6b6b", borderColor: "#5a2a2a" }}>🗑</button>
             </div>
