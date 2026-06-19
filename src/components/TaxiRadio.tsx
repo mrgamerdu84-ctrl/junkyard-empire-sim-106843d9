@@ -360,17 +360,26 @@ export default function TaxiRadio() {
     if (!a) return;
     if (!st || st.id === "off") { a.pause(); return; }
 
+    // Musique d'intermède (utilisée pour Junky Infos et pendant l'heure des infos sur les radios musicales)
+    const defaultMusicUrl = STATIONS.find((s) => s.id === "main")?.url;
+
     if (st.tts) {
       a.pause();
       speak(WELCOME_JINGLE);
+      let cycle = 0;
       // première brève rapidement (météo / événement / trafic)
       window.setTimeout(() => {
         const idx = ambientIdxRef.current % AMBIENT_NEWS.length;
         ambientIdxRef.current++;
         speak(AMBIENT_NEWS[idx]);
       }, 6000);
-      // puis enchaîne toutes les ~18s
+      // puis enchaîne toutes les ~18s, avec un intermède musical tous les 3 brèves
       ambientTimerRef.current = window.setInterval(() => {
+        cycle++;
+        if (cycle % 3 === 0 && defaultMusicUrl) {
+          playMusicInterlude(defaultMusicUrl, 15000);
+          return;
+        }
         const idx = ambientIdxRef.current % AMBIENT_NEWS.length;
         ambientIdxRef.current++;
         speak(AMBIENT_NEWS[idx]);
@@ -379,6 +388,30 @@ export default function TaxiRadio() {
     }
 
     if (st.url) {
+      // Heure des infos : pendant les 10 premières minutes de chaque heure,
+      // les radios musicales basculent sur les brèves (avec courts intermèdes musicaux).
+      if (newsHour) {
+        a.pause();
+        speak(WELCOME_JINGLE);
+        let cycle = 0;
+        window.setTimeout(() => {
+          const idx = ambientIdxRef.current % AMBIENT_NEWS.length;
+          ambientIdxRef.current++;
+          speak(AMBIENT_NEWS[idx]);
+        }, 4000);
+        ambientTimerRef.current = window.setInterval(() => {
+          cycle++;
+          if (cycle % 4 === 0 && st.url) {
+            playMusicInterlude(st.url, 12000);
+            return;
+          }
+          const idx = ambientIdxRef.current % AMBIENT_NEWS.length;
+          ambientIdxRef.current++;
+          speak(AMBIENT_NEWS[idx]);
+        }, 18000);
+        return;
+      }
+
       if (a.src !== st.url) a.src = st.url;
       a.loop = !!st.loop;
       a.volume = st.volume ?? 0.5;
@@ -407,7 +440,7 @@ export default function TaxiRadio() {
         scheduleDj();
       }, DJ_FIRST_DELAY_MS) as unknown as number;
     }
-  }, [stationId, ready]);
+  }, [stationId, ready, newsHour]);
 
 
   useEffect(() => {
