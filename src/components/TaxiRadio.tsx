@@ -65,9 +65,72 @@ export default function TaxiRadio() {
   const djTimerRef = useRef<number | null>(null);
   const djRestoreRef = useRef<number | null>(null);
   const pausedRef = useRef<boolean>(false);
+  const weatherRef = useRef<{ tempC: number; code: number; city: string } | null>(null);
+  const weatherFetchedAtRef = useRef<number>(0);
 
   useEffect(() => { langRef.current = lang; }, [lang]);
   useEffect(() => { pausedRef.current = paused; }, [paused]);
+
+  // ====== Météo réelle (Open-Meteo, sans clé) ======
+  const weatherCodeText = (code: number, l: "fr" | "en"): string => {
+    const fr: Record<number, string> = {
+      0: "ciel dégagé", 1: "plutôt ensoleillé", 2: "partiellement nuageux", 3: "couvert",
+      45: "brouillard", 48: "brouillard givrant",
+      51: "bruine légère", 53: "bruine", 55: "forte bruine",
+      61: "pluie faible", 63: "pluie", 65: "forte pluie",
+      71: "neige faible", 73: "neige", 75: "forte neige",
+      80: "averses", 81: "averses", 82: "violentes averses",
+      95: "orage", 96: "orage avec grêle", 99: "violent orage",
+    };
+    const en: Record<number, string> = {
+      0: "clear sky", 1: "mostly sunny", 2: "partly cloudy", 3: "overcast",
+      45: "foggy", 48: "freezing fog",
+      51: "light drizzle", 53: "drizzle", 55: "heavy drizzle",
+      61: "light rain", 63: "rain", 65: "heavy rain",
+      71: "light snow", 73: "snow", 75: "heavy snow",
+      80: "showers", 81: "showers", 82: "violent showers",
+      95: "thunderstorm", 96: "thunderstorm with hail", 99: "violent thunderstorm",
+    };
+    return (l === "fr" ? fr : en)[code] ?? (l === "fr" ? "temps changeant" : "changing weather");
+  };
+
+  const fetchWeather = async () => {
+    const now = Date.now();
+    if (weatherRef.current && now - weatherFetchedAtRef.current < 30 * 60 * 1000) return;
+    const tryFetch = async (lat: number, lon: number, city: string) => {
+      try {
+        const r = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,weather_code`);
+        const j = await r.json();
+        const tempC = Math.round(j?.current?.temperature_2m ?? 0);
+        const code = Number(j?.current?.weather_code ?? 0);
+        weatherRef.current = { tempC, code, city };
+        weatherFetchedAtRef.current = Date.now();
+      } catch {}
+    };
+    const fallback = () => tryFetch(48.8566, 2.3522, "Paris");
+    if (typeof navigator !== "undefined" && navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        async (pos) => {
+          try {
+            const { latitude, longitude } = pos.coords;
+            // reverse geocode best-effort
+            let city = "";
+            try {
+              const g = await fetch(`https://geocoding-api.open-meteo.com/v1/reverse?latitude=${latitude}&longitude=${longitude}&language=fr&count=1`);
+              const gj = await g.json();
+              city = gj?.results?.[0]?.name ?? "";
+            } catch {}
+            await tryFetch(latitude, longitude, city || (langRef.current === "fr" ? "votre région" : "your area"));
+          } catch { fallback(); }
+        },
+        () => { fallback(); },
+        { timeout: 4000, maximumAge: 30 * 60 * 1000 }
+      );
+    } else {
+      fallback();
+    }
+  };
+
 
 
   // Débloque la synthèse vocale au premier geste utilisateur (requis sur mobile)
