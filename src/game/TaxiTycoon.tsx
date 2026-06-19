@@ -1971,7 +1971,7 @@ export default function TaxiTycoon() {
           const p = circuitAt(ct.pos);
           return (
             <g key={ct.id} transform={`translate(${p.x},${p.y}) rotate(${p.angle})`} filter="url(#taxi-shadow)">
-              <TaxiSprite image={currentLivery.image} faceRight={currentLivery.faceRight} withClient={false} moving={true} />
+              <TaxiSprite image={currentLivery.image} faceRight={currentLivery.faceRight} paintFilter={currentPaint.filter} markerColor={currentPaint.color} withClient={false} moving={true} />
             </g>
           );
         })}
@@ -2214,7 +2214,7 @@ export default function TaxiTycoon() {
             return (
               <g key={taxi.id}>
                 <g transform={`translate(${p.x},${p.y}) rotate(${angle})`} filter="url(#taxi-shadow)">
-                  <TaxiSprite image={currentLivery.image} faceRight={currentLivery.faceRight} withClient={taxi.mode === "to_dest"} moving={taxi.mode !== "idle" && taxi.mode !== "refueling" && taxi.mode !== "depositing"} />
+                  <TaxiSprite image={currentLivery.image} faceRight={currentLivery.faceRight} paintFilter={currentPaint.filter} markerColor={currentPaint.color} withClient={taxi.mode === "to_dest"} moving={taxi.mode !== "idle" && taxi.mode !== "refueling" && taxi.mode !== "depositing"} />
                 </g>
                 {/* Mini jauge essence sous le taxi */}
                 <g transform={`translate(${p.x - 12},${p.y + 22})`}>
