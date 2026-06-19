@@ -61,8 +61,11 @@ export default function TaxiRadio() {
   const ttsUnlockedRef = useRef<boolean>(false);
   const djTimerRef = useRef<number | null>(null);
   const djRestoreRef = useRef<number | null>(null);
+  const pausedRef = useRef<boolean>(false);
 
   useEffect(() => { langRef.current = lang; }, [lang]);
+  useEffect(() => { pausedRef.current = paused; }, [paused]);
+
 
   // Débloque la synthèse vocale au premier geste utilisateur (requis sur mobile)
   useEffect(() => {
