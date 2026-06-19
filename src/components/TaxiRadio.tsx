@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { GAME_ASSETS } from "@/game/gameAssets";
 import { RADIO_NEWS_EVENT, AMBIENT_NEWS, WELCOME_JINGLE, type RadioNews } from "@/lib/radioNews";
 import junkyCityEmpireAsset from "@/assets/junky_city_empire.mp3.asset.json";
+import ironToothAsset from "@/assets/iron_tooth.mp3.asset.json";
 
 type Station = {
   id: string;
