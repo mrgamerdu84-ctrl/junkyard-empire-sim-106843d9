@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useAdminConfig } from "./adminConfig";
 import { CIVIL_CAR_URLS, PEDESTRIAN_PHOTO_URLS } from "./gameAssets";
+import citymap from "@/assets/citymap2.jpg";
 import {
   initTrafficLights,
   getTrafficLights,
@@ -9,6 +10,11 @@ import {
   nowSeconds,
   type TrafficLight,
 } from "./trafficLights";
+
+// Dimensions du monde — carte agrandie 2× : quadrant TL (0..1920, 0..1080)
+// = photo Pertuis ; les 3 autres quadrants sont des quartiers générés.
+export const WORLD_W = 3840;
+export const WORLD_H = 2160;
 
 // Skins centralisés — pour remplacer un véhicule civil, édite
 // `src/game/gameAssets.ts` (clés "civil.car.*"). Aucun import direct ici.
