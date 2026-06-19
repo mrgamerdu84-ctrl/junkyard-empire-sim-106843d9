@@ -110,7 +110,7 @@ type Job = {
 
 const DEFAULT_DEPOT_POS = 0.78; // fallback si mode "suit le circuit" (legacy)
 const SAVE_KEY = "taxi-tycoon-v4";
-const BASE_SPEED = 120; // px (sur viewBox 3840) par seconde — carte 2× donc vitesse augmentée
+const BASE_SPEED = 74; // px (sur viewBox 1920) par seconde — taxis un peu plus vifs que la circulation
 const SPEED_UPGRADE_COST_BASE = 800;
 const TAXI_COST_BASE = 600;
 const MAX_JOBS_BASE = 3;
@@ -1916,8 +1916,8 @@ export default function TaxiTycoon() {
       {/* === Calque SVG du jeu === */}
       <svg
         ref={containerRef}
-        viewBox="0 0 3840 2160"
-        preserveAspectRatio="xMidYMid meet"
+        viewBox="0 0 1920 1080"
+        preserveAspectRatio="xMidYMid slice"
         style={{ position: "absolute", inset: 0, width: "100%", height: "100%", pointerEvents: "none", zIndex: 4 }}
       >
         <defs>
