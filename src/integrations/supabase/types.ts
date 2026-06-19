@@ -46,7 +46,10 @@ export type Database = {
           avatar_kind: string
           avatar_url: string | null
           created_at: string
+          driver_name: string | null
           id: string
+          license_level: number
+          license_xp: number
           pseudo: string
           updated_at: string
         }
@@ -54,7 +57,10 @@ export type Database = {
           avatar_kind?: string
           avatar_url?: string | null
           created_at?: string
+          driver_name?: string | null
           id: string
+          license_level?: number
+          license_xp?: number
           pseudo?: string
           updated_at?: string
         }
@@ -62,7 +68,10 @@ export type Database = {
           avatar_kind?: string
           avatar_url?: string | null
           created_at?: string
+          driver_name?: string | null
           id?: string
+          license_level?: number
+          license_xp?: number
           pseudo?: string
           updated_at?: string
         }
@@ -94,6 +103,13 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      add_license_xp: {
+        Args: { _amount: number }
+        Returns: {
+          level: number
+          xp: number
+        }[]
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
