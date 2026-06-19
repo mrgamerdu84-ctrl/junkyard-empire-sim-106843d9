@@ -2,7 +2,7 @@ import type { CSSProperties } from "react";
 import { useEffect, useRef, useState } from "react";
 import { useAdminConfig, setAdmin, resetAdmin, type AdminConfig } from "./adminConfig";
 import { useVersionCheck, formatBuildDate } from "@/lib/version-check";
-import { GAME_ASSETS, setAssetOverride, listAssetKeys, type AssetKey, listCustomVehicles, addCustomVehicle, removeCustomVehicle, type CustomVehicle } from "./gameAssets";
+import { GAME_ASSETS, setAssetOverride, listAssetKeys, type AssetKey, listCustomVehicles, addCustomVehicle, removeCustomVehicle, type CustomVehicle, type CustomVehicleCategory, VEHICLE_CATEGORY_LABELS } from "./gameAssets";
 
 // SHA-256 du mot de passe admin. Modifie ce hash pour changer le mot de passe.
 const ADMIN_PASS_HASH = "7d473072673d5b86575304cb2a23b92a51e0cde043856919249b3df582a8625d";
