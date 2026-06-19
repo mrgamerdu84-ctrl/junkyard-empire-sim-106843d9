@@ -112,6 +112,7 @@ export default function TaxiRadio() {
         const tempC = Math.round(j?.current?.temperature_2m ?? 0);
         const code = Number(j?.current?.weather_code ?? 0);
         weatherRef.current = { tempC, code, city };
+        setWeatherState({ tempC, code, city });
         weatherFetchedAtRef.current = Date.now();
       } catch {}
     };
