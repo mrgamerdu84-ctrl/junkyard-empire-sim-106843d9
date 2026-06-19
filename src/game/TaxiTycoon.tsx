@@ -442,6 +442,7 @@ export default function TaxiTycoon() {
   const rivalTaxisRef = useRef<RivalTaxi[]>([]);
   const rivalJobsRef = useRef<Job[]>([]); // courses prises en charge par l'IA
   const [rivalStolen, setRivalStolen] = useState(0);
+  const [rivalEarnings, setRivalEarnings] = useState(0);
   const [rivalTaunt, setRivalTaunt] = useState<string | null>(null);
 
   // === Police ===
@@ -1049,6 +1050,8 @@ export default function TaxiTycoon() {
                 r.target = closestOnPath(r.pathIdx, admin.rivalHQX, admin.rivalHQY);
               }
             } else if (r.mode === "to_dest") {
+              const job = rivalJobsRef.current.find((x) => x.id === r.jobId);
+              if (job) setRivalEarnings((n) => n + Math.round(job.fare * 0.9));
               rivalJobsRef.current = rivalJobsRef.current.filter((x) => x.id !== r.jobId);
               r.jobId = null;
               r.target = closestOnPath(r.pathIdx, admin.rivalHQX, admin.rivalHQY);
@@ -1795,6 +1798,24 @@ export default function TaxiTycoon() {
           );
         })}
 
+        {/* Itinéraires des courses acceptées — ligne pickup → dropoff */}
+        {jobs.map((j) => {
+          if (j.status !== "accepted") return null;
+          const a = getSidewalk(j.pickupPath, j.pickup, j.sidePickup);
+          const b = getSidewalk(j.dropoffPath, j.dropoff, j.sideDrop);
+          const mx = (a.x + b.x) / 2;
+          const my = (a.y + b.y) / 2 - 30;
+          return (
+            <g key={"it" + j.id} style={{ pointerEvents: "none" }}>
+              <path d={`M ${a.x} ${a.y} Q ${mx} ${my} ${b.x} ${b.y}`}
+                fill="none" stroke="#f59e0b" strokeWidth="3" strokeOpacity="0.55"
+                strokeDasharray="6 5" strokeLinecap="round">
+                <animate attributeName="stroke-dashoffset" from="0" to="-22" dur="0.9s" repeatCount="indefinite" />
+              </path>
+            </g>
+          );
+        })}
+
         {/* Dropoffs — sur le trottoir, uniquement pour les courses acceptées */}
         {jobs.map((j) => {
           if (j.status !== "accepted") return null;
@@ -2170,12 +2191,33 @@ export default function TaxiTycoon() {
             <span className="tt-stat-icon">🚕</span>
             <span className="tt-stat-val">{taxiCount}/{effectiveMaxTaxis} taxis</span>
           </div>
-          {admin.rivalEnabled && (
-            <div className="tt-stat" style={{ color: "#ff6b7a" }} title="Courses volées par Rival Cabs">
-              <span className="tt-stat-icon">⚔️</span>
-              <span className="tt-stat-val">{rivalStolen}</span>
-            </div>
-          )}
+          {admin.rivalEnabled && (() => {
+            const me = save.totalEarned;
+            const them = rivalEarnings;
+            const total = Math.max(1, me + them);
+            const mePct = Math.round((me / total) * 100);
+            const lead = me - them;
+            return (
+              <div
+                className="tt-stat"
+                style={{ color: lead >= 0 ? "#34d399" : "#ff6b7a", flexDirection: "column", alignItems: "stretch", gap: 2, minWidth: 130 }}
+                title={`Toi : ${fmt(me)}$ • Rival : ${fmt(them)}$ • Volées : ${rivalStolen}`}
+              >
+                <div style={{ display: "flex", justifyContent: "space-between", fontSize: 11 }}>
+                  <span>⚔️ DUEL</span>
+                  <span>{lead >= 0 ? `+${fmt(lead)}$` : `${fmt(lead)}$`}</span>
+                </div>
+                <div style={{ display: "flex", height: 6, borderRadius: 3, overflow: "hidden", background: "#1f2127" }}>
+                  <div style={{ width: `${mePct}%`, background: "#34d399" }} />
+                  <div style={{ flex: 1, background: "#ff6b7a" }} />
+                </div>
+                <div style={{ display: "flex", justifyContent: "space-between", fontSize: 9, color: "#9ca3af" }}>
+                  <span>Toi {fmt(me)}$</span>
+                  <span>Rival {fmt(them)}$ · {rivalStolen} vol.</span>
+                </div>
+              </div>
+            );
+          })()}
           {(() => {
             const city = getCityLevel(save.cityFund);
             const nextT = city.next?.threshold ?? city.threshold;
