@@ -1409,17 +1409,18 @@ export default function TaxiTycoon() {
           nextAccidentAtRef.current = tMs + 40000 + Math.random() * 40000;
         }
 
-        // Dispatch : tous les EV en patrol -> respond vers l'accident le plus proche
+        // Dispatch : tous les EV (même en respond/onsite d'un ancien) -> respond vers l'accident courant
         for (const ev of emergencyRef.current) {
-          if (ev.mode === "patrol" && accidentsRef.current.length > 0) {
+          if (accidentsRef.current.length > 0) {
             const acc = accidentsRef.current[0];
-            ev.mode = "respond";
-            ev.accidentId = acc.id;
-            // snap sur le path de l'accident
-            const here = pathRefs.current[ev.pathIdx]?.getPointAtLength(ev.pos);
-            ev.pathIdx = acc.pathIdx;
-            ev.pos = here ? closestOnPath(acc.pathIdx, here.x, here.y) : ev.pos;
-            ev.target = acc.s;
+            if (ev.mode === "patrol" || (ev.mode !== "onsite" && ev.accidentId !== acc.id)) {
+              ev.mode = "respond";
+              ev.accidentId = acc.id;
+              const here = pathRefs.current[ev.pathIdx]?.getPointAtLength(ev.pos);
+              ev.pathIdx = acc.pathIdx;
+              ev.pos = here ? closestOnPath(acc.pathIdx, here.x, here.y) : ev.pos;
+              ev.target = acc.s;
+            }
           }
         }
 
@@ -1448,9 +1449,21 @@ export default function TaxiTycoon() {
             if (Math.abs(diff) <= step) {
               ev.pos = acc.s;
               ev.mode = "onsite";
-              ev.onsiteUntil = tMs + ACCIDENT_BLOCK_MIN_MS + Math.random() * 4000;
               acc.responders.add(ev.id);
-              if (!acc.clearAt) acc.clearAt = tMs + ACCIDENT_BLOCK_MIN_MS;
+              // La minuterie de dégagement ne démarre que quand les 3 secours sont sur place
+              const allHere = emergencyRef.current.every(e => e.accidentId === acc.id && e.mode === "onsite") || acc.responders.size >= 3;
+              if (allHere && !acc.clearAt) {
+                acc.clearAt = tMs + ACCIDENT_BLOCK_MIN_MS;
+                // Aligne la fin d'intervention de tous les secours présents
+                for (const e of emergencyRef.current) {
+                  if (e.accidentId === acc.id) e.onsiteUntil = acc.clearAt;
+                }
+              } else if (!acc.clearAt) {
+                // En attendant les autres, reste sur place sans limite
+                ev.onsiteUntil = tMs + 60000;
+              } else {
+                ev.onsiteUntil = acc.clearAt;
+              }
             } else {
               ev.pos += Math.sign(diff) * step;
             }
@@ -1658,6 +1671,8 @@ export default function TaxiTycoon() {
   const [garageOpen, setGarageOpen] = useState(false);
   const [shopOpen, setShopOpen] = useState(false);
   const [musicOn, setMusicOn] = useState(false);
+  const [missionsOpen, setMissionsOpen] = useState(false);
+  const [missionsTab, setMissionsTab] = useState<"contracts" | "depot">("contracts");
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const allLiveries = useMemo(() => getAllLiveries(), []);
   const currentLivery = allLiveries.find((l) => l.id === save.liveryId) ?? allLiveries[0];
@@ -2127,11 +2142,39 @@ export default function TaxiTycoon() {
               <text x="0" y="18" textAnchor="middle" fontSize="3.6" fontWeight="900" fill="#fbbf24" stroke="#0b0d10" strokeWidth="0.8" paintOrder="stroke">
                 {a.kind === "vehicle" ? "ACCIDENT" : "BLESSÉ"}
               </text>
-              {/* Minuterie d'intervention */}
-              {remaining !== null && remaining > 0 && (
-                <g transform="translate(0,-22)">
-                  <rect x="-9" y="-5" width="18" height="9" rx="2" fill="#0b0d10" stroke="#fbbf24" strokeWidth="0.8" />
-                  <text x="0" y="2" textAnchor="middle" fontSize="6" fontWeight="900" fill="#fbbf24">{remaining}s</text>
+              {/* Indicateurs de présence des 3 secours (🚑 🚒 🚓) */}
+              {(() => {
+                const kinds: Array<"ambulance" | "firetruck" | "police"> = ["ambulance", "firetruck", "police"];
+                const icons = { ambulance: "🚑", firetruck: "🚒", police: "🚓" } as const;
+                const here = new Set(
+                  emergencyRef.current
+                    .filter((e) => e.accidentId === a.id && e.mode === "onsite")
+                    .map((e) => e.kind)
+                );
+                return (
+                  <g transform="translate(0,-30)">
+                    {kinds.map((k, i) => {
+                      const ok = here.has(k);
+                      return (
+                        <g key={k} transform={`translate(${(i - 1) * 8},0)`}>
+                          <circle r="3.4" fill={ok ? "#16a34a" : "#3a3f48"} stroke="#0b0d10" strokeWidth="0.5" />
+                          <text x="0" y="1.6" textAnchor="middle" fontSize="3.8">{icons[k]}</text>
+                        </g>
+                      );
+                    })}
+                  </g>
+                );
+              })()}
+              {/* Minuterie d'intervention (démarre quand les 3 secours sont arrivés) */}
+              {remaining !== null && remaining > 0 ? (
+                <g transform="translate(0,-40)">
+                  <rect x="-11" y="-6" width="22" height="11" rx="2.5" fill="#0b0d10" stroke="#16a34a" strokeWidth="1" />
+                  <text x="0" y="2.4" textAnchor="middle" fontSize="7.5" fontWeight="900" fill="#34d399">⏱ {remaining}s</text>
+                </g>
+              ) : (
+                <g transform="translate(0,-40)">
+                  <rect x="-16" y="-6" width="32" height="11" rx="2.5" fill="#0b0d10" stroke="#ef4444" strokeWidth="1" />
+                  <text x="0" y="2.4" textAnchor="middle" fontSize="5" fontWeight="900" fill="#fca5a5">SECOURS…</text>
                 </g>
               )}
             </g>
@@ -2300,68 +2343,116 @@ export default function TaxiTycoon() {
         </div>
 
 
-        <div className="tt-depot-card">
-          <div className="tt-depot-name">{tier.name} (x{tier.fareMult.toFixed(1)})</div>
-          <div className="tt-depot-stats">
-            {taxiCount}/{effectiveMaxTaxis} taxis • Tarifs ×{tier.fareMult.toFixed(1)}
-          </div>
-        </div>
+        {/* === Bouton flottant Missions (compact) === */}
+        {(() => {
+          const offeredCount = jobs.filter((j) => j.status === "offered").length;
+          const inProgressCount = jobs.filter((j) => j.status !== "offered").length;
+          return (
+            <button
+              className="tt-missions-fab"
+              onClick={() => setMissionsOpen(true)}
+              title="Missions, contrats et dépôt"
+            >
+              <span className="tt-mfab-ico">📋</span>
+              <span className="tt-mfab-lbl">Missions</span>
+              {offeredCount > 0 && <span className="tt-mfab-badge">{offeredCount}</span>}
+              {inProgressCount > 0 && <span className="tt-mfab-badge tt-mfab-badge-blue">{inProgressCount}</span>}
+            </button>
+          );
+        })()}
 
-        {/* === File de courses (offres + courses en cours) === */}
-        <div className="tt-contracts">
-          <div className="tt-contracts-head">
-            <span>📋 COURSES</span>
-            <span className="tt-fleet">
-              {taxisRef.current.filter((t) => t.mode !== "idle").length}/{taxiCount} en course
-            </span>
-          </div>
-          {jobs.length === 0 && (
-            <div className="tt-empty">En attente d'appels…</div>
-          )}
-          {jobs.slice().sort((a, b) => {
-            // offered en premier, puis par deadline ascendant
-            if (a.status !== b.status) return a.status === "offered" ? -1 : 1;
-            return a.deadline - b.deadline;
-          }).map((j) => {
-            const isOffered = j.status === "offered";
-            const remain = Math.max(0, j.deadline - nowTick);
-            const remainSec = Math.ceil(remain / 1000);
-            const timePct = isOffered ? Math.max(0, Math.min(1, remain / j.duration)) : 1;
-            const urgent = isOffered && remainSec <= 6;
-            const freeTaxi = taxisRef.current.some((t) => t.mode === "idle");
-            return (
-              <div key={j.id} className={`tt-contract ${urgent ? "urgent" : ""} ${!isOffered ? "in-progress" : ""}`}>
-                <div className="tt-c-row">
-                  <span className="tt-c-icon">{isOffered ? "🙋" : "🚕"}</span>
-                  <span className="tt-c-label">
-                    {isOffered ? `Course ${fmt(j.fare)}$` : `En cours — ${fmt(j.fare)}$`}
-                  </span>
-                  {isOffered && (
-                    <button className="tt-c-x" onClick={() => rejectJob(j.id)} title="Refuser">✕</button>
-                  )}
-                </div>
-                {isOffered ? (
-                  <>
-                    <div className="tt-c-time"><div className="tt-c-time-fill" style={{ width: `${timePct * 100}%` }} /></div>
-                    <button
-                      className="tt-c-accept"
-                      onClick={() => acceptJob(j.id)}
-                      disabled={!freeTaxi}
-                      title={freeTaxi ? "Envoyer un taxi" : "Tous les taxis sont occupés"}
-                    >
-                      {freeTaxi ? `▶ Accepter (${remainSec}s)` : `Flotte pleine (${remainSec}s)`}
-                    </button>
-                  </>
-                ) : (
-                  <div className="tt-c-meta">
-                    <span>Taxi en route…</span>
-                    <span className="tt-c-reward">+{fmt(j.fare)}$</span>
-                  </div>
-                )}
+        {/* === Panneau Missions === */}
+        {missionsOpen && (
+          <div className="tt-missions-overlay" onClick={() => setMissionsOpen(false)}>
+            <div className="tt-missions-panel" onClick={(e) => e.stopPropagation()}>
+              <div className="tt-missions-head">
+                <h3>📋 Missions & Dépôt</h3>
+                <button className="tt-missions-x" onClick={() => setMissionsOpen(false)}>×</button>
               </div>
-            );
-          })}
-        </div>
+              <div className="tt-missions-tabs">
+                <button
+                  className={`tt-missions-tab ${missionsTab === "contracts" ? "active" : ""}`}
+                  onClick={() => setMissionsTab("contracts")}
+                >
+                  🚕 Courses ({jobs.length})
+                </button>
+                <button
+                  className={`tt-missions-tab ${missionsTab === "depot" ? "active" : ""}`}
+                  onClick={() => setMissionsTab("depot")}
+                >
+                  🏢 Dépôt
+                </button>
+              </div>
+
+              {missionsTab === "contracts" && (
+                <div className="tt-missions-body">
+                  {jobs.length === 0 && (
+                    <div className="tt-empty">En attente d'appels…</div>
+                  )}
+                  {jobs.slice().sort((a, b) => {
+                    if (a.status !== b.status) return a.status === "offered" ? -1 : 1;
+                    return a.deadline - b.deadline;
+                  }).map((j) => {
+                    const isOffered = j.status === "offered";
+                    const remain = Math.max(0, j.deadline - nowTick);
+                    const remainSec = Math.ceil(remain / 1000);
+                    const timePct = isOffered ? Math.max(0, Math.min(1, remain / j.duration)) : 1;
+                    const urgent = isOffered && remainSec <= 6;
+                    const freeTaxi = taxisRef.current.some((t) => t.mode === "idle");
+                    return (
+                      <div key={j.id} className={`tt-contract ${urgent ? "urgent" : ""} ${!isOffered ? "in-progress" : ""}`}>
+                        <div className="tt-c-row">
+                          <span className="tt-c-icon">{isOffered ? "🙋" : "🚕"}</span>
+                          <span className="tt-c-label">
+                            {isOffered ? `Course ${fmt(j.fare)}$` : `En cours — ${fmt(j.fare)}$`}
+                          </span>
+                          {isOffered && (
+                            <button className="tt-c-x" onClick={() => rejectJob(j.id)} title="Refuser">✕</button>
+                          )}
+                        </div>
+                        {isOffered ? (
+                          <>
+                            <div className="tt-c-time"><div className="tt-c-time-fill" style={{ width: `${timePct * 100}%` }} /></div>
+                            <button
+                              className="tt-c-accept"
+                              onClick={() => { acceptJob(j.id); }}
+                              disabled={!freeTaxi}
+                              title={freeTaxi ? "Envoyer un taxi" : "Tous les taxis sont occupés"}
+                            >
+                              {freeTaxi ? `▶ Accepter (${remainSec}s)` : `Flotte pleine (${remainSec}s)`}
+                            </button>
+                          </>
+                        ) : (
+                          <div className="tt-c-meta">
+                            <span>Taxi en route…</span>
+                            <span className="tt-c-reward">+{fmt(j.fare)}$</span>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+
+              {missionsTab === "depot" && (
+                <div className="tt-missions-body">
+                  <div className="tt-depot-card-inline">
+                    <div className="tt-depot-name">{tier.name} (x{tier.fareMult.toFixed(1)})</div>
+                    <div className="tt-depot-stats">
+                      {taxiCount}/{effectiveMaxTaxis} taxis • Tarifs ×{tier.fareMult.toFixed(1)}
+                    </div>
+                  </div>
+                  <div className="tt-depot-stat-row"><span>👥 Clients servis</span><b>{save.customersServed}</b></div>
+                  <div className="tt-depot-stat-row"><span>🚕 Flotte</span><b>{taxiCount}/{effectiveMaxTaxis}</b></div>
+                  <div className="tt-depot-stat-row"><span>🚦 En course</span><b>{taxisRef.current.filter((t) => t.mode !== "idle").length}</b></div>
+                  <div className="tt-depot-stat-row"><span>💵 Trésorerie</span><b style={{ color: "#34d399" }}>{fmt(save.money)}$</b></div>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+
 
 
         <div className="tt-actions">
@@ -2667,8 +2758,7 @@ export default function TaxiTycoon() {
           .tt-btn-lbl { font-size: 10px; }
           .tt-btn-cost { font-size: 10px; }
           .tt-garage-fab { bottom: 6px; width: 36px; height: 36px; font-size: 16px; }
-          .tt-depot-card { top: 48px; padding: 4px 10px; }
-          .tt-contracts { top: 48px; width: 180px; max-height: calc(100% - 110px); }
+          .tt-missions-fab { top: 48px; padding: 4px 8px; font-size: 10px; }
         }
 
 
@@ -2756,7 +2846,72 @@ export default function TaxiTycoon() {
           color: #6b7280; cursor: not-allowed; border-color: #14171c;
         }
 
+        /* === Bouton flottant Missions + Panneau coulissant === */
+        .tt-missions-fab {
+          position: absolute; top: 56px; right: 10px;
+          display: flex; align-items: center; gap: 6px;
+          background: linear-gradient(180deg, #1f2127 0%, #0d0e12 100%);
+          border: 1px solid #f5c542; border-radius: 999px;
+          padding: 7px 14px; color: #fde68a;
+          font-family: inherit; font-weight: 900; font-size: 12px;
+          cursor: pointer; pointer-events: auto;
+          box-shadow: 0 4px 12px rgba(0,0,0,0.6);
+        }
+        .tt-missions-fab:hover { filter: brightness(1.15); }
+        .tt-mfab-ico { font-size: 16px; }
+        .tt-mfab-badge {
+          background: #ef4444; color: #fff; font-size: 10px; font-weight: 900;
+          border-radius: 999px; padding: 1px 6px; min-width: 16px; text-align: center;
+        }
+        .tt-mfab-badge-blue { background: #3b82f6; }
+
+        .tt-missions-overlay {
+          position: absolute; inset: 0; z-index: 80;
+          background: rgba(0,0,0,0.55);
+          display: flex; justify-content: flex-end;
+          pointer-events: auto; backdrop-filter: blur(3px);
+        }
+        .tt-missions-panel {
+          width: 100%; max-width: 360px; height: 100%;
+          background: linear-gradient(180deg, #14171c 0%, #0a0c10 100%);
+          border-left: 1px solid #2a2f38;
+          display: flex; flex-direction: column;
+          box-shadow: -10px 0 30px rgba(0,0,0,0.7);
+          animation: ttMissionsSlide 0.22s ease;
+        }
+        @keyframes ttMissionsSlide {
+          from { transform: translateX(100%); }
+          to { transform: translateX(0); }
+        }
+        .tt-missions-head {
+          display: flex; align-items: center; justify-content: space-between;
+          padding: 12px 14px; border-bottom: 1px solid #2a2f38;
+        }
+        .tt-missions-head h3 { margin: 0; color: #fde68a; font-size: 15px; }
+        .tt-missions-x { background: transparent; border: none; color: #8a8e94; font-size: 26px; line-height: 1; cursor: pointer; }
+        .tt-missions-tabs { display: flex; gap: 4px; padding: 8px 8px 0; }
+        .tt-missions-tab {
+          flex: 1; padding: 8px; background: #1a1d22; color: #9ca0a6;
+          border: 1px solid #2a2f38; border-radius: 8px 8px 0 0;
+          font-family: inherit; font-weight: 800; font-size: 12px; cursor: pointer;
+        }
+        .tt-missions-tab.active { background: #20231a; color: #fde68a; border-color: #f5c542; border-bottom-color: transparent; }
+        .tt-missions-body {
+          flex: 1; overflow-y: auto; padding: 12px;
+          display: flex; flex-direction: column; gap: 8px;
+        }
+        .tt-depot-card-inline {
+          background: rgba(20,22,28,0.95); border: 1px solid #f5c542;
+          border-radius: 10px; padding: 10px; text-align: center;
+        }
+        .tt-depot-stat-row {
+          display: flex; justify-content: space-between;
+          padding: 8px 12px; background: #1a1d22; border: 1px solid #2a2f38;
+          border-radius: 8px; font-size: 13px; color: #c8ccd2;
+        }
+        .tt-depot-stat-row b { color: #fff; }
       `}</style>
+
     </>
   );
 }
