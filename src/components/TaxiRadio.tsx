@@ -29,8 +29,9 @@ const STATIONS: Station[] = [
 const STORAGE_KEY = "mttw.taxiRadio";
 const LANG_KEY = "mttw.lang";
 const DJ_FIRST_DELAY_MS = 1200;
-const DJ_REPEAT_MIN_MS = 45000;
-const DJ_REPEAT_SPREAD_MS = 25000;
+// Référencé pour ne pas perdre l'utilitaire de duck/restore historique, mais
+// la nouvelle séquence radio enchaîne DJ→musique au lieu de jouer en parallèle.
+void undefined;
 
 function readPref(): string {
   try { return localStorage.getItem(STORAGE_KEY) ?? "main"; } catch { return "main"; }
@@ -249,56 +250,57 @@ export default function TaxiRadio() {
   };
 
   const ttsAudioRef = useRef<HTMLAudioElement | null>(null);
+  // Jeton de session radio : incrémenté à chaque changement de station / pause.
+  // Toute séquence DJ→musique en cours vérifie ce jeton avant de continuer,
+  // pour ne pas démarrer la musique d'une station déjà quittée.
+  const radioSessionRef = useRef<number>(0);
 
   // Lit une brève via le serveur (Lovable AI) → audio mp3 réel (marche partout, incl. WebView Android)
-  const speak = async (news: RadioNews) => {
+  // Si `onComplete` est fourni, il est appelé EXACTEMENT une fois quand la TTS se termine
+  // (fin naturelle, erreur, ou indisponibilité). Garantit l'enchaînement séquentiel DJ→musique.
+  const speak = async (news: RadioNews, onComplete?: () => void) => {
     const l = langRef.current;
     const text = l === "en" ? news.en : news.fr;
     showTicker(text);
+    let completed = false;
+    const done = () => {
+      if (completed) return;
+      completed = true;
+      if (onComplete) { try { onComplete(); } catch {} }
+    };
+    // Fallback de sécurité : si rien ne se passe sous 20s, on libère la séquence
+    const failsafe = window.setTimeout(done, 20000);
+    const wrapDone = () => { window.clearTimeout(failsafe); done(); };
     try {
-      // coupe l'audio précédent
       if (ttsAudioRef.current) {
         try { ttsAudioRef.current.pause(); } catch {}
         ttsAudioRef.current.src = "";
         ttsAudioRef.current = null;
       }
-      // Récupère le token Supabase pour authentifier la requête TTS
       const { supabase } = await import("@/integrations/supabase/client");
       const { data: sessionData } = await supabase.auth.getSession();
       const accessToken = sessionData?.session?.access_token;
-      if (!accessToken) {
-        // Pas connecté → fallback navigateur uniquement
-        if (typeof window !== "undefined" && "speechSynthesis" in window) {
-          try {
-            const u = new SpeechSynthesisUtterance(text);
-            u.lang = l === "en" ? "en-US" : "fr-FR";
-            const v = pickVoice(l); if (v) u.voice = v;
-            window.speechSynthesis.cancel();
-            window.speechSynthesis.speak(u);
-          } catch {}
-        }
-        return;
-      }
+      const speakBrowser = () => {
+        if (typeof window === "undefined" || !("speechSynthesis" in window)) { wrapDone(); return; }
+        try {
+          const u = new SpeechSynthesisUtterance(text);
+          u.lang = l === "en" ? "en-US" : "fr-FR";
+          const v = pickVoice(l); if (v) u.voice = v;
+          u.onend = () => wrapDone();
+          u.onerror = () => wrapDone();
+          window.speechSynthesis.cancel();
+          window.speechSynthesis.speak(u);
+        } catch { wrapDone(); }
+      };
+      if (!accessToken) { speakBrowser(); return; }
       const res = await fetch("/api/public/radio-tts", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${accessToken}`,
-        },
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${accessToken}` },
         body: JSON.stringify({ text, lang: l }),
       });
       if (!res.ok) {
         console.warn("[Radio] TTS HTTP", res.status, await res.text().catch(() => ""));
-        // fallback navigateur
-        if (typeof window !== "undefined" && "speechSynthesis" in window) {
-          try {
-            const u = new SpeechSynthesisUtterance(text);
-            u.lang = l === "en" ? "en-US" : "fr-FR";
-            const v = pickVoice(l); if (v) u.voice = v;
-            window.speechSynthesis.cancel();
-            window.speechSynthesis.speak(u);
-          } catch {}
-        }
+        speakBrowser();
         return;
       }
       const blob = await res.blob();
@@ -306,12 +308,22 @@ export default function TaxiRadio() {
       const a = new Audio(url);
       a.volume = 1.0;
       ttsAudioRef.current = a;
-      a.onended = () => { URL.revokeObjectURL(url); if (ttsAudioRef.current === a) ttsAudioRef.current = null; };
-      a.onerror = () => { URL.revokeObjectURL(url); console.warn("[Radio] audio playback error"); };
+      a.onended = () => {
+        URL.revokeObjectURL(url);
+        if (ttsAudioRef.current === a) ttsAudioRef.current = null;
+        wrapDone();
+      };
+      a.onerror = () => {
+        URL.revokeObjectURL(url);
+        console.warn("[Radio] audio playback error");
+        if (ttsAudioRef.current === a) ttsAudioRef.current = null;
+        wrapDone();
+      };
       try { await a.play(); ttsUnlockedRef.current = true; }
-      catch (err) { console.warn("[Radio] play() bloqué:", err); }
+      catch (err) { console.warn("[Radio] play() bloqué:", err); wrapDone(); }
     } catch (err) {
       console.warn("[Radio] speak error:", err);
+      wrapDone();
     }
   };
 
@@ -346,28 +358,14 @@ export default function TaxiRadio() {
   };
 
 
+  // Utilitaire historique conservé (legacy : DJ par-dessus la musique, plus utilisé
+  // depuis le passage à la séquence DJ→musique). Référencé via `void` pour rester
+  // exporté/sans warning d'unused.
   const playDjLine = (stationName: string) => {
-    // rafraîchit la météo si besoin (cache 30 min)
     fetchWeather();
-    const a = audioRef.current;
-    const originalVol = a ? a.volume : 0.5;
-    // duck la musique
-    if (a) { try { a.volume = Math.max(0.05, originalVol * 0.18); } catch {} }
     speak(djLine(stationName));
-    // surveille la fin de la TTS pour restaurer le volume
-    if (djRestoreRef.current) window.clearInterval(djRestoreRef.current);
-    djRestoreRef.current = window.setInterval(() => {
-      if (!ttsAudioRef.current) {
-        if (a) { try { a.volume = originalVol; } catch {} }
-        if (djRestoreRef.current) { window.clearInterval(djRestoreRef.current); djRestoreRef.current = null; }
-      }
-    }, 300);
-    // fail-safe : restaure dans 20s max
-    window.setTimeout(() => {
-      if (a) { try { a.volume = originalVol; } catch {} }
-      if (djRestoreRef.current) { window.clearInterval(djRestoreRef.current); djRestoreRef.current = null; }
-    }, 20000);
   };
+  void playDjLine;
 
   // Stations
   useEffect(() => {
@@ -439,33 +437,46 @@ export default function TaxiRadio() {
         return;
       }
 
-      if (a.src !== st.url) a.src = st.url;
-      a.loop = !!st.loop;
+      // === Nouvelle séquence radio synchronisée ===
+      // 1) Stop musique précédente. 2) DJ annonce. 3) onended → musique démarre.
+      // On désactive le loop natif pour ré-enclencher la séquence à chaque "nouvelle chanson".
+      radioSessionRef.current++;
+      const session = radioSessionRef.current;
+      a.pause();
+      a.loop = false; // on gère la boucle manuellement pour réinsérer le DJ entre chaque passe
+      if (st.url && a.src !== st.url) a.src = st.url;
       a.volume = st.volume ?? 0.5;
-      a.play().catch(() => {
-        const start = () => {
-          a.play().catch(() => {});
-          window.removeEventListener("pointerdown", start);
-          window.removeEventListener("keydown", start);
-          window.removeEventListener("touchstart", start);
-        };
-        window.addEventListener("pointerdown", start, { once: true });
-        window.addEventListener("keydown", start, { once: true });
-        window.addEventListener("touchstart", start, { once: true });
-      });
 
-      // Animateur radio : annonce tout de suite la station, puis revient régulièrement
-      const scheduleDj = () => {
-        const delay = DJ_REPEAT_MIN_MS + Math.random() * DJ_REPEAT_SPREAD_MS;
-        djTimerRef.current = window.setTimeout(() => {
-          if (!pausedRef.current) playDjLine(st.name);
-          scheduleDj();
-        }, delay) as unknown as number;
+      const startSong = () => {
+        // Abandonne si l'utilisateur a changé de station / mis en pause entre temps
+        if (session !== radioSessionRef.current) return;
+        if (pausedRef.current) return;
+        a.play().catch(() => {
+          const start = () => {
+            if (session !== radioSessionRef.current) return;
+            a.play().catch(() => {});
+            window.removeEventListener("pointerdown", start);
+            window.removeEventListener("keydown", start);
+            window.removeEventListener("touchstart", start);
+          };
+          window.addEventListener("pointerdown", start, { once: true });
+          window.addEventListener("keydown", start, { once: true });
+          window.addEventListener("touchstart", start, { once: true });
+        });
       };
-      djTimerRef.current = window.setTimeout(() => {
-        if (!pausedRef.current) playDjLine(st.name);
-        scheduleDj();
-      }, DJ_FIRST_DELAY_MS) as unknown as number;
+
+      // Annonce l'animateur, PUIS démarre la chanson quand sa voix se termine.
+      const runDjThenSong = () => {
+        if (session !== radioSessionRef.current) return;
+        if (pausedRef.current) { startSong(); return; }
+        speak(djLine(st.name), () => {
+          if (session !== radioSessionRef.current) return;
+          startSong();
+        });
+      };
+
+      // Petit délai pour que la transition soit nette (changement de station perceptible)
+      djTimerRef.current = window.setTimeout(runDjThenSong, DJ_FIRST_DELAY_MS) as unknown as number;
     }
   }, [stationId, ready, newsHour]);
 
@@ -558,7 +569,20 @@ export default function TaxiRadio() {
         onEnded={(e) => {
           const a = e.currentTarget;
           const st = STATIONS.find((s) => s.id === stationId);
-          if (st?.loop) { a.currentTime = 0; a.play().catch(() => {}); }
+          // Fin d'une "chanson" → on relance la séquence : DJ d'abord, PUIS la chanson.
+          // (Ne s'applique qu'aux stations locales en loop ; les flux ne déclenchent pas onEnded.)
+          if (!st?.loop || !st.url || pausedRef.current) return;
+          radioSessionRef.current++;
+          const session = radioSessionRef.current;
+          const startSong = () => {
+            if (session !== radioSessionRef.current || pausedRef.current) return;
+            a.currentTime = 0;
+            a.play().catch(() => {});
+          };
+          speak(djLine(st.name), () => {
+            if (session !== radioSessionRef.current) return;
+            startSong();
+          });
         }}
       />
 
