@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { ROADS, VILLAGE_PATHS, SIDEWALK_LOCK_OFFSET, lockToSidewalk } from "./CityTraffic";
 import { GAME_ASSETS } from "./gameAssets";
-import { shouldStopAhead, nowSeconds } from "./trafficLights";
+import { shouldStopAhead, nowSeconds, registerAccident, clearAccident, getAccidents, type AccidentZone } from "./trafficLights";
 import { getAdmin, useAdminConfig } from "./adminConfig";
 import { recordEarning, isSpecialTaxiUnlocked } from "@/lib/leaderboard";
 
@@ -510,12 +510,25 @@ export default function TaxiTycoon() {
     pos: number;
     target: number;
     lane?: LanePosition;
-    alertUntil: number;     // ms — si > now: sirène + vitesse rapide
-    nextAlertAt: number;    // ms — prochain déclenchement aléatoire
+    mode: "patrol" | "respond" | "onsite";
+    onsiteUntil: number;     // ms — fin d'intervention sur place
+    accidentId: number | null;
   };
   const emergencyRef = useRef<EmergencyVehicle[]>([]);
-  const EMERGENCY_SPEED = 70;      // px/s normal
-  const EMERGENCY_RUSH_SPEED = 165;// px/s en intervention
+  const EMERGENCY_SPEED = 70;       // px/s patrouille
+  const EMERGENCY_RUSH_SPEED = 165; // px/s en intervention (sirènes)
+
+  // === Accidents aléatoires ===
+  type Accident = AccidentZone & {
+    startedAt: number;
+    clearAt: number | null; // ms — quand les secours auront fini
+    responders: Set<number>;
+  };
+  const accidentsRef = useRef<Accident[]>([]);
+  const nextAccidentAtRef = useRef<number>(performance.now() + 25000 + Math.random() * 20000);
+  const accidentIdRef = useRef<number>(50000);
+  const ACCIDENT_BLOCK_MIN_MS = 9000;  // intervention sur place
+
 
 
 
