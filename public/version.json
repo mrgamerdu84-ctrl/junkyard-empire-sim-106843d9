@@ -1,6 +1,6 @@
 {
-  "version": "1.9.0",
-  "buildId": "2026-06-19T18:30:00.000Z",
-  "builtAt": 1781893800000,
-  "changelog": "Mini dock radio en bas de la carte (prev/play-pause/next)"
+  "version": "1.9.1",
+  "buildId": "2026-06-19T18:45:00.000Z",
+  "builtAt": 1781894700000,
+  "changelog": "Option « Image déjà vue du ciel » pour ajouter un véhicule sans rotation auto"
 }
