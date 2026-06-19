@@ -2142,11 +2142,39 @@ export default function TaxiTycoon() {
               <text x="0" y="18" textAnchor="middle" fontSize="3.6" fontWeight="900" fill="#fbbf24" stroke="#0b0d10" strokeWidth="0.8" paintOrder="stroke">
                 {a.kind === "vehicle" ? "ACCIDENT" : "BLESSÉ"}
               </text>
-              {/* Minuterie d'intervention */}
-              {remaining !== null && remaining > 0 && (
-                <g transform="translate(0,-22)">
-                  <rect x="-9" y="-5" width="18" height="9" rx="2" fill="#0b0d10" stroke="#fbbf24" strokeWidth="0.8" />
-                  <text x="0" y="2" textAnchor="middle" fontSize="6" fontWeight="900" fill="#fbbf24">{remaining}s</text>
+              {/* Indicateurs de présence des 3 secours (🚑 🚒 🚓) */}
+              {(() => {
+                const kinds: Array<"ambulance" | "firetruck" | "police"> = ["ambulance", "firetruck", "police"];
+                const icons = { ambulance: "🚑", firetruck: "🚒", police: "🚓" } as const;
+                const here = new Set(
+                  emergencyRef.current
+                    .filter((e) => e.accidentId === a.id && e.mode === "onsite")
+                    .map((e) => e.kind)
+                );
+                return (
+                  <g transform="translate(0,-30)">
+                    {kinds.map((k, i) => {
+                      const ok = here.has(k);
+                      return (
+                        <g key={k} transform={`translate(${(i - 1) * 8},0)`}>
+                          <circle r="3.4" fill={ok ? "#16a34a" : "#3a3f48"} stroke="#0b0d10" strokeWidth="0.5" />
+                          <text x="0" y="1.6" textAnchor="middle" fontSize="3.8">{icons[k]}</text>
+                        </g>
+                      );
+                    })}
+                  </g>
+                );
+              })()}
+              {/* Minuterie d'intervention (démarre quand les 3 secours sont arrivés) */}
+              {remaining !== null && remaining > 0 ? (
+                <g transform="translate(0,-40)">
+                  <rect x="-11" y="-6" width="22" height="11" rx="2.5" fill="#0b0d10" stroke="#16a34a" strokeWidth="1" />
+                  <text x="0" y="2.4" textAnchor="middle" fontSize="7.5" fontWeight="900" fill="#34d399">⏱ {remaining}s</text>
+                </g>
+              ) : (
+                <g transform="translate(0,-40)">
+                  <rect x="-16" y="-6" width="32" height="11" rx="2.5" fill="#0b0d10" stroke="#ef4444" strokeWidth="1" />
+                  <text x="0" y="2.4" textAnchor="middle" fontSize="5" fontWeight="900" fill="#fca5a5">SECOURS…</text>
                 </g>
               )}
             </g>
