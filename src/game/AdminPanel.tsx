@@ -18,6 +18,10 @@ async function sha256(s: string): Promise<string> {
 
 function getCurrentHash(): string {
   try {
+    const localHash = localStorage.getItem(PWD_HASH_KEY);
+    if (localHash) return localHash;
+  } catch {}
+  try {
     const cookieHash = document.cookie
       .split(";")
       .map((part) => part.trim())
@@ -25,8 +29,7 @@ function getCurrentHash(): string {
       ?.split("=")[1];
     if (cookieHash) return decodeURIComponent(cookieHash);
   } catch {}
-  try { return localStorage.getItem(PWD_HASH_KEY) || ADMIN_PASS_HASH_DEFAULT; }
-  catch { return ADMIN_PASS_HASH_DEFAULT; }
+  return ADMIN_PASS_HASH_DEFAULT;
 }
 
 function savePasswordHash(hash: string): boolean {
