@@ -8,6 +8,7 @@ import ProfileCard, { resolveAvatarSrc } from "@/components/ProfileCard";
 import { hasSeenTutorial, resetTutorial, getPlayerName, setPlayerName, pushLocalScoresToCloud } from "@/lib/leaderboard";
 import { useAuth, signOut } from "@/lib/useAuth";
 import { supabase } from "@/integrations/supabase/client";
+import LoadingScreen from "./LoadingScreen";
 
 export default function HomeScreen({ onPlay }: { onPlay: () => void }) {
   const navigate = useNavigate();
