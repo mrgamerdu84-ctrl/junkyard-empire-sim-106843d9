@@ -1,6 +1,6 @@
 {
-  "version": "1.0.0",
-  "buildId": "2026-06-19T10:15:28.968Z",
-  "builtAt": 1781864128968,
-  "changelog": "Mise à jour automatique active"
+  "version": "1.5.4",
+  "buildId": "2026-06-19T10:20:00.000Z",
+  "builtAt": 1781864400000,
+  "changelog": "Radio Infos: TTS débloqué sur mobile + bandeau visuel des brèves"
 }
