@@ -500,11 +500,12 @@ export default function CityTraffic() {
     }
     const pickPath = () => civilAllowed[Math.floor(Math.random() * civilAllowed.length)];
     // Rerolle path + sens + durée à chaque tour pour casser la régularité.
+    // Trafic civil : conduite tranquille (durée allongée, peu de variation) — pas agressif.
     const rerollSpec = (spec: CarSpec): CarSpec => {
       const newPath = pickPath();
-      // ±30 % de variation de durée
-      const baseDur = Math.max(14, spec.duration);
-      const dur = baseDur * (0.7 + Math.random() * 0.6);
+      const baseDur = Math.max(22, spec.duration); // plancher plus haut → vitesse plus basse
+      // 1.15× à 1.55× de la durée de base → toujours plus lents que les taxis
+      const dur = baseDur * (1.15 + Math.random() * 0.4);
       return {
         ...spec,
         pathIdx: newPath,

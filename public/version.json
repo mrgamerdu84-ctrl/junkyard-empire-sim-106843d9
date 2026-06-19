@@ -1,6 +1,6 @@
 {
-  "version": "1.0.6",
-  "buildId": "2026-06-19T12:00:00.000Z",
-  "builtAt": 1781871000000,
-  "changelog": "Trafic civil totalement aléatoire : path/direction/durée tirés au sort à chaque tour, plus jamais les mêmes trajets que les taxis"
+  "version": "1.0.7",
+  "buildId": "2026-06-19T13:00:00.000Z",
+  "builtAt": 1781874600000,
+  "changelog": "Ambulance/pompiers à la taille de la police (40px), trafic civil plus calme, taxis plus vifs (BASE_SPEED 74), IA rivale décide aléatoirement de sa flotte + petit bonhomme rouge qui nargue le joueur avec une bulle"
 }

@@ -89,7 +89,7 @@ type Job = {
 
 const DEFAULT_DEPOT_POS = 0.78; // fallback si mode "suit le circuit" (legacy)
 const SAVE_KEY = "taxi-tycoon-v4";
-const BASE_SPEED = 60; // px (sur viewBox 1920) par seconde
+const BASE_SPEED = 74; // px (sur viewBox 1920) par seconde — taxis un peu plus vifs que la circulation
 const SPEED_UPGRADE_COST_BASE = 800;
 const TAXI_COST_BASE = 600;
 const MAX_JOBS_BASE = 3;
@@ -442,6 +442,7 @@ export default function TaxiTycoon() {
   const rivalTaxisRef = useRef<RivalTaxi[]>([]);
   const rivalJobsRef = useRef<Job[]>([]); // courses prises en charge par l'IA
   const [rivalStolen, setRivalStolen] = useState(0);
+  const [rivalTaunt, setRivalTaunt] = useState<string | null>(null);
 
   // === Police ===
   type PoliceCar = {
@@ -711,25 +712,51 @@ export default function TaxiTycoon() {
     forceRender((n) => n + 1);
   }, [pathsReady, save.taxis, save.taxiSpeedLvl, admin.taxiSpeedMult, admin.hqX, admin.hqY]);
 
-  // Sync rival AI taxis fleet — IA décide combien de taxis rouges déployer
-  // en fonction de la flotte du joueur (pas de joueurs multi pour l'instant).
+  // Sync rival AI taxis fleet — l'IA décide elle-même combien de taxis déployer
+  // (aléatoire entre 1 et flotte joueur + 2, rerollé toutes les 35-70s) + balance des taunts.
   useEffect(() => {
     if (!pathsReady) return;
-    // IA : ~60% de la flotte joueur, min 1, max 6 ; 0 si rival désactivé.
-    const playerFleet = save.taxis.length;
-    const aiCount = Math.max(1, Math.min(6, Math.ceil(playerFleet * 0.6)));
-    const target = admin.rivalEnabled ? aiCount : 0;
-    while (rivalTaxisRef.current.length < target) {
-      const pos = closestOnPath(0, admin.rivalHQX, admin.rivalHQY);
-      const spawnedRival: RivalTaxi = {
-        id: 10000 + rivalTaxisRef.current.length,
-        pathIdx: 0, pos, target: pos, mode: "idle", jobId: null,
-      };
-      syncVehicleLane(spawnedRival);
-      rivalTaxisRef.current.push(spawnedRival);
+    if (!admin.rivalEnabled) {
+      rivalTaxisRef.current.length = 0;
+      forceRender((n) => n + 1);
+      return;
     }
-    while (rivalTaxisRef.current.length > target) rivalTaxisRef.current.pop();
-    forceRender((n) => n + 1);
+    const TAUNTS = [
+      "Trop lent, bleu !",
+      "T'as vu ma flotte ?",
+      "Rival Cabs domine la ville 😎",
+      "Tes clients préfèrent le rouge 🚕",
+      "Encore une course volée !",
+      "Range ton taxi, c'est l'heure de la sieste 💤",
+      "On se revoit au classement… loin devant toi.",
+      "Hé chauffeur, t'as pris du retard !",
+    ];
+    const rebuildFleet = () => {
+      const playerFleet = Math.max(1, save.taxis.length);
+      const target = Math.max(1, Math.min(7, 1 + Math.floor(Math.random() * (playerFleet + 2))));
+      while (rivalTaxisRef.current.length < target) {
+        const pos = closestOnPath(0, admin.rivalHQX, admin.rivalHQY);
+        const spawnedRival: RivalTaxi = {
+          id: 10000 + rivalTaxisRef.current.length,
+          pathIdx: 0, pos, target: pos, mode: "idle", jobId: null,
+        };
+        syncVehicleLane(spawnedRival);
+        rivalTaxisRef.current.push(spawnedRival);
+      }
+      while (rivalTaxisRef.current.length > target) rivalTaxisRef.current.pop();
+      forceRender((n) => n + 1);
+    };
+    rebuildFleet();
+    const fleetTimer = window.setInterval(rebuildFleet, 35000 + Math.random() * 35000);
+    const tauntTimer = window.setInterval(() => {
+      const msg = TAUNTS[Math.floor(Math.random() * TAUNTS.length)];
+      setRivalTaunt(msg);
+      window.setTimeout(() => setRivalTaunt(null), 5500);
+    }, 22000 + Math.random() * 20000);
+    return () => {
+      window.clearInterval(fleetTimer);
+      window.clearInterval(tauntTimer);
+    };
   }, [pathsReady, admin.rivalEnabled, save.taxis.length, admin.rivalHQX, admin.rivalHQY]);
 
   // Sync police fleet (nombre paramétrable depuis le panel admin)
@@ -1815,6 +1842,46 @@ export default function TaxiTycoon() {
         {/* QG concurrent */}
         {pathsReady && admin.rivalEnabled && <RivalDepot x={admin.rivalHQX} y={admin.rivalHQY - 18} />}
 
+        {/* Mascotte rivale qui nargue le joueur */}
+        {pathsReady && admin.rivalEnabled && (
+          <g transform={`translate(${admin.rivalHQX + 130},${admin.rivalHQY - 70})`} style={{ pointerEvents: "none" }}>
+            {/* petit bonhomme */}
+            <g>
+              <ellipse cx="0" cy="34" rx="14" ry="3.5" fill="rgba(0,0,0,0.45)" />
+              {/* corps */}
+              <rect x="-9" y="6" width="18" height="22" rx="4" fill="#c81b2c" stroke="#0b0d10" strokeWidth="1.2" />
+              {/* bras */}
+              <rect x="-13" y="10" width="5" height="12" rx="2" fill="#c81b2c" stroke="#0b0d10" strokeWidth="1" />
+              <rect x="8" y="10" width="5" height="12" rx="2" fill="#c81b2c" stroke="#0b0d10" strokeWidth="1" />
+              {/* tête */}
+              <circle cx="0" cy="-2" r="9" fill="#f1c27d" stroke="#0b0d10" strokeWidth="1.2" />
+              {/* casquette */}
+              <path d="M -9 -4 Q 0 -14 9 -4 L 9 -2 L -9 -2 Z" fill="#0b0d10" />
+              <rect x="-12" y="-3" width="10" height="2" rx="1" fill="#0b0d10" />
+              {/* yeux */}
+              <circle cx="-3" cy="-2" r="1.1" fill="#0b0d10" />
+              <circle cx="3" cy="-2" r="1.1" fill="#0b0d10" />
+              {/* sourire narquois */}
+              <path d="M -3 3 Q 0 5.5 3 3" stroke="#0b0d10" strokeWidth="1.2" fill="none" strokeLinecap="round" />
+              <animateTransform attributeName="transform" type="translate" values="0 0; 0 -3; 0 0" dur="1.6s" repeatCount="indefinite" />
+            </g>
+            {/* bulle de dialogue */}
+            {rivalTaunt && (() => {
+              const w = Math.max(70, rivalTaunt.length * 4.2 + 16);
+              return (
+                <g transform={`translate(${w / 2 + 12},-22)`}>
+                  <path d={`M -${w / 2} -14 h ${w} q 6 0 6 6 v 14 q 0 6 -6 6 h -${w / 2 - 10} l -6 7 l -1 -7 h -${w / 2 - 3} q -6 0 -6 -6 v -14 q 0 -6 6 -6 z`}
+                    fill="#fff" stroke="#0b0d10" strokeWidth="1.2" />
+                  <text x="0" y="2" textAnchor="middle" fontSize="6.5" fontWeight="700" fill="#0b0d10">
+                    {rivalTaunt}
+                  </text>
+                </g>
+              );
+            })()}
+          </g>
+        )}
+
+
         {/* Circuit dessiné par le joueur */}
         {circuitInfo.pts.length >= 2 && (
           <g>
@@ -1991,7 +2058,7 @@ export default function TaxiTycoon() {
           const alerting = ev.mode === "respond" || ev.mode === "onsite";
           const t = Math.floor(performance.now() / 200) % 2;
           const href = ev.kind === "ambulance" ? AMBULANCE_URL : FIRETRUCK_URL;
-          const W = ev.kind === "firetruck" ? 46 : 42;
+          const W = 40; // même taille que la police pour rester aligné sur les voies
           return (
             <g key={ev.id} transform={`translate(${p.x},${p.y}) rotate(${p.angle})`} filter="url(#taxi-shadow)">
               {alerting && (
