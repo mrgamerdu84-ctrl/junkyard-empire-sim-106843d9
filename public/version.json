@@ -1,6 +1,6 @@
 {
-  "version": "1.13.0",
-  "buildId": "2026-06-19T23:30:00.000Z",
-  "builtAt": 1781912100000,
-  "changelog": "Menu en jeu (☰) : profil, classement, tuto, retour à l'accueil, déconnexion"
+  "version": "1.14.0",
+  "buildId": "2026-06-19T23:45:00.000Z",
+  "builtAt": 1781913000000,
+  "changelog": "Écran de chargement premium : grille perspective, néons, scanlines, barre segmentée, starfield warp"
 }
