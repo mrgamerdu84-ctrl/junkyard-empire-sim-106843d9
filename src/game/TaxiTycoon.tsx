@@ -1728,7 +1728,6 @@ export default function TaxiTycoon() {
           const controlling = pc.mode === "control_wait";
           const t = Math.floor(performance.now() / 200) % 2;
           const flashing = chasing || controlling;
-          void ledA; void ledB;
           const ledA = flashing ? (t === 0 ? "#3b82f6" : "#ef4444") : "#1f2937";
           const ledB = flashing ? (t === 0 ? "#ef4444" : "#3b82f6") : "#1f2937";
           void ledA; void ledB;
