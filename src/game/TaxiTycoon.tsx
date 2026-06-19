@@ -569,6 +569,7 @@ export default function TaxiTycoon() {
     mode: "patrol" | "respond" | "onsite";
     onsiteUntil: number;     // ms — fin d'intervention sur place
     accidentId: number | null;
+    respondAfter: number;    // ms — délai avant de partir (accident grave)
   };
   const emergencyRef = useRef<EmergencyVehicle[]>([]);
   const EMERGENCY_SPEED = 70;       // px/s patrouille
@@ -579,11 +580,13 @@ export default function TaxiTycoon() {
     startedAt: number;
     clearAt: number | null; // ms — quand les secours auront fini
     responders: Set<number>;
+    severity: "minor" | "serious";
+    interventionMs: number; // durée de l'intervention sur place
   };
   const accidentsRef = useRef<Accident[]>([]);
   const nextAccidentAtRef = useRef<number>(performance.now() + 25000 + Math.random() * 20000);
   const accidentIdRef = useRef<number>(50000);
-  const ACCIDENT_BLOCK_MIN_MS = 9000;  // intervention sur place
+  const ACCIDENT_BLOCK_MIN_MS = 9000;  // intervention sur place (mineur)
 
 
 
