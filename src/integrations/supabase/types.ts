@@ -41,6 +41,54 @@ export type Database = {
         }
         Relationships: []
       }
+      defis: {
+        Row: {
+          completed_at: string | null
+          created_at: string
+          creator_id: string
+          creator_score: number | null
+          duration_sec: number
+          expires_at: string
+          id: string
+          opponent_id: string
+          opponent_score: number | null
+          seed: number
+          status: string
+          updated_at: string
+          winner_id: string | null
+        }
+        Insert: {
+          completed_at?: string | null
+          created_at?: string
+          creator_id: string
+          creator_score?: number | null
+          duration_sec?: number
+          expires_at?: string
+          id?: string
+          opponent_id: string
+          opponent_score?: number | null
+          seed: number
+          status?: string
+          updated_at?: string
+          winner_id?: string | null
+        }
+        Update: {
+          completed_at?: string | null
+          created_at?: string
+          creator_id?: string
+          creator_score?: number | null
+          duration_sec?: number
+          expires_at?: string
+          id?: string
+          opponent_id?: string
+          opponent_score?: number | null
+          seed?: number
+          status?: string
+          updated_at?: string
+          winner_id?: string | null
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           avatar_kind: string
@@ -110,12 +158,48 @@ export type Database = {
           xp: number
         }[]
       }
+      create_defi: {
+        Args: { _duration_sec?: number; _opponent_pseudo: string }
+        Returns: string
+      }
+      find_user_by_pseudo: {
+        Args: { _pseudo: string }
+        Returns: {
+          avatar_kind: string
+          id: string
+          pseudo: string
+        }[]
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
           _user_id: string
         }
         Returns: boolean
+      }
+      submit_defi_score: {
+        Args: { _defi_id: string; _score: number }
+        Returns: {
+          completed_at: string | null
+          created_at: string
+          creator_id: string
+          creator_score: number | null
+          duration_sec: number
+          expires_at: string
+          id: string
+          opponent_id: string
+          opponent_score: number | null
+          seed: number
+          status: string
+          updated_at: string
+          winner_id: string | null
+        }
+        SetofOptions: {
+          from: "*"
+          to: "defis"
+          isOneToOne: true
+          isSetofReturn: false
+        }
       }
     }
     Enums: {
