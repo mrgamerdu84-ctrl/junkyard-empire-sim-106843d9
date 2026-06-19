@@ -1,4 +1,6 @@
 import { useState } from "react";
+import { Link } from "@tanstack/react-router";
+
 
 /* Bouton 📖 + overlay des règles du jeu. */
 export default function RulesPanel() {
@@ -100,12 +102,19 @@ export default function RulesPanel() {
               <li>Récompense : cash bonus + <b>×2 sur les tarifs</b> pendant 20 secondes.</li>
             </ul>
 
-            <h3>⚙ Panel Admin</h3>
-            <p>Le bouton ⚙ en haut à droite ouvre des réglages en direct :</p>
+            <h3>📻 Les radios du taxi</h3>
             <ul>
-              <li><b>Trafic</b> : nombre de taxis actifs max, cooldown de sortie, vitesse, voitures civiles.</li>
-              <li><b>QG</b> : position (clic sur la carte ou X/Y), taille, rotation.</li>
-              <li><b>Missions</b> : fréquence des clients, capacité simultanée, multiplicateur de tarif.</li>
+              <li>4 stations dispos depuis le bouton 📻 : musiques variées + <b>Junky Infos</b> en continu.</li>
+              <li><b>Météo et heure réelles</b> annoncées à l'antenne selon ta position.</li>
+              <li>Au début de chaque heure, <b>toutes les stations passent en mode "Infos" pendant 10 minutes</b>, puis la musique reprend.</li>
+              <li>Junky Infos diffuse les infos en continu, avec un peu de musique entre deux flashs.</li>
+            </ul>
+
+            <h3>🏆 Classement &amp; profil</h3>
+            <ul>
+              <li>Crée un compte pour sauvegarder ton <b>pseudo</b>, ton <b>avatar</b> et tes scores en ligne.</li>
+              <li>Choisis ton modèle de taxi et sa couleur depuis <b>Mon profil</b> (menu ☰).</li>
+              <li>Le <b>permis</b> monte de niveau au fil des courses et débloque des clients VIP / STAR avec de meilleurs pourboires.</li>
             </ul>
 
             <h3>💡 Astuces</h3>
@@ -115,6 +124,24 @@ export default function RulesPanel() {
               • Améliore ton QG dès que possible : plus de taxis = plus de revenus.<br/>
               • Vise les contrats : le bonus ×2 paye vite tes upgrades.
             </div>
+
+            <h3>🚧 Bientôt</h3>
+            <ul>
+              <li>Nouveaux modèles de véhicules et livrées exclusives.</li>
+              <li>Événements météo dynamiques en jeu (pluie, nuit, embouteillages).</li>
+              <li>Missions spéciales (urgences, VIP, défis chrono).</li>
+            </ul>
+
+            <div style={{ marginTop: 18, paddingTop: 14, borderTop: "1px solid #2a2f38", textAlign: "center" }}>
+              <Link
+                to="/mentions-legales"
+                style={{ color: "#8a8e94", fontSize: 12, textDecoration: "underline" }}
+                onClick={() => setOpen(false)}
+              >
+                📜 Mentions légales &amp; confidentialité
+              </Link>
+            </div>
+
           </div>
         </div>
       )}

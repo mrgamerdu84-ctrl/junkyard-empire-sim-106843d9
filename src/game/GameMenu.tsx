@@ -115,7 +115,15 @@ export default function GameMenu({ onHome }: { onHome: () => void }) {
               </button>
             )}
 
+            <button
+              className="gm-close"
+              onClick={() => { close(); navigate({ to: "/mentions-legales" }); }}
+              style={{ textDecoration: "underline" }}
+            >
+              📜 Mentions légales &amp; confidentialité
+            </button>
             <button className="gm-close" onClick={close}>Fermer</button>
+
           </div>
         </div>
       )}
