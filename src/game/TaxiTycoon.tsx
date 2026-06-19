@@ -2343,68 +2343,116 @@ export default function TaxiTycoon() {
         </div>
 
 
-        <div className="tt-depot-card">
-          <div className="tt-depot-name">{tier.name} (x{tier.fareMult.toFixed(1)})</div>
-          <div className="tt-depot-stats">
-            {taxiCount}/{effectiveMaxTaxis} taxis • Tarifs ×{tier.fareMult.toFixed(1)}
-          </div>
-        </div>
+        {/* === Bouton flottant Missions (compact) === */}
+        {(() => {
+          const offeredCount = jobs.filter((j) => j.status === "offered").length;
+          const inProgressCount = jobs.filter((j) => j.status !== "offered").length;
+          return (
+            <button
+              className="tt-missions-fab"
+              onClick={() => setMissionsOpen(true)}
+              title="Missions, contrats et dépôt"
+            >
+              <span className="tt-mfab-ico">📋</span>
+              <span className="tt-mfab-lbl">Missions</span>
+              {offeredCount > 0 && <span className="tt-mfab-badge">{offeredCount}</span>}
+              {inProgressCount > 0 && <span className="tt-mfab-badge tt-mfab-badge-blue">{inProgressCount}</span>}
+            </button>
+          );
+        })()}
 
-        {/* === File de courses (offres + courses en cours) === */}
-        <div className="tt-contracts">
-          <div className="tt-contracts-head">
-            <span>📋 COURSES</span>
-            <span className="tt-fleet">
-              {taxisRef.current.filter((t) => t.mode !== "idle").length}/{taxiCount} en course
-            </span>
-          </div>
-          {jobs.length === 0 && (
-            <div className="tt-empty">En attente d'appels…</div>
-          )}
-          {jobs.slice().sort((a, b) => {
-            // offered en premier, puis par deadline ascendant
-            if (a.status !== b.status) return a.status === "offered" ? -1 : 1;
-            return a.deadline - b.deadline;
-          }).map((j) => {
-            const isOffered = j.status === "offered";
-            const remain = Math.max(0, j.deadline - nowTick);
-            const remainSec = Math.ceil(remain / 1000);
-            const timePct = isOffered ? Math.max(0, Math.min(1, remain / j.duration)) : 1;
-            const urgent = isOffered && remainSec <= 6;
-            const freeTaxi = taxisRef.current.some((t) => t.mode === "idle");
-            return (
-              <div key={j.id} className={`tt-contract ${urgent ? "urgent" : ""} ${!isOffered ? "in-progress" : ""}`}>
-                <div className="tt-c-row">
-                  <span className="tt-c-icon">{isOffered ? "🙋" : "🚕"}</span>
-                  <span className="tt-c-label">
-                    {isOffered ? `Course ${fmt(j.fare)}$` : `En cours — ${fmt(j.fare)}$`}
-                  </span>
-                  {isOffered && (
-                    <button className="tt-c-x" onClick={() => rejectJob(j.id)} title="Refuser">✕</button>
-                  )}
-                </div>
-                {isOffered ? (
-                  <>
-                    <div className="tt-c-time"><div className="tt-c-time-fill" style={{ width: `${timePct * 100}%` }} /></div>
-                    <button
-                      className="tt-c-accept"
-                      onClick={() => acceptJob(j.id)}
-                      disabled={!freeTaxi}
-                      title={freeTaxi ? "Envoyer un taxi" : "Tous les taxis sont occupés"}
-                    >
-                      {freeTaxi ? `▶ Accepter (${remainSec}s)` : `Flotte pleine (${remainSec}s)`}
-                    </button>
-                  </>
-                ) : (
-                  <div className="tt-c-meta">
-                    <span>Taxi en route…</span>
-                    <span className="tt-c-reward">+{fmt(j.fare)}$</span>
-                  </div>
-                )}
+        {/* === Panneau Missions === */}
+        {missionsOpen && (
+          <div className="tt-missions-overlay" onClick={() => setMissionsOpen(false)}>
+            <div className="tt-missions-panel" onClick={(e) => e.stopPropagation()}>
+              <div className="tt-missions-head">
+                <h3>📋 Missions & Dépôt</h3>
+                <button className="tt-missions-x" onClick={() => setMissionsOpen(false)}>×</button>
               </div>
-            );
-          })}
-        </div>
+              <div className="tt-missions-tabs">
+                <button
+                  className={`tt-missions-tab ${missionsTab === "contracts" ? "active" : ""}`}
+                  onClick={() => setMissionsTab("contracts")}
+                >
+                  🚕 Courses ({jobs.length})
+                </button>
+                <button
+                  className={`tt-missions-tab ${missionsTab === "depot" ? "active" : ""}`}
+                  onClick={() => setMissionsTab("depot")}
+                >
+                  🏢 Dépôt
+                </button>
+              </div>
+
+              {missionsTab === "contracts" && (
+                <div className="tt-missions-body">
+                  {jobs.length === 0 && (
+                    <div className="tt-empty">En attente d'appels…</div>
+                  )}
+                  {jobs.slice().sort((a, b) => {
+                    if (a.status !== b.status) return a.status === "offered" ? -1 : 1;
+                    return a.deadline - b.deadline;
+                  }).map((j) => {
+                    const isOffered = j.status === "offered";
+                    const remain = Math.max(0, j.deadline - nowTick);
+                    const remainSec = Math.ceil(remain / 1000);
+                    const timePct = isOffered ? Math.max(0, Math.min(1, remain / j.duration)) : 1;
+                    const urgent = isOffered && remainSec <= 6;
+                    const freeTaxi = taxisRef.current.some((t) => t.mode === "idle");
+                    return (
+                      <div key={j.id} className={`tt-contract ${urgent ? "urgent" : ""} ${!isOffered ? "in-progress" : ""}`}>
+                        <div className="tt-c-row">
+                          <span className="tt-c-icon">{isOffered ? "🙋" : "🚕"}</span>
+                          <span className="tt-c-label">
+                            {isOffered ? `Course ${fmt(j.fare)}$` : `En cours — ${fmt(j.fare)}$`}
+                          </span>
+                          {isOffered && (
+                            <button className="tt-c-x" onClick={() => rejectJob(j.id)} title="Refuser">✕</button>
+                          )}
+                        </div>
+                        {isOffered ? (
+                          <>
+                            <div className="tt-c-time"><div className="tt-c-time-fill" style={{ width: `${timePct * 100}%` }} /></div>
+                            <button
+                              className="tt-c-accept"
+                              onClick={() => { acceptJob(j.id); }}
+                              disabled={!freeTaxi}
+                              title={freeTaxi ? "Envoyer un taxi" : "Tous les taxis sont occupés"}
+                            >
+                              {freeTaxi ? `▶ Accepter (${remainSec}s)` : `Flotte pleine (${remainSec}s)`}
+                            </button>
+                          </>
+                        ) : (
+                          <div className="tt-c-meta">
+                            <span>Taxi en route…</span>
+                            <span className="tt-c-reward">+{fmt(j.fare)}$</span>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+
+              {missionsTab === "depot" && (
+                <div className="tt-missions-body">
+                  <div className="tt-depot-card-inline">
+                    <div className="tt-depot-name">{tier.name} (x{tier.fareMult.toFixed(1)})</div>
+                    <div className="tt-depot-stats">
+                      {taxiCount}/{effectiveMaxTaxis} taxis • Tarifs ×{tier.fareMult.toFixed(1)}
+                    </div>
+                  </div>
+                  <div className="tt-depot-stat-row"><span>👥 Clients servis</span><b>{save.customersServed}</b></div>
+                  <div className="tt-depot-stat-row"><span>🚕 Flotte</span><b>{taxiCount}/{effectiveMaxTaxis}</b></div>
+                  <div className="tt-depot-stat-row"><span>🚦 En course</span><b>{taxisRef.current.filter((t) => t.mode !== "idle").length}</b></div>
+                  <div className="tt-depot-stat-row"><span>💵 Trésorerie</span><b style={{ color: "#34d399" }}>{fmt(save.money)}$</b></div>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+
 
 
         <div className="tt-actions">
