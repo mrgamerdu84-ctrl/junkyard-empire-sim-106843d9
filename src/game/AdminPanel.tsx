@@ -680,9 +680,9 @@ function loadImage(src: string): Promise<HTMLImageElement> {
   });
 }
 
-/** Applique la rotation (0/90/180/270°) ET normalise dans un canvas carré 256×256
- *  où le véhicule remplit toute la largeur. Cela garantit que tous les sprites
- *  uploadés roulent à la même taille que les taxis officiels dans le jeu. */
+/** Applique la rotation (0/90/180/270°) ET normalise dans un canvas carré 256×256.
+ *  Règle de jeu : l'image sauvegardée doit être en vue du ciel avec l'avant vers ↑.
+ *  Ensuite le moteur la tourne automatiquement dans le sens de la route. */
 async function rotateToDataUrl(src: string, deg: 0 | 90 | 180 | 270): Promise<string> {
   const img = await loadImage(src);
   const w = img.naturalWidth, h = img.naturalHeight;
@@ -690,26 +690,31 @@ async function rotateToDataUrl(src: string, deg: 0 | 90 | 180 | 270): Promise<st
   const rotW = swap ? h : w;
   const rotH = swap ? w : h;
 
-  // Taille de sortie standard — identique pour tous les véhicules.
   const SIZE = 256;
-  // Le véhicule remplit toute la largeur (sens latéral du sprite "tête au nord").
-  const scale = SIZE / rotW;
-  const drawW = rotW * scale;
-  const drawH = rotH * scale;
+  const FILL = 0.86;
+  // On contient le véhicule entier dans le carré au lieu de remplir seulement
+  // la largeur : plus aucun camion/ambulance ne se retrouve coupé ou énorme.
+  const scale = (SIZE * FILL) / Math.max(rotW, rotH, 1);
+  const drawW = w * scale;
+  const drawH = h * scale;
 
   const canvas = document.createElement("canvas");
   canvas.width = SIZE;
   canvas.height = SIZE;
   const ctx = canvas.getContext("2d")!;
   ctx.imageSmoothingQuality = "high";
-  // Centre et applique la rotation autour du centre.
+  ctx.imageSmoothingEnabled = true;
   ctx.translate(SIZE / 2, SIZE / 2);
   ctx.rotate((deg * Math.PI) / 180);
-  // Dessine l'image originale centrée, à l'échelle pré-rotation.
-  const preW = swap ? drawH : drawW;
-  const preH = swap ? drawW : drawH;
-  ctx.drawImage(img, -preW / 2, -preH / 2, preW, preH);
+  ctx.drawImage(img, -drawW / 2, -drawH / 2, drawW, drawH);
   return canvas.toDataURL("image/png");
+}
+
+async function guessVehicleRotation(src: string): Promise<0 | 90 | 180 | 270> {
+  const img = await loadImage(src);
+  // Si l'image est couchée, la plupart des véhicules uploadés pointent vers la droite :
+  // on les remet automatiquement avant vers le haut pour qu'ils roulent droit.
+  return img.naturalWidth > img.naturalHeight * 1.15 ? 270 : 0;
 }
 
 
@@ -726,8 +731,10 @@ function CustomVehiclesSection() {
   const onPickFile = (f: File) => {
     const reader = new FileReader();
     reader.onload = () => {
-      setPendingSrc(String(reader.result));
+      const src = String(reader.result);
+      setPendingSrc(src);
       setRotation(0);
+      void guessVehicleRotation(src).then(setRotation).catch(() => {});
       if (fileRef.current) fileRef.current.value = "";
     };
     reader.readAsDataURL(f);
@@ -736,8 +743,10 @@ function CustomVehiclesSection() {
   const onPickUrl = () => {
     const url = window.prompt("URL de l'image (PNG/JPG vue de dessus de préférence) :", "");
     if (!url) return;
-    setPendingSrc(url.trim());
+    const src = url.trim();
+    setPendingSrc(src);
     setRotation(0);
+    void guessVehicleRotation(src).then(setRotation).catch(() => {});
   };
 
   const confirmAdd = async () => {
@@ -766,13 +775,24 @@ function CustomVehiclesSection() {
     refresh();
   };
 
+  const rotateSaved = async (item: CustomVehicle, deg: 0 | 90 | 180 | 270) => {
+    try {
+      const fixedUrl = await rotateToDataUrl(item.url, deg);
+      removeCustomVehicle(item.id);
+      addCustomVehicle({ ...item, url: fixedUrl, id: item.id });
+      refresh();
+    } catch {
+      window.alert("Impossible de corriger ce véhicule. Réimporte le fichier d'origine si besoin.");
+    }
+  };
+
   return (
     <div style={{ marginTop: 14, padding: 10, background: "#1f242b", borderRadius: 8, border: "1px dashed #3a3f48" }}>
       <div style={{ fontSize: 12, fontWeight: 700, color: "#f5c542", marginBottom: 6 }}>
         ➕ Ajouter un nouveau véhicule
       </div>
       <div style={{ fontSize: 11, color: "#8a8e94", lineHeight: 1.5, marginBottom: 8 }}>
-        Tout est vue du ciel ; après upload, fais tourner l'image pour que l'avant pointe <strong style={{ color: "#f5c542" }}>vers le haut ↑</strong> (sinon la voiture roule de travers).
+        Le véhicule est remis automatiquement au format taxi. Vérifie seulement que l'avant pointe <strong style={{ color: "#f5c542" }}>vers le haut ↑</strong> avant de valider.
       </div>
 
       <input
@@ -852,6 +872,8 @@ function CustomVehiclesSection() {
                 <div style={{ fontSize: 11, color: "#e8edf2", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{v.name}</div>
                 <div style={{ fontSize: 9, color: "#6a6e74" }}>{VEHICLE_CATEGORY_LABELS[v.category as CustomVehicleCategory] ?? v.category}</div>
               </div>
+              <button onClick={() => rotateSaved(v, 270)} style={btnMini} title="Tourner à gauche">↺</button>
+              <button onClick={() => rotateSaved(v, 90)} style={btnMini} title="Tourner à droite">↻</button>
               <button onClick={() => onDel(v.id)} style={{ ...btnMini, color: "#ff6b6b", borderColor: "#5a2a2a" }}>🗑</button>
             </div>
           ))}
