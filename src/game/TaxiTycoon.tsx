@@ -966,7 +966,7 @@ export default function TaxiTycoon() {
       if (adm.rivalEnabled && rivalTaxisRef.current.length > 0) {
         const speed = (BASE_SPEED + 6) * adm.rivalSpeedMult;
         const reactMs = Math.max(1, adm.rivalReactionTime) * 1000;
-        const performance.now() = Date.now();
+        const nowMs = Date.now();
 
         for (const r of rivalTaxisRef.current) {
           if (r.mode === "idle") {
