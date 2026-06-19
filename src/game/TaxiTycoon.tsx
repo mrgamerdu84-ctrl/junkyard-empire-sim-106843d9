@@ -1658,6 +1658,8 @@ export default function TaxiTycoon() {
   const [garageOpen, setGarageOpen] = useState(false);
   const [shopOpen, setShopOpen] = useState(false);
   const [musicOn, setMusicOn] = useState(false);
+  const [missionsOpen, setMissionsOpen] = useState(false);
+  const [missionsTab, setMissionsTab] = useState<"contracts" | "depot">("contracts");
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const allLiveries = useMemo(() => getAllLiveries(), []);
   const currentLivery = allLiveries.find((l) => l.id === save.liveryId) ?? allLiveries[0];
