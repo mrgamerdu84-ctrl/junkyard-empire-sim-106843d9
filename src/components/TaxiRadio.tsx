@@ -307,7 +307,7 @@ export default function TaxiRadio() {
           }}
         >
           <div style={{ fontWeight: 900, fontSize: 13, marginBottom: 8, textAlign: "center" }}>
-            📻 Radio Taxi
+            📻 Junky Empire Taxi
           </div>
           <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
             {STATIONS.map((s) => (
