@@ -54,6 +54,18 @@ export default function AdminPanel() {
     }
   };
 
+  const doReset = async () => {
+    setResetMsg("");
+    if (resetPhrase.trim() !== RESET_PHRASE) { setResetMsg(`Tape exactement "${RESET_PHRASE}" pour confirmer.`); return; }
+    if (newPwd.length < 4) { setResetMsg("Le nouveau mot de passe doit faire au moins 4 caractères."); return; }
+    if (newPwd !== newPwd2) { setResetMsg("Les deux mots de passe ne correspondent pas."); return; }
+    const h = await sha256(newPwd);
+    try { localStorage.setItem(PWD_HASH_KEY, h); } catch {}
+    setResetMsg("✅ Mot de passe réinitialisé. Tu peux te connecter.");
+    setNewPwd(""); setNewPwd2(""); setResetPhrase("");
+    setTimeout(() => { setResetMode(false); setResetMsg(""); }, 1200);
+  };
+
 
   // Mode "placer le QG" — clic sur la map = nouvelle position.
   // On ferme le panneau pendant le placement pour que le clic atteigne la map,
