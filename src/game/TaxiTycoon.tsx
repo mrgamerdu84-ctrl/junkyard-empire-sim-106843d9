@@ -569,6 +569,7 @@ export default function TaxiTycoon() {
     mode: "patrol" | "respond" | "onsite";
     onsiteUntil: number;     // ms — fin d'intervention sur place
     accidentId: number | null;
+    respondAfter: number;    // ms — délai avant de partir (accident grave)
   };
   const emergencyRef = useRef<EmergencyVehicle[]>([]);
   const EMERGENCY_SPEED = 70;       // px/s patrouille
@@ -579,11 +580,13 @@ export default function TaxiTycoon() {
     startedAt: number;
     clearAt: number | null; // ms — quand les secours auront fini
     responders: Set<number>;
+    severity: "minor" | "serious";
+    interventionMs: number; // durée de l'intervention sur place
   };
   const accidentsRef = useRef<Accident[]>([]);
   const nextAccidentAtRef = useRef<number>(performance.now() + 25000 + Math.random() * 20000);
   const accidentIdRef = useRef<number>(50000);
-  const ACCIDENT_BLOCK_MIN_MS = 9000;  // intervention sur place
+  const ACCIDENT_BLOCK_MIN_MS = 9000;  // intervention sur place (mineur)
 
 
 
@@ -863,6 +866,7 @@ export default function TaxiTycoon() {
           mode: "patrol",
           onsiteUntil: 0,
           accidentId: null,
+          respondAfter: 0,
         };
         syncVehicleLane(v);
         return v;
@@ -1417,15 +1421,30 @@ export default function TaxiTycoon() {
             if (pt) {
               const id = ++accidentIdRef.current;
               const kind: "vehicle" | "pedestrian" = Math.random() < 0.7 ? "vehicle" : "pedestrian";
+              const severity: "minor" | "serious" = kind === "vehicle" ? "serious" : "minor";
+              const interventionMs = severity === "serious"
+                ? ACCIDENT_BLOCK_MIN_MS + 4000 + Math.random() * 6000  // 13–19s
+                : ACCIDENT_BLOCK_MIN_MS;                                 // 9s
               const acc: Accident = {
                 id, pathIdx: pIdx, s: sPos, x: pt.x, y: pt.y, kind,
                 startedAt: tMs, clearAt: null, responders: new Set(),
+                severity, interventionMs,
               };
               accidentsRef.current.push(acc);
               registerAccident({ id, pathIdx: pIdx, s: sPos, x: pt.x, y: pt.y, kind });
-              showToast(kind === "vehicle" ? "💥 Accident signalé ! Secours en route…" : "🚑 Piéton renversé ! Ambulance en route…");
-              pushNews(kind === "vehicle"
-                ? { fr: "Flash info : accident de la circulation signalé en ville, les secours sont en route.", en: "News flash: a traffic accident has been reported downtown, emergency services are on the way." }
+              // Délais de réponse aléatoires (plus longs si accident grave)
+              const delayRanges = severity === "serious"
+                ? { police: [1000, 5000], ambulance: [2000, 6000], firetruck: [3000, 8000] }
+                : { police: [0, 1500], ambulance: [0, 1500], firetruck: [0, 1500] };
+              for (const ev of emergencyRef.current) {
+                const r = delayRanges[ev.kind];
+                ev.respondAfter = tMs + r[0] + Math.random() * (r[1] - r[0]);
+              }
+              showToast(severity === "serious"
+                ? "💥 Accident GRAVE ! Secours dépêchés…"
+                : "🚑 Piéton renversé ! Ambulance en route…");
+              pushNews(severity === "serious"
+                ? { fr: "Flash info : accident grave de la circulation, pompiers, ambulance et police sont mobilisés.", en: "News flash: a serious traffic accident, firefighters, ambulance and police have been dispatched." }
                 : { fr: "Flash info : un piéton vient d'être renversé, l'ambulance est en chemin.", en: "News flash: a pedestrian has just been hit, an ambulance is on its way." }
               );
             }
@@ -1435,7 +1454,7 @@ export default function TaxiTycoon() {
 
         // Dispatch : tous les EV (même en respond/onsite d'un ancien) -> respond vers l'accident courant
         for (const ev of emergencyRef.current) {
-          if (accidentsRef.current.length > 0) {
+          if (accidentsRef.current.length > 0 && tMs >= ev.respondAfter) {
             const acc = accidentsRef.current[0];
             if (ev.mode === "patrol" || (ev.mode !== "onsite" && ev.accidentId !== acc.id)) {
               ev.mode = "respond";
@@ -1477,7 +1496,7 @@ export default function TaxiTycoon() {
               // La minuterie de dégagement ne démarre que quand les 3 secours sont sur place
               const allHere = emergencyRef.current.every(e => e.accidentId === acc.id && e.mode === "onsite") || acc.responders.size >= 3;
               if (allHere && !acc.clearAt) {
-                acc.clearAt = tMs + ACCIDENT_BLOCK_MIN_MS;
+                acc.clearAt = tMs + acc.interventionMs;
                 // Aligne la fin d'intervention de tous les secours présents
                 for (const e of emergencyRef.current) {
                   if (e.accidentId === acc.id) e.onsiteUntil = acc.clearAt;
@@ -2165,8 +2184,8 @@ export default function TaxiTycoon() {
               {/* triangle de signalisation */}
               <polygon points="0,-9 8,5 -8,5" fill="#fbbf24" stroke="#0b0d10" strokeWidth="1.2" />
               <text x="0" y="3" textAnchor="middle" fontSize="7" fontWeight="900" fill="#0b0d10">!</text>
-              <text x="0" y="18" textAnchor="middle" fontSize="3.6" fontWeight="900" fill="#fbbf24" stroke="#0b0d10" strokeWidth="0.8" paintOrder="stroke">
-                {a.kind === "vehicle" ? "ACCIDENT" : "BLESSÉ"}
+              <text x="0" y="18" textAnchor="middle" fontSize="3.6" fontWeight="900" fill={a.severity === "serious" ? "#ef4444" : "#fbbf24"} stroke="#0b0d10" strokeWidth="0.8" paintOrder="stroke">
+                {a.severity === "serious" ? "⚠ ACCIDENT GRAVE" : (a.kind === "vehicle" ? "ACCIDENT" : "BLESSÉ")}
               </text>
               {/* Indicateurs de présence des 3 secours (🚑 🚒 🚓) */}
               {(() => {
