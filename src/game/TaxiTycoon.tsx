@@ -1027,15 +1027,21 @@ export default function TaxiTycoon() {
               const p = pathRefs.current[j.dropoffPath];
               // Bonus Taxi d'Or : +50% tarif si débloqué
               const bonus = isSpecialTaxiUnlocked() ? 1.5 : 1;
-              const finalFare = Math.round(j.fare * bonus);
+              const specialMult = j.tier === "special" ? (j.specialFareMult ?? 1) : 1;
+              const finalFare = Math.round(j.fare * bonus * specialMult);
               if (p) {
                 const pt = p.getPointAtLength(j.dropoff);
-                const tag = j.tier === "star" ? `⭐ +${fmt(finalFare)}$` : j.tier === "vip" ? `🥈 +${fmt(finalFare)}$` : `+${fmt(finalFare)}$`;
+                const tag = j.tier === "special"
+                  ? `👑 MISSION +${fmt(finalFare)}$`
+                  : j.tier === "star" ? `⭐ +${fmt(finalFare)}$`
+                  : j.tier === "vip" ? `🥈 +${fmt(finalFare)}$`
+                  : `+${fmt(finalFare)}$`;
                 popFloat(tag, pt.x, pt.y);
               }
               recordEarning(finalFare);
-              // XP permis : 10 normal, 20 VIP, 30 STAR (côté serveur)
-              addLicenseXp(tierXp(j.tier ?? "normal"));
+              // XP permis : 10 normal, 20 VIP, 30 STAR, ou XP custom mission spéciale
+              const xpGain = j.tier === "special" ? (j.specialXp ?? 50) : tierXp(j.tier ?? "normal");
+              addLicenseXp(xpGain);
               setSave((s) => ({
                 ...s,
                 money: s.money + finalFare,
