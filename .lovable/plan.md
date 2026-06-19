@@ -1,44 +1,18 @@
-## Objectif
-1) Renforcer le système d'accidents (police + ambulance + pompiers liés, minuterie claire).
-2) Désencombrer l'écran de jeu en regroupant les infos dans un menu/panel unique.
+## Problème
+Sur les véhicules d'urgence (ambulance, pompiers, police), c'est tout le véhicule qui semble clignoter à cause du gros halo bleu/rouge pulsant autour. L'utilisateur veut que ce soient **les gyrophares sur le toit** qui clignotent, pas la voiture entière.
 
-## 1. Accidents — secours coordonnés + minuterie visible
+## Solution
+Dans `src/game/TaxiTycoon.tsx`, dans le rendu `emergencyRef.current.map(...)` :
 
-Aujourd'hui, les 3 véhicules d'urgence (ambulance, pompiers, police) sont déjà spawn et la minuterie existe — mais ils partent en ordre dispersé et la minuterie démarre seulement quand le 1er arrive, ce qui n'est pas clair.
+- **Supprimer** le grand cercle pulsant `<circle r="26" fill={t === 0 ? "#3b82f6" : "#ef4444"} opacity="0.3">` qui englobe le véhicule entier.
+- **Ajouter** une petite barre de gyrophares posée sur le toit du véhicule, composée de :
+  - 2 petits dômes/rectangles côte à côte (bleu à gauche, rouge à droite) qui alternent en clignotant rapidement (~150 ms).
+  - Un léger halo très localisé autour de chaque dôme (rayon ~3 px) pour l'effet lumineux, sans déborder sur la carrosserie.
+- Le clignotement utilise déjà `t = Math.floor(performance.now() / 200) % 2` — on garde ce principe mais on l'applique uniquement aux dômes, pas à une aura globale.
+- Effet visible seulement quand `alerting` (mode `respond` ou `onsite`).
 
-Changements dans `src/game/TaxiTycoon.tsx` :
-- Quand un accident est créé, **tous les 3 véhicules** (ambulance + pompiers + police) sont dispatchés ensemble vers le même accident (pas seulement ceux en `patrol`).
-- L'accident n'est "clos" que quand **les 3 sont arrivés sur place** (`responders.size === 3`), à ce moment la minuterie démarre (`clearAt = tMs + ACCIDENT_BLOCK_MIN_MS`).
-- Affichage de la minuterie amélioré :
-  - Avant arrivée des secours : badge "🚨 Secours en route" + petits indicateurs 🚑/🚒/🚓 qui passent au vert dès qu'ils sont sur place.
-  - Après : compte à rebours numérique grand et lisible "⏱ 12s" centré au-dessus de l'accident.
-- Les cônes oranges restent centrés (déjà OK).
+Aucun changement de comportement / dispatch : c'est purement visuel.
 
-## 2. UI in-game — regrouper dans un panneau "Missions"
-
-Constat : plusieurs cartes flottantes (depot stats en haut, contrats sur le côté, alertes, profil, garage FAB, leaderboard, etc.) saturent l'écran, surtout sur mobile.
-
-Plan de nettoyage dans `src/game/TaxiTycoon.tsx` (UI uniquement, pas de logique métier) :
-
-- **Garder visible en permanence** (HUD minimal) :
-  - Barre du haut : argent + niveau ville + score (compactée).
-  - Boutons d'action en bas (conduire, etc.).
-  - Alertes critiques (accidents, contrôle police) — temporaires.
-
-- **Déplacer dans un nouveau panneau "📋 Missions"** (bouton FAB en haut à droite qui ouvre un panneau latéral coulissant) :
-  - Liste des contrats en cours (actuellement affichée en permanence à droite).
-  - Missions joueur spéciales.
-  - Stats du dépôt (revenus, courses…).
-  - Mini-onglets : "Contrats" / "Missions" / "Stats".
-
-- **Cacher par défaut** (déjà via boutons existants) : Garage, Boutique, Profil, Leaderboard, Règles, Admin.
-
-Résultat : l'écran de jeu n'a plus que la map + 1 barre haut + 1 barre bas + 1 bouton "Missions" → beaucoup plus lisible.
-
-## Fichiers touchés
-- `src/game/TaxiTycoon.tsx` (logique accidents + refonte UI overlays)
-- `public/version.json` → `1.3.7`
-
-## Hors scope
-- Pas de changement aux véhicules uploadés, à la couleur du taxi joueur, ni au mot de passe admin.
-- Pas de changement aux règles de gameplay/économie.
+## Fichier touché
+- `src/game/TaxiTycoon.tsx` (rendu SVG des véhicules d'urgence)
+- `public/version.json` → `1.3.8`
