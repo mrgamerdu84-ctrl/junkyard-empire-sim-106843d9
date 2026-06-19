@@ -20,7 +20,7 @@ export const Route = createFileRoute("/mentions-legales")({
   component: MentionsLegalesPage,
 });
 
-const CONTACT_EMAIL = "contact@mytaxiworld.app";
+const CONTACT_EMAIL = "mrgamerdu84@gmail.com";
 
 function MentionsLegalesPage() {
   return (
