@@ -2447,6 +2447,20 @@ export default function TaxiTycoon() {
                 <h3>🏁 Garage — Livrées de taxi</h3>
                 <button className="tt-modal-x" onClick={() => setGarageOpen(false)}>×</button>
               </div>
+              <p className="tt-modal-sub">Couleur du taxi joueur :</p>
+              <div className="tt-paint-grid">
+                {TAXI_PAINTS.map((paint) => (
+                  <button
+                    key={paint.id}
+                    className={`tt-paint ${save.playerTaxiColor === paint.id ? "selected" : ""}`}
+                    onClick={() => setSave((s) => ({ ...s, playerTaxiColor: paint.id }))}
+                    title={paint.name}
+                  >
+                    <span style={{ background: paint.color }} />
+                    {paint.name}
+                  </button>
+                ))}
+              </div>
               <p className="tt-modal-sub">Choisis le modèle de ta flotte :</p>
               <div className="tt-livery-grid">
                 {allLiveries.map((l) => (
