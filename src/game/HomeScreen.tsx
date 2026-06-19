@@ -261,9 +261,16 @@ export default function HomeScreen({ onPlay }: { onPlay: () => void }) {
 
       <div className="hs-btns">
         {effectiveName !== "Chauffeur" && (
-          <div className="hs-name-badge">
-            {user ? "🔒" : "👤"} {effectiveName}
-            {user && <span style={{ fontSize: 11, opacity: 0.7, marginLeft: 6 }}>(compte en ligne)</span>}
+          <div className="hs-name-badge" style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            {user && (
+              <img
+                src={resolveAvatarSrc(avatarKind, avatarUrl)}
+                alt="avatar"
+                style={{ width: 28, height: 28, borderRadius: "50%", border: "2px solid #f5c542", background: "#fff", objectFit: "cover" }}
+              />
+            )}
+            <span>{user ? "🔒" : "👤"} {effectiveName}</span>
+            {user && <span style={{ fontSize: 11, opacity: 0.7 }}>(en ligne)</span>}
           </div>
         )}
         {user && (
