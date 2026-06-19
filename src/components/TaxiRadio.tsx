@@ -590,7 +590,7 @@ export default function TaxiRadio() {
       )}
 
       {/* Overlay heure + météo (ce que dit l'animateur radio) */}
-      {(() => {
+      {nowTick !== null && (() => {
         const d = new Date(nowTick);
         const hh = d.getHours().toString().padStart(2, "0");
         const mm = d.getMinutes().toString().padStart(2, "0");
