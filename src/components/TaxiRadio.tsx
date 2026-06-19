@@ -249,56 +249,57 @@ export default function TaxiRadio() {
   };
 
   const ttsAudioRef = useRef<HTMLAudioElement | null>(null);
+  // Jeton de session radio : incrémenté à chaque changement de station / pause.
+  // Toute séquence DJ→musique en cours vérifie ce jeton avant de continuer,
+  // pour ne pas démarrer la musique d'une station déjà quittée.
+  const radioSessionRef = useRef<number>(0);
 
   // Lit une brève via le serveur (Lovable AI) → audio mp3 réel (marche partout, incl. WebView Android)
-  const speak = async (news: RadioNews) => {
+  // Si `onComplete` est fourni, il est appelé EXACTEMENT une fois quand la TTS se termine
+  // (fin naturelle, erreur, ou indisponibilité). Garantit l'enchaînement séquentiel DJ→musique.
+  const speak = async (news: RadioNews, onComplete?: () => void) => {
     const l = langRef.current;
     const text = l === "en" ? news.en : news.fr;
     showTicker(text);
+    let completed = false;
+    const done = () => {
+      if (completed) return;
+      completed = true;
+      if (onComplete) { try { onComplete(); } catch {} }
+    };
+    // Fallback de sécurité : si rien ne se passe sous 20s, on libère la séquence
+    const failsafe = window.setTimeout(done, 20000);
+    const wrapDone = () => { window.clearTimeout(failsafe); done(); };
     try {
-      // coupe l'audio précédent
       if (ttsAudioRef.current) {
         try { ttsAudioRef.current.pause(); } catch {}
         ttsAudioRef.current.src = "";
         ttsAudioRef.current = null;
       }
-      // Récupère le token Supabase pour authentifier la requête TTS
       const { supabase } = await import("@/integrations/supabase/client");
       const { data: sessionData } = await supabase.auth.getSession();
       const accessToken = sessionData?.session?.access_token;
-      if (!accessToken) {
-        // Pas connecté → fallback navigateur uniquement
-        if (typeof window !== "undefined" && "speechSynthesis" in window) {
-          try {
-            const u = new SpeechSynthesisUtterance(text);
-            u.lang = l === "en" ? "en-US" : "fr-FR";
-            const v = pickVoice(l); if (v) u.voice = v;
-            window.speechSynthesis.cancel();
-            window.speechSynthesis.speak(u);
-          } catch {}
-        }
-        return;
-      }
+      const speakBrowser = () => {
+        if (typeof window === "undefined" || !("speechSynthesis" in window)) { wrapDone(); return; }
+        try {
+          const u = new SpeechSynthesisUtterance(text);
+          u.lang = l === "en" ? "en-US" : "fr-FR";
+          const v = pickVoice(l); if (v) u.voice = v;
+          u.onend = () => wrapDone();
+          u.onerror = () => wrapDone();
+          window.speechSynthesis.cancel();
+          window.speechSynthesis.speak(u);
+        } catch { wrapDone(); }
+      };
+      if (!accessToken) { speakBrowser(); return; }
       const res = await fetch("/api/public/radio-tts", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${accessToken}`,
-        },
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${accessToken}` },
         body: JSON.stringify({ text, lang: l }),
       });
       if (!res.ok) {
         console.warn("[Radio] TTS HTTP", res.status, await res.text().catch(() => ""));
-        // fallback navigateur
-        if (typeof window !== "undefined" && "speechSynthesis" in window) {
-          try {
-            const u = new SpeechSynthesisUtterance(text);
-            u.lang = l === "en" ? "en-US" : "fr-FR";
-            const v = pickVoice(l); if (v) u.voice = v;
-            window.speechSynthesis.cancel();
-            window.speechSynthesis.speak(u);
-          } catch {}
-        }
+        speakBrowser();
         return;
       }
       const blob = await res.blob();
@@ -306,12 +307,22 @@ export default function TaxiRadio() {
       const a = new Audio(url);
       a.volume = 1.0;
       ttsAudioRef.current = a;
-      a.onended = () => { URL.revokeObjectURL(url); if (ttsAudioRef.current === a) ttsAudioRef.current = null; };
-      a.onerror = () => { URL.revokeObjectURL(url); console.warn("[Radio] audio playback error"); };
+      a.onended = () => {
+        URL.revokeObjectURL(url);
+        if (ttsAudioRef.current === a) ttsAudioRef.current = null;
+        wrapDone();
+      };
+      a.onerror = () => {
+        URL.revokeObjectURL(url);
+        console.warn("[Radio] audio playback error");
+        if (ttsAudioRef.current === a) ttsAudioRef.current = null;
+        wrapDone();
+      };
       try { await a.play(); ttsUnlockedRef.current = true; }
-      catch (err) { console.warn("[Radio] play() bloqué:", err); }
+      catch (err) { console.warn("[Radio] play() bloqué:", err); wrapDone(); }
     } catch (err) {
       console.warn("[Radio] speak error:", err);
+      wrapDone();
     }
   };
 
