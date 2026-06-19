@@ -1,62 +1,43 @@
-## Objectif
-Ajouter un système de **permis chauffeur** avec niveaux qui débloquent des clients VIP / Star, refondre la carte profil (deux champs distincts : nom du chauffeur + pseudo) et corriger l'enregistrement du pseudo.
+## Missions spéciales dorées (joueur)
 
-## 1. Permis chauffeur (système de progression)
+Ajouter un système de **missions spéciales** que le joueur déclenche manuellement, en plus des courses automatiques de la flotte.
 
-Ajout d'un permis qui monte en niveau avec l'XP gagnée à chaque course.
+### Concept
 
-**Paliers proposés :**
+- La flotte de taxis IA continue ses courses normales en arrière-plan.
+- Le joueur a un **bouton "Mission spéciale"** (icône étoile dorée) en HUD.
+- Quand il clique, une **mission dorée** apparaît sur la carte avec un client unique (halo doré pulsant + couronne) et un objectif clair (ex. "Conduire le maire à l'aéroport en 60s").
+- Le joueur doit assigner un de ses taxis (ou un taxi dédié "joueur") pour réussir.
+- Récompense majorée : **gros bonus $ + gros XP permis** (ex. 3x fare + 50 XP).
 
-```text
-Niv. 1  — Apprenti       (0 XP)        clients standard
-Niv. 2  — Confirmé       (200 XP)      clients standard
-Niv. 3  — Professionnel  (600 XP)      🥈 débloque clients VIP (+50% pourboire)
-Niv. 4  — Élite          (1500 XP)     🥇 débloque clients STAR (+100% pourboire, courses longues)
-Niv. 5  — Légende        (3500 XP)     ⭐ taxi doré + VIP & STAR plus fréquents
-```
+### Règles de déclenchement
 
-- **XP** : +10 par course terminée, bonus +5 si course longue, +10 si client VIP, +20 si client STAR.
-- **Probabilité d'apparition** : VIP à 5% dès niv. 3 (10% à niv. 5), STAR à 2% dès niv. 4 (5% à niv. 5).
-- Clients VIP/STAR utilisent les sprites existants avec un halo doré/violet et un libellé "VIP" / "★".
+- Cooldown : 1 mission spéciale toutes les **2 minutes** (timer visible sur le bouton).
+- Déblocage progressif via le permis :
+  - Niv. 1-2 : mission "VIP Express" (course rapide, 2x fare, +30 XP)
+  - Niv. 3+ : mission "STAR" (long trajet, 3x fare, +50 XP)
+  - Niv. 4+ : mission "Légende" (multi-arrêts, 4x fare, +80 XP)
+- Échec (timer dépassé ou client annulé) : pas de pénalité, juste pas de récompense, cooldown remis.
 
-## 2. Carte profil — refonte
+### UI
 
-Deux cases clairement séparées en haut de la carte :
+- **Bouton flottant** en bas-droite de l'écran de jeu : pastille dorée ronde avec étoile, ring de cooldown, label "Mission".
+- Au clic : petite modale "Mission disponible : {titre} — Récompense {x}$ + {xp} XP — [Lancer]".
+- Une fois lancée : bandeau doré en haut "MISSION ACTIVE — {objectif} — {timer}".
+- Client doré sur la carte avec halo intense + icône couronne.
 
-```text
-┌──────────────────────────────┐
-│ 🪪 Chauffeur                  │
-│ [ Jean Dupont          ]     │  ← nom (affichage carte pro)
-│                              │
-│ Pseudo (visible en jeu)      │
-│ [ TaxiKing             ]     │  ← pseudo
-└──────────────────────────────┘
-```
+### Technique
 
-Plus, sous l'avatar, le bloc **Permis** :
+- Nouveau fichier `src/lib/specialMissions.ts` : catalogue des missions (titre, durée, multiplicateur, XP, niveau requis).
+- `src/game/TaxiTycoon.tsx` : 
+  - état local `specialMission: { id, kind, startedAt, expiresAt, targetJobId } | null`
+  - état `specialCooldownUntil: number`
+  - injection d'un `Job` avec `tier: "special"` (nouveau tier) quand lancée
+  - logique de victoire (course complétée avant `expiresAt`) → bonus + appel RPC `add_license_xp`
+- Nouveau composant `src/game/SpecialMissionButton.tsx` (bouton + modale + bandeau actif).
+- Réutilise le rendu halo existant (gold/STAR) avec une intensité supérieure pour le tier `special`.
 
-```text
-🪪 PERMIS — Niv. 3 Professionnel
-[██████████░░░░░] 720 / 1500 XP
-🥈 Clients VIP débloqués
-```
+### À confirmer
 
-## 3. Correction enregistrement du pseudo
-
-Le bouton "Enregistrer" utilise `.update()` qui échoue silencieusement si la ligne profile n'existe pas encore (cas connu sur certaines connexions Google). Passage à `.upsert({ id, ... })` + affichage clair de l'erreur si elle remonte.
-
-## Détails techniques
-
-- **Migration DB** sur `public.profiles` :
-  - `driver_name text` (nom du chauffeur affiché sur la carte pro)
-  - `license_level int not null default 1`
-  - `license_xp int not null default 0`
-- **Fonction RPC** `add_license_xp(amount int)` sécurisée (SECURITY DEFINER, scope `auth.uid()`) qui ajoute l'XP et recalcule le niveau côté serveur (anti-triche basique).
-- **Client** :
-  - `useAuth.ts` : ajout de `driverName`, `licenseLevel`, `licenseXp` dans le state.
-  - `ProfileCard.tsx` : 2 champs (driver_name + pseudo), bloc permis avec barre de progression, upsert au lieu d'update.
-  - `TaxiTycoon.tsx` : appel `add_license_xp` à la fin de chaque course, génération aléatoire de clients VIP/STAR selon le niveau.
-
-## À confirmer
-- OK avec les paliers d'XP proposés ou tu préfères des valeurs différentes (plus rapide / plus long) ?
-- Le **nom du chauffeur** est libre (le joueur tape ce qu'il veut) ou tu veux qu'on récupère le vrai nom du compte Google ?
+- OK pour cooldown 2 min ? (sinon dis-moi la durée souhaitée)
+- Le joueur a-t-il un **taxi personnel dédié** qui prend la mission, ou n'importe quel taxi de la flotte est éligible ?
