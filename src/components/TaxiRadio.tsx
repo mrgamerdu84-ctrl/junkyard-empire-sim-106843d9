@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { GAME_ASSETS } from "@/game/gameAssets";
 import { RADIO_NEWS_EVENT, AMBIENT_NEWS, WELCOME_JINGLE, type RadioNews } from "@/lib/radioNews";
+import junkyCityEmpireAsset from "@/assets/junky_city_empire.mp3.asset.json";
 
 type Station = {
   id: string;
@@ -14,6 +15,7 @@ type Station = {
 
 const STATIONS: Station[] = [
   { id: "main",     name: "Junky Empire Taxi",  emoji: "🚖", url: GAME_ASSETS["audio.music"], loop: true, volume: 0.4 },
+  { id: "jce",      name: "Junky City Empire",  emoji: "🎵", url: junkyCityEmpireAsset.url, loop: true, volume: 0.6 },
   { id: "infos",    name: "Junky Infos",        emoji: "📰", tts: true },
   { id: "pop",      name: "Radio Pop",          emoji: "🎤", url: "https://ice1.somafm.com/poptron-128-mp3", volume: 0.5 },
   { id: "electro",  name: "Radio Electro",      emoji: "🎧", url: "https://ice1.somafm.com/groovesalad-128-mp3", volume: 0.5 },
