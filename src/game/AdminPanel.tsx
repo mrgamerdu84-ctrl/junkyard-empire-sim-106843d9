@@ -26,6 +26,11 @@ export default function AdminPanel() {
   const [unlocked, setUnlocked] = useState(false);
   const [pwd, setPwd] = useState("");
   const [pwdErr, setPwdErr] = useState("");
+  const [resetMode, setResetMode] = useState(false);
+  const [resetPhrase, setResetPhrase] = useState("");
+  const [newPwd, setNewPwd] = useState("");
+  const [newPwd2, setNewPwd2] = useState("");
+  const [resetMsg, setResetMsg] = useState("");
   const [tab, setTab] = useState<"trafic" | "hq" | "missions" | "rival" | "circuit" | "skins" | "export">("trafic");
   const [placeMode, setPlaceMode] = useState(false);
   const [drawMode, setDrawMode] = useState(false);
