@@ -2184,8 +2184,8 @@ export default function TaxiTycoon() {
               {/* triangle de signalisation */}
               <polygon points="0,-9 8,5 -8,5" fill="#fbbf24" stroke="#0b0d10" strokeWidth="1.2" />
               <text x="0" y="3" textAnchor="middle" fontSize="7" fontWeight="900" fill="#0b0d10">!</text>
-              <text x="0" y="18" textAnchor="middle" fontSize="3.6" fontWeight="900" fill="#fbbf24" stroke="#0b0d10" strokeWidth="0.8" paintOrder="stroke">
-                {a.kind === "vehicle" ? "ACCIDENT" : "BLESSÉ"}
+              <text x="0" y="18" textAnchor="middle" fontSize="3.6" fontWeight="900" fill={a.severity === "serious" ? "#ef4444" : "#fbbf24"} stroke="#0b0d10" strokeWidth="0.8" paintOrder="stroke">
+                {a.severity === "serious" ? "⚠ ACCIDENT GRAVE" : (a.kind === "vehicle" ? "ACCIDENT" : "BLESSÉ")}
               </text>
               {/* Indicateurs de présence des 3 secours (🚑 🚒 🚓) */}
               {(() => {
