@@ -1409,17 +1409,18 @@ export default function TaxiTycoon() {
           nextAccidentAtRef.current = tMs + 40000 + Math.random() * 40000;
         }
 
-        // Dispatch : tous les EV en patrol -> respond vers l'accident le plus proche
+        // Dispatch : tous les EV (même en respond/onsite d'un ancien) -> respond vers l'accident courant
         for (const ev of emergencyRef.current) {
-          if (ev.mode === "patrol" && accidentsRef.current.length > 0) {
+          if (accidentsRef.current.length > 0) {
             const acc = accidentsRef.current[0];
-            ev.mode = "respond";
-            ev.accidentId = acc.id;
-            // snap sur le path de l'accident
-            const here = pathRefs.current[ev.pathIdx]?.getPointAtLength(ev.pos);
-            ev.pathIdx = acc.pathIdx;
-            ev.pos = here ? closestOnPath(acc.pathIdx, here.x, here.y) : ev.pos;
-            ev.target = acc.s;
+            if (ev.mode === "patrol" || (ev.mode !== "onsite" && ev.accidentId !== acc.id)) {
+              ev.mode = "respond";
+              ev.accidentId = acc.id;
+              const here = pathRefs.current[ev.pathIdx]?.getPointAtLength(ev.pos);
+              ev.pathIdx = acc.pathIdx;
+              ev.pos = here ? closestOnPath(acc.pathIdx, here.x, here.y) : ev.pos;
+              ev.target = acc.s;
+            }
           }
         }
 
@@ -1448,9 +1449,21 @@ export default function TaxiTycoon() {
             if (Math.abs(diff) <= step) {
               ev.pos = acc.s;
               ev.mode = "onsite";
-              ev.onsiteUntil = tMs + ACCIDENT_BLOCK_MIN_MS + Math.random() * 4000;
               acc.responders.add(ev.id);
-              if (!acc.clearAt) acc.clearAt = tMs + ACCIDENT_BLOCK_MIN_MS;
+              // La minuterie de dégagement ne démarre que quand les 3 secours sont sur place
+              const allHere = emergencyRef.current.every(e => e.accidentId === acc.id && e.mode === "onsite") || acc.responders.size >= 3;
+              if (allHere && !acc.clearAt) {
+                acc.clearAt = tMs + ACCIDENT_BLOCK_MIN_MS;
+                // Aligne la fin d'intervention de tous les secours présents
+                for (const e of emergencyRef.current) {
+                  if (e.accidentId === acc.id) e.onsiteUntil = acc.clearAt;
+                }
+              } else if (!acc.clearAt) {
+                // En attendant les autres, reste sur place sans limite
+                ev.onsiteUntil = tMs + 60000;
+              } else {
+                ev.onsiteUntil = acc.clearAt;
+              }
             } else {
               ev.pos += Math.sign(diff) * step;
             }
