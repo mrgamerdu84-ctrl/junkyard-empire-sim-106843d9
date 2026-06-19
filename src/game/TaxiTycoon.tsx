@@ -6,6 +6,7 @@ import { getAdmin, useAdminConfig } from "./adminConfig";
 import { recordEarning, isSpecialTaxiUnlocked } from "@/lib/leaderboard";
 import { pushNews } from "@/lib/radioNews";
 import { getLicense, addLicenseXp, rollClientTier, tierFareMult, tierXp } from "@/lib/license";
+import { pickSpecialMission, SPECIAL_COOLDOWN_MS } from "@/lib/specialMissions";
 
 
 
@@ -96,8 +97,12 @@ type Job = {
   sidePickup: 1 | -1;
   sideDrop: 1 | -1;
   acceptedAt?: number;
-  tier?: "normal" | "vip" | "star";
+  tier?: "normal" | "vip" | "star" | "special";
+  specialMissionId?: string;
+  specialFareMult?: number;
+  specialXp?: number;
 };
+
 
 
 const DEFAULT_DEPOT_POS = 0.78; // fallback si mode "suit le circuit" (legacy)
@@ -494,6 +499,7 @@ export default function TaxiTycoon() {
   jobsRef.current = jobs;
   const [nowTick, setNowTick] = useState(Date.now());
   const jobIdRef = useRef(1);
+  const [specialCooldownUntil, setSpecialCooldownUntil] = useState<number>(0);
 
   // === Concurrent IA ===
   type RivalTaxi = { id: number; pathIdx: number; pos: number; target: number; lane?: LanePosition; mode: TaxiMode; jobId: number | null };
@@ -1022,15 +1028,21 @@ export default function TaxiTycoon() {
               const p = pathRefs.current[j.dropoffPath];
               // Bonus Taxi d'Or : +50% tarif si débloqué
               const bonus = isSpecialTaxiUnlocked() ? 1.5 : 1;
-              const finalFare = Math.round(j.fare * bonus);
+              const specialMult = j.tier === "special" ? (j.specialFareMult ?? 1) : 1;
+              const finalFare = Math.round(j.fare * bonus * specialMult);
               if (p) {
                 const pt = p.getPointAtLength(j.dropoff);
-                const tag = j.tier === "star" ? `⭐ +${fmt(finalFare)}$` : j.tier === "vip" ? `🥈 +${fmt(finalFare)}$` : `+${fmt(finalFare)}$`;
+                const tag = j.tier === "special"
+                  ? `👑 MISSION +${fmt(finalFare)}$`
+                  : j.tier === "star" ? `⭐ +${fmt(finalFare)}$`
+                  : j.tier === "vip" ? `🥈 +${fmt(finalFare)}$`
+                  : `+${fmt(finalFare)}$`;
                 popFloat(tag, pt.x, pt.y);
               }
               recordEarning(finalFare);
-              // XP permis : 10 normal, 20 VIP, 30 STAR (côté serveur)
-              addLicenseXp(tierXp(j.tier ?? "normal"));
+              // XP permis : 10 normal, 20 VIP, 30 STAR, ou XP custom mission spéciale
+              const xpGain = j.tier === "special" ? (j.specialXp ?? 50) : tierXp(j.tier ?? "normal");
+              addLicenseXp(xpGain);
               setSave((s) => ({
                 ...s,
                 money: s.money + finalFare,
@@ -1816,6 +1828,43 @@ export default function TaxiTycoon() {
     setJobs((js) => js.map((j) => j.id === id ? { ...j, status: "accepted", acceptedAt: Date.now() } : j));
   };
 
+  // === Mission spéciale joueur ===
+  // Déclenchée par le bouton HUD. Injecte un client doré dans la file avec
+  // récompense majorée + gros XP, et applique un cooldown.
+  const triggerSpecialMission = () => {
+    const now = Date.now();
+    if (now < specialCooldownUntil) {
+      const sec = Math.ceil((specialCooldownUntil - now) / 1000);
+      showToast(`⏳ Prochaine mission dans ${sec}s`);
+      return;
+    }
+    if (jobsRef.current.some((j) => j.tier === "special")) {
+      showToast("👑 Une mission est déjà active");
+      return;
+    }
+    const license = getLicense();
+    const def = pickSpecialMission(license.level);
+    // Génère un Job de base puis le surcharge en "special".
+    const base = genJob(saveRef.current.depotTier);
+    const special: Job = {
+      ...base,
+      tier: "special",
+      specialMissionId: def.id,
+      specialFareMult: def.fareMult,
+      specialXp: def.xpReward,
+      // tarif affiché = tarif majoré directement (clarté UX)
+      fare: Math.round(base.fare * def.fareMult),
+      duration: def.durationMs,
+      deadline: now + def.durationMs,
+      status: "offered",
+    };
+    setJobs((js) => [...js, special]);
+    setSpecialCooldownUntil(now + SPECIAL_COOLDOWN_MS);
+    showToast(`${def.emoji} ${def.title} — récupère le client !`);
+  };
+
+
+
 
 
 
@@ -1903,25 +1952,33 @@ export default function TaxiTycoon() {
         {/* Clients en attente (course offerte ou acceptée) — vue du ciel, sur le trottoir */}
         {jobs.map((j) => {
           const p = getSidewalk(j.pickupPath, j.pickup, j.sidePickup);
+          const isSpecial = j.tier === "special";
           const isStar = j.tier === "star";
           const isVip = j.tier === "vip";
-          const haloColor = isStar ? "#a855f7" : isVip ? "#fbbf24" : (j.status === "accepted" ? "#3b82f6" : "#10b981");
+          const haloColor = isSpecial ? "#fde047" : isStar ? "#a855f7" : isVip ? "#fbbf24" : (j.status === "accepted" ? "#3b82f6" : "#10b981");
+          const ringColor = isSpecial ? "#a855f7" : haloColor;
           return (
             <g key={j.id} transform={`translate(${p.x},${p.y})`}>
-              {/* halo au sol — plus gros pour VIP/STAR */}
-              <circle r={isStar || isVip ? 16 : 13} fill={haloColor} opacity={isStar || isVip ? 0.35 : 0.22} />
-              <circle r="9" fill={haloColor} opacity="0.45" />
+              {/* halo au sol — plus gros et pulsant pour MISSION SPÉCIALE */}
+              {isSpecial && (
+                <circle r="22" fill="none" stroke={ringColor} strokeWidth="2" opacity="0.85">
+                  <animate attributeName="r" values="18;26;18" dur="1.4s" repeatCount="indefinite" />
+                  <animate attributeName="opacity" values="0.9;0.3;0.9" dur="1.4s" repeatCount="indefinite" />
+                </circle>
+              )}
+              <circle r={isSpecial ? 18 : (isStar || isVip ? 16 : 13)} fill={haloColor} opacity={isSpecial ? 0.5 : (isStar || isVip ? 0.35 : 0.22)} />
+              <circle r="9" fill={haloColor} opacity="0.55" />
               {/* ombre douce au sol */}
               <ellipse cx="0" cy="0" rx="5.5" ry="5" fill="rgba(0,0,0,0.35)" />
               {/* épaules / corps vu du dessus */}
               <ellipse cx="0" cy="0" rx="5" ry="4" fill={haloColor} stroke="#0f172a" strokeWidth="0.7" />
               {/* tête vue du ciel */}
               <circle cx="0" cy="0" r="2.6" fill="#f1c79b" stroke="#0f172a" strokeWidth="0.5" />
-              {/* badge VIP / STAR au-dessus de l'étiquette */}
-              {(isStar || isVip) && (
+              {/* badge VIP / STAR / SPECIAL */}
+              {(isSpecial || isStar || isVip) && (
                 <g transform="translate(0,-28)">
-                  <rect x="-12" y="-8" width="24" height="11" rx="3" fill={isStar ? "#7c3aed" : "#b45309"} stroke="#fde047" strokeWidth="0.8" />
-                  <text y="0.5" fontSize="7" fontWeight="900" textAnchor="middle" fill="#fde047">{isStar ? "★ STAR" : "VIP"}</text>
+                  <rect x={isSpecial ? -18 : -12} y="-8" width={isSpecial ? 36 : 24} height="11" rx="3" fill={isSpecial ? "#a855f7" : isStar ? "#7c3aed" : "#b45309"} stroke="#fde047" strokeWidth="0.8" />
+                  <text y="0.5" fontSize="7" fontWeight="900" textAnchor="middle" fill="#fde047">{isSpecial ? "👑 MISSION" : isStar ? "★ STAR" : "VIP"}</text>
                 </g>
               )}
               {/* étiquette tarif */}
@@ -2611,6 +2668,27 @@ export default function TaxiTycoon() {
           🏁
         </button>
 
+        {/* Bouton MISSION SPÉCIALE — déclenche un client doré */}
+        {(() => {
+          const now = nowTick;
+          const remaining = Math.max(0, specialCooldownUntil - now);
+          const cooling = remaining > 0;
+          const sec = Math.ceil(remaining / 1000);
+          const pct = cooling ? 1 - remaining / SPECIAL_COOLDOWN_MS : 1;
+          return (
+            <button
+              className={`tt-special-fab ${cooling ? "cooling" : "ready"}`}
+              onClick={triggerSpecialMission}
+              disabled={cooling}
+              title={cooling ? `Cooldown ${sec}s` : "Déclencher une mission spéciale"}
+            >
+              <span className="tt-special-ring" style={{ background: `conic-gradient(#fde047 ${pct * 360}deg, rgba(255,255,255,0.15) 0deg)` }} />
+              <span className="tt-special-core">{cooling ? `${sec}s` : "👑"}</span>
+              <span className="tt-special-lbl">Mission</span>
+            </button>
+          );
+        })()}
+
         {/* Musique de fond : gérée globalement par <BackgroundMusic /> dans __root.tsx */}
 
         {garageOpen && (
@@ -2771,6 +2849,31 @@ export default function TaxiTycoon() {
           display: flex; align-items: center; justify-content: center;
         }
         .tt-garage-fab:hover { transform: translateX(-50%) scale(1.08); }
+
+        .tt-special-fab {
+          position: absolute; bottom: 12px; right: 60px;
+          width: 58px; height: 58px; border-radius: 50%;
+          background: radial-gradient(circle at 30% 30%, #fef3c7, #a855f7 70%, #4c1d95);
+          border: 2px solid #1a1d22; color: #fff;
+          cursor: pointer; pointer-events: auto;
+          box-shadow: 0 4px 14px rgba(168,85,247,0.55), inset 0 1px 0 rgba(255,255,255,0.3);
+          display: flex; align-items: center; justify-content: center; flex-direction: column;
+          padding: 0; overflow: hidden;
+        }
+        .tt-special-fab.ready { animation: ttSpecialPulse 1.8s ease-in-out infinite; }
+        .tt-special-fab:disabled { cursor: not-allowed; opacity: 0.85; animation: none; }
+        .tt-special-ring {
+          position: absolute; inset: 3px; border-radius: 50%;
+          -webkit-mask: radial-gradient(circle, transparent 60%, #000 62%);
+                  mask: radial-gradient(circle, transparent 60%, #000 62%);
+          pointer-events: none;
+        }
+        .tt-special-core { font-size: 20px; line-height: 1; z-index: 1; font-weight: 900; text-shadow: 0 1px 2px rgba(0,0,0,0.6); }
+        .tt-special-lbl { font-size: 8px; font-weight: 800; letter-spacing: 0.5px; z-index: 1; margin-top: 2px; color: #fde047; }
+        @keyframes ttSpecialPulse {
+          0%, 100% { box-shadow: 0 4px 14px rgba(168,85,247,0.55), inset 0 1px 0 rgba(255,255,255,0.3); }
+          50% { box-shadow: 0 4px 22px rgba(253,224,71,0.85), inset 0 1px 0 rgba(255,255,255,0.5); }
+        }
 
         .tt-music-fab {
           position: absolute; bottom: 14px; right: 12px;

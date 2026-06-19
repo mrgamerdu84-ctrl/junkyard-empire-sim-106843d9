@@ -1,6 +1,6 @@
 {
-  "version": "1.6.0",
-  "buildId": "2026-06-19T13:30:00.000Z",
-  "builtAt": 1781876400000,
-  "changelog": "Permis chauffeur (niveaux + XP), clients VIP/STAR, carte profil refondue (nom + pseudo), fix enregistrement pseudo"
+  "version": "1.7.0",
+  "buildId": "2026-06-19T15:40:00.000Z",
+  "builtAt": 1781884800000,
+  "changelog": "Missions spéciales dorées : bouton dédié pour déclencher un client VIP/STAR/Légende avec récompense majorée et gros gain d'XP"
 }

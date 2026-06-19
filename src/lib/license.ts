@@ -93,13 +93,17 @@ export function rollClientTier(level: number): "normal" | "vip" | "star" {
   return "normal";
 }
 
-export function tierFareMult(tier: "normal" | "vip" | "star"): number {
+export type ClientTier = "normal" | "vip" | "star" | "special";
+
+export function tierFareMult(tier: ClientTier): number {
+  if (tier === "special") return 1; // le multiplicateur des missions spéciales est appliqué ailleurs
   if (tier === "star") return 2.0;
   if (tier === "vip") return 1.5;
   return 1;
 }
 
-export function tierXp(tier: "normal" | "vip" | "star"): number {
+export function tierXp(tier: ClientTier): number {
+  if (tier === "special") return 0; // l'XP des missions spéciales est appliquée ailleurs
   if (tier === "star") return 30;
   if (tier === "vip") return 20;
   return 10;
