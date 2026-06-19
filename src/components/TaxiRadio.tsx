@@ -28,6 +28,9 @@ const STATIONS: Station[] = [
 
 const STORAGE_KEY = "mttw.taxiRadio";
 const LANG_KEY = "mttw.lang";
+const DJ_FIRST_DELAY_MS = 1200;
+const DJ_REPEAT_MIN_MS = 45000;
+const DJ_REPEAT_SPREAD_MS = 25000;
 
 function readPref(): string {
   try { return localStorage.getItem(STORAGE_KEY) ?? "main"; } catch { return "main"; }
@@ -270,19 +273,18 @@ export default function TaxiRadio() {
         window.addEventListener("touchstart", start, { once: true });
       });
 
-      // Animateur radio : intervient toutes les 75-120s sur les stations musicales
+      // Animateur radio : annonce tout de suite la station, puis revient régulièrement
       const scheduleDj = () => {
-        const delay = 75000 + Math.random() * 45000;
+        const delay = DJ_REPEAT_MIN_MS + Math.random() * DJ_REPEAT_SPREAD_MS;
         djTimerRef.current = window.setTimeout(() => {
           if (!pausedRef.current) playDjLine(st.name);
           scheduleDj();
         }, delay) as unknown as number;
       };
-      // premier passage après 35-55s pour annoncer la station
       djTimerRef.current = window.setTimeout(() => {
         if (!pausedRef.current) playDjLine(st.name);
         scheduleDj();
-      }, 35000 + Math.random() * 20000) as unknown as number;
+      }, DJ_FIRST_DELAY_MS) as unknown as number;
     }
   }, [stationId, ready]);
 
@@ -379,7 +381,7 @@ export default function TaxiRadio() {
         }}
       />
 
-      {ticker && stationId === "infos" && (
+      {ticker && (
         <div
           style={{
             position: "fixed", top: 64, left: "50%", transform: "translateX(-50%)",

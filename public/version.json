@@ -1,6 +1,6 @@
 {
-  "version": "1.10.0",
-  "buildId": "2026-06-19T19:10:00.000Z",
-  "builtAt": 1781896200000,
-  "changelog": "Animateur radio : un DJ annonce les morceaux toutes les ~90s sur chaque station musicale (musique duckée pendant la voix)"
+  "version": "1.10.1",
+  "buildId": "2026-06-19T19:18:00.000Z",
+  "builtAt": 1781896680000,
+  "changelog": "Animateur radio : le DJ parle dès qu'une station musicale démarre, puis régulièrement, avec bandeau visible sur toutes les radios"
 }
