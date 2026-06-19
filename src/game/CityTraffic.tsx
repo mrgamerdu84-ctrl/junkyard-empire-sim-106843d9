@@ -271,7 +271,10 @@ const PHOTO_PEDS: PhotoPedSpec[] = [
 // pour qu'AUCUN piéton ne puisse glisser sur la chaussée — même si une IA,
 // une collision ou un futur effet tentait d'altérer sa position.
 export const SIDEWALK_LOCK_OFFSET = 64;
-const PHOTO_PED_OFFSET = SIDEWALK_LOCK_OFFSET;
+// Les piétons photo marchent JUSTE à côté de la chaussée (stroke route = 46 → demi-largeur ≈ 23).
+// Un offset de 30 px les place sur le trottoir, sans déborder sur la chaussée d'une route perpendiculaire.
+const PHOTO_PED_OFFSET = 30;
+const PHOTO_PED_MIN_OFFSET = 26; // jamais plus près de l'axe que ça (anti-glissement chaussée)
 
 
 /** Verrouille une coordonnée XY sur le trottoir : si elle est plus proche
@@ -325,20 +328,20 @@ function PhotoPedestrians({ pathRefs }: { pathRefs: React.MutableRefObject<(SVGP
         const ny =  dx / L * PHOTO_PED_OFFSET * st.spec.side;
         // angle de marche (le sprite top-down tourne dans la direction du mouvement)
         const ang = (Math.atan2(dy, dx) * 180) / Math.PI;
-        // 🔒 Verrou trottoir : même si une IA/collision tentait de bouger
-        // ce nœud, on recalcule la position à chaque frame depuis l'axe
-        // du path et on la passe dans lockToSidewalk() pour garantir
-        // qu'elle reste à >= SIDEWALK_LOCK_OFFSET de la chaussée.
-        const locked = lockToSidewalk(
-          { x: p.x, y: p.y },
-          { dx, dy },
-          st.spec.side,
-          p.x + nx,
-          p.y + ny,
-        );
+        // 🔒 Verrou trottoir local (offset piéton, pas celui des clients taxi)
+        // Clamp la distance perpendiculaire à PHOTO_PED_MIN_OFFSET minimum.
+        let px = p.x + nx;
+        let py = p.y + ny;
+        const nUnitX = -dy / L;
+        const nUnitY = dx / L;
+        const signedDist = ((px - p.x) * nUnitX + (py - p.y) * nUnitY) * st.spec.side;
+        if (signedDist < PHOTO_PED_MIN_OFFSET) {
+          px = p.x + nUnitX * PHOTO_PED_MIN_OFFSET * st.spec.side;
+          py = p.y + nUnitY * PHOTO_PED_MIN_OFFSET * st.spec.side;
+        }
         node.setAttribute(
           "transform",
-          `translate(${locked.x.toFixed(2)},${locked.y.toFixed(2)}) rotate(${ang.toFixed(2)})`,
+          `translate(${px.toFixed(2)},${py.toFixed(2)}) rotate(${ang.toFixed(2)})`,
         );
       }
       raf = requestAnimationFrame(step);
