@@ -1,6 +1,6 @@
 {
-  "version": "1.0.1",
-  "buildId": "2026-06-19T08:00:00.000Z",
-  "builtAt": 1781856000000,
-  "changelog": "Panel admin renforcé (toujours visible), vraie voiture de police, slider nombre de police"
+  "version": "1.0.2",
+  "buildId": "2026-06-19T09:30:00.000Z",
+  "builtAt": 1781861400000,
+  "changelog": "Police contrôle aléatoirement les civils, piétons mieux orientés, plus de trafic civil (jusqu'à 36)"
 }
