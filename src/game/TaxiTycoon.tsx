@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { ROADS, VILLAGE_PATHS, SIDEWALK_LOCK_OFFSET, lockToSidewalk } from "./CityTraffic";
 import { GAME_ASSETS, listCustomVehicles } from "./gameAssets";
 import { shouldStopAhead, nowSeconds, registerAccident, clearAccident, getAccidents, type AccidentZone } from "./trafficLights";
@@ -272,7 +272,7 @@ function RoadAlignedVehicleSprite({
   image: string;
   size?: number;
   opacity?: number;
-  children?: React.ReactNode;
+  children?: ReactNode;
 }) {
   return (
     <g transform="rotate(90)">
