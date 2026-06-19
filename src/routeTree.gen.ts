@@ -10,6 +10,7 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as ResetPasswordRouteImport } from './routes/reset-password'
+import { Route as MentionsLegalesRouteImport } from './routes/mentions-legales'
 import { Route as DownloadRouteImport } from './routes/download'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as IndexRouteImport } from './routes/index'
@@ -19,6 +20,11 @@ import { Route as ApiPublicRadioTtsRouteImport } from './routes/api/public/radio
 const ResetPasswordRoute = ResetPasswordRouteImport.update({
   id: '/reset-password',
   path: '/reset-password',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const MentionsLegalesRoute = MentionsLegalesRouteImport.update({
+  id: '/mentions-legales',
+  path: '/mentions-legales',
   getParentRoute: () => rootRouteImport,
 } as any)
 const DownloadRoute = DownloadRouteImport.update({
@@ -51,6 +57,7 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
   '/download': typeof DownloadRoute
+  '/mentions-legales': typeof MentionsLegalesRoute
   '/reset-password': typeof ResetPasswordRoute
   '/api/public/radio-tts': typeof ApiPublicRadioTtsRoute
   '/api/public/upload-apk': typeof ApiPublicUploadApkRoute
@@ -59,6 +66,7 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
   '/download': typeof DownloadRoute
+  '/mentions-legales': typeof MentionsLegalesRoute
   '/reset-password': typeof ResetPasswordRoute
   '/api/public/radio-tts': typeof ApiPublicRadioTtsRoute
   '/api/public/upload-apk': typeof ApiPublicUploadApkRoute
@@ -68,6 +76,7 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
   '/download': typeof DownloadRoute
+  '/mentions-legales': typeof MentionsLegalesRoute
   '/reset-password': typeof ResetPasswordRoute
   '/api/public/radio-tts': typeof ApiPublicRadioTtsRoute
   '/api/public/upload-apk': typeof ApiPublicUploadApkRoute
@@ -78,6 +87,7 @@ export interface FileRouteTypes {
     | '/'
     | '/auth'
     | '/download'
+    | '/mentions-legales'
     | '/reset-password'
     | '/api/public/radio-tts'
     | '/api/public/upload-apk'
@@ -86,6 +96,7 @@ export interface FileRouteTypes {
     | '/'
     | '/auth'
     | '/download'
+    | '/mentions-legales'
     | '/reset-password'
     | '/api/public/radio-tts'
     | '/api/public/upload-apk'
@@ -94,6 +105,7 @@ export interface FileRouteTypes {
     | '/'
     | '/auth'
     | '/download'
+    | '/mentions-legales'
     | '/reset-password'
     | '/api/public/radio-tts'
     | '/api/public/upload-apk'
@@ -103,6 +115,7 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AuthRoute: typeof AuthRoute
   DownloadRoute: typeof DownloadRoute
+  MentionsLegalesRoute: typeof MentionsLegalesRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
   ApiPublicRadioTtsRoute: typeof ApiPublicRadioTtsRoute
   ApiPublicUploadApkRoute: typeof ApiPublicUploadApkRoute
@@ -115,6 +128,13 @@ declare module '@tanstack/react-router' {
       path: '/reset-password'
       fullPath: '/reset-password'
       preLoaderRoute: typeof ResetPasswordRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/mentions-legales': {
+      id: '/mentions-legales'
+      path: '/mentions-legales'
+      fullPath: '/mentions-legales'
+      preLoaderRoute: typeof MentionsLegalesRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/download': {
@@ -159,6 +179,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AuthRoute: AuthRoute,
   DownloadRoute: DownloadRoute,
+  MentionsLegalesRoute: MentionsLegalesRoute,
   ResetPasswordRoute: ResetPasswordRoute,
   ApiPublicRadioTtsRoute: ApiPublicRadioTtsRoute,
   ApiPublicUploadApkRoute: ApiPublicUploadApkRoute,

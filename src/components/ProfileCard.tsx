@@ -1,10 +1,13 @@
 import { useRef, useState, useEffect } from "react";
+import { useServerFn } from "@tanstack/react-start";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth, type AvatarKind } from "@/lib/useAuth";
 import { tierFor } from "@/lib/license";
+import { deleteOwnAccount } from "@/lib/account.functions";
 import avatarMan from "@/assets/avatar-man.png";
 import avatarWoman from "@/assets/avatar-woman.png";
 import { getAllLiveries, TAXI_PAINTS } from "@/game/TaxiTycoon";
+
 
 const TT_SAVE_KEY = "taxi-tycoon-v4";
 
