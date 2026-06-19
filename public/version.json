@@ -1,6 +1,6 @@
 {
-  "version": "1.0.0",
-  "buildId": "2026-06-19T22:38:29.295Z",
-  "builtAt": 1781908709295,
-  "changelog": "Mise à jour automatique active"
+  "version": "1.1.0",
+  "buildId": "2026-06-19T22:55:00.000Z",
+  "builtAt": 1781909700000,
+  "changelog": "Défis 1v1 asynchrones + météo strictement locale"
 }

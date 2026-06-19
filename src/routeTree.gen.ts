@@ -14,6 +14,7 @@ import { Route as MentionsLegalesRouteImport } from './routes/mentions-legales'
 import { Route as DownloadRouteImport } from './routes/download'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as AuthenticatedDefisRouteImport } from './routes/_authenticated/defis'
 import { Route as ApiPublicUploadApkRouteImport } from './routes/api/public/upload-apk'
 import { Route as ApiPublicRadioTtsRouteImport } from './routes/api/public/radio-tts'
 
@@ -42,6 +43,11 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AuthenticatedDefisRoute = AuthenticatedDefisRouteImport.update({
+  id: '/_authenticated/defis',
+  path: '/defis',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiPublicUploadApkRoute = ApiPublicUploadApkRouteImport.update({
   id: '/api/public/upload-apk',
   path: '/api/public/upload-apk',
@@ -59,6 +65,7 @@ export interface FileRoutesByFullPath {
   '/download': typeof DownloadRoute
   '/mentions-legales': typeof MentionsLegalesRoute
   '/reset-password': typeof ResetPasswordRoute
+  '/defis': typeof AuthenticatedDefisRoute
   '/api/public/radio-tts': typeof ApiPublicRadioTtsRoute
   '/api/public/upload-apk': typeof ApiPublicUploadApkRoute
 }
@@ -68,6 +75,7 @@ export interface FileRoutesByTo {
   '/download': typeof DownloadRoute
   '/mentions-legales': typeof MentionsLegalesRoute
   '/reset-password': typeof ResetPasswordRoute
+  '/defis': typeof AuthenticatedDefisRoute
   '/api/public/radio-tts': typeof ApiPublicRadioTtsRoute
   '/api/public/upload-apk': typeof ApiPublicUploadApkRoute
 }
@@ -78,6 +86,7 @@ export interface FileRoutesById {
   '/download': typeof DownloadRoute
   '/mentions-legales': typeof MentionsLegalesRoute
   '/reset-password': typeof ResetPasswordRoute
+  '/_authenticated/defis': typeof AuthenticatedDefisRoute
   '/api/public/radio-tts': typeof ApiPublicRadioTtsRoute
   '/api/public/upload-apk': typeof ApiPublicUploadApkRoute
 }
@@ -89,6 +98,7 @@ export interface FileRouteTypes {
     | '/download'
     | '/mentions-legales'
     | '/reset-password'
+    | '/defis'
     | '/api/public/radio-tts'
     | '/api/public/upload-apk'
   fileRoutesByTo: FileRoutesByTo
@@ -98,6 +108,7 @@ export interface FileRouteTypes {
     | '/download'
     | '/mentions-legales'
     | '/reset-password'
+    | '/defis'
     | '/api/public/radio-tts'
     | '/api/public/upload-apk'
   id:
@@ -107,6 +118,7 @@ export interface FileRouteTypes {
     | '/download'
     | '/mentions-legales'
     | '/reset-password'
+    | '/_authenticated/defis'
     | '/api/public/radio-tts'
     | '/api/public/upload-apk'
   fileRoutesById: FileRoutesById
@@ -117,6 +129,7 @@ export interface RootRouteChildren {
   DownloadRoute: typeof DownloadRoute
   MentionsLegalesRoute: typeof MentionsLegalesRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
+  AuthenticatedDefisRoute: typeof AuthenticatedDefisRoute
   ApiPublicRadioTtsRoute: typeof ApiPublicRadioTtsRoute
   ApiPublicUploadApkRoute: typeof ApiPublicUploadApkRoute
 }
@@ -158,6 +171,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/_authenticated/defis': {
+      id: '/_authenticated/defis'
+      path: '/defis'
+      fullPath: '/defis'
+      preLoaderRoute: typeof AuthenticatedDefisRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/upload-apk': {
       id: '/api/public/upload-apk'
       path: '/api/public/upload-apk'
@@ -181,6 +201,7 @@ const rootRouteChildren: RootRouteChildren = {
   DownloadRoute: DownloadRoute,
   MentionsLegalesRoute: MentionsLegalesRoute,
   ResetPasswordRoute: ResetPasswordRoute,
+  AuthenticatedDefisRoute: AuthenticatedDefisRoute,
   ApiPublicRadioTtsRoute: ApiPublicRadioTtsRoute,
   ApiPublicUploadApkRoute: ApiPublicUploadApkRoute,
 }
