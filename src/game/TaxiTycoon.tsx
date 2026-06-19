@@ -866,6 +866,7 @@ export default function TaxiTycoon() {
           mode: "patrol",
           onsiteUntil: 0,
           accidentId: null,
+          respondAfter: 0,
         };
         syncVehicleLane(v);
         return v;
