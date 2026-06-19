@@ -2058,7 +2058,7 @@ export default function TaxiTycoon() {
           const alerting = ev.mode === "respond" || ev.mode === "onsite";
           const t = Math.floor(performance.now() / 200) % 2;
           const href = ev.kind === "ambulance" ? AMBULANCE_URL : FIRETRUCK_URL;
-          const W = ev.kind === "firetruck" ? 46 : 42;
+          const W = 40; // même taille que la police pour rester aligné sur les voies
           return (
             <g key={ev.id} transform={`translate(${p.x},${p.y}) rotate(${p.angle})`} filter="url(#taxi-shadow)">
               {alerting && (
