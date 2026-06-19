@@ -526,7 +526,7 @@ export default function TaxiTycoon() {
   // === Véhicules d'urgence (ambulance / pompiers) ===
   type EmergencyVehicle = {
     id: number;
-    kind: "ambulance" | "firetruck";
+    kind: "ambulance" | "firetruck" | "police";
     pathIdx: number;
     pos: number;
     target: number;
@@ -816,14 +816,14 @@ export default function TaxiTycoon() {
     for (let i = 0; i < N; i++) if (!VILLAGE_PATHS.has(i)) allowed.push(i);
     if (allowed.length < 1) return;
     if (emergencyRef.current.length === 0) {
-      const mkVeh = (kind: "ambulance" | "firetruck", i: number): EmergencyVehicle => {
+      const mkVeh = (kind: "ambulance" | "firetruck" | "police", i: number): EmergencyVehicle => {
         const pIdx = allowed[i % allowed.length];
         const plen = pathLensRef.current[pIdx] ?? 0;
         const v: EmergencyVehicle = {
           id: 40000 + i,
           kind,
           pathIdx: pIdx,
-          pos: (i / 2) * plen,
+          pos: (i / 3) * plen,
           target: plen - 1,
           mode: "patrol",
           onsiteUntil: 0,
@@ -834,6 +834,7 @@ export default function TaxiTycoon() {
       };
       emergencyRef.current.push(mkVeh("ambulance", 0));
       emergencyRef.current.push(mkVeh("firetruck", 1));
+      emergencyRef.current.push(mkVeh("police", 2));
     }
 
     forceRender((n) => n + 1);
@@ -2063,29 +2064,55 @@ export default function TaxiTycoon() {
           );
         })}
 
-        {/* Marqueurs d'accidents (triangle + fumée) */}
-        {accidentsRef.current.map((a) => (
-          <g key={`acc-${a.id}`} transform={`translate(${a.x},${a.y})`} pointerEvents="none">
-            <circle r="22" fill="#ef4444" opacity="0.18">
-              <animate attributeName="r" values="18;28;18" dur="1.4s" repeatCount="indefinite" />
-            </circle>
-            {/* fumée */}
-            <circle cx="-4" cy="-8" r="5" fill="#1f2937" opacity="0.55">
-              <animate attributeName="cy" values="-8;-16;-8" dur="2.4s" repeatCount="indefinite" />
-              <animate attributeName="opacity" values="0.55;0.1;0.55" dur="2.4s" repeatCount="indefinite" />
-            </circle>
-            <circle cx="5" cy="-10" r="4" fill="#374151" opacity="0.5">
-              <animate attributeName="cy" values="-10;-18;-10" dur="2.8s" repeatCount="indefinite" />
-              <animate attributeName="opacity" values="0.5;0.05;0.5" dur="2.8s" repeatCount="indefinite" />
-            </circle>
-            {/* triangle de signalisation */}
-            <polygon points="0,-9 8,5 -8,5" fill="#fbbf24" stroke="#0b0d10" strokeWidth="1.2" />
-            <text x="0" y="3" textAnchor="middle" fontSize="7" fontWeight="900" fill="#0b0d10">!</text>
-            <text x="0" y="18" textAnchor="middle" fontSize="3.6" fontWeight="900" fill="#fbbf24" stroke="#0b0d10" strokeWidth="0.8" paintOrder="stroke">
-              {a.kind === "vehicle" ? "ACCIDENT" : "BLESSÉ"}
-            </text>
-          </g>
-        ))}
+        {/* Marqueurs d'accidents : cônes centrés, triangle, fumée + minuterie */}
+        {accidentsRef.current.map((a) => {
+          // Cônes orange placés en cercle autour du point d'accident
+          const conePositions = [
+            { x: -14, y: 0 }, { x: 14, y: 0 },
+            { x: 0, y: -14 }, { x: 0, y: 14 },
+            { x: -10, y: -10 }, { x: 10, y: 10 },
+            { x: 10, y: -10 }, { x: -10, y: 10 },
+          ];
+          const remaining = a.clearAt ? Math.max(0, Math.ceil((a.clearAt - performance.now()) / 1000)) : null;
+          return (
+            <g key={`acc-${a.id}`} transform={`translate(${a.x},${a.y})`} pointerEvents="none">
+              {/* zone rouge pulsante */}
+              <circle r="22" fill="#ef4444" opacity="0.18">
+                <animate attributeName="r" values="18;28;18" dur="1.4s" repeatCount="indefinite" />
+              </circle>
+              {/* Cônes de signalisation orange centrés autour de l'accident */}
+              {conePositions.map((c, i) => (
+                <g key={i} transform={`translate(${c.x},${c.y})`}>
+                  <ellipse cx="0" cy="2" rx="3" ry="1" fill="#0b0d10" opacity="0.6" />
+                  <polygon points="0,-4 2.6,2 -2.6,2" fill="#fb923c" stroke="#0b0d10" strokeWidth="0.5" />
+                  <rect x="-2" y="-0.6" width="4" height="0.9" fill="#fff" opacity="0.9" />
+                </g>
+              ))}
+              {/* fumée */}
+              <circle cx="-4" cy="-8" r="5" fill="#1f2937" opacity="0.55">
+                <animate attributeName="cy" values="-8;-16;-8" dur="2.4s" repeatCount="indefinite" />
+                <animate attributeName="opacity" values="0.55;0.1;0.55" dur="2.4s" repeatCount="indefinite" />
+              </circle>
+              <circle cx="5" cy="-10" r="4" fill="#374151" opacity="0.5">
+                <animate attributeName="cy" values="-10;-18;-10" dur="2.8s" repeatCount="indefinite" />
+                <animate attributeName="opacity" values="0.5;0.05;0.5" dur="2.8s" repeatCount="indefinite" />
+              </circle>
+              {/* triangle de signalisation */}
+              <polygon points="0,-9 8,5 -8,5" fill="#fbbf24" stroke="#0b0d10" strokeWidth="1.2" />
+              <text x="0" y="3" textAnchor="middle" fontSize="7" fontWeight="900" fill="#0b0d10">!</text>
+              <text x="0" y="18" textAnchor="middle" fontSize="3.6" fontWeight="900" fill="#fbbf24" stroke="#0b0d10" strokeWidth="0.8" paintOrder="stroke">
+                {a.kind === "vehicle" ? "ACCIDENT" : "BLESSÉ"}
+              </text>
+              {/* Minuterie d'intervention */}
+              {remaining !== null && remaining > 0 && (
+                <g transform="translate(0,-22)">
+                  <rect x="-9" y="-5" width="18" height="9" rx="2" fill="#0b0d10" stroke="#fbbf24" strokeWidth="0.8" />
+                  <text x="0" y="2" textAnchor="middle" fontSize="6" fontWeight="900" fill="#fbbf24">{remaining}s</text>
+                </g>
+              )}
+            </g>
+          );
+        })}
 
 
         {emergencyRef.current.map((ev) => {
@@ -2093,7 +2120,7 @@ export default function TaxiTycoon() {
           const p = ev.lane ?? getLaneXY(ev.pathIdx, ev.pos, movingForward);
           const alerting = ev.mode === "respond" || ev.mode === "onsite";
           const t = Math.floor(performance.now() / 200) % 2;
-          const href = ev.kind === "ambulance" ? AMBULANCE_URL : FIRETRUCK_URL;
+          const href = ev.kind === "ambulance" ? AMBULANCE_URL : ev.kind === "firetruck" ? FIRETRUCK_URL : POLICE_CAR_URL;
           const W = 40; // même taille que la police pour rester aligné sur les voies
           return (
             <g key={ev.id} transform={`translate(${p.x},${p.y}) rotate(${p.angle})`} filter="url(#taxi-shadow)">
@@ -2107,7 +2134,7 @@ export default function TaxiTycoon() {
               </g>
               {alerting && (
                 <text x="0" y="32" textAnchor="middle" fontSize="3.6" fontWeight="900" fill="#fbbf24" stroke="#0b0d10" strokeWidth="0.8" paintOrder="stroke">
-                  {ev.kind === "ambulance" ? "URGENCE" : "POMPIERS"}
+                  {ev.kind === "ambulance" ? "URGENCE" : ev.kind === "firetruck" ? "POMPIERS" : "POLICE"}
                 </text>
               )}
             </g>
