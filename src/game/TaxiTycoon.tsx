@@ -5,6 +5,8 @@ import { shouldStopAhead, nowSeconds, registerAccident, clearAccident, getAccide
 import { getAdmin, useAdminConfig } from "./adminConfig";
 import { recordEarning, isSpecialTaxiUnlocked } from "@/lib/leaderboard";
 import { pushNews } from "@/lib/radioNews";
+import { getLicense, addLicenseXp, rollClientTier, tierFareMult, tierXp } from "@/lib/license";
+
 
 
 // Skins centralisés — pour changer un taxi / la voiture de police,
@@ -670,16 +672,22 @@ export default function TaxiTycoon() {
     const distNorm = 0.4 + Math.random() * 0.6;
     const adm = getAdmin();
     const revBonus = 1 + 0.10 * (saveRef.current.hqRevenueLvl ?? 0);
-    const fare = Math.round((25 + distNorm * 220) * t.fareMult * adm.clientFareMult * revBonus);
-    const duration = (22 + Math.min(20, fare / 30)) * 1000;
+    // tier client selon permis (VIP / STAR)
+    const license = getLicense();
+    const tier = rollClientTier(license.level);
+    const tMult = tierFareMult(tier);
+    const baseFare = Math.round((25 + distNorm * 220) * t.fareMult * adm.clientFareMult * revBonus * tMult);
+    const duration = (22 + Math.min(20, baseFare / 30)) * 1000;
     return {
-      id, pickupPath, pickup, dropoffPath, dropoff, fare,
+      id, pickupPath, pickup, dropoffPath, dropoff, fare: baseFare,
       deadline: now + duration, duration,
       status: "offered",
       sidePickup: Math.random() < 0.5 ? 1 : -1,
       sideDrop: Math.random() < 0.5 ? 1 : -1,
+      tier,
     };
   };
+
 
   // Mesure des longueurs réelles de chaque path au montage.
   useEffect(() => {
@@ -1017,9 +1025,12 @@ export default function TaxiTycoon() {
               const finalFare = Math.round(j.fare * bonus);
               if (p) {
                 const pt = p.getPointAtLength(j.dropoff);
-                popFloat(`+${fmt(finalFare)}$`, pt.x, pt.y);
+                const tag = j.tier === "star" ? `⭐ +${fmt(finalFare)}$` : j.tier === "vip" ? `🥈 +${fmt(finalFare)}$` : `+${fmt(finalFare)}$`;
+                popFloat(tag, pt.x, pt.y);
               }
               recordEarning(finalFare);
+              // XP permis : 10 normal, 20 VIP, 30 STAR (côté serveur)
+              addLicenseXp(tierXp(j.tier ?? "normal"));
               setSave((s) => ({
                 ...s,
                 money: s.money + finalFare,
@@ -1029,6 +1040,7 @@ export default function TaxiTycoon() {
               }));
               setJobs((js) => js.filter((x) => x.id !== j.id));
             }
+
 
             taxi.jobId = null;
             taxi.ridesSinceDeposit = (taxi.ridesSinceDeposit ?? 0) + 1;
