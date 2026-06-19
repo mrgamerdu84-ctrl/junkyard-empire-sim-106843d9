@@ -325,13 +325,113 @@ export default function ProfileCard({ onClose }: { onClose: () => void }) {
         </div>
 
 
-
         <div className="pc-actions">
           <button className="pc-btn ghost" type="button" onClick={onClose}>Fermer</button>
           <button className="pc-btn primary" type="button" disabled={saving} onClick={save}>
             {saving ? "..." : "💾 Enregistrer"}
           </button>
         </div>
+
+        {/* Zone dangereuse */}
+        <div style={{
+          marginTop: 22, paddingTop: 16,
+          borderTop: "1px dashed #7f1d1d",
+        }}>
+          <div style={{ color: "#ef4444", fontSize: 12, fontWeight: 900, textTransform: "uppercase", letterSpacing: 1, marginBottom: 8 }}>
+            ⚠️ Zone dangereuse
+          </div>
+          <p style={{ fontSize: 12, color: "#9ca3af", margin: "0 0 10px", lineHeight: 1.5 }}>
+            Supprimer ton compte efface immédiatement et définitivement ton profil, ton pseudo,
+            ton avatar et tes scores en ligne.
+          </p>
+          <button
+            type="button"
+            onClick={() => { setDeleteConfirm(""); setDeleteErr(null); setShowDelete(true); }}
+            style={{
+              width: "100%", padding: 11, borderRadius: 8,
+              background: "transparent", color: "#fca5a5",
+              border: "1px solid #7f1d1d", fontWeight: 800, fontSize: 13,
+              cursor: "pointer",
+            }}
+          >
+            🗑️ Supprimer mon compte
+          </button>
+        </div>
+
+        {showDelete && (
+          <div
+            onClick={() => !deleting && setShowDelete(false)}
+            style={{
+              position: "fixed", inset: 0, background: "rgba(0,0,0,0.8)", zIndex: 11000,
+              display: "flex", alignItems: "center", justifyContent: "center", padding: 16,
+            }}
+          >
+            <div
+              onClick={(e) => e.stopPropagation()}
+              style={{
+                background: "#14171c", border: "2px solid #ef4444",
+                borderRadius: 14, padding: 22, maxWidth: 380, width: "100%",
+                boxShadow: "0 14px 40px rgba(0,0,0,0.6)",
+              }}
+            >
+              <h3 style={{ color: "#ef4444", margin: "0 0 8px", fontSize: 18, fontWeight: 900 }}>
+                🗑️ Supprimer mon compte
+              </h3>
+              <p style={{ color: "#e5e7eb", fontSize: 13.5, lineHeight: 1.55, margin: "0 0 12px" }}>
+                Cette action est <strong style={{ color: "#fca5a5" }}>irréversible</strong>. Ton compte,
+                ton pseudo, ton avatar et tes scores en ligne seront <strong>supprimés définitivement</strong>.
+              </p>
+              <p style={{ color: "#9ca3af", fontSize: 12, margin: "0 0 8px" }}>
+                Pour confirmer, tape ton pseudo&nbsp;: <strong style={{ color: "#f5c542" }}>{pseudo}</strong>
+              </p>
+              <input
+                type="text"
+                value={deleteConfirm}
+                onChange={(e) => setDeleteConfirm(e.target.value)}
+                placeholder={pseudo}
+                disabled={deleting}
+                style={{
+                  width: "100%", padding: "10px 12px", borderRadius: 8,
+                  background: "#0a0c10", color: "#fff", border: "2px solid #374151",
+                  fontSize: 14, boxSizing: "border-box", outline: "none",
+                }}
+              />
+              {deleteErr && (
+                <div style={{ marginTop: 10, background: "#7f1d1d", color: "#fecaca", padding: "8px 12px", borderRadius: 8, fontSize: 12 }}>
+                  {deleteErr}
+                </div>
+              )}
+              <div style={{ display: "flex", gap: 8, marginTop: 14 }}>
+                <button
+                  type="button"
+                  onClick={() => setShowDelete(false)}
+                  disabled={deleting}
+                  style={{
+                    flex: 1, padding: 11, borderRadius: 8, cursor: "pointer",
+                    background: "transparent", color: "#9ca3af",
+                    border: "1px solid #374151", fontWeight: 800, fontSize: 13,
+                  }}
+                >
+                  Annuler
+                </button>
+                <button
+                  type="button"
+                  onClick={handleDeleteAccount}
+                  disabled={deleting || deleteConfirm.trim() !== pseudo}
+                  style={{
+                    flex: 1, padding: 11, borderRadius: 8,
+                    cursor: deleting || deleteConfirm.trim() !== pseudo ? "not-allowed" : "pointer",
+                    background: deleting || deleteConfirm.trim() !== pseudo ? "#4b5563" : "#dc2626",
+                    color: "#fff", border: "none", fontWeight: 900, fontSize: 13,
+                  }}
+                >
+                  {deleting ? "Suppression..." : "🗑️ Supprimer"}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
       </div>
     </div>
   );
