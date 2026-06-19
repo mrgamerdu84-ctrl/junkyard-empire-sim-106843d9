@@ -1914,25 +1914,33 @@ export default function TaxiTycoon() {
         {/* Clients en attente (course offerte ou acceptée) — vue du ciel, sur le trottoir */}
         {jobs.map((j) => {
           const p = getSidewalk(j.pickupPath, j.pickup, j.sidePickup);
+          const isSpecial = j.tier === "special";
           const isStar = j.tier === "star";
           const isVip = j.tier === "vip";
-          const haloColor = isStar ? "#a855f7" : isVip ? "#fbbf24" : (j.status === "accepted" ? "#3b82f6" : "#10b981");
+          const haloColor = isSpecial ? "#fde047" : isStar ? "#a855f7" : isVip ? "#fbbf24" : (j.status === "accepted" ? "#3b82f6" : "#10b981");
+          const ringColor = isSpecial ? "#a855f7" : haloColor;
           return (
             <g key={j.id} transform={`translate(${p.x},${p.y})`}>
-              {/* halo au sol — plus gros pour VIP/STAR */}
-              <circle r={isStar || isVip ? 16 : 13} fill={haloColor} opacity={isStar || isVip ? 0.35 : 0.22} />
-              <circle r="9" fill={haloColor} opacity="0.45" />
+              {/* halo au sol — plus gros et pulsant pour MISSION SPÉCIALE */}
+              {isSpecial && (
+                <circle r="22" fill="none" stroke={ringColor} strokeWidth="2" opacity="0.85">
+                  <animate attributeName="r" values="18;26;18" dur="1.4s" repeatCount="indefinite" />
+                  <animate attributeName="opacity" values="0.9;0.3;0.9" dur="1.4s" repeatCount="indefinite" />
+                </circle>
+              )}
+              <circle r={isSpecial ? 18 : (isStar || isVip ? 16 : 13)} fill={haloColor} opacity={isSpecial ? 0.5 : (isStar || isVip ? 0.35 : 0.22)} />
+              <circle r="9" fill={haloColor} opacity="0.55" />
               {/* ombre douce au sol */}
               <ellipse cx="0" cy="0" rx="5.5" ry="5" fill="rgba(0,0,0,0.35)" />
               {/* épaules / corps vu du dessus */}
               <ellipse cx="0" cy="0" rx="5" ry="4" fill={haloColor} stroke="#0f172a" strokeWidth="0.7" />
               {/* tête vue du ciel */}
               <circle cx="0" cy="0" r="2.6" fill="#f1c79b" stroke="#0f172a" strokeWidth="0.5" />
-              {/* badge VIP / STAR au-dessus de l'étiquette */}
-              {(isStar || isVip) && (
+              {/* badge VIP / STAR / SPECIAL */}
+              {(isSpecial || isStar || isVip) && (
                 <g transform="translate(0,-28)">
-                  <rect x="-12" y="-8" width="24" height="11" rx="3" fill={isStar ? "#7c3aed" : "#b45309"} stroke="#fde047" strokeWidth="0.8" />
-                  <text y="0.5" fontSize="7" fontWeight="900" textAnchor="middle" fill="#fde047">{isStar ? "★ STAR" : "VIP"}</text>
+                  <rect x={isSpecial ? -18 : -12} y="-8" width={isSpecial ? 36 : 24} height="11" rx="3" fill={isSpecial ? "#a855f7" : isStar ? "#7c3aed" : "#b45309"} stroke="#fde047" strokeWidth="0.8" />
+                  <text y="0.5" fontSize="7" fontWeight="900" textAnchor="middle" fill="#fde047">{isSpecial ? "👑 MISSION" : isStar ? "★ STAR" : "VIP"}</text>
                 </g>
               )}
               {/* étiquette tarif */}
