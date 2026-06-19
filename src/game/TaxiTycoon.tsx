@@ -499,6 +499,7 @@ export default function TaxiTycoon() {
   jobsRef.current = jobs;
   const [nowTick, setNowTick] = useState(Date.now());
   const jobIdRef = useRef(1);
+  const [specialCooldownUntil, setSpecialCooldownUntil] = useState<number>(0);
 
   // === Concurrent IA ===
   type RivalTaxi = { id: number; pathIdx: number; pos: number; target: number; lane?: LanePosition; mode: TaxiMode; jobId: number | null };
