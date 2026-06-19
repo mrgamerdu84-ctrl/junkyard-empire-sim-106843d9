@@ -1123,6 +1123,7 @@ export default function TaxiTycoon() {
               const step = POLICE_CHASE_SPEED * dt;
               if (Math.abs(diff) > 0.5) pc.pos += Math.sign(diff) * Math.min(step, Math.abs(diff));
 
+
               const pcPt = pathRefs.current[pc.pathIdx]?.getPointAtLength(pc.pos);
               const tPt = pathRefs.current[targetTaxi.pathIdx]?.getPointAtLength(targetTaxi.pos);
               if (pcPt && tPt) {
@@ -1200,6 +1201,22 @@ export default function TaxiTycoon() {
             continue;
           }
 
+          // ----- Mode CONTROL_DRIVE : fonce gyrophares allumés vers le point de contrôle -----
+          if (pc.mode === "control_drive") {
+            const diff = pc.target - pc.pos;
+            const stepD = POLICE_RESPONSE_SPEED * dt;
+            if (Math.abs(diff) <= stepD) {
+              pc.pos = pc.target;
+              pc.mode = "control_wait";
+              pc.controlStoppedPos = pc.pos;
+              pc.controlUntil = nowMs + CIVIL_CONTROL_DURATION_MS;
+              showToast("🚓 Contrôle de papiers en cours…");
+            } else {
+              pc.pos += Math.sign(diff) * stepD;
+            }
+            continue;
+          }
+
           // ----- Mode CONTROL_WAIT : voiture stoppée, gyrophares, "contrôle" -----
           if (pc.mode === "control_wait") {
             if (pc.controlStoppedPos !== undefined) pc.pos = pc.controlStoppedPos;
@@ -1212,6 +1229,7 @@ export default function TaxiTycoon() {
             }
             continue;
           }
+
 
           // ----- Mode PATROL : aller-retour -----
           const diff = pc.target - pc.pos;
@@ -1733,12 +1751,13 @@ export default function TaxiTycoon() {
             ? { x: pc.hideoutXY!.x, y: pc.hideoutXY!.y, angle: 0 }
             : (pc.lane ?? getLaneXY(pc.pathIdx, pc.pos, movingForward));
           const chasing = pc.mode === "chase";
-          const controlling = pc.mode === "control_wait";
+          const controlling = pc.mode === "control_wait" || pc.mode === "control_drive";
           const t = Math.floor(performance.now() / 200) % 2;
           const flashing = chasing || controlling;
           const ledA = flashing ? (t === 0 ? "#3b82f6" : "#ef4444") : "#1f2937";
           const ledB = flashing ? (t === 0 ? "#ef4444" : "#3b82f6") : "#1f2937";
           void ledA; void ledB;
+
           return (
             <g key={pc.id} transform={`translate(${p.x},${p.y}) rotate(${p.angle})`} filter="url(#taxi-shadow)">
               {flashing && (
