@@ -126,6 +126,17 @@ function AuthPage() {
           )}
           <input className="auth-input" type="email" placeholder="Email" required value={email} onChange={(e) => setEmail(e.target.value)} />
           <input className="auth-input" type="password" placeholder="Mot de passe" required minLength={6} value={password} onChange={(e) => setPassword(e.target.value)} />
+          {mode === "signin" && (
+            <label style={{ display: "flex", alignItems: "center", gap: 8, color: "#9ca3af", fontSize: 13, margin: "4px 0 10px", cursor: "pointer", userSelect: "none" }}>
+              <input
+                type="checkbox"
+                checked={remember}
+                onChange={(e) => setRemember(e.target.checked)}
+                style={{ width: 18, height: 18, accentColor: "#f5c542", cursor: "pointer" }}
+              />
+              Se souvenir de moi (rester connecté)
+            </label>
+          )}
           <button className="auth-btn" type="submit" disabled={loading}>
             {loading ? "..." : mode === "signup" ? "Créer mon compte" : "Se connecter"}
           </button>
