@@ -1646,6 +1646,16 @@ export default function TaxiTycoon() {
   const allLiveries = useMemo(() => getAllLiveries(), []);
   const currentLivery = allLiveries.find((l) => l.id === save.liveryId) ?? allLiveries[0];
 
+  // Synchronise la livrée si le joueur la change depuis le profil
+  useEffect(() => {
+    const onLivery = (e: Event) => {
+      const id = (e as CustomEvent<string>).detail;
+      if (typeof id === "string") setSave((s) => ({ ...s, liveryId: id }));
+    };
+    window.addEventListener("jce:livery-changed", onLivery);
+    return () => window.removeEventListener("jce:livery-changed", onLivery);
+  }, []);
+
 
   // === Boucle de file de courses : tick du timer + expiration des offres ===
   useEffect(() => {
