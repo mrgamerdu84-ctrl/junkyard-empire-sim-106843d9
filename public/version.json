@@ -1,6 +1,6 @@
 {
-  "version": "1.5.0",
-  "buildId": "2026-06-19T11:45:00.000Z",
-  "builtAt": 1781869500000,
-  "changelog": "Nouvelle station 📰 Radio Infos (FR/EN) qui annonce les événements de la ville"
+  "version": "1.5.1",
+  "buildId": "2026-06-19T12:00:00.000Z",
+  "builtAt": 1781870400000,
+  "changelog": "Correction de l’orientation et du centrage des véhicules ajoutés et des secours en vue du ciel"
 }
