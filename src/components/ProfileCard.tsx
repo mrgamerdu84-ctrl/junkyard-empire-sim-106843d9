@@ -180,6 +180,28 @@ export default function ProfileCard({ onClose }: { onClose: () => void }) {
 
         <div className="pc-row">
           <div className="pc-label">Mon taxi ({liveries.length} modèles)</div>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(5, 1fr)", gap: 6, marginBottom: 10 }}>
+            {TAXI_PAINTS.map((paint) => (
+              <button
+                key={paint.id}
+                type="button"
+                onClick={() => setTaxiColor(paint.id)}
+                title={paint.name}
+                style={{
+                  height: 34,
+                  borderRadius: 8,
+                  border: taxiColor === paint.id ? "2px solid #f5c542" : "2px solid #374151",
+                  background: "#0a0c10",
+                  cursor: "pointer",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                }}
+              >
+                <span style={{ width: 20, height: 20, borderRadius: "50%", background: paint.color, border: "2px solid rgba(255,255,255,0.7)" }} />
+              </button>
+            ))}
+          </div>
           <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 8, maxHeight: 220, overflowY: "auto", padding: 2 }}>
             {liveries.map((l) => (
               <button
@@ -192,7 +214,7 @@ export default function ProfileCard({ onClose }: { onClose: () => void }) {
                   borderRadius: 8, padding: 6, cursor: "pointer", textAlign: "center",
                 }}
               >
-                <img src={l.image} alt={l.name} style={{ width: "100%", height: 42, objectFit: "contain", transform: l.faceRight ? undefined : "scaleX(-1)" }} />
+                <img src={l.image} alt={l.name} style={{ width: "100%", height: 42, objectFit: "contain", transform: l.faceRight ? undefined : "scaleX(-1)", filter: currentPaint.filter }} />
                 <div style={{ fontSize: 10, color: "#e5e7eb", fontWeight: 700, marginTop: 4, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{l.name}</div>
                 <div style={{ fontSize: 8, color: "#8a8e94" }}>{l.city}</div>
               </button>
