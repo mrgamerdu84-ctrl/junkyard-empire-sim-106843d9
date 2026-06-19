@@ -1,6 +1,6 @@
 {
-  "version": "1.3.2",
-  "buildId": "2026-06-19T11:00:00.000Z",
-  "builtAt": 1781866800000,
-  "changelog": "Réinitialisation du mot de passe admin depuis l'écran de verrouillage"
+  "version": "1.3.3",
+  "buildId": "2026-06-19T11:10:00.000Z",
+  "builtAt": 1781867400000,
+  "changelog": "Suppression des trajets pointillés des courses (rendu plus propre)"
 }

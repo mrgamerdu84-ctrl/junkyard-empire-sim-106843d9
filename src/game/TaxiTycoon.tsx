@@ -1828,23 +1828,8 @@ export default function TaxiTycoon() {
           );
         })}
 
-        {/* Itinéraires des courses acceptées — ligne pickup → dropoff */}
-        {jobs.map((j) => {
-          if (j.status !== "accepted") return null;
-          const a = getSidewalk(j.pickupPath, j.pickup, j.sidePickup);
-          const b = getSidewalk(j.dropoffPath, j.dropoff, j.sideDrop);
-          const mx = (a.x + b.x) / 2;
-          const my = (a.y + b.y) / 2 - 30;
-          return (
-            <g key={"it" + j.id} style={{ pointerEvents: "none" }}>
-              <path d={`M ${a.x} ${a.y} Q ${mx} ${my} ${b.x} ${b.y}`}
-                fill="none" stroke="#f59e0b" strokeWidth="3" strokeOpacity="0.55"
-                strokeDasharray="6 5" strokeLinecap="round">
-                <animate attributeName="stroke-dashoffset" from="0" to="-22" dur="0.9s" repeatCount="indefinite" />
-              </path>
-            </g>
-          );
-        })}
+        {/* Itinéraires des courses acceptées — désactivés (rendu visuel jugé peu joli).
+            Les marqueurs pickup/dropoff suffisent à guider le joueur. */}
 
         {/* Dropoffs — sur le trottoir, uniquement pour les courses acceptées */}
         {jobs.map((j) => {
