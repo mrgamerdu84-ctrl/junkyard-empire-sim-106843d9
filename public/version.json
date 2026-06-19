@@ -1,6 +1,6 @@
 {
-  "version": "1.0.8",
-  "buildId": "2026-06-19T09:00:00.000Z",
-  "builtAt": 1781859600000,
-  "changelog": "Itinéraire visible + duel score Joueur vs Rival"
+  "version": "1.0.9",
+  "buildId": "2026-06-19T09:10:00.000Z",
+  "builtAt": 1781860200000,
+  "changelog": "Ambulance et camion pompiers réorientés top-down"
 }
