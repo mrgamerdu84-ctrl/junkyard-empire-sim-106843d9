@@ -588,6 +588,52 @@ export default function TaxiRadio() {
         </div>
       )}
 
+      {/* Overlay heure + météo (ce que dit l'animateur radio) */}
+      {(() => {
+        const d = new Date(nowTick);
+        const hh = d.getHours().toString().padStart(2, "0");
+        const mm = d.getMinutes().toString().padStart(2, "0");
+        const w = weatherState;
+        const codeEmoji = (c: number): string => {
+          if (c === 0) return "☀️";
+          if (c === 1) return "🌤️";
+          if (c === 2) return "⛅";
+          if (c === 3) return "☁️";
+          if (c === 45 || c === 48) return "🌫️";
+          if (c >= 51 && c <= 55) return "🌦️";
+          if (c >= 61 && c <= 65) return "🌧️";
+          if (c >= 71 && c <= 75) return "🌨️";
+          if (c >= 80 && c <= 82) return "🌧️";
+          if (c >= 95) return "⛈️";
+          return "🌡️";
+        };
+        return (
+          <div
+            title={w?.city ? `Météo : ${w.city}` : "Météo"}
+            style={{
+              position: "fixed", top: 12, right: 64, zIndex: 10000,
+              display: "flex", alignItems: "center", gap: 8,
+              padding: "6px 10px", borderRadius: 999,
+              background: "rgba(15,23,42,0.78)",
+              border: "1px solid rgba(253,224,71,0.55)",
+              color: "#fff7d6", fontFamily: "system-ui, sans-serif",
+              fontWeight: 800, fontSize: 12,
+              boxShadow: "0 4px 12px rgba(0,0,0,0.45)",
+              backdropFilter: "blur(4px)",
+              pointerEvents: "none",
+            }}
+          >
+            <span>🕒 {hh}:{mm}</span>
+            <span style={{ opacity: 0.55 }}>•</span>
+            {w ? (
+              <span>{codeEmoji(w.code)} {w.tempC}°C</span>
+            ) : (
+              <span style={{ opacity: 0.7 }}>météo…</span>
+            )}
+          </div>
+        );
+      })()}
+
       {/* Mini dock contrôles radio en bas de la carte */}
       <div
         style={{
