@@ -1725,21 +1725,38 @@ export default function TaxiTycoon() {
             ? { x: pc.hideoutXY!.x, y: pc.hideoutXY!.y, angle: 0 }
             : (pc.lane ?? getLaneXY(pc.pathIdx, pc.pos, movingForward));
           const chasing = pc.mode === "chase";
+          const controlling = pc.mode === "control_wait";
           const t = Math.floor(performance.now() / 200) % 2;
-          const ledA = chasing ? (t === 0 ? "#3b82f6" : "#ef4444") : "#1f2937";
-          const ledB = chasing ? (t === 0 ? "#ef4444" : "#3b82f6") : "#1f2937";
+          const flashing = chasing || controlling;
+          void ledA; void ledB;
+          const ledA = flashing ? (t === 0 ? "#3b82f6" : "#ef4444") : "#1f2937";
+          const ledB = flashing ? (t === 0 ? "#ef4444" : "#3b82f6") : "#1f2937";
+          void ledA; void ledB;
           return (
             <g key={pc.id} transform={`translate(${p.x},${p.y}) rotate(${p.angle})`} filter="url(#taxi-shadow)">
-              {chasing && (
+              {flashing && (
                 <circle r="24" fill={t === 0 ? "#3b82f6" : "#ef4444"} opacity="0.28">
                   <animate attributeName="r" values="20;28;20" dur="0.5s" repeatCount="indefinite" />
                 </circle>
               )}
               <g transform="rotate(90)">
                 <image href={POLICE_CAR_URL} x={-20} y={-20} width={40} height={40} preserveAspectRatio="xMidYMid meet" opacity={hidden ? 0.85 : 1} />
+                {/* Voiture civile contrôlée, juste devant la police */}
+                {controlling && (
+                  <g transform="translate(0,-34)">
+                    <rect x="-9" y="-14" width="18" height="28" rx="4" fill="#3a4a5a" stroke="#0b0d10" strokeWidth="1" />
+                    <rect x="-7" y="-10" width="14" height="8" rx="2" fill="#1a2230" />
+                    <rect x="-7" y="4" width="14" height="6" rx="1.5" fill="#1a2230" />
+                    <circle cx="-6" cy="-13" r="1.4" fill="#fff7c0" />
+                    <circle cx="6" cy="-13" r="1.4" fill="#fff7c0" />
+                  </g>
+                )}
               </g>
               {hidden && (
                 <text x="0" y="-32" textAnchor="middle" fontSize="3.4" fontWeight="900" fill="#fbbf24" stroke="#0b0d10" strokeWidth="0.8" paintOrder="stroke">PLANQUE</text>
+              )}
+              {controlling && (
+                <text x="0" y="36" textAnchor="middle" fontSize="3.6" fontWeight="900" fill="#fbbf24" stroke="#0b0d10" strokeWidth="0.8" paintOrder="stroke">CONTRÔLE</text>
               )}
             </g>
           );
