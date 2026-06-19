@@ -114,9 +114,29 @@ export default function TaxiRadio() {
         ttsAudioRef.current.src = "";
         ttsAudioRef.current = null;
       }
+      // Récupère le token Supabase pour authentifier la requête TTS
+      const { supabase } = await import("@/integrations/supabase/client");
+      const { data: sessionData } = await supabase.auth.getSession();
+      const accessToken = sessionData?.session?.access_token;
+      if (!accessToken) {
+        // Pas connecté → fallback navigateur uniquement
+        if (typeof window !== "undefined" && "speechSynthesis" in window) {
+          try {
+            const u = new SpeechSynthesisUtterance(text);
+            u.lang = l === "en" ? "en-US" : "fr-FR";
+            const v = pickVoice(l); if (v) u.voice = v;
+            window.speechSynthesis.cancel();
+            window.speechSynthesis.speak(u);
+          } catch {}
+        }
+        return;
+      }
       const res = await fetch("/api/public/radio-tts", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${accessToken}`,
+        },
         body: JSON.stringify({ text, lang: l }),
       });
       if (!res.ok) {
