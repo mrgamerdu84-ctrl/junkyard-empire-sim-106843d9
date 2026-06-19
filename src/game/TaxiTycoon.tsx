@@ -12,6 +12,9 @@ const TAXI_YELLOW_URL = GAME_ASSETS["taxi.yellow"];
 const TAXI_BLACK_URL = GAME_ASSETS["taxi.black"];
 const TAXI_RED_URL = GAME_ASSETS["taxi.red"];
 const POLICE_CAR_URL = GAME_ASSETS["police.car"];
+const AMBULANCE_URL = GAME_ASSETS["emergency.ambulance"];
+const FIRETRUCK_URL = GAME_ASSETS["emergency.firetruck"];
+
 const MUSIC_URL = GAME_ASSETS["audio.music"];
 
 /* ============================================================
