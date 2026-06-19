@@ -1,6 +1,6 @@
 {
-  "version": "1.12.0",
-  "buildId": "2026-06-19T22:40:00.000Z",
-  "builtAt": 1781908800000,
-  "changelog": "Heure des infos : à xx:00 toutes les radios passent aux infos pendant 10 min, puis la musique revient. Junky Infos garde un intermède musical."
+  "version": "1.12.1",
+  "buildId": "2026-06-19T22:55:00.000Z",
+  "builtAt": 1781909700000,
+  "changelog": "Bascule infos alignée sur l'horloge murale (xx:00 / xx:10) — synchrone après reload ou changement d'onglet"
 }
