@@ -299,7 +299,13 @@ export default function TaxiRadio() {
         body: JSON.stringify({ text, lang: l }),
       });
       if (!res.ok) {
-        console.warn("[Radio] TTS HTTP", res.status, await res.text().catch(() => ""));
+        console.warn("[Radio] TTS HTTP", res.status);
+        speakBrowser();
+        return;
+      }
+      const ct = res.headers.get("Content-Type") || "";
+      if (ct.includes("application/json")) {
+        // Réponse de fallback (gateway upstream indisponible)
         speakBrowser();
         return;
       }
