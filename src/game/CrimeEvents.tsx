@@ -103,6 +103,9 @@ export default function CrimeEvents() {
           const kind = pickKind(isNight);
           const ttl = kind === "control" ? 9000 : kind === "accident" ? 14000 : kind === "fire" ? 16000 : 11000;
           const meta = KIND_META[kind];
+          // Délai avant que l'AI rafle la mission : plus le joueur monte de niveau, plus l'AI est rapide.
+          const tier = readDepotTier();
+          const aiDelay = Math.max(2200, 7500 - tier * 950);
           const ev: CrimeEvent = {
             id: nextId++,
             kind,
@@ -111,6 +114,7 @@ export default function CrimeEvents() {
             startedAt: now,
             ttl,
             label: `${meta.label} · ${t.label.split(" ")[1]}`,
+            aiClaimAt: now + aiDelay,
           };
           setEvents(es => [...es, ev]);
         }
