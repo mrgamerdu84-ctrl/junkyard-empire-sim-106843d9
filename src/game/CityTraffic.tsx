@@ -648,7 +648,10 @@ export default function CityTraffic() {
       raf = requestAnimationFrame(step);
     };
     raf = requestAnimationFrame(step);
-    return () => cancelAnimationFrame(raf);
+    return () => {
+      cancelAnimationFrame(raf);
+      window.removeEventListener("jce.intervention.request", onIntervention as EventListener);
+    };
   }, [activeCars.length]);
 
 
