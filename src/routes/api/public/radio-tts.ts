@@ -68,7 +68,13 @@ export const Route = createFileRoute("/api/public/radio-tts")({
           });
           if (!r.ok) {
             const msg = await r.text().catch(() => "");
-            return new Response(`TTS upstream ${r.status}: ${msg}`, { status: 502, headers: CORS });
+            console.warn(`[radio-tts] upstream ${r.status}:`, msg.slice(0, 200));
+            // Renvoie 200 + signal de fallback pour que le client bascule sur SpeechSynthesis
+            // sans déclencher d'erreur runtime côté preview.
+            return new Response(
+              JSON.stringify({ fallback: true, upstreamStatus: r.status }),
+              { status: 200, headers: { ...CORS, "Content-Type": "application/json" } },
+            );
           }
           return new Response(r.body, {
             status: 200,
