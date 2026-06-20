@@ -204,8 +204,13 @@ export const PEDESTRIAN_PHOTO_URLS: string[] = [
 export function setAssetOverride(key: AssetKey, url: string | null) {
   if (typeof window === "undefined") return;
   const current = readOverrides();
-  if (!url) delete current[key];
-  else current[key] = url;
+  if (!url) {
+    delete current[key];
+    GAME_ASSETS[key] = DEFAULTS[key];
+  } else {
+    current[key] = url;
+    GAME_ASSETS[key] = url;
+  }
   window.localStorage.setItem(OVERRIDE_KEY, JSON.stringify(current));
 }
 
