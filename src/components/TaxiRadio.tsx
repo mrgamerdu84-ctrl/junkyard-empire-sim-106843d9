@@ -404,7 +404,6 @@ export default function TaxiRadio() {
       let cycle = 0;
       // première brève rapidement (météo / événement / trafic)
       window.setTimeout(() => {
-        const idx = ambientIdxRef.current % AMBIENT_NEWS.length;
         ambientIdxRef.current++;
         speak(pickNextBreve());
       }, 6000);
@@ -415,7 +414,6 @@ export default function TaxiRadio() {
           playMusicInterlude(defaultMusicUrl, 15000);
           return;
         }
-        const idx = ambientIdxRef.current % AMBIENT_NEWS.length;
         ambientIdxRef.current++;
         speak(pickNextBreve());
       }, 18000);
@@ -430,7 +428,6 @@ export default function TaxiRadio() {
         speak(WELCOME_JINGLE);
         let cycle = 0;
         window.setTimeout(() => {
-          const idx = ambientIdxRef.current % AMBIENT_NEWS.length;
           ambientIdxRef.current++;
           speak(pickNextBreve());
         }, 4000);
@@ -440,7 +437,6 @@ export default function TaxiRadio() {
             playMusicInterlude(st.url, 12000);
             return;
           }
-          const idx = ambientIdxRef.current % AMBIENT_NEWS.length;
           ambientIdxRef.current++;
           speak(pickNextBreve());
         }, 18000);
