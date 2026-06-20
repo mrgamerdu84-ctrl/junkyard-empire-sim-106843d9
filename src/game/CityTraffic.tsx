@@ -463,6 +463,67 @@ export default function CityTraffic() {
     // Radars retirés : noop pour préserver l'API d'appel dans la boucle.
     const checkRadars = (_st: CarState, _prev: number) => {};
 
+    // === Helper : position monde courante d'une voiture sur son path ===
+    const worldPos = (st: CarState) => {
+      const path = pathRefs.current[st.spec.pathIdx];
+      if (!path) return null;
+      const fwd = st.spec.flip ? st.pathLen - st.s : st.s;
+      const p = path.getPointAtLength(fwd);
+      const p2 = path.getPointAtLength(Math.min(st.pathLen, fwd + (st.spec.flip ? -1 : 1)));
+      const tdx = p2.x - p.x, tdy = p2.y - p.y;
+      const L = Math.hypot(tdx, tdy) || 1;
+      const ox = (-tdy / L) * LANE_HALF;
+      const oy = (tdx / L) * LANE_HALF;
+      return { x: p.x + ox, y: p.y + oy };
+    };
+
+    // === Mission d'intervention : un véhicule de la map se détourne ===
+    const onIntervention = (ev: Event) => {
+      const d = (ev as CustomEvent<{
+        id: number; x: number; y: number; category: CustomVehicleCategory; label: string;
+      }>).detail;
+      if (!d) return;
+      // Cherche le véhicule libre le plus proche de la bonne catégorie.
+      let best: CarState | null = null;
+      let bestDist = Infinity;
+      for (const st of states) {
+        if (st.mission) continue;
+        if (st.spec.category !== d.category) continue;
+        const w = worldPos(st);
+        if (!w) continue;
+        const dd = Math.hypot(w.x - d.x, w.y - d.y);
+        if (dd < bestDist) { bestDist = dd; best = st; }
+      }
+      if (!best) {
+        window.dispatchEvent(new CustomEvent("jce.intervention.nomatch", { detail: { id: d.id, category: d.category, label: d.label } }));
+        return;
+      }
+      const w = worldPos(best);
+      if (!w) return;
+      const dist = Math.hypot(d.x - w.x, d.y - w.y);
+      // ~260 px/s en intervention (un peu plus vite que le trafic normal)
+      const travelMs = Math.max(1200, Math.min(5000, (dist / 260) * 1000));
+      const now = performance.now();
+      best.mission = {
+        eventId: d.id,
+        phase: "going",
+        startedAt: now,
+        fromX: w.x, fromY: w.y,
+        toX: d.x, toY: d.y,
+        travelMs,
+        arriveAt: now + travelMs,
+        stayUntil: now + travelMs + 2800,
+        returnUntil: now + travelMs + 2800 + travelMs,
+        returnFromX: d.x, returnFromY: d.y,
+        pausedS: best.s,
+      };
+      best.speed = 0;
+      window.dispatchEvent(new CustomEvent("jce.intervention.assigned", {
+        detail: { id: d.id, category: d.category, label: d.label },
+      }));
+    };
+    window.addEventListener("jce.intervention.request", onIntervention as EventListener);
+
 
     let last = performance.now();
     let raf = 0;
@@ -471,38 +532,32 @@ export default function CityTraffic() {
       last = now;
 
       // 1) calcul de la vitesse cible (freinage selon distance au véhicule devant)
+      //    Les voitures en mission sont retirées de la circulation : on les ignore.
       for (const lane of lanes.values()) {
-        // trier par progression "avant" décroissante
-        const sorted = [...lane].sort((a, b) => b.s - a.s);
+        const sorted = [...lane].filter(s => !s.mission).sort((a, b) => b.s - a.s);
         for (let i = 0; i < sorted.length; i++) {
           const me = sorted[i];
           const ahead = sorted[(i - 1 + sorted.length) % sorted.length];
-          // gap signé vers l'avant (avec wrap autour du path)
           let gap = ahead.s - me.s;
           if (gap <= 0) gap += me.pathLen;
-          // marges réduites pour véhicules longs pour éviter blocages en courbe
           const myLen = me.spec.kind === "truck" ? 60 : me.spec.kind === "van" ? 50 : 38;
           const safe = SAFE_GAP + myLen * 0.2;
           const brake = BRAKE_GAP + myLen * 0.2;
           let target = me.baseSpeed;
-          // Feu rouge / orange devant ?
           const forward = !me.spec.flip;
           const sigS = me.spec.flip ? me.pathLen - me.s : me.s;
           if (shouldStopAhead(me.spec.pathIdx, sigS, forward, nowSeconds())) {
             target = 0;
           } else if (gap < brake) {
             const k = Math.max(0, (gap - safe) / (brake - safe));
-            // anti-cascade : on ne s'aligne jamais sous le plancher du leader.
             const leaderEff = Math.max(ahead.speed, ahead.baseSpeed * MIN_SPEED_RATIO);
             target = leaderEff * (1 - k) + me.baseSpeed * k;
             if (gap < safe) target = Math.min(target, leaderEff * (gap / safe));
           }
-          // lissage vers la cible : freinage > accélération
           const diff = target - me.speed;
           const rate = diff < 0 ? BRAKE * (target === 0 ? 2.5 : 1) : ACCEL;
           const maxStep = rate * me.baseSpeed * dt;
           me.speed += Math.max(-maxStep, Math.min(maxStep, diff));
-          // plancher anti-figeage sauf si stop forcé (feu rouge)
           if (target > 0) {
             const floor = me.baseSpeed * MIN_SPEED_RATIO;
             if (me.speed < floor) me.speed = floor;
@@ -513,9 +568,53 @@ export default function CityTraffic() {
       // 2) avancer et appliquer le transform
       let needsRebuild = false;
       for (const st of states) {
+        const node = st.node;
+        if (!node) continue;
+
+        // ===== Branche MISSION : la voiture quitte le path et fonce =====
+        if (st.mission) {
+          const m = st.mission;
+          let cx = m.toX, cy = m.toY, ang = 0;
+          if (now < m.arriveAt) {
+            const k = (now - m.startedAt) / m.travelMs;
+            cx = m.fromX + (m.toX - m.fromX) * k;
+            cy = m.fromY + (m.toY - m.fromY) * k;
+            ang = (Math.atan2(m.toY - m.fromY, m.toX - m.fromX) * 180) / Math.PI;
+          } else if (now < m.stayUntil) {
+            if (m.phase === "going") {
+              m.phase = "staying";
+              window.dispatchEvent(new CustomEvent("jce.intervention.resolved", { detail: { id: m.eventId } }));
+            }
+            cx = m.toX; cy = m.toY;
+            ang = (Math.atan2(m.toY - m.fromY, m.toX - m.fromX) * 180) / Math.PI;
+          } else if (now < m.returnUntil) {
+            if (m.phase !== "returning") {
+              m.phase = "returning";
+              m.returnFromX = m.toX; m.returnFromY = m.toY;
+            }
+            // Retour vers la position où elle était sur le path
+            const w = worldPos({ ...st, s: m.pausedS });
+            const tx = w?.x ?? m.fromX;
+            const ty = w?.y ?? m.fromY;
+            const k = (now - m.stayUntil) / (m.returnUntil - m.stayUntil);
+            cx = m.returnFromX + (tx - m.returnFromX) * k;
+            cy = m.returnFromY + (ty - m.returnFromY) * k;
+            ang = (Math.atan2(ty - m.returnFromY, tx - m.returnFromX) * 180) / Math.PI;
+          } else {
+            // Fin de mission : reprend sa boucle normale
+            st.s = m.pausedS;
+            st.speed = st.baseSpeed;
+            st.mission = undefined;
+          }
+          // Sprite top-down : nez ↑. On compense de +90° (cf. rendu image).
+          // Le rendu applique <g transform="rotate(90)"> donc le rotate externe = angle de marche.
+          node.setAttribute("transform", `translate(${cx.toFixed(2)},${cy.toFixed(2)}) rotate(${ang.toFixed(2)})`);
+          if (st.mission) continue; // reste en mission → skip path logic
+        }
+
+        // ===== Trafic normal =====
         const prev = st.s;
         st.s += st.speed * dt;
-        // À la fin du tour : reroll path + sens + durée pour casser les routines
         if (st.s >= st.pathLen) {
           const newSpec = rerollSpec(st.spec);
           st.spec = newSpec;
@@ -529,28 +628,19 @@ export default function CityTraffic() {
             needsRebuild = true;
           }
         } else if (prev > st.s) {
-          // safety
           st.s = st.s % st.pathLen;
         }
-        const node = st.node;
-        if (!node) continue;
         const path = pathRefs.current[st.spec.pathIdx];
         if (!path) continue;
-        // direction visuelle (flip = sens inverse du path)
         const lenForward = st.spec.flip ? st.pathLen - st.s : st.s;
         const p = path.getPointAtLength(lenForward);
         const p2 = path.getPointAtLength(Math.min(st.pathLen, lenForward + (st.spec.flip ? -1 : 1)));
         const tdx = p2.x - p.x, tdy = p2.y - p.y;
         const L = Math.hypot(tdx, tdy) || 1;
         const ang = (Math.atan2(tdy, tdx) * 180) / Math.PI;
-        // 🚦 Séparation des voies : décalage perpendiculaire à DROITE du sens
-        // de marche. En coordonnées écran (y vers le bas), la "droite" du
-        // vecteur tangent (tdx, tdy) est (-tdy, tdx)/L.
         const ox = (-tdy / L) * LANE_HALF;
         const oy = (tdx / L) * LANE_HALF;
         node.setAttribute("transform", `translate(${(p.x + ox).toFixed(2)},${(p.y + oy).toFixed(2)}) rotate(${ang.toFixed(2)})`);
-
-        // 📸 Radars : détection de passage + flash si vitesse > limite
         checkRadars(st, prev);
       }
       if (needsRebuild) lanes = rebuildLanes();
