@@ -579,16 +579,37 @@ export default function CityTraffic() {
 
 
 
-      {activeCars.map((car, i) => (
-        <g
-          key={i}
-          ref={(el) => {
-            carNodes.current[i] = el;
-          }}
-        >
-          <Vehicle kind={car.kind} color={car.color} accent={car.accent} scale={car.scale} variant={car.variant} photoIdx={i} />
-        </g>
-      ))}
+      {activeCars.map((car, i) => {
+        // Sprite uploadé : image vue du ciel, nez vers ↑.
+        // Le moteur calcule rotate(angle) à partir de la tangente (atan2 → 0° = est).
+        // On compense avec un rotate(90) interne pour que "haut de l'image" = sens de marche.
+        const SPRITE_SIZE = 48 * (car.scale ?? 0.6) * CIVIL_SCALE;
+        return (
+          <g
+            key={i}
+            ref={(el) => {
+              carNodes.current[i] = el;
+            }}
+          >
+            {car.imageUrl ? (
+              <g transform="rotate(90)">
+                <ellipse cx="0" cy={SPRITE_SIZE * 0.18} rx={SPRITE_SIZE * 0.42} ry={SPRITE_SIZE * 0.18} fill="rgba(0,0,0,0.45)" />
+                <image
+                  href={car.imageUrl}
+                  x={-SPRITE_SIZE / 2}
+                  y={-SPRITE_SIZE / 2}
+                  width={SPRITE_SIZE}
+                  height={SPRITE_SIZE}
+                  preserveAspectRatio="xMidYMid meet"
+                />
+              </g>
+            ) : (
+              <Vehicle kind={car.kind} color={car.color} accent={car.accent} scale={car.scale} variant={car.variant} photoIdx={i} />
+            )}
+          </g>
+        );
+      })}
+
 
 
       {/* Piétons photos qui marchent sur les trottoirs (markets/promeneurs) */}
