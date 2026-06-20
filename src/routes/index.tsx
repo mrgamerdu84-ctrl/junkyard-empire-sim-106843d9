@@ -6,6 +6,7 @@ import CityTraffic from "@/game/CityTraffic";
 import CityCompetitors from "@/game/CityCompetitors";
 import CityHud from "@/game/CityHud";
 import CrimeEvents from "@/game/CrimeEvents";
+import InterventionDispatcher from "@/game/InterventionDispatcher";
 import AdminPanel from "@/game/AdminPanel";
 import RulesPanel from "@/game/RulesPanel";
 import VersionBanner from "@/game/VersionBanner";
@@ -69,6 +70,7 @@ function TaxiTycoonPage() {
       <CityTraffic />
       <CityCompetitors />
       <CrimeEvents />
+      <InterventionDispatcher />
       <TaxiTycoon />
       <CityHud />
       <AdminPanel />
