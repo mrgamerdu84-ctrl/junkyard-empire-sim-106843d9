@@ -1,55 +1,82 @@
-let _currentUtterance = null; // garde la référence pour éviter le GC mobile
+// ====== PARTIE QUE TU AS DÉJÀ (je la laisse ici pour le contexte) ======
+let l = 'fr'; // tes radios mettent 'fr' ou 'en'
+let text = ''; // le texte à lire
+function wrapDone() {
+  // ton code actuel quand la lecture finit
+  console.log('[Radio] fini');
+}
 
-const pickVoice = (lang) => {
-  const voices = window.speechSynthesis.getVoices();
-  const target = lang === "en"? "en" : "fr";
-  // 1. voix exacte fr-FR / en-US, 2. fallback fr / en
-  return voices.find(v => v.lang.toLowerCase() === (target === "fr"? "fr-fr" : "en-us"))
-      || voices.find(v => v.lang.toLowerCase().startsWith(target))
-      || null;
-};
-
-const speakBrowser = () => {
-  if (typeof window === "undefined" ||!("speechSynthesis" in window)) { wrapDone(); return; }
-
-  const synth = window.speechSynthesis;
-
+// ====== PICK VOICE - version safe ======
+function pickVoice(lang) {
+  if (typeof window === 'undefined' ||!window.speechSynthesis) return null;
   try {
-    // 1. stop propre, mais avec un petit délai après
-    if (synth.speaking || synth.pending) {
-      synth.cancel();
+    const voices = window.speechSynthesis.getVoices() || [];
+    const target = lang === 'en'? 'en' : 'fr';
+    // 1. voix exacte, 2. fallback langue
+    return voices.find(v => v.lang.toLowerCase() === (target === 'fr'? 'fr-fr' : 'en-us'))
+        || voices.find(v => v.lang.toLowerCase().startsWith(target))
+        || null;
+  } catch { return null; }
+}
+
+// ====== SPEAK BROWSER - version qui ne crashe plus ======
+const speakBrowser = () => {
+  try {
+    if (typeof window === 'undefined' ||!window.speechSynthesis) {
+      wrapDone && wrapDone();
+      return;
     }
+    const synth = window.speechSynthesis;
+    try { if (synth.speaking || synth.pending) synth.cancel(); } catch {}
 
-    const u = new SpeechSynthesisUtterance(text);
-    u.lang = l === "en"? "en-US" : "fr-FR";
-    u.rate = 1;
-    u.pitch = 1;
-    u.volume = 1;
+    const u = new SpeechSynthesisUtterance(String(text || ''));
+    u.lang = l === 'en'? 'en-US' : 'fr-FR';
+    u.rate = 1; u.pitch = 1; u.volume = 1;
 
-    // 2. on attache les events AVANT
-    u.onend = () => { _currentUtterance = null; wrapDone(); };
-    u.onerror = (e) => { console.warn("[Radio] TTS Error:", e); _currentUtterance = null; wrapDone(); };
+    u.onend = () => { try { wrapDone && wrapDone(); } catch {} };
+    u.onerror = (e) => { console.warn('[Radio] TTS Error', e); try { wrapDone && wrapDone(); } catch {} };
 
-    const startSpeak = () => {
+    const doSpeak = () => {
       const v = pickVoice(l);
       if (v) u.voice = v;
-
-      _currentUtterance = u; // important mobile
-
-      // délai de 60ms après cancel, sinon iOS ignore le speak
+      // délai après cancel, obligatoire sur iOS
       setTimeout(() => {
-        synth.speak(u);
-        if (synth.paused) synth.resume(); // débloque le canal audio
-      }, 60);
+        try {
+          synth.speak(u);
+          if (synth.paused) synth.resume();
+          // garde référence pour Safari
+          window._currentTTS = u;
+        } catch (e) { console.warn(e); wrapDone && wrapDone(); }
+      }, 70);
     };
 
-    // 3. les voix arrivent en asynchrone sur mobile
-    if (synth.getVoices().length === 0) {
-      synth.addEventListener("voiceschanged", () => startSpeak(), { once: true });
-      synth.getVoices(); // force le chargement
+    const voices = synth.getVoices? synth.getVoices() : [];
+    if (!voices.length) {
+      // pas de {once:true} car ça plante sur certaines webviews
+      synth.onvoiceschanged = () => {
+        synth.onvoiceschanged = null;
+        doSpeak();
+      };
+      try { synth.getVoices(); } catch {}
     } else {
-      startSpeak();
+      doSpeak();
     }
-
   } catch (err) {
-    console.warn("[Radio] speakBrowser error:", err);
+    console.error('[Radio] crash speakBrowser', err);
+    try { wrapDone && wrapDone(); } catch {}
+  }
+};
+
+// ====== BRANCHEMENT DE TES RADIOS (si tu ne l'as pas déjà) ======
+if (typeof document!== 'undefined') {
+  document.querySelectorAll('input[name="lang"]').forEach(radio => {
+    radio.addEventListener('change', (e) => {
+      l = e.target.value; // 'fr' ou 'en'
+    });
+  });
+}
+
+// Précharge les voix une fois, sans bloquer
+if (typeof window!== 'undefined') {
+  try { window.speechSynthesis.getVoices(); } catch {}
+}
