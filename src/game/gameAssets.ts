@@ -148,6 +148,11 @@ export function listCustomVehiclesByCategory(cat: CustomVehicleCategory): Custom
   return listCustomVehicles().filter((v) => v.category === cat);
 }
 
+function emitCustomChange() {
+  if (typeof window === "undefined") return;
+  try { window.dispatchEvent(new Event("jce.customVehicles.changed")); } catch {}
+}
+
 export function addCustomVehicle(v: Omit<CustomVehicle, "id"> & { id?: string }): CustomVehicle {
   const item: CustomVehicle = {
     id: v.id ?? `cv_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
@@ -158,6 +163,7 @@ export function addCustomVehicle(v: Omit<CustomVehicle, "id"> & { id?: string })
   const all = listCustomVehicles();
   all.push(item);
   try { window.localStorage.setItem(CUSTOM_KEY, JSON.stringify(all)); } catch {}
+  emitCustomChange();
   return item;
 }
 
@@ -165,6 +171,7 @@ export function removeCustomVehicle(id: string) {
   if (typeof window === "undefined") return;
   const all = listCustomVehicles().filter((v) => v.id !== id);
   try { window.localStorage.setItem(CUSTOM_KEY, JSON.stringify(all)); } catch {}
+  emitCustomChange();
 }
 
 // Toutes les catégories sauf "taxi" roulent dans la circulation civile

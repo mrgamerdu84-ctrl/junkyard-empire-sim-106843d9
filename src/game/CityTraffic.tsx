@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { useAdminConfig } from "./adminConfig";
-import { PEDESTRIAN_PHOTO_URLS } from "./gameAssets";
+import { PEDESTRIAN_PHOTO_URLS, listCustomVehicles, type CustomVehicleCategory } from "./gameAssets";
 import { VehicleSvg, type VehicleSvgKind } from "./vehicles/VehicleSvgs";
 import {
   initTrafficLights,
@@ -57,59 +57,15 @@ type CarSpec = {
   scale?: number;
   kind: VehicleKind;
   variant?: VehicleVariant;
+  imageUrl?: string;       // sprite uploadé (vue du ciel, nez ↑)
+  category?: CustomVehicleCategory;
 };
 
-// Circulation civile diversifiée — aucune teinte taxi jaune.
-// Les taxis du joueur restent gérés par TaxiTycoon.
-//
-// Règles de circulation (animation SVG, pas de physique réelle) :
-// - Durées proches au sein d'un même sens => distance de sécurité ~constante.
-// - Une variation de ±10–15 % autorise des "dépassements" visuels sans collision.
-// - Les `delay` sont calculés pour répartir les phases (k / N) le long du path
-//   => aucune grappe au démarrage, aucun bouchon artificiel.
-// - Les camions / vans roulent un poil plus lentement (gabarit lourd).
-// Flotte civile (~32 véhicules) répartie sur les paths 0 et 2 (le path 1
-// = village est exclu). Le slider "civilVehicleCount" du panel Admin
-// (0-36) tronque cette liste : remettre des entrées ici permet au panel
-// d'en afficher plus. AUCUNE entrée gign/police/money/ambulance/fire ici :
-// le joueur les ajoutera lui-même.
-const CARS: CarSpec[] = [
-  // ---- Path 0 (grande diagonale, 16 véhicules, phases réparties) ----
-  { kind: "sedan", color: "#cf3a3a", accent: "#1a1a1a", duration: 78, delay:  0,    pathIdx: 0, scale: 0.6 },
-  { kind: "hatch", color: "#3a8acf", accent: "#1a1a1a", duration: 80, delay: -5,    pathIdx: 0, scale: 0.6 },
-  { kind: "sedan", color: "#e6e6e6", accent: "#222",    duration: 76, delay: -10,   pathIdx: 0, scale: 0.6 },
-  { kind: "van",   color: "#2b8f5a", accent: "#111",    duration: 88, delay: -15,   pathIdx: 0, scale: 0.62 },
-  { kind: "hatch", color: "#f0a830", accent: "#111",    duration: 79, delay: -20,   pathIdx: 0, scale: 0.6 },
-  { kind: "sedan", color: "#1f1f1f", accent: "#444",    duration: 82, delay: -25,   pathIdx: 0, scale: 0.6 },
-  { kind: "truck", color: "#6b6b6b", accent: "#222",    duration: 96, delay: -30,   pathIdx: 0, scale: 0.66 },
-  { kind: "sedan", color: "#9a4dc1", accent: "#1a1a1a", duration: 77, delay: -35,   pathIdx: 0, scale: 0.6 },
-  { kind: "hatch", color: "#21c1a1", accent: "#111",    duration: 81, delay: -40,   pathIdx: 0, scale: 0.6 },
-  { kind: "sedan", color: "#c43e8c", accent: "#1a1a1a", duration: 78, delay: -45,   pathIdx: 0, scale: 0.6, flip: true },
-  { kind: "van",   color: "#d9d9d9", accent: "#222",    duration: 90, delay: -50,   pathIdx: 0, scale: 0.62, flip: true },
-  { kind: "hatch", color: "#1f6fd9", accent: "#0e1014", duration: 80, delay: -55,   pathIdx: 0, scale: 0.6, flip: true },
-  { kind: "sedan", color: "#4a4a4a", accent: "#111",    duration: 79, delay: -60,   pathIdx: 0, scale: 0.6, flip: true },
-  { kind: "truck", color: "#2a3a55", accent: "#0a0a0a", duration: 98, delay: -65,   pathIdx: 0, scale: 0.66, flip: true },
-  { kind: "hatch", color: "#e1c64f", accent: "#1a1a1a", duration: 81, delay: -70,   pathIdx: 0, scale: 0.6, flip: true },
-  { kind: "sedan", color: "#8a2222", accent: "#111",    duration: 77, delay: -75,   pathIdx: 0, scale: 0.6, flip: true },
+// Trafic civil par défaut VIDE — toutes les voitures qui roulent sont
+// celles ajoutées par le joueur via le panel admin (📦⬇️ Import en lot).
+// Voir buildCarsFromCustom() dans le composant ci-dessous.
 
-  // ---- Path 2 (grande diagonale opposée, 16 véhicules) ----
-  { kind: "sedan", color: "#3d7dd6", accent: "#111",    duration: 80, delay:  -2,   pathIdx: 2, scale: 0.6 },
-  { kind: "hatch", color: "#d6483d", accent: "#1a1a1a", duration: 78, delay:  -8,   pathIdx: 2, scale: 0.6 },
-  { kind: "van",   color: "#3e3e3e", accent: "#111",    duration: 92, delay: -14,   pathIdx: 2, scale: 0.62 },
-  { kind: "sedan", color: "#ededed", accent: "#222",    duration: 76, delay: -20,   pathIdx: 2, scale: 0.6 },
-  { kind: "hatch", color: "#5fbf3e", accent: "#111",    duration: 80, delay: -26,   pathIdx: 2, scale: 0.6 },
-  { kind: "sedan", color: "#bf6e3e", accent: "#1a1a1a", duration: 79, delay: -32,   pathIdx: 2, scale: 0.6 },
-  { kind: "truck", color: "#7a7a7a", accent: "#1a1a1a", duration: 98, delay: -38,   pathIdx: 2, scale: 0.66 },
-  { kind: "hatch", color: "#3ec7bf", accent: "#111",    duration: 82, delay: -44,   pathIdx: 2, scale: 0.6 },
-  { kind: "sedan", color: "#222b3a", accent: "#444",    duration: 78, delay: -50,   pathIdx: 2, scale: 0.6, flip: true },
-  { kind: "hatch", color: "#e0b03e", accent: "#1a1a1a", duration: 80, delay: -56,   pathIdx: 2, scale: 0.6, flip: true },
-  { kind: "van",   color: "#a83e8a", accent: "#111",    duration: 90, delay: -62,   pathIdx: 2, scale: 0.62, flip: true },
-  { kind: "sedan", color: "#3ea870", accent: "#1a1a1a", duration: 79, delay: -68,   pathIdx: 2, scale: 0.6, flip: true },
-  { kind: "hatch", color: "#d6d6d6", accent: "#222",    duration: 81, delay: -74,   pathIdx: 2, scale: 0.6, flip: true },
-  { kind: "truck", color: "#3a2a55", accent: "#0a0a0a", duration: 96, delay: -80,   pathIdx: 2, scale: 0.66, flip: true },
-  { kind: "sedan", color: "#d63e7b", accent: "#1a1a1a", duration: 78, delay: -86,   pathIdx: 2, scale: 0.6, flip: true },
-  { kind: "hatch", color: "#1f1f1f", accent: "#555",    duration: 80, delay: -92,   pathIdx: 2, scale: 0.6, flip: true },
-];
+
 
 
 
@@ -354,16 +310,60 @@ type CarState = {
   node: SVGGElement | null;
 };
 
+// Toutes les catégories sauf "taxi" peuvent rouler dans la circulation.
+const TRAFFIC_CATEGORIES: CustomVehicleCategory[] = [
+  "civil", "police", "ambulance", "firetruck", "service",
+];
+
+function buildCarsFromCustom(): CarSpec[] {
+  const customs = listCustomVehicles().filter(v => TRAFFIC_CATEGORIES.includes(v.category));
+  if (customs.length === 0) return [];
+  // Paths autorisés : tout sauf "village".
+  const allowedPaths: number[] = [];
+  // ROADS.length connu : 0..N-1 ; filtre les pathIdx village.
+  for (let i = 0; i < ROADS.length; i++) if (!VILLAGE_PATHS.has(i)) allowedPaths.push(i);
+  return customs.map((v, i): CarSpec => {
+    const pathIdx = allowedPaths[i % allowedPaths.length];
+    const flip = (i % 2) === 1; // alterne les sens → voies des deux côtés
+    // Durée plus longue pour les gros gabarits
+    const isHeavy = v.category === "firetruck" || v.category === "service" || v.category === "ambulance";
+    const baseDur = isHeavy ? 96 : 78;
+    const duration = baseDur + (i % 5) * 2;
+    return {
+      kind: "sedan",
+      color: "#888",
+      accent: "#111",
+      duration,
+      delay: -i * 5,
+      pathIdx,
+      flip,
+      scale: 0.6,
+      imageUrl: v.url,
+      category: v.category,
+    };
+  });
+}
+
 export default function CityTraffic() {
   const [night, setNight] = useState(0.25);
   const [lightsTick, setLightsTick] = useState(0);
   const admin = useAdminConfig();
-  // Filtre les véhicules civils dont le path est en zone village.
-  const activeCars = CARS.filter(c => !VILLAGE_PATHS.has(c.pathIdx))
-    .slice(0, Math.max(0, Math.min(CARS.length, admin.civilVehicleCount)));
+  const [customTick, setCustomTick] = useState(0);
+  // Re-render quand le joueur ajoute/supprime un véhicule custom.
+  useEffect(() => {
+    const onChange = () => setCustomTick(t => t + 1);
+    window.addEventListener("jce.customVehicles.changed", onChange);
+    return () => window.removeEventListener("jce.customVehicles.changed", onChange);
+  }, []);
+  // Trafic = uniquement véhicules uploadés par le joueur (catégories roulantes).
+  // Le slider "Véhicules civils" du panel admin sert de plafond (0 = aucun, max = tous).
+  const allCustomCars = buildCarsFromCustom();
+  void customTick;
+  const activeCars = allCustomCars.slice(0, Math.max(0, Math.min(allCustomCars.length, admin.civilVehicleCount)));
   const pathRefs = useRef<(SVGPathElement | null)[]>([]);
   const carNodes = useRef<(SVGGElement | null)[]>([]);
   const [lights, setLights] = useState<TrafficLight[]>([]);
+
 
   // Radars retirés à la demande du joueur.
 
@@ -579,16 +579,37 @@ export default function CityTraffic() {
 
 
 
-      {activeCars.map((car, i) => (
-        <g
-          key={i}
-          ref={(el) => {
-            carNodes.current[i] = el;
-          }}
-        >
-          <Vehicle kind={car.kind} color={car.color} accent={car.accent} scale={car.scale} variant={car.variant} photoIdx={i} />
-        </g>
-      ))}
+      {activeCars.map((car, i) => {
+        // Sprite uploadé : image vue du ciel, nez vers ↑.
+        // Le moteur calcule rotate(angle) à partir de la tangente (atan2 → 0° = est).
+        // On compense avec un rotate(90) interne pour que "haut de l'image" = sens de marche.
+        const SPRITE_SIZE = 48 * (car.scale ?? 0.6) * CIVIL_SCALE;
+        return (
+          <g
+            key={i}
+            ref={(el) => {
+              carNodes.current[i] = el;
+            }}
+          >
+            {car.imageUrl ? (
+              <g transform="rotate(90)">
+                <ellipse cx="0" cy={SPRITE_SIZE * 0.18} rx={SPRITE_SIZE * 0.42} ry={SPRITE_SIZE * 0.18} fill="rgba(0,0,0,0.45)" />
+                <image
+                  href={car.imageUrl}
+                  x={-SPRITE_SIZE / 2}
+                  y={-SPRITE_SIZE / 2}
+                  width={SPRITE_SIZE}
+                  height={SPRITE_SIZE}
+                  preserveAspectRatio="xMidYMid meet"
+                />
+              </g>
+            ) : (
+              <Vehicle kind={car.kind} color={car.color} accent={car.accent} scale={car.scale} variant={car.variant} photoIdx={i} />
+            )}
+          </g>
+        );
+      })}
+
 
 
       {/* Piétons photos qui marchent sur les trottoirs (markets/promeneurs) */}
