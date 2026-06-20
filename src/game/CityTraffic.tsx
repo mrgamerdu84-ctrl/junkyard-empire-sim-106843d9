@@ -455,6 +455,41 @@ export default function CityTraffic() {
     };
     let lanes = rebuildLanes();
 
+    // 📸 Init radars : calcul des positions xy + abscisses sur le path
+    const radarPoints = RADAR_SPECS.map((r) => {
+      const path = pathRefs.current[r.pathIdx];
+      if (!path) return null;
+      const sAbs = r.sFrac * lens[r.pathIdx];
+      const pt = path.getPointAtLength(sAbs);
+      return { ...r, sAbs, x: pt.x, y: pt.y, lastFlashAt: 0 };
+    }).filter((r): r is NonNullable<typeof r> => r !== null);
+    setRadars(radarPoints.map((r) => ({ x: r.x, y: r.y })));
+
+    const checkRadars = (st: CarState, prev: number) => {
+      // Une voiture franchit un radar si sa position s' a traversé radar.sAbs
+      // pendant ce frame. Le radar n'agit que sur le path correspondant.
+      const nowMs = performance.now();
+      for (const r of radarPoints) {
+        if (r.pathIdx !== st.spec.pathIdx) continue;
+        const crossed = prev < r.sAbs && st.s >= r.sAbs;
+        if (!crossed) continue;
+        // Vitesse au-dessus de 92% de baseSpeed → potentiellement en excès.
+        if (st.speed < st.baseSpeed * 0.92) continue;
+        // Cooldown 4s par radar pour éviter spam visuel
+        if (nowMs - r.lastFlashAt < 4000) continue;
+        // ~15% des passages déclenchent un flash
+        if (Math.random() > 0.15) continue;
+        r.lastFlashAt = nowMs;
+        const fine = 45 + Math.floor(Math.random() * 90); // 45-135€
+        const id = ++flashIdRef.current;
+        setFlashes((arr) => [...arr, { id, x: r.x, y: r.y, t: nowMs }]);
+        setTotalFines((v) => v + fine);
+        setTimeout(() => setFlashes((arr) => arr.filter((f) => f.id !== id)), 200);
+      }
+    };
+    // Expose checkRadars dans la closure du step()
+    (step as unknown as { _checkRadars?: typeof checkRadars })._checkRadars = checkRadars;
+
     let last = performance.now();
     let raf = 0;
     const step = (now: number) => {
