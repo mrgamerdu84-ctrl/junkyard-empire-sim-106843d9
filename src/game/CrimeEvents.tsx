@@ -146,6 +146,9 @@ export default function CrimeEvents() {
           window.dispatchEvent(new CustomEvent("jce.intervention.ai-stole", {
             detail: { id: s.id, kind: s.kind, label: KIND_META[s.kind].label, category: KIND_META[s.kind].category },
           }));
+          window.dispatchEvent(new CustomEvent("jce.player.cashDelta", {
+            detail: { amount: -200, reason: "ai-stole", label: KIND_META[s.kind].label },
+          }));
         }
         return next;
       });
@@ -153,7 +156,15 @@ export default function CrimeEvents() {
     const onResolved = (ev: Event) => {
       const detail = (ev as CustomEvent<{ id: number }>).detail;
       if (!detail) return;
-      setEvents(es => es.filter(e => e.id !== detail.id));
+      setEvents(es => {
+        const found = es.find(e => e.id === detail.id);
+        if (found && found.dispatched && !found.stolenByAI) {
+          window.dispatchEvent(new CustomEvent("jce.player.cashDelta", {
+            detail: { amount: 500, reason: "player-resolved", label: KIND_META[found.kind].label },
+          }));
+        }
+        return es.filter(e => e.id !== detail.id);
+      });
     };
     window.addEventListener("jce.intervention.resolved", onResolved as EventListener);
     return () => {
