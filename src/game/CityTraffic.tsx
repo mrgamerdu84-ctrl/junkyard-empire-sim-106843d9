@@ -45,7 +45,7 @@ export interface CarSpec {
 
 /**
  * Génère la liste des véhicules civils en fonction de la densité choisie
- * VITESSE BOOSTÉE : duration réduite entre 10 et 18 secondes !
+ * VITESSE BOOSTÉE x2.5 : duration réduite à 4-7 secondes !
  */
 export function generateCivilTraffic(density: number): CarSpec[] {
   const generatedCars: CarSpec[] = [];
@@ -66,9 +66,10 @@ export function generateCivilTraffic(density: number): CarSpec[] {
     generatedCars.push({
       color: colors[Math.floor(Math.random() * colors.length)],
       accent: "#ffffff",
-      // ICI : Changement de la vitesse pour qu'elles tracent (10 à 18s au lieu de 60s)
-      duration: 10 + Math.random() * 8, 
-      delay: -(Math.random() * 60),
+      // AVANT : duration: 10 + Math.random() * 8
+      // APRÈS : 4 à 7 secondes = beaucoup plus rapide
+      duration: 4 + Math.random() * 3, 
+      delay: -(Math.random() * 30),
       pathIdx,
       kind: carKinds[Math.floor(Math.random() * carKinds.length)],
       imageUrl: imgUrl,
@@ -79,4 +80,3 @@ export function generateCivilTraffic(density: number): CarSpec[] {
 
   return generatedCars;
 }
-
