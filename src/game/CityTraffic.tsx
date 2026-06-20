@@ -68,11 +68,48 @@ type CarSpec = {
 // - Les `delay` sont calculés pour répartir les phases (k / N) le long du path
 //   => aucune grappe au démarrage, aucun bouchon artificiel.
 // - Les camions / vans roulent un poil plus lentement (gabarit lourd).
-// Liste vidée à la demande du joueur : aucun véhicule civil ni véhicule
-// spécial (police, transport de fonds, GIGN) n'est généré par défaut.
-// Pour réinjecter du trafic, ajouter ici des entrées { kind, color, accent,
-// duration, delay, pathIdx, scale, variant? }.
-const CARS: CarSpec[] = [];
+// Flotte civile (~32 véhicules) répartie sur les paths 0 et 2 (le path 1
+// = village est exclu). Le slider "civilVehicleCount" du panel Admin
+// (0-36) tronque cette liste : remettre des entrées ici permet au panel
+// d'en afficher plus. AUCUNE entrée gign/police/money/ambulance/fire ici :
+// le joueur les ajoutera lui-même.
+const CARS: CarSpec[] = [
+  // ---- Path 0 (grande diagonale, 16 véhicules, phases réparties) ----
+  { kind: "sedan", color: "#cf3a3a", accent: "#1a1a1a", duration: 78, delay:  0,    pathIdx: 0, scale: 0.6 },
+  { kind: "hatch", color: "#3a8acf", accent: "#1a1a1a", duration: 80, delay: -5,    pathIdx: 0, scale: 0.6 },
+  { kind: "sedan", color: "#e6e6e6", accent: "#222",    duration: 76, delay: -10,   pathIdx: 0, scale: 0.6 },
+  { kind: "van",   color: "#2b8f5a", accent: "#111",    duration: 88, delay: -15,   pathIdx: 0, scale: 0.62 },
+  { kind: "hatch", color: "#f0a830", accent: "#111",    duration: 79, delay: -20,   pathIdx: 0, scale: 0.6 },
+  { kind: "sedan", color: "#1f1f1f", accent: "#444",    duration: 82, delay: -25,   pathIdx: 0, scale: 0.6 },
+  { kind: "truck", color: "#6b6b6b", accent: "#222",    duration: 96, delay: -30,   pathIdx: 0, scale: 0.66 },
+  { kind: "sedan", color: "#9a4dc1", accent: "#1a1a1a", duration: 77, delay: -35,   pathIdx: 0, scale: 0.6 },
+  { kind: "hatch", color: "#21c1a1", accent: "#111",    duration: 81, delay: -40,   pathIdx: 0, scale: 0.6 },
+  { kind: "sedan", color: "#c43e8c", accent: "#1a1a1a", duration: 78, delay: -45,   pathIdx: 0, scale: 0.6, flip: true },
+  { kind: "van",   color: "#d9d9d9", accent: "#222",    duration: 90, delay: -50,   pathIdx: 0, scale: 0.62, flip: true },
+  { kind: "hatch", color: "#1f6fd9", accent: "#0e1014", duration: 80, delay: -55,   pathIdx: 0, scale: 0.6, flip: true },
+  { kind: "sedan", color: "#4a4a4a", accent: "#111",    duration: 79, delay: -60,   pathIdx: 0, scale: 0.6, flip: true },
+  { kind: "truck", color: "#2a3a55", accent: "#0a0a0a", duration: 98, delay: -65,   pathIdx: 0, scale: 0.66, flip: true },
+  { kind: "hatch", color: "#e1c64f", accent: "#1a1a1a", duration: 81, delay: -70,   pathIdx: 0, scale: 0.6, flip: true },
+  { kind: "sedan", color: "#8a2222", accent: "#111",    duration: 77, delay: -75,   pathIdx: 0, scale: 0.6, flip: true },
+
+  // ---- Path 2 (grande diagonale opposée, 16 véhicules) ----
+  { kind: "sedan", color: "#3d7dd6", accent: "#111",    duration: 80, delay:  -2,   pathIdx: 2, scale: 0.6 },
+  { kind: "hatch", color: "#d6483d", accent: "#1a1a1a", duration: 78, delay:  -8,   pathIdx: 2, scale: 0.6 },
+  { kind: "van",   color: "#3e3e3e", accent: "#111",    duration: 92, delay: -14,   pathIdx: 2, scale: 0.62 },
+  { kind: "sedan", color: "#ededed", accent: "#222",    duration: 76, delay: -20,   pathIdx: 2, scale: 0.6 },
+  { kind: "hatch", color: "#5fbf3e", accent: "#111",    duration: 80, delay: -26,   pathIdx: 2, scale: 0.6 },
+  { kind: "sedan", color: "#bf6e3e", accent: "#1a1a1a", duration: 79, delay: -32,   pathIdx: 2, scale: 0.6 },
+  { kind: "truck", color: "#7a7a7a", accent: "#1a1a1a", duration: 98, delay: -38,   pathIdx: 2, scale: 0.66 },
+  { kind: "hatch", color: "#3ec7bf", accent: "#111",    duration: 82, delay: -44,   pathIdx: 2, scale: 0.6 },
+  { kind: "sedan", color: "#222b3a", accent: "#444",    duration: 78, delay: -50,   pathIdx: 2, scale: 0.6, flip: true },
+  { kind: "hatch", color: "#e0b03e", accent: "#1a1a1a", duration: 80, delay: -56,   pathIdx: 2, scale: 0.6, flip: true },
+  { kind: "van",   color: "#a83e8a", accent: "#111",    duration: 90, delay: -62,   pathIdx: 2, scale: 0.62, flip: true },
+  { kind: "sedan", color: "#3ea870", accent: "#1a1a1a", duration: 79, delay: -68,   pathIdx: 2, scale: 0.6, flip: true },
+  { kind: "hatch", color: "#d6d6d6", accent: "#222",    duration: 81, delay: -74,   pathIdx: 2, scale: 0.6, flip: true },
+  { kind: "truck", color: "#3a2a55", accent: "#0a0a0a", duration: 96, delay: -80,   pathIdx: 2, scale: 0.66, flip: true },
+  { kind: "sedan", color: "#d63e7b", accent: "#1a1a1a", duration: 78, delay: -86,   pathIdx: 2, scale: 0.6, flip: true },
+  { kind: "hatch", color: "#1f1f1f", accent: "#555",    duration: 80, delay: -92,   pathIdx: 2, scale: 0.6, flip: true },
+];
 
 
 
