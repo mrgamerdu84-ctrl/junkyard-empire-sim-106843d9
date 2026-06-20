@@ -70,6 +70,7 @@ function TaxiTycoonPage() {
       <CityTraffic />
       <CityCompetitors />
       <CrimeEvents />
+      <InterventionDispatcher />
       <TaxiTycoon />
       <CityHud />
       <AdminPanel />
