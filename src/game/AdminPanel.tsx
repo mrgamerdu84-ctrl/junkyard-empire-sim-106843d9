@@ -769,10 +769,52 @@ function getOpaqueBounds(img: HTMLImageElement): { x: number; y: number; w: numb
   let data: Uint8ClampedArray;
   try { data = ctx.getImageData(0, 0, w, h).data; } catch { return null; }
 
+  // 1) S'il y a un vrai canal alpha (PNG/SVG/WebP), on tronque sur l'alpha.
+  let hasAlpha = false;
+  for (let i = 3; i < data.length; i += 4) {
+    if (data[i] < 240) { hasAlpha = true; break; }
+  }
+  if (hasAlpha) {
+    let minX = w, minY = h, maxX = -1, maxY = -1;
+    for (let y = 0; y < h; y++) {
+      for (let x = 0; x < w; x++) {
+        if (data[(y * w + x) * 4 + 3] <= 12) continue;
+        if (x < minX) minX = x;
+        if (y < minY) minY = y;
+        if (x > maxX) maxX = x;
+        if (y > maxY) maxY = y;
+      }
+    }
+    if (maxX >= minX && maxY >= minY) {
+      return { x: minX, y: minY, w: maxX - minX + 1, h: maxY - minY + 1 };
+    }
+  }
+
+  // 2) Sinon (JPEG, fond uni), détecte la couleur de fond depuis les 4 coins
+  //    et tronque tous les pixels qui lui ressemblent (tolérance ~28).
+  const sampleCorners = () => {
+    const px = (x: number, y: number) => {
+      const i = (y * w + x) * 4;
+      return [data[i], data[i + 1], data[i + 2]];
+    };
+    const corners = [px(0, 0), px(w - 1, 0), px(0, h - 1), px(w - 1, h - 1)];
+    const r = Math.round((corners[0][0] + corners[1][0] + corners[2][0] + corners[3][0]) / 4);
+    const g = Math.round((corners[0][1] + corners[1][1] + corners[2][1] + corners[3][1]) / 4);
+    const b = Math.round((corners[0][2] + corners[1][2] + corners[2][2] + corners[3][2]) / 4);
+    return [r, g, b];
+  };
+  const [br, bg, bb] = sampleCorners();
+  const TOL = 28;
+  const isBg = (x: number, y: number) => {
+    const i = (y * w + x) * 4;
+    return Math.abs(data[i] - br) <= TOL
+      && Math.abs(data[i + 1] - bg) <= TOL
+      && Math.abs(data[i + 2] - bb) <= TOL;
+  };
   let minX = w, minY = h, maxX = -1, maxY = -1;
   for (let y = 0; y < h; y++) {
     for (let x = 0; x < w; x++) {
-      if (data[(y * w + x) * 4 + 3] <= 12) continue;
+      if (isBg(x, y)) continue;
       if (x < minX) minX = x;
       if (y < minY) minY = y;
       if (x > maxX) maxX = x;
@@ -780,8 +822,15 @@ function getOpaqueBounds(img: HTMLImageElement): { x: number; y: number; w: numb
     }
   }
   if (maxX < minX || maxY < minY) return null;
-  return { x: minX, y: minY, w: maxX - minX + 1, h: maxY - minY + 1 };
+  // Petite marge (2 px) pour éviter de raboter un contour sombre du véhicule.
+  const pad = 2;
+  const x0 = Math.max(0, minX - pad);
+  const y0 = Math.max(0, minY - pad);
+  const x1 = Math.min(w - 1, maxX + pad);
+  const y1 = Math.min(h - 1, maxY + pad);
+  return { x: x0, y: y0, w: x1 - x0 + 1, h: y1 - y0 + 1 };
 }
+
 
 /** Applique la rotation (0/90/180/270°), recentre le vrai véhicule et normalise en 256×256.
  *  Règle de jeu : l'image sauvegardée doit être en vue du ciel avec l'avant vers ↑.
