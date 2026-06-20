@@ -24,6 +24,7 @@ export default function TaxiRadio() {
   const interludeRef = useRef<HTMLAudioElement | null>(null);
   const ambientTimerRef = useRef<number | null>(null);
   const ambientIdxRef = useRef<number>(0);
+  const ttsUnlockedRef = useRef<boolean>(false);
 
   const [stationId, setStationId] = useState<string>("main");
   const [open, setOpen] = useState(false);
@@ -36,6 +37,26 @@ export default function TaxiRadio() {
     apply();
     const t = window.setInterval(apply, 30000);
     return () => window.clearInterval(t);
+  }, []);
+
+  // Déverrouillage de la voix sur mobile au premier clic
+  useEffect(() => {
+    if (typeof window === "undefined" || !("speechSynthesis" in window)) return;
+    const unlock = () => {
+      if (ttsUnlockedRef.current) return;
+      try {
+        const u = new SpeechSynthesisUtterance(" ");
+        u.volume = 0;
+        window.speechSynthesis.speak(u);
+        ttsUnlockedRef.current = true;
+      } catch {}
+    };
+    window.addEventListener("pointerdown", unlock, { once: true });
+    window.addEventListener("touchstart", unlock, { once: true });
+    return () => {
+      window.removeEventListener("pointerdown", unlock);
+      window.removeEventListener("touchstart", unlock);
+    };
   }, []);
 
   const playMusicInterlude = (url: string, ms: number = 15000) => {
