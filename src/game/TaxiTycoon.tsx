@@ -1159,7 +1159,10 @@ export default function TaxiTycoon() {
 
       // === IA Concurrent : tente de sniper les courses "offered" ===
       if (adm.rivalEnabled && rivalTaxisRef.current.length > 0) {
-        const speed = (BASE_SPEED + 6) * adm.rivalSpeedMult;
+        // L'AI suit le niveau du joueur : +8 px/s par palier de QG → toujours un poil devant.
+        const playerSpeed = BASE_SPEED + cur.taxiSpeedLvl * 18;
+        const rivalBase = Math.max(BASE_SPEED + 6 + cur.depotTier * 8, playerSpeed * 1.06);
+        const speed = rivalBase * adm.rivalSpeedMult;
         const reactMs = Math.max(1, adm.rivalReactionTime) * 1000;
         const nowMs = Date.now();
 
