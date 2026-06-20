@@ -1,200 +1,152 @@
 import { useEffect, useRef, useState } from "react";
 import { GAME_ASSETS } from "@/game/gameAssets";
-import { RADIO_NEWS_EVENT, AMBIENT_NEWS, WELCOME_JINGLE, type RadioNews } from "@/lib/radioNews";
+import { AMBIENT_NEWS, WELCOME_JINGLE, type RadioNews } from "@/lib/radioNews";
 import junkyCityEmpireAsset from "@/assets/junky_city_empire.mp3.asset.json";
 import ironToothAsset from "@/assets/iron_tooth.mp3.asset.json";
 
 type Station = {
-  id: string;
-  name: string;
-  emoji: string;
-  url?: string;
-  loop?: boolean;
-  volume?: number;
-  tts?: boolean;
+  id: string; name: string; emoji: string;
+  url?: string; loop?: boolean; volume?: number; tts?: boolean;
 };
 
 const STATIONS: Station[] = [
-  { id: "main", name: "Junky Empire Taxi", emoji: "🚖", url: GAME_ASSETS["audio.music"], loop: true, volume: 0.4 },
-  { id: "jce", name: "Junky City Empire", emoji: "🎵", url: junkyCityEmpireAsset.url, loop: true, volume: 0.6 },
-  { id: "iron", name: "Iron Tooth", emoji: "🦷", url: ironToothAsset.url, loop: true, volume: 0.6 },
-  { id: "infos", name: "Junky Infos", emoji: "📰", tts: true },
-  { id: "pop", name: "Radio Pop", emoji: "🎤", url: "https://ice1.somafm.com/poptron-128-mp3", volume: 0.5 },
-  { id: "electro", name: "Radio Electro", emoji: "🎧", url: "https://ice1.somafm.com/groovesalad-128-mp3", volume: 0.5 },
-  { id: "rock", name: "Radio Rock", emoji: "🎸", url: "https://ice6.somafm.com/thetrip-128-mp3", volume: 0.5 },
-  { id: "emotions", name: "Radio Émotions", emoji: "💖", url: "https://ice1.somafm.com/lush-128-mp3", volume: 0.5 },
-  { id: "kids", name: "Radio Kids", emoji: "🧸", url: "https://ice1.somafm.com/fluid-128-mp3", volume: 0.5 },
+  { id:"main", name:"Junky Empire Taxi", emoji:"🚖", url:GAME_ASSETS["audio.music"], loop:true, volume:0.4 },
+  { id:"jce", name:"Junky City Empire", emoji:"🎵", url:junkyCityEmpireAsset.url, loop:true, volume:0.6 },
+  { id:"iron", name:"Iron Tooth", emoji:"🦷", url:ironToothAsset.url, loop:true, volume:0.6 },
+  { id:"infos", name:"Junky Infos", emoji:"📰", tts:true },
+  { id:"pop", name:"Radio Pop", emoji:"🎤", url:"https://ice1.somafm.com/poptron-128-mp3", volume:0.5 },
+  { id:"electro", name:"Radio Electro", emoji:"🎧", url:"https://ice1.somafm.com/groovesalad-128-mp3", volume:0.5 },
+  { id:"rock", name:"Radio Rock", emoji:"🎸", url:"https://ice6.somafm.com/thetrip-128-mp3", volume:0.5 },
+  { id:"emotions", name:"Radio Émotions", emoji:"💖", url:"https://ice1.somafm.com/lush-128-mp3", volume:0.5 },
+  { id:"kids", name:"Radio Kids", emoji:"🧸", url:"https://ice1.somafm.com/fluid-128-mp3", volume:0.5 },
 ];
 
 const STORAGE_KEY = "mttw.taxiRadio";
 const LANG_KEY = "mttw.lang";
 const DJ_FIRST_DELAY_MS = 1200;
 
-function readPref(): string {
-  try { return localStorage.getItem(STORAGE_KEY)?? "main"; } catch { return "main"; }
-}
-function readLang(): "fr" | "en" {
-  try { const v = localStorage.getItem(LANG_KEY); return v === "en"? "en" : "fr"; } catch { return "fr"; }
-}
-function pickVoice(lang: "fr" | "en"): SpeechSynthesisVoice | null {
-  if (typeof window === "undefined" ||!("speechSynthesis" in window)) return null;
-  try {
-    const voices = window.speechSynthesis.getVoices() || [];
-    const want = lang === "fr"? "fr" : "en";
-    return (
-      voices.find(v => v.lang?.toLowerCase() === (want === "fr"? "fr-fr" : "en-us")) ||
-      voices.find(v => v.lang?.toLowerCase().startsWith(want)) ||
-      null
-    );
-  } catch { return null; }
+const readPref = () => { try { return localStorage.getItem(STORAGE_KEY)?? "main"; } catch { return "main"; } };
+const readLang = ():"fr"|"en" => { try { return localStorage.getItem(LANG_KEY)==="en"?"en":"fr"; } catch { return "fr"; } };
+
+function pickVoice(lang:"fr"|"en") {
+  if (typeof window==="undefined" ||!("speechSynthesis" in window)) return null;
+  const voices = window.speechSynthesis.getVoices() || [];
+  const want = lang==="fr"?"fr":"en";
+  return voices.find(v=>v.lang?.toLowerCase().startsWith(want+"-")) || voices.find(v=>v.lang?.toLowerCase().startsWith(want)) || null;
 }
 
 export default function TaxiRadio() {
-  const audioRef = useRef<HTMLAudioElement | null>(null);
-  const [stationId, setStationId] = useState<string>("main");
+  const audioRef = useRef<HTMLAudioElement|null>(null);
+  const [stationId, setStationId] = useState("main");
   const [open, setOpen] = useState(false);
   const [ready, setReady] = useState(false);
   const [paused, setPaused] = useState(false);
-  const [lang, setLang] = useState<"fr" | "en">("fr");
-  const langRef = useRef<"fr" | "en">("fr");
-  const [ticker, setTicker] = useState<string>("");
-  const ambientTimerRef = useRef<number | null>(null);
-  const ambientIdxRef = useRef<number>(0);
-  const tickerTimerRef = useRef<number | null>(null);
-  const ttsUnlockedRef = useRef<boolean>(false);
-  const djTimerRef = useRef<number | null>(null);
-  const pausedRef = useRef<boolean>(false);
-  const weatherRef = useRef<{ tempC: number; code: number; city: string } | null>(null);
-  const weatherFetchedAtRef = useRef<number>(0);
-  const [weatherState, setWeatherState] = useState<{ tempC: number; code: number; city: string } | null>(null);
-  const [newsHour, setNewsHour] = useState<boolean>(false);
-  const newsHourRef = useRef<boolean>(false);
-  useEffect(() => { newsHourRef.current = newsHour; }, [newsHour]);
-  const interludeRef = useRef<HTMLAudioElement | null>(null);
-  const ttsAudioRef = useRef<HTMLAudioElement | null>(null);
-  const radioSessionRef = useRef<number>(0);
+  const [lang, setLang] = useState<"fr"|"en">("fr");
+  const langRef = useRef<"fr"|"en">("fr");
+  const [ticker, setTicker] = useState("");
+  const [newsHour, setNewsHour] = useState(false);
+  const [weather, setWeather] = useState<{tempC:number;city:string}|null>(null);
 
-  // Heure des infos : xx:00 → xx:10
-  useEffect(() => {
-    const apply = () => setNewsHour(new Date().getMinutes() < 10);
-    const schedule = () => {
-      apply();
-      const now = new Date();
-      const ms = 60000 - (now.getSeconds() * 1000 + now.getMilliseconds());
-      return window.setTimeout(schedule, ms + 50);
+  const ambientRef = useRef<number|null>(null);
+  const djRef = useRef<number|null>(null);
+  const ttsRef = useRef<HTMLAudioElement|null>(null);
+  const sessionRef = useRef(0);
+  const idxRef = useRef(0);
+
+  useEffect(()=>{ langRef.current = lang; }, [lang]);
+
+  // init
+  useEffect(()=>{
+    setStationId(readPref());
+    const l = readLang(); setLang(l); langRef.current=l; setReady(true);
+    if (typeof window!=="undefined" && "speechSynthesis" in window) {
+      try { window.speechSynthesis.getVoices(); } catch {}
+    }
+  },[]);
+
+  // news hour
+  useEffect(()=>{
+    const tick = ()=> setNewsHour(new Date().getMinutes()<10);
+    tick(); const id = setInterval(tick, 30000); return ()=>clearInterval(id);
+  },[]);
+
+  const showTicker = (t:string)=>{ setTicker(t); setTimeout(()=>setTicker(""),8000); };
+
+  const speak = async (news:RadioNews, done?:()=>void) => {
+    const l = langRef.current; const text = l==="en"?news.en:news.fr; showTicker(text);
+    const finish = ()=>{ done?.(); };
+    const speakBrowser = ()=>{
+      if (typeof window==="undefined" ||!("speechSynthesis" in window)) { finish(); return; }
+      const s = window.speechSynthesis; try { s.cancel(); } catch {}
+      const u = new SpeechSynthesisUtterance(text); u.lang = l==="en"?"en-US":"fr-FR"; const v = pickVoice(l); if(v) u.voice=v;
+      u.onend = finish; u.onerror = finish;
+      const go = ()=> setTimeout(()=>{ try{s.speak(u);}catch{finish();} },70);
+      const vs = s.getVoices?.()||[]; if(!vs.length){ s.onvoiceschanged=()=>{s.onvoiceschanged=null; go();}; } else go();
     };
-    let t = schedule();
-    const onVis = () => { apply(); clearTimeout(t); t = schedule(); };
-    document.addEventListener("visibilitychange", onVis);
-    window.addEventListener("focus", onVis);
-    return () => { clearTimeout(t); document.removeEventListener("visibilitychange", onVis); window.removeEventListener("focus", onVis); };
-  }, []);
-
-  const playMusicInterlude = (url: string, ms = 15000) => {
     try {
-      if (interludeRef.current) { try { interludeRef.current.pause(); } catch {} }
-      const a = new Audio(url); a.volume = 0.5; interludeRef.current = a;
-      a.play().catch(()=>{});
-      setTimeout(() => { try { a.pause(); } catch {}; if (interludeRef.current === a) interludeRef.current = null; }, ms);
-    } catch {}
-  };
-
-  const weatherCodeText = (code: number, l: "fr" | "en") => {
-    const fr: Record<number,string> = {0:"ciel dégagé",1:"plutôt ensoleillé",2:"partiellement nuageux",3:"couvert",45:"brouillard",48:"brouillard givrant",51:"bruine légère",53:"bruine",55:"forte bruine",61:"pluie faible",63:"pluie",65:"forte pluie",71:"neige faible",73:"neige",75:"forte neige",80:"averses",95:"orage"};
-    const en: Record<number,string> = {0:"clear sky",1:"mostly sunny",2:"partly cloudy",3:"overcast",45:"foggy",48:"freezing fog",51:"light drizzle",53:"drizzle",55:"heavy drizzle",61:"light rain",63:"rain",65:"heavy rain",71:"light snow",73:"snow",75:"heavy snow",80:"showers",95:"thunderstorm"};
-    return (l==="fr"?fr:en)[code]?? (l==="fr"?"temps changeant":"changing weather");
-  };
-
-  const fetchWeather = async () => {
-    const now = Date.now();
-    if (weatherRef.current && now - weatherFetchedAtRef.current < 30*60*1000) return;
-    const noGeo = () => { weatherRef.current=null; setWeatherState(null); weatherFetchedAtRef.current=Date.now(); };
-    if (navigator?.geolocation) {
-      navigator.geolocation.getCurrentPosition(async pos => {
-        try {
-          const {latitude, longitude} = pos.coords;
-          const r = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&current=temperature_2m,weather_code`);
-          const j = await r.json();
-          const tempC = Math.round(j?.current?.temperature_2m?? 0);
-          const code = Number(j?.current?.weather_code?? 0);
-          let city = "";
-          try { const g = await fetch(`https://geocoding-api.open-meteo.com/v1/reverse?latitude=${latitude}&longitude=${longitude}&language=fr&count=1`); const gj = await g.json(); city = gj?.results?.[0]?.name?? ""; } catch {}
-          weatherRef.current = { tempC, code, city }; setWeatherState({ tempC, code, city }); weatherFetchedAtRef.current = Date.now();
-        } catch { noGeo(); }
-      }, noGeo, {timeout:4000});
-    } else noGeo();
-  };
-
-  useEffect(() => { fetchWeather(); const t = setInterval(fetchWeather, 30*60*1000); return ()=>clearInterval(t); }, []);
-  useEffect(() => { langRef.current = lang; }, [lang]);
-  useEffect(() => { pausedRef.current = paused; }, [paused]);
-
-  // débloque TTS mobile
-  useEffect(() => {
-    if (typeof window==="undefined" ||!("speechSynthesis" in window)) return;
-    const unlock = () => { if (ttsUnlockedRef.current) return; try { const u=new SpeechSynthesisUtterance(" "); u.volume=0; speechSynthesis.speak(u); ttsUnlockedRef.current=true; } catch {} };
-    window.addEventListener("pointerdown", unlock, {once:true});
-    return () => window.removeEventListener("pointerdown", unlock);
-  }, []);
-
-  useEffect(() => {
-    setStationId(readPref()); const l = readLang(); setLang(l); langRef.current=l; setReady(true);
-    if ("speechSynthesis" in window) { speechSynthesis.getVoices(); speechSynthesis.onvoiceschanged = () => speechSynthesis.getVoices(); }
-  }, []);
-
-  const showTicker = (text:string) => { setTicker(text); if (tickerTimerRef.current) clearTimeout(tickerTimerRef.current); tickerTimerRef.current = window.setTimeout(()=>setTicker(""), 9000); };
-
-  // --- SPEAK SAFE ---
-  const speak = async (news: RadioNews, onComplete?: () => void) => {
-    const l = langRef.current;
-    const text = l==="en"?news.en:news.fr;
-    showTicker(text);
-    let done = false; const finish = () => { if(done) return; done=true; onComplete?.(); };
-    const failsafe = setTimeout(finish, 20000);
-
-    try {
-      if (ttsAudioRef.current) { try { ttsAudioRef.current.pause(); } catch {} ttsAudioRef.current=null; }
-
-      const speakBrowser = () => {
-        if (typeof window==="undefined" ||!("speechSynthesis" in window)) { clearTimeout(failsafe); finish(); return; }
-        const synth = speechSynthesis; try { if (synth.speaking||synth.pending) synth.cancel(); } catch {}
-        const u = new SpeechSynthesisUtterance(text); u.lang = l==="en"?"en-US":"fr-FR"; const v = pickVoice(l); if(v) u.voice=v;
-        u.onend = () => { clearTimeout(failsafe); finish(); }; u.onerror = () => { clearTimeout(failsafe); finish(); };
-        const doSpeak = () => setTimeout(()=>{ try { synth.speak(u); if(synth.paused) synth.resume(); } catch { clearTimeout(failsafe); finish(); } },70);
-        const voices = synth.getVoices?.()||[]; if(!voices.length){ synth.onvoiceschanged=()=>{synth.onvoiceschanged=null; doSpeak();}; try{synth.getVoices();}catch{} } else doSpeak();
-      };
-
       const { supabase } = await import("@/integrations/supabase/client");
       const { data } = await supabase.auth.getSession(); const token = data?.session?.access_token;
-      if (!token) { speakBrowser(); return; }
-      const res = await fetch("/api/public/radio-tts", { method:"POST", headers:{ "Content-Type":"application/json", Authorization:`Bearer ${token}` }, body: JSON.stringify({text, lang:l}) });
-      if (!res.ok || (res.headers.get("Content-Type")||"").includes("application/json")) { speakBrowser(); return; }
-      const blob = await res.blob(); const url = URL.createObjectURL(blob); const a = new Audio(url); a.volume=1; ttsAudioRef.current=a;
-      a.onended = () => { URL.revokeObjectURL(url); ttsAudioRef.current=null; clearTimeout(failsafe); finish(); };
-      a.onerror = () => { URL.revokeObjectURL(url); ttsAudioRef.current=null; clearTimeout(failsafe); finish(); };
-      await a.play(); ttsUnlockedRef.current=true;
-    } catch { clearTimeout(failsafe); finish(); }
+      if(!token){ speakBrowser(); return; }
+      const r = await fetch("/api/public/radio-tts",{method:"POST",headers:{"Content-Type":"application/json",Authorization:`Bearer ${token}`},body:JSON.stringify({text,lang:l})});
+      if(!r.ok){ speakBrowser(); return; }
+      const b = await r.blob(); const url = URL.createObjectURL(b); const a = new Audio(url); ttsRef.current=a;
+      a.onended=()=>{ URL.revokeObjectURL(url); finish(); }; a.onerror=finish; await a.play();
+    } catch { speakBrowser(); }
   };
 
-  const djLine = (stationName:string): RadioNews => {
-    const now = new Date(); const hh=now.getHours(); const mm=now.getMinutes();
-    const timeFr = `${hh}h${mm.toString().padStart(2,"0")}`; const timeEn = `${((hh+11)%12)+1}:${mm.toString().padStart(2,"0")} ${hh<12?"AM":"PM"}`;
-    const w = weatherRef.current;
-    const weatherFr = w?`${weatherCodeText(w.code,"fr")}, ${w.tempC}°C${w.city?" à "+w.city:""}`:"météo en cours";
-    const weatherEn = w?`${weatherCodeText(w.code,"en")}, ${w.tempC}°C${w.city?" in "+w.city:""}`:"weather updating";
-    return { fr:`Il est ${timeFr} sur ${stationName}! ${weatherFr}. On enchaîne!`, en:`It's ${timeEn} on ${stationName}! ${weatherEn}. Let's go!` };
+  const djLine = (name:string):RadioNews => {
+    const d=new Date(); const t=`${d.getHours()}h${String(d.getMinutes()).padStart(2,"0")}`;
+    return { fr:`Il est ${t} sur ${name}!`, en:`It's ${t} on ${name}!` };
   };
 
-  // Gestion stations
-  useEffect(() => {
-    if (!ready) return;
-    const a = audioRef.current; const st = STATIONS.find(s=>s.id===stationId); if(!a||!st) return;
-    if ("speechSynthesis" in window) try{speechSynthesis.cancel();}catch{}
-    if (ambientTimerRef.current) { clearInterval(ambientTimerRef.current); ambientTimerRef.current=null; }
-    if (djTimerRef.current) { clearTimeout(djTimerRef.current); djTimerRef.current=null; }
-    setTicker("");
+  // stations
+  useEffect(()=>{
+    if(!ready) return; const a = audioRef.current; const st = STATIONS.find(s=>s.id===stationId); if(!a||!st) return;
+    if (ambientRef.current) { clearInterval(ambientRef.current); ambientRef.current=null; }
+    if (djRef.current) { clearTimeout(djRef.current); djRef.current=null; }
+    if (typeof window!=="undefined" && "speechSynthesis" in window) { try{ speechSynthesis.cancel(); }catch{} }
 
-    if (st.tts) { a.pause(); speak(WELCOME_JINGLE); let c=0; ambientTimerRef.current=window.setInterval(()=>{ if(c++%3===0){const u=STATIONS.find(s=>s.id==="main")?.url; if(u) playMusicInterlude(u,12000);} else { const i=ambientIdxRef.current++%AMBIENT_NEWS.length; speak(AMBIENT_NEWS[i]); } },18000); return; }
+    if (st.tts || newsHour) {
+      a.pause();
+      speak(WELCOME_JINGLE);
+      ambientRef.current = window.setInterval(()=>{ const n = AMBIENT_NEWS[idxRef.current++ % AMBIENT_NEWS.length]; speak(n); }, 18000);
+      return;
+    }
 
     if (st.url) {
-      if (newsHour) { a.pause
+      sessionRef.current++; const sess = sessionRef.current;
+      a.src = st.url; a.loop = st.loop??true; a.volume = st.volume??0.5;
+      if (!paused) {
+        a.play().catch(()=>{});
+        djRef.current = window.setTimeout(()=>{
+          if (sessionRef.current!==sess) return;
+          const prev = a.volume; a.volume = prev*0.4;
+          speak(djLine(st.name), ()=>{ a.volume = prev; });
+        }, DJ_FIRST_DELAY_MS);
+      }
+    }
+  }, [stationId, ready, newsHour, paused]);
+
+  return (
+    <>
+      <audio ref={audioRef} />
+      <div style={{position:"fixed",bottom:12,right:12,zIndex:9999}}>
+        <button onClick={()=>setOpen(o=>!o)}>{STATIONS.find(s=>s.id===stationId)?.emoji} Radio</button>
+        {open && (
+          <div style={{background:"#111",color:"#fff",padding:10,marginTop:6,borderRadius:8,width:240}}>
+            <div style={{display:"flex",gap:6,marginBottom:6}}>
+              <button onClick={()=>{const n=lang==="fr"?"en":"fr"; setLang(n); localStorage.setItem(LANG_KEY,n);}} style={{flex:1}}>{lang.toUpperCase()}</button>
+              <button onClick={()=>setPaused(p=>!p)} style={{flex:1}}>{paused?"▶️":"⏸️"}</button>
+            </div>
+            {STATIONS.map(s=>(
+              <button key={s.id} onClick={()=>{ setStationId(s.id); localStorage.setItem(STORAGE_KEY,s.id); }} style={{display:"block",width:"100%",textAlign:"left",background:"none",color:"#fff",opacity:s.id===stationId?1:0.6,border:"none",padding:"4px 0"}}>
+                {s.emoji} {s.name}
+              </button>
+            ))}
+            {ticker && <div style={{marginTop:6,fontSize:12,opacity:0.8}}>{ticker}</div>}
+          </div>
+        )}
+      </div>
+    </>
+  );
+                                         }
