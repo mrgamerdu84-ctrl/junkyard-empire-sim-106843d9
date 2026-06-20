@@ -988,6 +988,19 @@ export default function TaxiTycoon() {
     window.setTimeout(() => setToast(null), 1600);
   };
 
+  // Pénalité / bonus croisé avec l'IA sur les missions d'urgence
+  useEffect(() => {
+    const onCashDelta = (ev: Event) => {
+      const d = (ev as CustomEvent<{ amount: number; reason: string; label: string }>).detail;
+      if (!d || !d.amount) return;
+      setSave(s => ({ ...s, money: Math.max(0, s.money + d.amount) }));
+      if (d.amount > 0) showToast(`💰 +${d.amount}$ — mission ${d.label} remportée !`);
+      else showToast(`💸 ${d.amount}$ — l'IA a pris ${d.label}`);
+    };
+    window.addEventListener("jce.player.cashDelta", onCashDelta as EventListener);
+    return () => window.removeEventListener("jce.player.cashDelta", onCashDelta as EventListener);
+  }, []);
+
   const popFloat = (text: string, x: number, y: number) => {
     const id = ++popIdRef.current;
     setPopups((p) => [...p, { id, text, x, y }]);
