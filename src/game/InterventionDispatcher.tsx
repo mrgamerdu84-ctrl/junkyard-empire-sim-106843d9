@@ -37,11 +37,22 @@ export default function InterventionDispatcher() {
         text: `❗ Aucun véhicule ${ICON[d.category]} disponible sur la carte`,
       });
     };
+    const onAIStole = (ev: Event) => {
+      const d = (ev as CustomEvent<{ category: CustomVehicleCategory; label: string }>).detail;
+      if (!d) return;
+      setToast({
+        id: Date.now(),
+        tone: "warn",
+        text: `🤖 Trop lent ! L'AI a pris la mission ${ICON[d.category]} ${d.label}`,
+      });
+    };
     window.addEventListener("jce.intervention.assigned", onAssigned as EventListener);
     window.addEventListener("jce.intervention.nomatch", onNoMatch as EventListener);
+    window.addEventListener("jce.intervention.ai-stole", onAIStole as EventListener);
     return () => {
       window.removeEventListener("jce.intervention.assigned", onAssigned as EventListener);
       window.removeEventListener("jce.intervention.nomatch", onNoMatch as EventListener);
+      window.removeEventListener("jce.intervention.ai-stole", onAIStole as EventListener);
     };
   }, []);
 
