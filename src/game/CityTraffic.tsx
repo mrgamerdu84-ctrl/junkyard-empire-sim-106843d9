@@ -23,7 +23,10 @@ export const VILLAGE_PATHS = new Set<number>([1]);
 // du centre, à DROITE de son sens de marche. Les véhicules en sens inverse
 // se retrouvent donc de l'autre côté du centre → voies séparées strictes,
 // plus aucun contre-sens visuel.
-const LANE_HALF = 6;
+// Demi-largeur d'une route principale ≈ 23 px (stroke 46). Chaque voie
+// tient ~11 px de chaque côté de l'axe → LANE_HALF=11 place les véhicules
+// pile au milieu de leur voie, sans déborder sur la voie d'en face.
+const LANE_HALF = 11;
 
 /* eslint-disable prettier/prettier */
 
