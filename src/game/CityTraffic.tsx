@@ -310,16 +310,60 @@ type CarState = {
   node: SVGGElement | null;
 };
 
+// Toutes les catégories sauf "taxi" peuvent rouler dans la circulation.
+const TRAFFIC_CATEGORIES: CustomVehicleCategory[] = [
+  "civil", "police", "ambulance", "firetruck", "service",
+];
+
+function buildCarsFromCustom(): CarSpec[] {
+  const customs = listCustomVehicles().filter(v => TRAFFIC_CATEGORIES.includes(v.category));
+  if (customs.length === 0) return [];
+  // Paths autorisés : tout sauf "village".
+  const allowedPaths: number[] = [];
+  // ROADS.length connu : 0..N-1 ; filtre les pathIdx village.
+  for (let i = 0; i < ROADS.length; i++) if (!VILLAGE_PATHS.has(i)) allowedPaths.push(i);
+  return customs.map((v, i): CarSpec => {
+    const pathIdx = allowedPaths[i % allowedPaths.length];
+    const flip = (i % 2) === 1; // alterne les sens → voies des deux côtés
+    // Durée plus longue pour les gros gabarits
+    const isHeavy = v.category === "firetruck" || v.category === "service" || v.category === "ambulance";
+    const baseDur = isHeavy ? 96 : 78;
+    const duration = baseDur + (i % 5) * 2;
+    return {
+      kind: "sedan",
+      color: "#888",
+      accent: "#111",
+      duration,
+      delay: -i * 5,
+      pathIdx,
+      flip,
+      scale: 0.6,
+      imageUrl: v.url,
+      category: v.category,
+    };
+  });
+}
+
 export default function CityTraffic() {
   const [night, setNight] = useState(0.25);
   const [lightsTick, setLightsTick] = useState(0);
   const admin = useAdminConfig();
-  // Filtre les véhicules civils dont le path est en zone village.
-  const activeCars = CARS.filter(c => !VILLAGE_PATHS.has(c.pathIdx))
-    .slice(0, Math.max(0, Math.min(CARS.length, admin.civilVehicleCount)));
+  const [customTick, setCustomTick] = useState(0);
+  // Re-render quand le joueur ajoute/supprime un véhicule custom.
+  useEffect(() => {
+    const onChange = () => setCustomTick(t => t + 1);
+    window.addEventListener("jce.customVehicles.changed", onChange);
+    return () => window.removeEventListener("jce.customVehicles.changed", onChange);
+  }, []);
+  // Trafic = uniquement véhicules uploadés par le joueur (catégories roulantes).
+  // Le slider "Véhicules civils" du panel admin sert de plafond (0 = aucun, max = tous).
+  const allCustomCars = buildCarsFromCustom();
+  void customTick;
+  const activeCars = allCustomCars.slice(0, Math.max(0, Math.min(allCustomCars.length, admin.civilVehicleCount)));
   const pathRefs = useRef<(SVGPathElement | null)[]>([]);
   const carNodes = useRef<(SVGGElement | null)[]>([]);
   const [lights, setLights] = useState<TrafficLight[]>([]);
+
 
   // Radars retirés à la demande du joueur.
 
