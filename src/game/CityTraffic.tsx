@@ -487,8 +487,6 @@ export default function CityTraffic() {
         setTimeout(() => setFlashes((arr) => arr.filter((f) => f.id !== id)), 200);
       }
     };
-    // Expose checkRadars dans la closure du step()
-    (step as unknown as { _checkRadars?: typeof checkRadars })._checkRadars = checkRadars;
 
     let last = performance.now();
     let raf = 0;
