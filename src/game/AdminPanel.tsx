@@ -892,6 +892,43 @@ function CustomVehiclesSection() {
     try { return localStorage.getItem(TOPDOWN_PREF_KEY) === "1"; } catch { return false; }
   });
   const fileRef = useRef<HTMLInputElement>(null);
+  const batchRef = useRef<HTMLInputElement>(null);
+  const [batchBusy, setBatchBusy] = useState(false);
+  const [batchProgress, setBatchProgress] = useState<{ done: number; total: number } | null>(null);
+  const [dragOver, setDragOver] = useState(false);
+
+  const readFileAsDataUrl = (f: File): Promise<string> =>
+    new Promise((resolve, reject) => {
+      const r = new FileReader();
+      r.onload = () => resolve(String(r.result));
+      r.onerror = () => reject(r.error);
+      r.readAsDataURL(f);
+    });
+
+  const importBatch = async (files: File[]) => {
+    const imgs = files.filter((f) => f.type.startsWith("image/"));
+    if (imgs.length === 0) return;
+    setBatchBusy(true);
+    setBatchProgress({ done: 0, total: imgs.length });
+    for (let i = 0; i < imgs.length; i++) {
+      const f = imgs[i];
+      try {
+        const src = await readFileAsDataUrl(f);
+        let deg: 0 | 90 | 180 | 270 = 0;
+        if (!alreadyTopDown) {
+          try { deg = await guessVehicleRotation(src); } catch {}
+        }
+        const finalUrl = await rotateToDataUrl(src, deg);
+        const baseName = f.name.replace(/\.[^.]+$/, "") || VEHICLE_CATEGORY_LABELS[category];
+        addCustomVehicle({ name: baseName, url: finalUrl, category });
+      } catch {}
+      setBatchProgress({ done: i + 1, total: imgs.length });
+    }
+    setBatchBusy(false);
+    setTimeout(() => setBatchProgress(null), 1500);
+    if (batchRef.current) batchRef.current.value = "";
+    refresh();
+  };
 
   const refresh = () => setItems(listCustomVehicles());
 
