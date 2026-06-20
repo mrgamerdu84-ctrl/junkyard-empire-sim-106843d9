@@ -4,6 +4,28 @@ import { AMBIENT_NEWS, WELCOME_JINGLE, type RadioNews } from "@/lib/radioNews";
 import junkyCityEmpireAsset from "@/assets/junky_city_empire.mp3.asset.json";
 import ironToothAsset from "@/assets/iron_tooth.mp3.asset.json";
 
+// CONFIGURATION DES VOIES DE TRAFIC (WAYPOINTS)
+const VOIE_DROITE = [
+  { x: 10, y: 50 },
+  { x: 50, y: 50 },
+  { x: 90, y: 50 }
+];
+
+const VOIE_GAUCHE = [
+  { x: 90, y: 56 },
+  { x: 50, y: 56 },
+  { x: 10, y: 56 }
+];
+
+type Voiture = {
+  id: string;
+  voie: "droite" | "gauche";
+  indexEtape: number;
+  x: number;
+  y: number;
+  vitesse: number;
+};
+
 type Station = { id: string; name: string; emoji: string; url?: string; loop?: boolean; volume?: number; tts?: boolean; };
 
 const STATIONS: Station[] = [
@@ -31,21 +53,15 @@ export default function TaxiRadio() {
   const [ticker, setTicker] = useState<string>("");
   const [newsHour, setNewsHour] = useState<boolean>(false);
 
+  // --- ÉTAT DU TRAFIC FLUIDE ---
+  const [voitures, setVoitures] = useState<Voiture[]>([]);
+
   useEffect(() => {
     const apply = () => setNewsHour(new Date().getMinutes() < 10);
     apply();
     const t = window.setInterval(apply, 30000);
     return () => window.clearInterval(t);
   }, []);
-
-  const playMusicInterlude = (url: string, ms: number = 15000) => {
-    try {
-      if (interludeRef.current) interludeRef.current.pause();
-      const a = new Audio(url); a.volume = 0.5; interludeRef.current = a;
-      a.play().catch(() => {});
-      window.setTimeout(() => { if (interludeRef.current === a) a.pause(); }, ms);
-    } catch {}
-  };
 
   const speak = async (news: RadioNews, onComplete?: () => void) => {
     const text = news.fr; setTicker(text);
@@ -68,66 +84,4 @@ export default function TaxiRadio() {
   useEffect(() => {
     const st = STATIONS.find((s) => s.id === stationId);
     if (ambientTimerRef.current) window.clearInterval(ambientTimerRef.current);
-    if (interludeRef.current) interludeRef.current.pause();
-    setTicker("");
-
-    if (!st || st.id === "off") { if (audioRef.current) audioRef.current.pause(); return; }
-
-    if (st.tts || newsHour) {
-      if (audioRef.current) audioRef.current.pause();
-      speak(WELCOME_JINGLE);
-      ambientTimerRef.current = window.setInterval(() => {
-        const idx = ambientIdxRef.current % AMBIENT_NEWS.length;
-        ambientIdxRef.current++;
-        speak(AMBIENT_NEWS[idx]);
-      }, 16000);
-    } else if (st.url && audioRef.current) {
-      audioRef.current.src = st.url;
-      audioRef.current.volume = st.volume || 0.5;
-      if (!paused) audioRef.current.play().catch(() => {});
-    }
-  }, [stationId, newsHour, paused]);
-
-  return (
-    <div className="fixed bottom-4 right-4 z-50">
-      <audio ref={audioRef} loop />
-      <button 
-        onClick={() => setOpen(!open)} 
-        className="w-14 h-14 bg-yellow-500 rounded-full shadow-lg flex items-center justify-center text-2xl hover:scale-105 transition-transform"
-      >
-        {STATIONS.find(s => s.id === stationId)?.emoji || "📻"}
-      </button>
-
-      {open && (
-        <div className="absolute bottom-16 right-0 w-64 bg-slate-900 border border-slate-700 text-white rounded-xl shadow-2xl p-4 flex flex-col gap-3">
-          <div className="flex items-center justify-between border-b border-slate-700 pb-2">
-            <span className="font-bold text-yellow-500">Taxi Autoradio</span>
-            <button onClick={() => setPaused(!paused)} className="text-sm bg-slate-800 px-2 py-1 rounded">
-              {paused ? "▶️ Play" : "⏸️ Pause"}
-            </button>
-          </div>
-
-          {ticker && (
-            <div className="bg-slate-950 p-2 rounded text-xs text-green-400 border border-green-900 animate-pulse truncate">
-              📢 {ticker}
-            </div>
-          )}
-
-          <div className="grid grid-cols-1 gap-1 max-h-48 overflow-y-auto pr-1">
-            {STATIONS.map((st) => (
-              <button
-                key={st.id}
-                onClick={() => setStationId(st.id)}
-                className={`w-full text-left p-2 rounded text-sm flex items-center gap-3 transition-colors ${stationId === st.id ? "bg-yellow-600 text-white" : "bg-slate-800 hover:bg-slate-700"}`}
-              >
-                <span>{st.emoji}</span>
-                <span className="truncate">{st.name}</span>
-              </button>
-            ))}
-          </div>
-        </div>
-      )}
-    </div>
-  );
-  }
-          
+    if (inter
