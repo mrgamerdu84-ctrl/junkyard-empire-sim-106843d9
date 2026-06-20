@@ -328,19 +328,8 @@ export default function CityTraffic() {
   const carNodes = useRef<(SVGGElement | null)[]>([]);
   const [lights, setLights] = useState<TrafficLight[]>([]);
 
-  // 📸 Radars de vitesse — positions sur les paths (fraction 0..1).
-  // Chaque radar mémorise sa position xy une fois les paths mesurés.
-  const RADAR_SPECS = [
-    { pathIdx: 0, sFrac: 0.18 },
-    { pathIdx: 0, sFrac: 0.55 },
-    { pathIdx: 0, sFrac: 0.82 },
-    { pathIdx: 2, sFrac: 0.28 },
-    { pathIdx: 2, sFrac: 0.66 },
-  ];
-  const [radars, setRadars] = useState<{ x: number; y: number }[]>([]);
-  const [flashes, setFlashes] = useState<{ id: number; x: number; y: number; t: number }[]>([]);
-  const [totalFines, setTotalFines] = useState(0);
-  const flashIdRef = useRef(0);
+  // Radars retirés à la demande du joueur.
+
 
   // Cycle jour/nuit 300s (5 minutes). Démarre en plein jour.
   useEffect(() => {
