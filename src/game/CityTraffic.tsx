@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { useAdminConfig } from "./adminConfig";
-import { PEDESTRIAN_PHOTO_URLS } from "./gameAssets";
+import { PEDESTRIAN_PHOTO_URLS, listCustomVehicles, type CustomVehicleCategory } from "./gameAssets";
 import { VehicleSvg, type VehicleSvgKind } from "./vehicles/VehicleSvgs";
 import {
   initTrafficLights,
