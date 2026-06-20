@@ -53,46 +53,22 @@ export const Route = createFileRoute("/api/public/radio-tts")({
             return new Response("TTS not configured", { status: 503, headers: CORS });
           }
           const voice = lang === "en" ? "alloy" : "shimmer";
-          const body = JSON.stringify({
-            model: "openai/gpt-4o-mini-tts",
-            input: text.slice(0, 500),
-            voice,
-            response_format: "mp3",
+          const r = await fetch("https://ai.gateway.lovable.dev/v1/audio/speech", {
+            method: "POST",
+            headers: {
+              Authorization: `Bearer ${apiKey}`,
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              model: "openai/gpt-4o-mini-tts",
+              input: text.slice(0, 500),
+              voice,
+              response_format: "mp3",
+            }),
           });
-          const callUpstream = () =>
-            fetch("https://ai.gateway.lovable.dev/v1/audio/speech", {
-              method: "POST",
-              headers: {
-                Authorization: `Bearer ${apiKey}`,
-                "Content-Type": "application/json",
-              },
-              body,
-              signal: AbortSignal.timeout(8000),
-            });
-          let r: Response | null = null;
-          let lastStatus = 0;
-          let lastMsg = "";
-          for (let attempt = 0; attempt < 2; attempt++) {
-            try {
-              r = await callUpstream();
-              if (r.ok) break;
-              lastStatus = r.status;
-              lastMsg = await r.text().catch(() => "");
-              // Retry uniquement sur erreurs transitoires upstream
-              if (![502, 503, 504].includes(r.status)) break;
-            } catch (err) {
-              lastStatus = 0;
-              lastMsg = (err as Error).message || "timeout";
-              r = null;
-            }
-            if (attempt === 0) await new Promise((res) => setTimeout(res, 400));
-          }
-          if (!r || !r.ok) {
-            console.warn(`[radio-tts] upstream ${lastStatus}:`, lastMsg.slice(0, 200));
-            return new Response(
-              JSON.stringify({ fallback: true, upstreamStatus: lastStatus }),
-              { status: 200, headers: { ...CORS, "Content-Type": "application/json" } },
-            );
+          if (!r.ok) {
+            const msg = await r.text().catch(() => "");
+            return new Response(`TTS upstream ${r.status}: ${msg}`, { status: 502, headers: CORS });
           }
           return new Response(r.body, {
             status: 200,
