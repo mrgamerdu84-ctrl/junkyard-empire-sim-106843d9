@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import tutorAsset from "@/assets/tutor-driver.png.asset.json";
 import { markTutorialSeen } from "@/lib/leaderboard";
 
@@ -8,33 +8,105 @@ const STEPS = [
     text: "Bienvenue dans Junky City Empire ! Je suis Léo, vétéran du volant. Je vais te montrer les ficelles du métier en deux minutes.",
   },
   {
+    title: "Ton QG, ton garage",
+    text: "Tu démarres avec un garage délabré et un seul taxi. Plus tu encaisses, plus tu débloques de niveaux de QG (jusqu'à 12 taxis simultanés) et de meilleurs tarifs.",
+  },
+  {
     title: "Prendre un client",
-    text: "Les clients t'attendent sur les trottoirs (icône 🧍). Conduis ton taxi jusqu'à eux pour les charger automatiquement.",
+    text: "Les clients t'attendent sur les trottoirs (point bleu). Le taxi le plus proche est envoyé automatiquement. Le client n'a que 35 secondes de patience !",
   },
   {
     title: "Déposer & encaisser",
-    text: "Une fois chargé, file vers la destination indiquée par la flèche. Plus tu vas vite, plus tu gagnes !",
+    text: "Une fois chargé, file vers la destination (point jaune). Le tarif dépend de la distance et de ton niveau de QG. L'argent tombe à la dépose.",
   },
   {
-    title: "Carburant",
-    text: "Garde un œil sur ta jauge ⛽. Repasse à la station-service avant la panne sèche, sinon ton taxi s'arrête.",
+    title: "Attention, la concurrence !",
+    text: "La ville est envahie par les QG rivaux de Junky City. Leurs taxis sombres sont plus rapides à chaque niveau que tu gagnes. Ils chassent les mêmes clients que toi.",
   },
   {
-    title: "La concurrence",
-    text: "Attention : une compagnie rivale (taxis sombres) tente de te piquer les courses. Sois plus rapide qu'eux !",
+    title: "Missions d'urgence : sois rapide !",
+    text: "Crime, accident, incendie : quand une icône apparaît, clique vite ! Si tu attends trop, c'est l'IA qui rafle la mission et toi tu prends une pénalité de 200 dollars.",
+  },
+  {
+    title: "Pénalité croisée",
+    text: "Inverse la vapeur : si tu cliques la mission avant l'IA et que ton véhicule arrive sur place, tu gagnes 500 dollars de bonus. Plus tu es rapide, plus l'empire grossit !",
   },
   {
     title: "Récompense hebdomadaire",
-    text: "Chaque dimanche soir, le meilleur jour de la semaine débloque le TAXI D'OR 🏆 — bonus tarif +50% et conso -30%. À toi de jouer !",
+    text: "Chaque dimanche soir, le meilleur jour de la semaine débloque le TAXI D'OR : bonus tarif plus 50 pour cent et conso moins 30 pour cent. À toi de jouer !",
   },
 ];
 
+function pickFrenchVoice(): SpeechSynthesisVoice | null {
+  if (typeof window === "undefined" || !window.speechSynthesis) return null;
+  const voices = window.speechSynthesis.getVoices();
+  if (!voices.length) return null;
+  return (
+    voices.find(v => /fr[-_]FR/i.test(v.lang)) ||
+    voices.find(v => /^fr/i.test(v.lang)) ||
+    null
+  );
+}
+
 export default function TutorialDialog({ onClose }: { onClose: () => void }) {
   const [step, setStep] = useState(0);
+  const [muted, setMuted] = useState(false);
+  const mutedRef = useRef(muted);
+  mutedRef.current = muted;
   const s = STEPS[step];
   const last = step === STEPS.length - 1;
 
+  // Charge les voix dès l'ouverture
+  useEffect(() => {
+    if (typeof window === "undefined" || !window.speechSynthesis) return;
+    const handler = () => { /* trigger voices load */ };
+    window.speechSynthesis.getVoices();
+    window.speechSynthesis.addEventListener?.("voiceschanged", handler);
+    return () => {
+      window.speechSynthesis.addEventListener && window.speechSynthesis.removeEventListener?.("voiceschanged", handler);
+      try { window.speechSynthesis.cancel(); } catch {}
+    };
+  }, []);
+
+  // Lit chaque étape à voix haute
+  useEffect(() => {
+    if (typeof window === "undefined" || !window.speechSynthesis) return;
+    try { window.speechSynthesis.cancel(); } catch {}
+    if (mutedRef.current) return;
+    const utter = new SpeechSynthesisUtterance(`${s.title}. ${s.text}`);
+    utter.lang = "fr-FR";
+    utter.rate = 1.02;
+    utter.pitch = 1.0;
+    const v = pickFrenchVoice();
+    if (v) utter.voice = v;
+    try { window.speechSynthesis.speak(utter); } catch {}
+  }, [step, s.title, s.text]);
+
+  const stopVoice = () => {
+    if (typeof window !== "undefined" && window.speechSynthesis) {
+      try { window.speechSynthesis.cancel(); } catch {}
+    }
+  };
+
+  const toggleMute = () => {
+    setMuted(m => {
+      const nm = !m;
+      mutedRef.current = nm;
+      if (nm) stopVoice();
+      else {
+        // relit l'étape courante
+        const utter = new SpeechSynthesisUtterance(`${s.title}. ${s.text}`);
+        utter.lang = "fr-FR";
+        const v = pickFrenchVoice();
+        if (v) utter.voice = v;
+        try { window.speechSynthesis.speak(utter); } catch {}
+      }
+      return nm;
+    });
+  };
+
   const next = () => {
+    stopVoice();
     if (last) {
       markTutorialSeen();
       onClose();
@@ -44,6 +116,7 @@ export default function TutorialDialog({ onClose }: { onClose: () => void }) {
   };
 
   const skip = () => {
+    stopVoice();
     markTutorialSeen();
     onClose();
   };
@@ -56,9 +129,11 @@ export default function TutorialDialog({ onClose }: { onClose: () => void }) {
         .td-head { display: flex; gap: 14px; align-items: center; margin-bottom: 14px; }
         .td-avatar { width: 80px; height: 80px; border-radius: 50%; border: 3px solid #f5c542; background: #fff; flex-shrink: 0; object-fit: cover; }
         .td-title { color: #f5c542; font-size: 20px; font-weight: 900; margin: 0; }
-        .td-step { color: #9ca3af; font-size: 12px; }
-        .td-text { color: #e5e7eb; font-size: 15px; line-height: 1.5; min-height: 90px; }
-        .td-dots { display: flex; gap: 6px; justify-content: center; margin: 16px 0 14px; }
+        .td-step { color: #9ca3af; font-size: 12px; display: flex; align-items: center; gap: 8px; }
+        .td-mute { background: transparent; border: 1px solid #374151; color: #9ca3af; border-radius: 6px; padding: 2px 8px; cursor: pointer; font-size: 12px; }
+        .td-mute:hover { color: #f5c542; border-color: #f5c542; }
+        .td-text { color: #e5e7eb; font-size: 15px; line-height: 1.5; min-height: 110px; }
+        .td-dots { display: flex; gap: 6px; justify-content: center; margin: 16px 0 14px; flex-wrap: wrap; }
         .td-dot { width: 8px; height: 8px; border-radius: 50%; background: #374151; }
         .td-dot.active { background: #f5c542; }
         .td-btns { display: flex; gap: 10px; }
@@ -70,9 +145,14 @@ export default function TutorialDialog({ onClose }: { onClose: () => void }) {
       <div className="td-card">
         <div className="td-head">
           <img src={tutorAsset.url} alt="Léo" className="td-avatar" />
-          <div>
+          <div style={{ flex: 1 }}>
             <h2 className="td-title">{s.title}</h2>
-            <div className="td-step">Étape {step + 1} / {STEPS.length}</div>
+            <div className="td-step">
+              <span>Étape {step + 1} / {STEPS.length}</span>
+              <button className="td-mute" onClick={toggleMute} title={muted ? "Réactiver la voix" : "Couper la voix"}>
+                {muted ? "🔇 Voix" : "🔊 Voix"}
+              </button>
+            </div>
           </div>
         </div>
         <div className="td-text">{s.text}</div>
