@@ -68,9 +68,18 @@ export const Route = createFileRoute("/api/public/radio-tts")({
           });
           if (!r.ok) {
             const msg = await r.text().catch(() => "");
-            return new Response(`TTS upstream ${r.status}: ${msg}`, { status: 502, headers: CORS });
+            console.warn("[radio-tts] upstream", r.status, msg.slice(0, 200));
+            // 200 + fallback flag : le client bascule sur SpeechSynthesis sans crasher.
+            return new Response(JSON.stringify({ error: "TTS_UPSTREAM", status: r.status, fallback: true }), {
+              status: 200,
+              headers: { ...CORS, "Content-Type": "application/json" },
+            });
           }
-          return new Response(r.body, {
+          // IMPORTANT : on bufferise (arrayBuffer) au lieu de streamer r.body.
+          // Le streaming à travers le Worker peut faire planter Cloudflare en
+          // 502 si l'upstream coupe la connexion en cours de route.
+          const audio = await r.arrayBuffer();
+          return new Response(audio, {
             status: 200,
             headers: {
               ...CORS,
@@ -79,7 +88,11 @@ export const Route = createFileRoute("/api/public/radio-tts")({
             },
           });
         } catch (e) {
-          return new Response(`Error: ${(e as Error).message}`, { status: 500, headers: CORS });
+          console.warn("[radio-tts] error", (e as Error).message);
+          return new Response(JSON.stringify({ error: "TTS_FAILED", fallback: true }), {
+            status: 200,
+            headers: { ...CORS, "Content-Type": "application/json" },
+          });
         }
       },
     },

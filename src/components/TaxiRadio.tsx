@@ -309,7 +309,13 @@ export default function TaxiRadio() {
         body: JSON.stringify({ text, lang: l }),
       });
       if (!res.ok) {
-        console.warn("[Radio] TTS HTTP", res.status, await res.text().catch(() => ""));
+        console.warn("[Radio] TTS HTTP", res.status);
+        speakBrowser();
+        return;
+      }
+      // Le route peut renvoyer 200 + JSON {fallback:true} si l'amont a échoué.
+      const ctype = res.headers.get("content-type") || "";
+      if (ctype.includes("application/json")) {
         speakBrowser();
         return;
       }
