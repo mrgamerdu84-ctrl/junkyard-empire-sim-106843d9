@@ -596,7 +596,7 @@ export default function CityTraffic() {
           >
             {car.imageUrl ? (
               <g transform="rotate(90)">
-                <ellipse cx="0" cy={SPRITE_SIZE * 0.18} rx={SPRITE_SIZE * 0.42} ry={SPRITE_SIZE * 0.18} fill="rgba(0,0,0,0.45)" />
+                
                 <image
                   href={car.imageUrl}
                   x={-SPRITE_SIZE / 2}
