@@ -88,6 +88,7 @@ export default function LoadingScreen({ progress }: { progress: number }) {
         const py = (s.y / s.pz) * 800 + cy;
         s.pz = s.z;
 
+        if (!isFinite(px) || !isFinite(py) || !isFinite(sx) || !isFinite(sy)) continue;
         const grad = ctx.createLinearGradient(px, py, sx, sy);
         grad.addColorStop(0, "rgba(253,224,71,0)");
         grad.addColorStop(1, `rgba(253,224,71,${0.3 + r * 0.15})`);

@@ -23,7 +23,7 @@ export const VILLAGE_PATHS = new Set<number>([1]);
 // du centre, à DROITE de son sens de marche. Les véhicules en sens inverse
 // se retrouvent donc de l'autre côté du centre → voies séparées strictes,
 // plus aucun contre-sens visuel.
-const LANE_HALF = 11;
+const LANE_HALF = 6;
 
 /* eslint-disable prettier/prettier */
 

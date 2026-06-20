@@ -3,6 +3,7 @@ import { useState } from "react";
 import citymap from "@/assets/citymap2.jpg";
 import TaxiTycoon from "@/game/TaxiTycoon";
 import CityTraffic from "@/game/CityTraffic";
+import CityCompetitors from "@/game/CityCompetitors";
 import AdminPanel from "@/game/AdminPanel";
 import RulesPanel from "@/game/RulesPanel";
 import VersionBanner from "@/game/VersionBanner";
@@ -64,6 +65,7 @@ function TaxiTycoonPage() {
       <img src={citymap} alt="Plan de la ville pour le jeu de taxi" className="tt-map" />
       <div className="tt-vignette" />
       <CityTraffic />
+      <CityCompetitors />
       <TaxiTycoon />
       <AdminPanel />
       <RulesPanel />
