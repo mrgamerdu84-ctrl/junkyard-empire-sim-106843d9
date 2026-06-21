@@ -288,10 +288,11 @@ export default function TaxiRadio() {
     // Fallback de sécurité : si rien ne se passe sous 20s, on libère la séquence
     const failsafe = window.setTimeout(done, 20000);
     const wrapDone = () => { window.clearTimeout(failsafe); done(); };
-   try { window.speechSynthesis.cancel(); } catch {}
-try { window.speechSynthesis.resume(); } catch {}
-ttsUnlockedRef.current = true;
-window.speechSynthesis.speak(u);
+    try {
+      if (ttsAudioRef.current) {
+        try { ttsAudioRef.current.pause(); } catch {}
+        ttsAudioRef.current.src = "";
+        ttsAudioRef.current = null;
       }
       const { supabase } = await import("@/integrations/supabase/client");
       const { data: sessionData } = await supabase.auth.getSession();
