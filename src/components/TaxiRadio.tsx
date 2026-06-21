@@ -21,7 +21,7 @@ const STATIONS: Station[] = [
   { id: "infos",    name: "Junky Infos",        emoji: "📰", tts: true },
   { id: "pop",      name: "Radio Pop",          emoji: "🎤", url: "https://ice1.somafm.com/poptron-128-mp3", volume: 0.5 },
   { id: "electro",  name: "Radio Electro",      emoji: "🎧", url: "https://ice1.somafm.com/groovesalad-128-mp3", volume: 0.5 },
-  { id: "rock",     name: "Radio Rock",         emoji: "🎸", url: rockMusic volume: 0.5 
+  { id: "rock",     name: "Radio Rock",         emoji: "🎸", url: rockMusic,volume: 0.5 
   { id: "emotions", name: "Radio Émotions",     emoji: "💖", url: "https://ice1.somafm.com/lush-128-mp3", volume: 0.5 },
   { id: "kids",     name: "Radio Kids",         emoji: "🧸", url: "https://ice1.somafm.com/fluid-128-mp3", volume: 0.5 },
 ];
