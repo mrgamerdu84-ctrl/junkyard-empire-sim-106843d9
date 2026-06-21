@@ -36,6 +36,11 @@ export type AdminConfig = {
   rivalReactionTime: number;     // 1..15 — délai (s) avant qu'un taxi IA ne snipe une course
   rivalSpeedMult: number;        // 0.5..2.5
 
+  // ====== Difficulté IA globale ======
+  // Affecte la vitesse à laquelle l'IA rafle les missions d'urgence
+  // ET le multiplicateur de vitesse appliqué aux taxis IA.
+  aiDifficulty: "easy" | "normal" | "hard";
+
   // ====== Police ======
   policeCarCount: number;        // 0..6 — nb de voitures de police qui patrouillent
 
