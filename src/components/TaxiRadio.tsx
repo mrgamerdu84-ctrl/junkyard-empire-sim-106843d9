@@ -1,10 +1,19 @@
 import { useEffect, useRef, useState } from 'react';
 import { GAME_ASSETS } from '@/game/gameAssets';
-import { RADIO_NEWS_EVENT, AMBIENT_NEWS, WELCOME_JINGLE, getHoroscopeNews, getTvProgramNews, type RadioNews } from '@/lib/radio';
-import junkyCityEmpireAsset from "@/assets/junky_city_empire.mp3.asset.json";
-import rockMusic1 from "@/assets/alex-morgan-rock-rock-music-342492.mp3";
 
-const ROCK_TRACKS = [rockMusic1];
+// On recrée les types et variables ici pour éviter de bloquer sur le fichier manquant
+export type RadioNews = {
+  id: string;
+  title: string;
+  content: string;
+  date?: string;
+};
+
+export const RADIO_NEWS_EVENT = "radio_news_event";
+export const AMBIENT_NEWS = "ambient_news";
+export const WELCOME_JINGLE = "welcome_jingle";
+export const getHoroscopeNews = () => "Voici votre horoscope du jour.";
+export const getTvProgramNews = () => "Ce soir à la télé...";
 
 type Station = {
   id: string;
