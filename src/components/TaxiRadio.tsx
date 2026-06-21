@@ -350,8 +350,11 @@ export default function TaxiRadio() {
   console.warn("[Radio] speak error:", err);
   speakBrowser();
 }
+};
 
-  // ====== Animateur radio (DJ) ======
+
+// ====== Animateur radio (DJ) ======
+const djLine = ...
   const djLine = (stationName: string): RadioNews => {
     const l = langRef.current;
     const now = new Date();
