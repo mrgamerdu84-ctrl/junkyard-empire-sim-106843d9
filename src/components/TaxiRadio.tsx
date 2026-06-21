@@ -596,19 +596,16 @@ const djLine = (stationName: string): RadioNews => {
       <audio
         ref={audioRef}
         preload="auto"
-        onEnded={(e) => {
-          const a = e.currentTarget;
-          const st = STATIONS.find((s) => s.id === stationId);
-          // Fin d'une "chanson" → on relance la séquence : DJ d'abord, PUIS la chanson.
-          // (Ne s'applique qu'aux stations locales en loop ; les flux ne déclenchent pas onEnded.)
-          if (!st?.loop || !st.url || pausedRef.current) return;
-          radioSessionRef.current++;
-          const session = radioSessionRef.current;
-          const startSong = () => {
-            if (session !== radioSessionRef.current || pausedRef.current) return;
-            a.currentTime = 0;
-            a.play().catch(() => {});
-          };
+        
+         onEnded={(e) => {
+  const a = e.currentTarget;
+  const st = STATIONS.find((s) => s.id === stationId);
+
+  if (!st?.url || pausedRef.current) return;
+
+  a.currentTime = 0;
+  a.play().catch(() => {});
+}}
           speak(djLine(st.name), () => {
             if (session !== radioSessionRef.current) return;
             startSong();
