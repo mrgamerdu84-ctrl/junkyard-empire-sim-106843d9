@@ -1,45 +1,32 @@
-import { useEffect, useRef, useState } from 'react';
-import { GAME_ASSETS } from '@/game/gameAssets';
+import { useEffect, useRef, useState } from "react";
+import { GAME_ASSETS } from "@/game/gameAssets";
+import { RADIO_NEWS_EVENT, AMBIENT_NEWS, WELCOME_JINGLE, getHoroscopeNews, getTvProgramNews, type RadioNews } from "@/lib/radioNews";
 
-// Importation directe et propre de tes musiques personnalisées
 import junkyCityEmpireAsset from "@/assets/junky_city_empire.mp3";
-import ironToothAsset from "@/assets/paperplanerecords-automatic-high-512175.mp3";
-import rockMusicAsset from "@/assets/nastelbom-rock-rock-music-813418.mp3";
-import popMusicAsset from "@/assets/jonasblakewood-pop-524182.mp3";
-
-export type RadioNews = {
-  id: string;
-  title: string;
-  content: string;
-  date?: string;
-};
-
-export const RADIO_NEWS_EVENT = "radio_news_event";
-export const AMBIENT_NEWS = "ambient_news";
-export const WELCOME_JINGLE = "welcome_jingle";
-export const getHoroscopeNews = () => "Voici votre horoscope du jour.";
-export const getTvProgramNews = () => "Ce soir à la télé...";
+import ironToothAsset from "@/assets/iron_tooth.mp3";
+import rockMusic from "@/assets/nastelbom-rock-rock-music-513418.mp3";
+import popMusic from "@/assets/jonasblakewood-pop-524162.mp3";
 
 type Station = {
   id: string;
   name: string;
   emoji: string;
-  url: string;
+  url?: string;
   loop?: boolean;
   volume?: number;
   tts?: boolean;
 };
 
 const STATIONS: Station[] = [
-  { id: "main",      name: "Junky Empire Taxi",  emoji: "🚖", url: GAME_ASSETS["audio.music"], loop: true, volume: 0.4 },
-  { id: "jce",       name: "Junky City Empire",  emoji: "🎵", url: junkyCityEmpireAsset, loop: true, volume: 0.6 },
-  { id: "iron",      name: "Iron Tooth",         emoji: "🦷", url: ironToothAsset, loop: true, volume: 0.6 },
-  { id: "infos",     name: "Junky Infos",        emoji: "📰", url: "", tts: true },
-  { id: "pop",       name: "Radio Pop",          emoji: "🎤", url: popMusicAsset, volume: 0.5 },
-  { id: "electro",   name: "Radio Electro",      emoji: "🎧", url: "https://ice1.somafm.com/groovesalad-128-mp3", volume: 0.5 }, 
-  { id: "rock",      name: "Radio Rock",         emoji: "🎸", url: rockMusicAsset, volume: 0.5 }, 
-  { id: "emotions",  name: "Radio Émotions",     emoji: "💖", url: "https://ice1.somafm.com/lush-128-mp3", volume: 0.5 },
-  { id: "kids",      name: "Radio Kids",         emoji: "🧸", url: "https://ice1.somafm.com/fluid-128-mp3", volume: 0.5 },
+  { id: "main", name: "Junky Empire Taxi", emoji: "🚖", url: GAME_ASSETS["audio.music"], loop: true, volume: 0.4 },
+  { id: "jce", name: "Junky City Empire", emoji: "🎵", url: junkyCityEmpireAsset, loop: true, volume: 0.6 },
+  { id: "iron", name: "Iron Tooth", emoji: "🦷", url: ironToothAsset, loop: true, volume: 0.6 },
+  { id: "infos", name: "Junky Infos", emoji: "📰", tts: true },
+  { id: "pop", name: "Radio Pop", emoji: "🎤", url: popMusic, volume: 0.5 },
+  { id: "electro", name: "Radio Electro", emoji: "🎧", url: "https://ice1.somafm.com/groovesalad-128-mp3", volume: 0.5 },
+  { id: "rock", name: "Radio Rock", emoji: "🎸", url: rockMusic, volume: 0.5 },
+  { id: "emotions", name: "Radio Émotions", emoji: "💖", url: "https://ice1.somafm.com/lush-128-mp3", volume: 0.5 },
+  { id: "kids", name: "Radio Kids", emoji: "🧸", url: "https://ice1.somafm.com/fluid-128-mp3", volume: 0.5 },
 ];
 const STORAGE_KEY = "mttw.taxiRadio";
 const LANG_KEY = "mttw.lang";
