@@ -346,7 +346,7 @@ export default function TaxiRadio() {
         a.onended = null; a.onerror = null;
         speakBrowser();
       }
-    catch (err) {
+  catch (err) {
   console.warn("[Radio] speak error
   };
 
