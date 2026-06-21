@@ -1,6 +1,6 @@
 {
-  "version": "1.2.0",
-  "buildId": "2026-06-20T17:00:00.000Z",
-  "builtAt": 1781974800000,
-  "changelog": "Lot 5 : ~32 voitures civiles restaurées (le slider Admin marche à nouveau, aucun GIGN). Sauvegarde cloud par joueur connecté (table game_saves, RLS)."
+  "version": "1.0.0",
+  "buildId": "2026-06-21T00:09:44.695Z",
+  "builtAt": 1782000584695,
+  "changelog": "Mise à jour automatique active"
 }
