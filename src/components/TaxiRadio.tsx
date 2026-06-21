@@ -16,15 +16,14 @@ type Station = {
 
 const STATIONS: Station[] = [
   { id: "main", name: "Junky Empire Taxi", emoji: "🚖", url: GAME_ASSETS["audio.music"], loop: true, volume: 0.4 },
-  { id: "jce", name: "Junky City Empire", emoji: "🎵", url: junkyCityEmpireAsset, loop: true, volume: 0.6 },
-  { id: "iron", name: "Iron Tooth", emoji: "🦷", url: ironToothAsset, loop: true, volume: 0.6 },
+  { id: "jce", name: "Junky City Empire", emoji: "🎵", url: junkyCityEmpireAsset.url, loop: true, volume: 0.6 },
+  { id: "iron", name: "Iron Tooth", emoji: "🦷", url: ironToothAsset.url, loop: true, volume: 0.6 },
   { id: "infos", name: "Junky Infos", emoji: "📰", tts: true },
-{ id: "pop", name: "Radio Pop", emoji: "🎤", url: "https://ice1.somafm.com/poptron-128-mp3", volume: 0.5 },
+  { id: "pop", name: "Radio Pop", emoji: "🎤", url: "https://ice1.somafm.com/poptron-128-mp3", volume: 0.5 },
   { id: "electro", name: "Radio Electro", emoji: "🎧", url: "https://ice1.somafm.com/groovesalad-128-mp3", volume: 0.5 },
- { id: "rock", name: "Radio Rock", emoji: "🎸", url: "https://ice6.somafm.com/thetrip-128-mp3", volume: 0.5 },
+  { id: "rock", name: "Radio Rock", emoji: "🎸", url: "https://ice6.somafm.com/thetrip-128-mp3", volume: 0.5 },
   { id: "emotions", name: "Radio Émotions", emoji: "💖", url: "https://ice1.somafm.com/lush-128-mp3", volume: 0.5 },
   { id: "kids", name: "Radio Kids", emoji: "🧸", url: "https://ice1.somafm.com/fluid-128-mp3", volume: 0.5 },
-  { id: "pop", name: "Radio Pop", emoji: "🎤", url: "https://ice1.somafm.com/poptron-128-mp3", volume: 0.5 },
 ];
 const STORAGE_KEY = "mttw.taxiRadio";
 const LANG_KEY = "mttw.lang";
