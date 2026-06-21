@@ -3,11 +3,12 @@ import { GAME_ASSETS } from "@/game/gameAssets";
 import { RADIO_NEWS_EVENT, AMBIENT_NEWS, WELCOME_JINGLE, getHoroscopeNews, getTvProgramNews, type RadioNews } from "@/lib/radioNews";
 import junkyCityEmpireAsset from "@/assets/junky_city_empire.mp3.asset.json";
 import rockMusic1 from "@/assets/alex-morgan-rock-rock-music-545492.mp3";
-import rockMusic1 from "@/assets/alex-morgan-rock-rock-music-545492.mp3";
-import rockMusic3 from "@/assets/nastelbom-rock-rock-music-513418.mp3";
-
-const ROCK_TRACKS = [rockMusic1, rockMusic3];
-
+import rockMusic3 from "@/assets/nastelbom-rock-rock-music-513418.mp3"
+const ROCK_TRACKS = [
+  rockMusic1,
+  rockMusic2,
+  rockMusic3,
+];
 type Station = {
   id: string;
   name: string;
