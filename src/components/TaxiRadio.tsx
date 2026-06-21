@@ -293,12 +293,15 @@ export default function TaxiRadio() {
       const speakBrowser = () => {
         if (typeof window === "undefined" || !("speechSynthesis" in window)) { wrapDone(); return; }
         try {
+          // Re-pick voice lazily (voices may load after first render)
           const u = new SpeechSynthesisUtterance(text);
           u.lang = l === "en" ? "en-US" : "fr-FR";
           const v = pickVoice(l); if (v) u.voice = v;
+          u.rate = 1.0; u.pitch = 1.0; u.volume = 1.0;
           u.onend = () => wrapDone();
           u.onerror = () => wrapDone();
-          window.speechSynthesis.cancel();
+          try { window.speechSynthesis.cancel(); } catch {}
+          try { window.speechSynthesis.resume(); } catch {}
           window.speechSynthesis.speak(u);
         } catch { wrapDone(); }
       };
