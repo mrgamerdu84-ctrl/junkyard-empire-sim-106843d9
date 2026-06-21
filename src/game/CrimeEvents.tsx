@@ -6,6 +6,7 @@
 // =============================================================
 import { useEffect, useState } from "react";
 import { getGameTime } from "./cityClock";
+import { getAdmin } from "./adminConfig";
 import type { CustomVehicleCategory } from "./gameAssets";
 
 type CrimeKind = "robbery" | "accident" | "control" | "fight" | "fire";
