@@ -350,7 +350,7 @@ export default function TaxiRadio() {
   console.warn("[Radio] speak error:", err);
   speakBrowser();
 }
-};
+
 
 
 // ====== Animateur radio (DJ) ======
