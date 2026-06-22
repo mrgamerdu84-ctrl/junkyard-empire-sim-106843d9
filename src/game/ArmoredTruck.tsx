@@ -68,7 +68,8 @@ function fmtMoney(n: number): string {
 
 export default function ArmoredTruck() {
   const cfg = useAdminConfig();
-  void cfg; // (placeholder pour usage futur — fréquence configurable)
+  const cfgRef = useRef(cfg);
+  useEffect(() => { cfgRef.current = cfg; }, [cfg]);
 
   const [phase, setPhase] = useState<Phase>("idle");
   const [pathIdx, setPathIdx] = useState(0);
@@ -115,8 +116,16 @@ export default function ArmoredTruck() {
   const scheduleNext = (first = false) => {
     const lo = first ? FIRST_SPAWN_MIN_MS : SPAWN_MIN_MS;
     const hi = first ? FIRST_SPAWN_MAX_MS : SPAWN_MAX_MS;
-    const ms = lo + Math.random() * (hi - lo);
-    return window.setTimeout(spawn, ms);
+    const mult = Math.max(0.1, cfgRef.current.armoredFreqMult || 1);
+    const ms = (lo + Math.random() * (hi - lo)) * mult;
+    return window.setTimeout(() => {
+      if (cfgRef.current.armoredAutoSpawn === false) {
+        // auto-spawn désactivé : on re-planifie plus tard
+        scheduleNext(false);
+        return;
+      }
+      spawn();
+    }, ms);
   };
 
   const spawn = () => {
@@ -135,7 +144,7 @@ export default function ArmoredTruck() {
     // Tentative IA : un rival peut se lancer après un délai aléatoire
     const w = window as unknown as { __jceCompetitors?: Competitor[] };
     const alive = (w.__jceCompetitors ?? []).filter((c) => !c.bankrupt);
-    if (alive.length > 0 && Math.random() < RIVAL_ATTEMPT_CHANCE) {
+    if (cfgRef.current.rivalsCanHeist !== false && alive.length > 0 && Math.random() < RIVAL_ATTEMPT_CHANCE) {
       const r = alive[Math.floor(Math.random() * alive.length)];
       const delay = 2500 + Math.random() * (TRUCK_TRAVEL_S * 1000 - 5000);
       window.setTimeout(() => {
@@ -207,7 +216,18 @@ export default function ArmoredTruck() {
   // ---------- Boucle de planification ----------
   useEffect(() => {
     const t = scheduleNext(true);
-    return () => window.clearTimeout(t);
+    const onManual = () => {
+      setPhase((p) => {
+        if (p !== "idle" && p !== "done") return p; // déjà en cours
+        spawn();
+        return "rolling";
+      });
+    };
+    window.addEventListener("jce:armored-spawn-now", onManual);
+    return () => {
+      window.clearTimeout(t);
+      window.removeEventListener("jce:armored-spawn-now", onManual);
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
