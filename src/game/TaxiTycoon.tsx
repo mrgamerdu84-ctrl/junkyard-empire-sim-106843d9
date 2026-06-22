@@ -172,7 +172,9 @@ type SaveData = {
   hqRevenueLvl: number;    // +10% revenu par niveau (0..5)
   cityFund: number;        // 💰 Caisse de la ville (alimentée par les amendes)
   playerTaxiColor: string; // couleur visuelle du taxi joueur
+  taxiWear: number;        // 🔧 usure flotte 0..100 — au-delà de 70 pénalise les revenus
 };
+
 
 const HQ_UPGRADE_MAX = 5;
 const HQ_UPGRADE_BASE_COST = { capacity: 1200, production: 1500, revenue: 2000 } as const;
@@ -211,7 +213,9 @@ const DEFAULT_SAVE: SaveData = {
   hqRevenueLvl: 0,
   cityFund: 0,
   playerTaxiColor: "blue",
+  taxiWear: 0,
 };
+
 
 
 
@@ -741,7 +745,18 @@ export default function TaxiTycoon() {
     // tier client : forcé par circuit VIP, sinon roll selon permis
     const tier = forcedTier ?? rollClientTier(license.level);
     const tMult = tierFareMult(tier);
-    const baseFare = Math.round((25 + distNorm * 220) * t.fareMult * adm.clientFareMult * revBonus * tMult);
+    // 🏙️ Tarif dynamique par quartier : centre-ville paie plus, banlieue moins.
+    const pPath = pathRefs.current[pickupPath];
+    let districtMult = 1;
+    if (pPath) {
+      const pt = pPath.getPointAtLength(pickup);
+      const dx = pt.x - 960, dy = pt.y - 540;
+      const dist = Math.sqrt(dx * dx + dy * dy);
+      // 0 au centre → 1.30, ~1100 (coin) → 0.85
+      districtMult = Math.max(0.85, Math.min(1.30, 1.30 - (dist / 1100) * 0.45));
+    }
+    const baseFare = Math.round((25 + distNorm * 220) * t.fareMult * adm.clientFareMult * revBonus * tMult * districtMult);
+
     const duration = (22 + Math.min(20, baseFare / 30)) * 1000;
     return {
       id, pickupPath, pickup, dropoffPath, dropoff, fare: baseFare,
@@ -1110,13 +1125,20 @@ export default function TaxiTycoon() {
               // Bonus Taxi d'Or : +50% tarif si débloqué
               const bonus = isSpecialTaxiUnlocked() ? 1.5 : 1;
               const specialMult = j.tier === "special" ? (j.specialFareMult ?? 1) : 1;
-              const finalFare = Math.round(j.fare * bonus * specialMult);
+              // 🔧 Usure de la flotte : pénalité progressive au-delà de 70
+              const wear = saveRef.current.taxiWear ?? 0;
+              const wearMult = wear >= 90 ? 0.75 : wear >= 70 ? 0.9 : 1;
+              // 💵 Pourboire : 30% de chance, +5 à +25%
+              const tipRoll = Math.random();
+              const tipMult = tipRoll < 0.30 ? 1 + (0.05 + Math.random() * 0.20) : 1;
+              const finalFare = Math.round(j.fare * bonus * specialMult * wearMult * tipMult);
               if (p) {
                 const pt = p.getPointAtLength(j.dropoff);
                 const tag = j.tier === "special"
                   ? `👑 MISSION +${fmt(finalFare)}$`
                   : j.tier === "star" ? `⭐ +${fmt(finalFare)}$`
                   : j.tier === "vip" ? `🥈 +${fmt(finalFare)}$`
+                  : tipMult > 1 ? `💵 +${fmt(finalFare)}$ (pourboire)`
                   : `+${fmt(finalFare)}$`;
                 popFloat(tag, pt.x, pt.y);
               }
@@ -1130,9 +1152,11 @@ export default function TaxiTycoon() {
                 totalEarned: s.totalEarned + finalFare,
                 customersServed: s.customersServed + 1,
                 jobsCompleted: s.jobsCompleted + 1,
+                taxiWear: Math.min(100, (s.taxiWear ?? 0) + 1.5),
               }));
               setJobs((js) => js.filter((x) => x.id !== j.id));
             }
+
 
 
             taxi.jobId = null;
@@ -1821,6 +1845,20 @@ export default function TaxiTycoon() {
     setSave((s) => ({ ...s, money: s.money - speedCost, taxiSpeedLvl: s.taxiSpeedLvl + 1 }));
     showToast(`⚡ Taxis plus rapides !`);
   };
+
+  // 🔧 Entretien : 8 $ par point d'usure, remet la flotte à neuf.
+  const wearNow = Math.round(save.taxiWear ?? 0);
+  const maintenanceCost = Math.max(0, wearNow * 8);
+  const repairTaxis = () => {
+    if (wearNow <= 0) { showToast("Flotte déjà en parfait état"); return; }
+    if (save.money < maintenanceCost) {
+      showToast(`Il manque ${fmt(maintenanceCost - save.money)} $`);
+      return;
+    }
+    setSave((s) => ({ ...s, money: s.money - maintenanceCost, taxiWear: 0 }));
+    showToast("🔧 Flotte entretenue, revenus restaurés !");
+  };
+
 
   const [garageOpen, setGarageOpen] = useState(false);
   const [shopOpen, setShopOpen] = useState(false);
@@ -2694,12 +2732,23 @@ export default function TaxiTycoon() {
             <span className="tt-btn-lbl">{nextTier ? `Améliorer dépôt` : `Dépôt max`}</span>
             <span className="tt-btn-cost">{nextTier ? `${fmt(nextTier.cost)}$` : "—"}</span>
           </button>
+          <button
+            className="tt-btn"
+            onClick={repairTaxis}
+            disabled={wearNow <= 0 || save.money < maintenanceCost}
+            title={wearNow >= 70 ? "Usure critique : revenus réduits !" : "Garde ta flotte en forme"}
+          >
+            <span className="tt-btn-ico">{wearNow >= 70 ? "⚠️" : "🔧"}</span>
+            <span className="tt-btn-lbl">Entretien {wearNow}%</span>
+            <span className="tt-btn-cost">{wearNow > 0 ? `${fmt(maintenanceCost)}$` : "OK"}</span>
+          </button>
           <button className="tt-btn shop" onClick={() => setShopOpen(true)} title="Boutique d'améliorations QG">
             <span className="tt-btn-ico">🏪</span>
             <span className="tt-btn-lbl">Boutique QG</span>
             <span className="tt-btn-cost">Améliorations</span>
           </button>
         </div>
+
 
         {/* === Modal Boutique QG === */}
         {shopOpen && (
