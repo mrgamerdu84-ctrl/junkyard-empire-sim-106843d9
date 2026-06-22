@@ -1877,6 +1877,39 @@ export default function TaxiTycoon() {
     try { localStorage.setItem("tt-actions-open", actionsOpen ? "1" : "0"); } catch {}
   }, [actionsOpen]);
   const audioRef = useRef<HTMLAudioElement | null>(null);
+  // Taxis qui klaxonnent (phares + bip court) — déclenché au clic joueur.
+  const [honkingTaxis, setHonkingTaxis] = useState<Set<number>>(() => new Set());
+  const honkTaxi = (id: number) => {
+    setHonkingTaxis((s) => {
+      const n = new Set(s); n.add(id); return n;
+    });
+    window.setTimeout(() => {
+      setHonkingTaxis((s) => {
+        const n = new Set(s); n.delete(id); return n;
+      });
+    }, 700);
+    // Bip court — Web Audio (pas d'asset à charger).
+    try {
+      const W = window as unknown as { __jceHonkCtx?: AudioContext };
+      const Ctor = (window.AudioContext || (window as any).webkitAudioContext) as typeof AudioContext | undefined;
+      if (!Ctor) return;
+      if (!W.__jceHonkCtx) W.__jceHonkCtx = new Ctor();
+      const ctx = W.__jceHonkCtx!;
+      if (ctx.state === "suspended") void ctx.resume();
+      const t0 = ctx.currentTime;
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = "square";
+      osc.frequency.setValueAtTime(520, t0);
+      osc.frequency.exponentialRampToValueAtTime(420, t0 + 0.18);
+      gain.gain.setValueAtTime(0.0001, t0);
+      gain.gain.exponentialRampToValueAtTime(0.18, t0 + 0.02);
+      gain.gain.exponentialRampToValueAtTime(0.0001, t0 + 0.22);
+      osc.connect(gain).connect(ctx.destination);
+      osc.start(t0);
+      osc.stop(t0 + 0.25);
+    } catch {}
+  };
   const allLiveries = useMemo(() => getAllLiveries(), []);
   const currentLivery = allLiveries.find((l) => l.id === save.liveryId) ?? allLiveries[0];
   const currentPaint = TAXI_PAINTS.find((p) => p.id === save.playerTaxiColor) ?? TAXI_PAINTS[0];
