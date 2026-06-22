@@ -602,7 +602,7 @@ export default function CityTraffic() {
       type WP = { x: number; y: number; dx: number; dy: number };
       const wps = new Map<CarState, WP>();
       for (const st of states) {
-        if (st.mission) continue;
+        if (st.mission || st.parking) continue;
         const path = pathRefs.current[st.spec.pathIdx];
         if (!path) continue;
         const fwd = st.spec.flip ? st.pathLen - st.s : st.s;
@@ -613,7 +613,7 @@ export default function CityTraffic() {
         wps.set(st, { x: p.x, y: p.y, dx: tdx / L, dy: tdy / L });
       }
       for (const lane of lanes.values()) {
-        const sorted = [...lane].filter(s => !s.mission).sort((a, b) => b.s - a.s);
+        const sorted = [...lane].filter(s => !s.mission && !s.parking).sort((a, b) => b.s - a.s);
         for (let i = 0; i < sorted.length; i++) {
           const me = sorted[i];
           const ahead = sorted[(i - 1 + sorted.length) % sorted.length];
