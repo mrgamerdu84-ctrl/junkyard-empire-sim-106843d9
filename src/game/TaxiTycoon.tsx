@@ -82,7 +82,15 @@ type Taxi = {
   ridesSinceDeposit: number; // nb courses depuis le dernier dépôt au QG
   depositUntil?: number;     // timestamp ms : fin du dépôt au QG
   mustDeposit?: boolean;     // flag : doit déposer au QG en retournant
+  // Transition douce lors d'un changement de path (acceptation de course) :
+  // on évite le « saut » visuel en interpolant entre la position d'origine
+  // et la nouvelle position sur le path pickup pendant TRANSITION_MS.
+  transitionFromX?: number;
+  transitionFromY?: number;
+  transitionUntil?: number;
 };
+const TRANSITION_MS = 700;
+
 
 // Mécanique : retour au QG tous les N courses, attente de DEPOSIT_MS
 const DEPOSIT_EVERY_RIDES = 3;
@@ -2055,6 +2063,11 @@ export default function TaxiTycoon() {
     free.target = job.pickup;
     free.mode = "to_pickup";
     syncVehicleLane(free);
+    // Transition douce : on mémorise la position actuelle pour interpoler
+    // visuellement vers le nouveau path (évite le « saut » de voie).
+    free.transitionFromX = here.x;
+    free.transitionFromY = here.y;
+    free.transitionUntil = performance.now() + TRANSITION_MS;
     setJobs((js) => js.map((j) => j.id === id ? { ...j, status: "accepted", acceptedAt: Date.now() } : j));
   };
 
@@ -2259,8 +2272,44 @@ export default function TaxiTycoon() {
           );
         })}
 
-        {/* Itinéraires des courses acceptées — désactivés (rendu visuel jugé peu joli).
-            Les marqueurs pickup/dropoff suffisent à guider le joueur. */}
+        {/* Itinéraires des courses acceptées — flèche guide entre le taxi,
+            le client (pickup) et la destination (dropoff). */}
+        <defs>
+          <marker id="tt-route-arrow" viewBox="0 0 10 10" refX="8" refY="5"
+            markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+            <path d="M 0 0 L 10 5 L 0 10 z" fill="#3b82f6" />
+          </marker>
+          <marker id="tt-route-arrow-orange" viewBox="0 0 10 10" refX="8" refY="5"
+            markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+            <path d="M 0 0 L 10 5 L 0 10 z" fill="#f59e0b" />
+          </marker>
+        </defs>
+        {jobs.map((j) => {
+          if (j.status !== "accepted") return null;
+          const taxi = taxisRef.current.find((t) => t.jobId === j.id);
+          if (!taxi) return null;
+          const pickup = getSidewalk(j.pickupPath, j.pickup, j.sidePickup);
+          const drop = getSidewalk(j.dropoffPath, j.dropoff, j.sideDrop);
+          if (taxi.mode === "to_pickup") {
+            const here = taxiXY(taxi);
+            return (
+              <line key={"r" + j.id} x1={here.x} y1={here.y} x2={pickup.x} y2={pickup.y}
+                stroke="#3b82f6" strokeWidth="3" strokeOpacity="0.75"
+                strokeDasharray="10 6" strokeLinecap="round"
+                markerEnd="url(#tt-route-arrow)" pointerEvents="none" />
+            );
+          }
+          if (taxi.mode === "to_dest") {
+            const here = taxiXY(taxi);
+            return (
+              <line key={"r" + j.id} x1={here.x} y1={here.y} x2={drop.x} y2={drop.y}
+                stroke="#f59e0b" strokeWidth="3" strokeOpacity="0.75"
+                strokeDasharray="10 6" strokeLinecap="round"
+                markerEnd="url(#tt-route-arrow-orange)" pointerEvents="none" />
+            );
+          }
+          return null;
+        })}
 
         {/* Dropoffs — sur le trottoir, uniquement pour les courses acceptées */}
         {jobs.map((j) => {
@@ -2650,7 +2699,23 @@ export default function TaxiTycoon() {
             const movingForward = taxi.target >= taxi.pos;
             const onPath = taxi.lane ?? getLaneXY(taxi.pathIdx, taxi.pos, movingForward);
             const parkInfo = parked.find((q) => q.taxi.id === taxi.id);
-            const p = parkInfo ? slotWorld(parkInfo.slot) : onPath;
+            let p = parkInfo ? slotWorld(parkInfo.slot) : onPath;
+            // Transition douce après acceptation : lerp visuel pour éviter le saut.
+            if (!parkInfo && taxi.transitionUntil && taxi.transitionFromX != null && taxi.transitionFromY != null) {
+              const tNow = performance.now();
+              if (tNow < taxi.transitionUntil) {
+                const k = 1 - (taxi.transitionUntil - tNow) / TRANSITION_MS;
+                const ease = k * k * (3 - 2 * k);
+                const lx = taxi.transitionFromX + (onPath.x - taxi.transitionFromX) * ease;
+                const ly = taxi.transitionFromY + (onPath.y - taxi.transitionFromY) * ease;
+                const dxA = onPath.x - taxi.transitionFromX;
+                const dyA = onPath.y - taxi.transitionFromY;
+                const ang = Math.hypot(dxA, dyA) > 2
+                  ? (Math.atan2(dyA, dxA) * 180) / Math.PI
+                  : onPath.angle;
+                p = { x: lx, y: ly, angle: ang };
+              }
+            }
             const angle = p.angle;
             const fuelPct = Math.max(0, Math.min(1, taxi.fuel / 100));
             const fuelLow = taxi.fuel < FUEL_LOW_THRESHOLD;
