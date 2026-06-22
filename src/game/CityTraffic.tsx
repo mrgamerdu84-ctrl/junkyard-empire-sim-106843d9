@@ -173,6 +173,8 @@ function PhotoPedestrians({ pathRefs }: { pathRefs: React.MutableRefObject<(SVGP
         if (!path || !node) continue;
         st.s = (st.s + st.spec.speed * dt) % st.pathLen;
         const p = path.getPointAtLength(st.s);
+        // CULLING : hors viewport SVG (avec marge) → skip getPointAtLength d'appoint + DOM write.
+        if (p.x < -200 || p.x > 2120 || p.y < -200 || p.y > 1280) continue;
         const p2 = path.getPointAtLength(Math.min(st.pathLen, st.s + 1));
         const dx = p2.x - p.x, dy = p2.y - p.y;
         const L = Math.hypot(dx, dy) || 1;
@@ -353,6 +355,7 @@ type CarState = {
   parking?: Parking;
   pausedS?: number;              // st.s gelé pendant le parking
   nextParkAttemptAt?: number;    // cooldown anti re-park immédiat
+  visible?: boolean;             // CULLING : dans le viewport visible (+ marge)
 };
 
 // Réglages parking
@@ -443,6 +446,48 @@ export default function CityTraffic() {
   const pathRefs = useRef<(SVGPathElement | null)[]>([]);
   const carNodes = useRef<(SVGGElement | null)[]>([]);
   const parkPedNodes = useRef<(SVGGElement | null)[]>([]);
+  const svgRef = useRef<SVGSVGElement | null>(null);
+  // Viewport visible en coordonnées SVG (avec preserveAspectRatio="xMidYMid slice").
+  // Recalculé sur resize. Marge de 200 px pour pré-activer les véhicules qui entrent.
+  const visibleRect = useRef<{ minX: number; minY: number; maxX: number; maxY: number }>({
+    minX: -9999, minY: -9999, maxX: 9999, maxY: 9999,
+  });
+  useEffect(() => {
+    const recompute = () => {
+      const svg = svgRef.current;
+      if (!svg) return;
+      const r = svg.getBoundingClientRect();
+      if (r.width <= 0 || r.height <= 0) return;
+      const VB_W = 1920, VB_H = 1080;
+      const containerRatio = r.width / r.height;
+      const vbRatio = VB_W / VB_H;
+      let visW: number, visH: number;
+      if (containerRatio > vbRatio) {
+        // largeur entièrement visible, hauteur slicée
+        visW = VB_W;
+        visH = VB_W / containerRatio;
+      } else {
+        // hauteur entièrement visible, largeur slicée
+        visH = VB_H;
+        visW = VB_H * containerRatio;
+      }
+      const cx = VB_W / 2, cy = VB_H / 2;
+      const margin = 220;
+      visibleRect.current = {
+        minX: cx - visW / 2 - margin,
+        minY: cy - visH / 2 - margin,
+        maxX: cx + visW / 2 + margin,
+        maxY: cy + visH / 2 + margin,
+      };
+    };
+    recompute();
+    window.addEventListener("resize", recompute);
+    window.addEventListener("orientationchange", recompute);
+    return () => {
+      window.removeEventListener("resize", recompute);
+      window.removeEventListener("orientationchange", recompute);
+    };
+  }, []);
   const [lights, setLights] = useState<TrafficLight[]>([]);
 
 
@@ -601,19 +646,23 @@ export default function CityTraffic() {
       // 1a) Pré-calcul des positions monde + vecteur direction pour le check cross-lane.
       type WP = { x: number; y: number; dx: number; dy: number };
       const wps = new Map<CarState, WP>();
+      const vr = visibleRect.current;
       for (const st of states) {
-        if (st.mission || st.parking) continue;
+        if (st.mission || st.parking) { st.visible = true; continue; }
         const path = pathRefs.current[st.spec.pathIdx];
-        if (!path) continue;
+        if (!path) { st.visible = false; continue; }
         const fwd = st.spec.flip ? st.pathLen - st.s : st.s;
         const p = path.getPointAtLength(fwd);
+        // CULLING : hors viewport (+ marge) → pas de tangente, pas de raycast, pas de DOM write.
+        st.visible = p.x >= vr.minX && p.x <= vr.maxX && p.y >= vr.minY && p.y <= vr.maxY;
+        if (!st.visible) continue;
         const p2 = path.getPointAtLength(Math.min(st.pathLen, fwd + (st.spec.flip ? -1 : 1)));
         const tdx = p2.x - p.x, tdy = p2.y - p.y;
         const L = Math.hypot(tdx, tdy) || 1;
         wps.set(st, { x: p.x, y: p.y, dx: tdx / L, dy: tdy / L });
       }
       for (const lane of lanes.values()) {
-        const sorted = [...lane].filter(s => !s.mission && !s.parking).sort((a, b) => b.s - a.s);
+        const sorted = [...lane].filter(s => !s.mission && !s.parking && s.visible).sort((a, b) => b.s - a.s);
         for (let i = 0; i < sorted.length; i++) {
           const me = sorted[i];
           const ahead = sorted[(i - 1 + sorted.length) % sorted.length];
@@ -638,7 +687,7 @@ export default function CityTraffic() {
           const myWp = wps.get(me);
           if (myWp) {
             for (const other of states) {
-              if (other === me || other.mission || other.parking) continue;
+              if (other === me || other.mission || other.parking || !other.visible) continue;
               if (other.laneKey === me.laneKey) continue; // même lane déjà traité
               const owp = wps.get(other);
               if (!owp) continue;
@@ -663,6 +712,11 @@ export default function CityTraffic() {
             if (me.speed < floor) me.speed = floor;
           } else if (me.speed < 0) me.speed = 0;
         }
+      }
+      // Cars hors-écran : roulent à vitesse de base (pas de calcul de gap, pas de raycast).
+      for (const st of states) {
+        if (st.mission || st.parking || st.visible) continue;
+        st.speed = st.baseSpeed;
       }
 
       // 1c) Spawner de stationnements — maintient entre PARK_TARGET_MIN et PARK_TARGET_MAX
@@ -837,6 +891,13 @@ export default function CityTraffic() {
         } else if (prev > st.s) {
           st.s = st.s % st.pathLen;
         }
+        // CULLING : hors-écran → on n'a pas besoin de calculer la tangente ni
+        // d'écrire dans le DOM. La voiture continue d'avancer (st.s) à
+        // baseSpeed et sera remise à jour visuellement dès qu'elle réapparaît.
+        if (!st.visible) {
+          checkRadars(st, prev);
+          continue;
+        }
         const path = pathRefs.current[st.spec.pathIdx];
         if (!path) continue;
         const lenForward = st.spec.flip ? st.pathLen - st.s : st.s;
@@ -864,6 +925,7 @@ export default function CityTraffic() {
 
   return (
     <svg
+      ref={svgRef}
       viewBox="0 0 1920 1080"
       preserveAspectRatio="xMidYMid slice"
       style={{ position: "absolute", inset: 0, width: "100%", height: "100%", pointerEvents: "none", zIndex: 3 }}
