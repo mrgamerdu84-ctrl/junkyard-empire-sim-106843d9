@@ -287,35 +287,9 @@ export default function ArmoredTruck() {
       truckPosRef.current = { x: tx, y: ty };
       truckRef.current?.setAttribute("transform", `translate(${tx.toFixed(2)},${ty.toFixed(2)}) rotate(${ang.toFixed(2)})`);
 
-      // Animer le braqueur + flics autour du camion
-      if (phase === "heist" && chaserRef.current) {
-        const tHeist = (now - heistStartRef.current) / 1000;
-        const u2 = Math.min(1, tHeist / HEIST_DURATION_S);
-        // Le braqueur arrive (0→0.4) puis repart vers QG joueur (0.4→1)
-        const hqX = 230, hqY = 900; // par défaut HQ joueur (cohérent adminConfig)
-        let cx: number, cy: number;
-        if (u2 < 0.4) {
-          const k = u2 / 0.4;
-          cx = hqX + (tx - hqX) * k;
-          cy = hqY + (ty - hqY) * k;
-        } else {
-          const k = (u2 - 0.4) / 0.6;
-          cx = tx + (hqX - tx) * k;
-          cy = ty + (hqY - ty) * k;
-        }
-        chaserRef.current.setAttribute("transform", `translate(${cx.toFixed(2)},${cy.toFixed(2)})`);
-        // Flics : convergent toujours sur le braqueur avec lag
-        for (let i = 0; i < polRefs.current.length; i++) {
-          const node = polRefs.current[i];
-          if (!node) continue;
-          const lag = 0.08 + i * 0.06;
-          const offX = Math.cos(now / 220 + i) * 24;
-          const offY = Math.sin(now / 200 + i * 1.7) * 18;
-          const px = cx - (cx - hqX) * lag + offX;
-          const py = cy - (cy - hqY) * lag + offY;
-          node.setAttribute("transform", `translate(${px.toFixed(2)},${py.toFixed(2)})`);
-        }
-      }
+      // NB : plus aucun véhicule dessiné en dur (braqueur / flics).
+      // Le visuel de poursuite est porté par les taxis du joueur et des rivaux
+      // ainsi que les voitures de police importées via l'admin.
 
       raf = requestAnimationFrame(step);
     };
