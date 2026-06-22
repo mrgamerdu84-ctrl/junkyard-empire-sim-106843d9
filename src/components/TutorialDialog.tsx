@@ -65,6 +65,32 @@ function applyVeteranTone(utter: SpeechSynthesisUtterance) {
   utter.volume = 1.0;
 }
 
+// Helper unique : ne touche jamais à SpeechSynthesisUtterance si l'API
+// n'existe pas (preview sandbox, iOS lockdown, navigateurs anciens…).
+// Toute erreur est avalée — le tuto ne doit JAMAIS crasher la page.
+function speakStep(title: string, text: string) {
+  try {
+    if (typeof window === "undefined") return;
+    const synth = window.speechSynthesis;
+    if (!synth || typeof window.SpeechSynthesisUtterance !== "function") return;
+    try { synth.cancel(); } catch {}
+    const utter = new window.SpeechSynthesisUtterance(`${title}. ${text}`);
+    applyVeteranTone(utter);
+    const v = pickFrenchMaleVoice();
+    if (v) utter.voice = v;
+    synth.speak(utter);
+  } catch {
+    /* silencieux : pas de voix dispo, on n'empêche pas le tuto */
+  }
+}
+
+function cancelSpeak() {
+  try {
+    if (typeof window === "undefined") return;
+    window.speechSynthesis?.cancel();
+  } catch {}
+}
+
 export default function TutorialDialog({ onClose }: { onClose: () => void }) {
   const [step, setStep] = useState(0);
   const [muted, setMuted] = useState(false);
@@ -77,48 +103,29 @@ export default function TutorialDialog({ onClose }: { onClose: () => void }) {
   useEffect(() => {
     if (typeof window === "undefined" || !window.speechSynthesis) return;
     const handler = () => { /* trigger voices load */ };
-    window.speechSynthesis.getVoices();
+    try { window.speechSynthesis.getVoices(); } catch {}
     window.speechSynthesis.addEventListener?.("voiceschanged", handler);
     return () => {
       window.speechSynthesis.removeEventListener?.("voiceschanged", handler);
-      try { window.speechSynthesis.cancel(); } catch {}
+      cancelSpeak();
     };
   }, []);
 
   // Lit chaque étape à voix haute
   useEffect(() => {
-    if (typeof window === "undefined" || !window.speechSynthesis) return;
-    try { window.speechSynthesis.cancel(); } catch {}
-    if (mutedRef.current) return;
-    const utter = new SpeechSynthesisUtterance(`${s.title}. ${s.text}`);
-    applyVeteranTone(utter);
-    const v = pickFrenchMaleVoice();
-    if (v) utter.voice = v;
-    try { window.speechSynthesis.speak(utter); } catch {}
+    if (mutedRef.current) { cancelSpeak(); return; }
+    speakStep(s.title, s.text);
   }, [step, s.title, s.text]);
 
-  const stopVoice = () => {
-    if (typeof window !== "undefined" && window.speechSynthesis) {
-      try { window.speechSynthesis.cancel(); } catch {}
-    }
+  const toggleMute = () => {
+    const nm = !mutedRef.current;
+    mutedRef.current = nm;
+    setMuted(nm);
+    if (nm) cancelSpeak();
+    else speakStep(s.title, s.text);
   };
 
-  const toggleMute = () => {
-    setMuted(m => {
-      const nm = !m;
-      mutedRef.current = nm;
-      if (nm) stopVoice();
-      else {
-        // relit l'étape courante
-        const utter = new SpeechSynthesisUtterance(`${s.title}. ${s.text}`);
-        applyVeteranTone(utter);
-        const v = pickFrenchMaleVoice();
-        if (v) utter.voice = v;
-        try { window.speechSynthesis.speak(utter); } catch {}
-      }
-      return nm;
-    });
-  };
+  const stopVoice = cancelSpeak;
 
   const next = () => {
     stopVoice();
