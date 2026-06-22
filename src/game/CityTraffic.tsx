@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { useAdminConfig } from "./adminConfig";
-import { PEDESTRIAN_PHOTO_URLS, listCustomVehicles, getCivilCarUrls, GAME_ASSETS, type CustomVehicleCategory } from "./gameAssets";
+import { getPedestrianPhotoUrls, listCustomVehicles, getCivilCarUrls, GAME_ASSETS, type CustomVehicleCategory } from "./gameAssets";
 import { VehicleSvg, type VehicleSvgKind } from "./vehicles/VehicleSvgs";
 import {
   initTrafficLights,
@@ -12,7 +12,10 @@ import {
 } from "./trafficLights";
 import { PARKING_ZONES, pickFreeZone } from "./parkingZones";
 
-const PED_PHOTO_IMAGES = PEDESTRIAN_PHOTO_URLS;
+// Dynamique : inclut les piétons custom uploadés via le panel admin.
+// Recalculé à chaque appel — les composants qui en dépendent écoutent
+// 'jce.customPedestrians.changed' pour re-render.
+const getPedPhotoImages = () => getPedestrianPhotoUrls();
 
 // Plus aucun path n'est interdit : toutes les routes de la map sont utilisées
 // par le trafic civil, les courses taxi et les concurrents. On conserve
@@ -157,6 +160,13 @@ export function lockToSidewalk(
 
 function PhotoPedestrians({ pathRefs }: { pathRefs: React.MutableRefObject<(SVGPathElement | null)[]> }) {
   const nodes = useRef<(SVGGElement | null)[]>([]);
+  // Rotation aléatoire des sprites parmi tous ceux dispos (défaut + custom admin).
+  const [pool, setPool] = useState<string[]>(() => getPedPhotoImages());
+  useEffect(() => {
+    const onChange = () => setPool(getPedPhotoImages());
+    window.addEventListener("jce.customPedestrians.changed", onChange);
+    return () => window.removeEventListener("jce.customPedestrians.changed", onChange);
+  }, []);
   useEffect(() => {
     const lens = pathRefs.current.map(p => p ? p.getTotalLength() : 0);
     if (lens.some(l => l <= 1)) return;
@@ -219,7 +229,7 @@ function PhotoPedestrians({ pathRefs }: { pathRefs: React.MutableRefObject<(SVGP
             {/* +90° : sprite top-down "tête au nord", parent applique rotate(angle) basé sur +x */}
             <g transform="rotate(90)">
               <image
-                href={PED_PHOTO_IMAGES[spec.imageIdx]}
+                href={pool[(spec.imageIdx + i) % Math.max(1, pool.length)] ?? pool[0]}
                 x={-S / 2}
                 y={-S / 2}
                 width={S}
@@ -767,7 +777,7 @@ export default function CityTraffic() {
                   angle: zone.angle,
                   tdx, tdy,
                   side,
-                  pedSpriteIdx: Math.floor(Math.random() * PED_PHOTO_IMAGES.length),
+                  pedSpriteIdx: Math.floor(Math.random() * getPedPhotoImages().length),
                   pedWalkMs: 1800 + Math.random() * 1400,
                   pedReturnAt: now + PARK_APPROACH_MS + parkedMs - 2000,
                 };
@@ -1026,7 +1036,7 @@ export default function CityTraffic() {
               <ellipse cx="0" cy={S * 0.2} rx={S * 0.35} ry={S * 0.18} fill="rgba(0,0,0,0.45)" />
               <g transform="rotate(90)">
                 <image
-                  href={PED_PHOTO_IMAGES[0]}
+                  href={getPedPhotoImages()[0]}
                   x={-S / 2}
                   y={-S / 2}
                   width={S}

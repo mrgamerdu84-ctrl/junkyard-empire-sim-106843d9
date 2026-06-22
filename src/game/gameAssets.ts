@@ -210,11 +210,61 @@ export const CIVIL_CAR_URLS: string[] = (() => {
   return [...base, ...getCustomTrafficUrls()];
 })();
 
-/** Liste ordonnée des skins piétons photo. */
+/** Liste ordonnée des skins piétons photo (statique : défauts uniquement). */
 export const PEDESTRIAN_PHOTO_URLS: string[] = [
   GAME_ASSETS["pedestrian.man"],
   GAME_ASSETS["pedestrian.woman"],
 ];
+
+// --- Piétons personnalisés uploadés via le panel admin (vue du ciel) ---
+export type CustomPedestrian = {
+  id: string;
+  name: string;
+  url: string;
+};
+
+const CUSTOM_PED_KEY = "jce.customPedestrians";
+const PED_CHANGE_EVENT = "jce.customPedestrians.changed";
+
+export function listCustomPedestrians(): CustomPedestrian[] {
+  if (typeof window === "undefined") return [];
+  try {
+    const raw = window.localStorage.getItem(CUSTOM_PED_KEY);
+    if (!raw) return [];
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed.filter((v) => v && v.url && v.id) : [];
+  } catch { return []; }
+}
+
+function emitPedChange() {
+  if (typeof window === "undefined") return;
+  try { window.dispatchEvent(new Event(PED_CHANGE_EVENT)); } catch {}
+}
+
+export function addCustomPedestrian(v: Omit<CustomPedestrian, "id"> & { id?: string }): CustomPedestrian {
+  const item: CustomPedestrian = {
+    id: v.id ?? `cp_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
+    name: v.name || "Piéton",
+    url: v.url,
+  };
+  const all = listCustomPedestrians();
+  all.push(item);
+  try { window.localStorage.setItem(CUSTOM_PED_KEY, JSON.stringify(all)); } catch {}
+  emitPedChange();
+  return item;
+}
+
+export function removeCustomPedestrian(id: string) {
+  if (typeof window === "undefined") return;
+  const all = listCustomPedestrians().filter((v) => v.id !== id);
+  try { window.localStorage.setItem(CUSTOM_PED_KEY, JSON.stringify(all)); } catch {}
+  emitPedChange();
+}
+
+/** Tous les sprites piétons disponibles (défauts + custom). Dynamique. */
+export function getPedestrianPhotoUrls(): string[] {
+  return [...PEDESTRIAN_PHOTO_URLS, ...listCustomPedestrians().map((p) => p.url)];
+}
 
 /** API runtime pour modifier un asset depuis l'AdminPanel. */
 export function setAssetOverride(key: AssetKey, url: string | null) {

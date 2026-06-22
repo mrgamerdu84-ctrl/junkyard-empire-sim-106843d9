@@ -120,7 +120,9 @@ export default function CityCompetitors() {
   useEffect(() => {
     const t = window.setInterval(() => {
       setComps((arr) => {
-        const alive = arr.filter((c) => !c.bankrupt);
+        // Un concurrent ne « parle » que s'il est ACTIF sur la map :
+        // pas en faillite ET au moins un taxi qui circule.
+        const alive = arr.filter((c) => !c.bankrupt && c.taxiCount > 0);
         if (alive.length === 0) return arr;
         const aggressive = alive.filter((c) => c.id.startsWith("lvl-"));
         const pool = aggressive.length > 0 && Math.random() < 0.7 ? aggressive : alive;
