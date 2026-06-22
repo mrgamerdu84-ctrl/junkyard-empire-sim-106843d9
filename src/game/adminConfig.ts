@@ -44,6 +44,11 @@ export type AdminConfig = {
   // ====== Police ======
   policeCarCount: number;        // 0..6 — nb de voitures de police qui patrouillent
 
+  // ====== Missions spéciales ======
+  armoredAutoSpawn: boolean;     // si false, le camion blindé n'apparaît que sur déclenchement admin
+  armoredFreqMult: number;       // 0.25..3 — multiplicateur de l'intervalle entre apparitions auto
+  rivalsCanHeist: boolean;       // si false, les rivaux ne tentent jamais le braquage
+
   // ====== Circuit personnalisé ======
   circuitPoints: { x: number; y: number }[]; // polyligne dessinée par le joueur
   circuitTaxiCount: number;      // 0..8 — nb de taxis qui tournent en boucle
