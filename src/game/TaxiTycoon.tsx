@@ -3213,6 +3213,23 @@ export default function TaxiTycoon() {
         }
         .tt-mfab-badge-blue { background: #3b82f6; }
 
+        .tt-actions-fab {
+          position: absolute; bottom: 16px; right: 10px;
+          display: flex; align-items: center; gap: 6px;
+          background: linear-gradient(180deg, #2a2d34, #14161b);
+          border: 1px solid #f5c542; border-radius: 999px;
+          padding: 10px 16px; color: #fde68a;
+          font-family: inherit; font-weight: 900; font-size: 12px;
+          cursor: pointer; pointer-events: auto;
+          box-shadow: 0 4px 12px rgba(0,0,0,0.65);
+          touch-action: manipulation;
+          -webkit-tap-highlight-color: transparent;
+          min-height: 44px;
+          z-index: 31;
+        }
+        .tt-actions-fab:active { transform: translateY(1px); }
+        .tt-actions-fab:hover { filter: brightness(1.15); }
+
         .tt-missions-overlay {
           position: absolute; inset: 0; z-index: 80;
           background: rgba(0,0,0,0.55);
