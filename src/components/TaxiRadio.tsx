@@ -554,11 +554,12 @@ const djLine = (stationName: string, hostName?: string): RadioNews => {
       // les radios musicales basculent sur les brèves (avec courts intermèdes musicaux).
       if (newsHour) {
         a.pause();
-        speak(WELCOME_JINGLE);
+        const host = getCurrentHost(st.id);
+        speak(WELCOME_JINGLE, undefined, host.voice);
         let cycle = 0;
         window.setTimeout(() => {
           ambientIdxRef.current++;
-          speak(pickNextBreve());
+          speak(pickNextBreve(), undefined, getCurrentHost(st.id).voice);
         }, 4000);
         ambientTimerRef.current = window.setInterval(() => {
           cycle++;
@@ -567,7 +568,7 @@ const djLine = (stationName: string, hostName?: string): RadioNews => {
             return;
           }
           ambientIdxRef.current++;
-          speak(pickNextBreve());
+          speak(pickNextBreve(), undefined, getCurrentHost(st.id).voice);
         }, 18000);
         return;
       }
