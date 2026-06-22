@@ -63,7 +63,7 @@ const advancePlaylist = (st: Station) => {
 };
 const STORAGE_KEY = "mttw.taxiRadio";
 const LANG_KEY = "mttw.lang";
-const DJ_FIRST_DELAY_MS = 1200;
+const DJ_FIRST_DELAY_MS = 0;
 // Référencé pour ne pas perdre l'utilitaire de duck/restore historique, mais
 // la nouvelle séquence radio enchaîne DJ→musique au lieu de jouer en parallèle.
 void undefined;
@@ -109,38 +109,9 @@ export default function TaxiRadio() {
   const [newsHour, setNewsHour] = useState<boolean>(false);
   const newsHourRef = useRef<boolean>(false);
   useEffect(() => { newsHourRef.current = newsHour; }, [newsHour]);
-  // Bascule alignée précisément sur l'horloge murale réelle :
-  // tous les clients basculent au même moment (xx:00 → infos, xx:10 → musique),
-  // y compris après rechargement de la page ou changement d'onglet.
-  useEffect(() => {
-    const apply = () => {
-      const active = new Date().getMinutes() < 10;
-      setNewsHour((prev) => (prev !== active ? active : prev));
-    };
-    let timer: number | null = null;
-    const scheduleAligned = () => {
-      apply();
-      const now = new Date();
-      // ms restants jusqu'à la prochaine minute pile + petite marge
-      const msToNextMinute =
-        60000 - (now.getSeconds() * 1000 + now.getMilliseconds());
-      timer = window.setTimeout(scheduleAligned, msToNextMinute + 50);
-    };
-    scheduleAligned();
-    // Re-synchronise immédiatement quand l'onglet redevient visible / reprend le focus
-    const onVis = () => {
-      apply();
-      if (timer) { window.clearTimeout(timer); timer = null; }
-      scheduleAligned();
-    };
-    document.addEventListener("visibilitychange", onVis);
-    window.addEventListener("focus", onVis);
-    return () => {
-      if (timer) window.clearTimeout(timer);
-      document.removeEventListener("visibilitychange", onVis);
-      window.removeEventListener("focus", onVis);
-    };
-  }, []);
+  // "Heure des infos" désactivée sur demande joueur : les radios musicales
+  // ne basculent plus jamais en TTS. Les infos restent dispo via "Junky Infos".
+  useEffect(() => { setNewsHour(false); }, []);
   const interludeRef = useRef<HTMLAudioElement | null>(null);
   const playMusicInterlude = (url: string, ms: number = 15000) => {
     try {
@@ -352,13 +323,18 @@ export default function TaxiRadio() {
         ttsAudioRef.current.src = "";
         ttsAudioRef.current = null;
       }
-      const { supabase } = await import("@/integrations/supabase/client");
-      const { data: sessionData } = await supabase.auth.getSession();
-      const accessToken = sessionData?.session?.access_token;
-      if (!accessToken) { speakBrowser(); return; }
+      // Route /api/public/radio-tts est publique : pas besoin d'access token.
+      // Fonctionne sur mobile (Android WebView / iOS Safari) car on lit un vrai MP3.
+      const headers: Record<string, string> = { "Content-Type": "application/json" };
+      try {
+        const { supabase } = await import("@/integrations/supabase/client");
+        const { data: sessionData } = await supabase.auth.getSession();
+        const accessToken = sessionData?.session?.access_token;
+        if (accessToken) headers.Authorization = `Bearer ${accessToken}`;
+      } catch {}
       const res = await fetch("/api/public/radio-tts", {
         method: "POST",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${accessToken}` },
+        headers,
         body: JSON.stringify({ text, lang: l }),
       });
       if (!res.ok) {

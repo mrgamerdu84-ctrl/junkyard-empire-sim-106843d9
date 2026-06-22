@@ -32,7 +32,7 @@ type RivalSpec = {
   vehicleUrl?: string;
 };
 
-const LANE_HALF = 11;
+const LANE_HALF = 9;
 const MAX_RIVALS = 10;
 
 function buildSpecs(comps: Competitor[]): RivalSpec[] {
@@ -99,8 +99,10 @@ export default function CityRivalTaxis() {
         const tdx = p2.x - p.x, tdy = p2.y - p.y;
         const L = Math.hypot(tdx, tdy) || 1;
         const ang = (Math.atan2(tdy, tdx) * 180) / Math.PI;
-        const ox = (-tdy / L) * LANE_HALF;
-        const oy = (tdx / L) * LANE_HALF;
+        // Lane offset : voiture qui descend (flip=false) à droite, qui monte à gauche.
+        const laneSign = sp.flip ? -1 : 1;
+        const ox = (-tdy / L) * LANE_HALF * laneSign;
+        const oy = (tdx / L) * LANE_HALF * laneSign;
         node.setAttribute(
           "transform",
           `translate(${(p.x + ox).toFixed(2)},${(p.y + oy).toFixed(2)}) rotate(${ang.toFixed(2)})`,
@@ -136,46 +138,44 @@ export default function CityRivalTaxis() {
           ref={(el) => { carRefs.current[i] = el; }}
           opacity="0.95"
         >
-          {/* Sprite taxi vu du dessus, nez vers la droite (rotate angle = direction marche) */}
-          <g transform="rotate(-90)">
-            {sp.vehicleUrl ? (
-              <>
-                {/* ombre */}
-                <ellipse cx="0" cy="2" rx="14" ry="5" fill="rgba(0,0,0,0.45)" />
-                {/* image personnalisée du concurrent (nez vers le haut dans le sprite) */}
-                <image href={sp.vehicleUrl} x="-16" y="-20" width="32" height="40" preserveAspectRatio="xMidYMid meet" />
-                {/* pastille couleur pour distinguer */}
-                <circle cx="11" cy="-14" r="3.5" fill={sp.color} stroke="#0b0d10" strokeWidth="0.8" />
-              </>
-            ) : (
-              <>
-                {/* ombre */}
-                <ellipse cx="0" cy="2" rx="13" ry="5" fill="rgba(0,0,0,0.45)" />
-                {/* carrosserie */}
-                <rect x="-10" y="-16" width="20" height="32" rx="4" fill={sp.color} stroke="#0b0d10" strokeWidth="1.5" />
+          {/* Ombre compacte au sol, alignée avec l'angle de marche (axe X). */}
+          <ellipse cx="0" cy="0" rx="9" ry="3" fill="rgba(0,0,0,0.35)" />
+          {sp.vehicleUrl ? (
+            <>
+              {/* Sprite custom uploadé : nez vers le haut dans la source → rotate(90) pour aligner sur l'axe de marche (X+). */}
+              <g transform="rotate(90)">
+                <image href={sp.vehicleUrl} x="-14" y="-17" width="28" height="34" preserveAspectRatio="xMidYMid meet" />
+              </g>
+              {/* pastille couleur (en haut de la voiture, après rotation) */}
+              <circle cx="10" cy="-7" r="2.8" fill={sp.color} stroke="#0b0d10" strokeWidth="0.8" />
+            </>
+          ) : (
+            <>
+              {/* Sprite SVG par défaut : dessiné nez vers la droite (axe X+) directement. */}
+              <g transform="rotate(90)">
+                <rect x="-8" y="-14" width="16" height="28" rx="4" fill={sp.color} stroke="#0b0d10" strokeWidth="1.5" />
                 {/* damier toit */}
-                <rect x="-9" y="-6" width="18" height="6" fill="#fff" />
-                <rect x="-9" y="-6" width="3" height="3" fill="#0b0d10" />
-                <rect x="-3" y="-6" width="3" height="3" fill="#0b0d10" />
-                <rect x="3" y="-6" width="3" height="3" fill="#0b0d10" />
-                <rect x="-6" y="-3" width="3" height="3" fill="#0b0d10" />
-                <rect x="0" y="-3" width="3" height="3" fill="#0b0d10" />
-                <rect x="6" y="-3" width="3" height="3" fill="#0b0d10" />
+                <rect x="-7" y="-4" width="14" height="5" fill="#fff" />
+                <rect x="-7" y="-4" width="2.5" height="2.5" fill="#0b0d10" />
+                <rect x="-2" y="-4" width="2.5" height="2.5" fill="#0b0d10" />
+                <rect x="3" y="-4" width="2.5" height="2.5" fill="#0b0d10" />
+                <rect x="-4.5" y="-1.5" width="2.5" height="2.5" fill="#0b0d10" />
+                <rect x="0.5" y="-1.5" width="2.5" height="2.5" fill="#0b0d10" />
                 {/* pare-brises */}
-                <rect x="-8" y="-14" width="16" height="6" rx="1.5" fill="rgba(15,23,42,0.7)" />
-                <rect x="-8" y="8" width="16" height="6" rx="1.5" fill="rgba(15,23,42,0.7)" />
-                {/* phares */}
-                <circle cx="-7" cy="-15" r="1.4" fill="#fde047" />
-                <circle cx="7" cy="-15" r="1.4" fill="#fde047" />
-                {/* badge couleur concurrent */}
+                <rect x="-6" y="-12" width="12" height="5" rx="1.2" fill="rgba(15,23,42,0.7)" />
+                <rect x="-6" y="7" width="12" height="5" rx="1.2" fill="rgba(15,23,42,0.7)" />
+                {/* phares à l'avant (nez à droite après rotation = bas du sprite) */}
+                <circle cx="-5.5" cy="-13" r="1.2" fill="#fde047" />
+                <circle cx="5.5" cy="-13" r="1.2" fill="#fde047" />
+                {/* badge initiale */}
                 <circle cx="0" cy="3" r="3" fill={sp.color} stroke="#0b0d10" strokeWidth="0.8" />
-                <text x="0" y="5.5" textAnchor="middle" fontSize="5" fontWeight="900"
+                <text x="0" y="5.2" textAnchor="middle" fontSize="5" fontWeight="900"
                   fill="#0b0d10" fontFamily="system-ui, sans-serif">
                   {sp.letter}
                 </text>
-              </>
-            )}
-          </g>
+              </g>
+            </>
+          )}
         </g>
       ))}
     </svg>

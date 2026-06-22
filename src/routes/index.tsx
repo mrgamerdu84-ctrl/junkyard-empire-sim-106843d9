@@ -10,7 +10,7 @@ import CrimeEvents from "@/game/CrimeEvents";
 import InterventionDispatcher from "@/game/InterventionDispatcher";
 import EmergencyStations from "@/game/EmergencyStations";
 import RadarFlash from "@/game/RadarFlash";
-import AmbientSirens from "@/game/AmbientSirens";
+// AmbientSirens retiré : plus de bruits d'ambulance/pompiers/police en fond.
 import AdminPanel from "@/game/AdminPanel";
 import RulesPanel from "@/game/RulesPanel";
 import VersionBanner from "@/game/VersionBanner";
@@ -177,7 +177,7 @@ function TaxiTycoonPage() {
       {/* HUD et panneaux hors zoom (toujours nets) */}
       <CityHud />
       <RadarFlash />
-      <AmbientSirens />
+      {/* <AmbientSirens /> — désactivé sur demande joueur */}
       <AdminPanel />
       <RulesPanel />
       <VersionBanner />
