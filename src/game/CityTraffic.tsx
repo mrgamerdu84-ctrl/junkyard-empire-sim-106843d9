@@ -321,6 +321,25 @@ type Mission = {
   pausedS: number;                            // st.s gelé pendant la mission
 };
 
+// === Stationnement dynamique ===
+// Cycle : approaching → parked (conducteur sort, marche, revient) → leaving → reprise.
+type ParkPhase = "approaching" | "parked" | "leaving";
+type Parking = {
+  phase: ParkPhase;
+  phaseEndsAt: number;
+  parkedUntil: number;          // fin de la phase "parked"
+  // Pose figée pendant le parking (snapshot à la fin de l'approche)
+  startX: number; startY: number; // position monde avant décalage trottoir
+  px: number; py: number;        // position monde de la voiture garée (sur trottoir)
+  angle: number;                 // angle (deg) de la voiture garée
+  tdx: number; tdy: number;      // tangente unitaire au moment du parking
+  side: 1 | -1;                  // côté trottoir (selon flip)
+  // Conducteur
+  pedSpriteIdx: number;
+  pedWalkMs: number;             // durée d'aller (puis idem pour retour)
+  pedReturnAt: number;           // instant où il commence à revenir
+};
+
 type CarState = {
   spec: CarSpec;
   pathLen: number;
@@ -329,8 +348,24 @@ type CarState = {
   speed: number;       // px/s instantanée
   laneKey: string;     // pathIdx + sens -> regroupe les véhicules qui peuvent se gêner
   node: SVGGElement | null;
+  pedNode: SVGGElement | null;   // sprite du conducteur (caché par défaut)
   mission?: Mission;
+  parking?: Parking;
+  pausedS?: number;              // st.s gelé pendant le parking
+  nextParkAttemptAt?: number;    // cooldown anti re-park immédiat
 };
+
+// Réglages parking
+const PARK_TARGET_MIN = 3;
+const PARK_TARGET_MAX = 6;
+const PARK_APPROACH_MS = 1400;
+const PARK_LEAVE_MS = 1100;
+const PARK_DURATION_MIN_MS = 10000;
+const PARK_DURATION_MAX_MS = 22000;
+const PARK_COOLDOWN_MS = 45000;
+const PARK_LANE_OFFSET = 18;
+const PARK_PED_OFFSET = 34;
+const PARK_PED_WALK_PX = 55;
 
 // Toutes les catégories sauf "taxi" peuvent rouler dans la circulation.
 const TRAFFIC_CATEGORIES: CustomVehicleCategory[] = [
@@ -407,6 +442,7 @@ export default function CityTraffic() {
   const activeCars = allCustomCars;
   const pathRefs = useRef<(SVGPathElement | null)[]>([]);
   const carNodes = useRef<(SVGGElement | null)[]>([]);
+  const parkPedNodes = useRef<(SVGGElement | null)[]>([]);
   const [lights, setLights] = useState<TrafficLight[]>([]);
 
 
@@ -473,6 +509,8 @@ export default function CityTraffic() {
         speed: baseSpeed,
         laneKey: `${spec.pathIdx}:${spec.flip ? "r" : "f"}`,
         node: carNodes.current[i],
+        pedNode: parkPedNodes.current[i] ?? null,
+        nextParkAttemptAt: performance.now() + 5000 + Math.random() * 15000,
       };
     });
 
@@ -564,7 +602,7 @@ export default function CityTraffic() {
       type WP = { x: number; y: number; dx: number; dy: number };
       const wps = new Map<CarState, WP>();
       for (const st of states) {
-        if (st.mission) continue;
+        if (st.mission || st.parking) continue;
         const path = pathRefs.current[st.spec.pathIdx];
         if (!path) continue;
         const fwd = st.spec.flip ? st.pathLen - st.s : st.s;
@@ -575,7 +613,7 @@ export default function CityTraffic() {
         wps.set(st, { x: p.x, y: p.y, dx: tdx / L, dy: tdy / L });
       }
       for (const lane of lanes.values()) {
-        const sorted = [...lane].filter(s => !s.mission).sort((a, b) => b.s - a.s);
+        const sorted = [...lane].filter(s => !s.mission && !s.parking).sort((a, b) => b.s - a.s);
         for (let i = 0; i < sorted.length; i++) {
           const me = sorted[i];
           const ahead = sorted[(i - 1 + sorted.length) % sorted.length];
@@ -600,7 +638,7 @@ export default function CityTraffic() {
           const myWp = wps.get(me);
           if (myWp) {
             for (const other of states) {
-              if (other === me || other.mission) continue;
+              if (other === me || other.mission || other.parking) continue;
               if (other.laneKey === me.laneKey) continue; // même lane déjà traité
               const owp = wps.get(other);
               if (!owp) continue;
@@ -624,6 +662,50 @@ export default function CityTraffic() {
             const floor = me.baseSpeed * MIN_SPEED_RATIO;
             if (me.speed < floor) me.speed = floor;
           } else if (me.speed < 0) me.speed = 0;
+        }
+      }
+
+      // 1c) Spawner de stationnements — maintient entre PARK_TARGET_MIN et PARK_TARGET_MAX
+      //     voitures garées simultanément (jitter aléatoire dans cette plage).
+      const activeParked = states.reduce((n, s) => n + (s.parking ? 1 : 0), 0);
+      const target = PARK_TARGET_MIN + Math.floor(Math.random() * (PARK_TARGET_MAX - PARK_TARGET_MIN + 1));
+      if (activeParked < target) {
+        // ~30 % de chance par frame (rate-limited par cooldown)
+        if (Math.random() < 0.02) {
+          const candidates = states.filter(s =>
+            !s.mission && !s.parking &&
+            (s.nextParkAttemptAt === undefined || now >= s.nextParkAttemptAt) &&
+            s.speed > s.baseSpeed * 0.3,
+          );
+          if (candidates.length > 0) {
+            const victim = candidates[Math.floor(Math.random() * candidates.length)];
+            const wp = wps.get(victim);
+            if (wp) {
+              const side: 1 | -1 = victim.spec.flip ? -1 : 1;
+              // sens de marche = (dx,dy) si !flip, sinon inversé
+              const dirX = victim.spec.flip ? -wp.dx : wp.dx;
+              const dirY = victim.spec.flip ? -wp.dy : wp.dy;
+              const nx = -dirY, ny = dirX; // normale à droite du sens de marche
+              const px = wp.x + nx * (LANE_HALF + PARK_LANE_OFFSET);
+              const py = wp.y + ny * (LANE_HALF + PARK_LANE_OFFSET);
+              const angle = (Math.atan2(dirY, dirX) * 180) / Math.PI;
+              const parkedMs = PARK_DURATION_MIN_MS + Math.random() * (PARK_DURATION_MAX_MS - PARK_DURATION_MIN_MS);
+              victim.parking = {
+                phase: "approaching",
+                phaseEndsAt: now + PARK_APPROACH_MS,
+                parkedUntil: now + PARK_APPROACH_MS + parkedMs,
+                startX: wp.x, startY: wp.y,
+                px, py, angle,
+                tdx: dirX, tdy: dirY,
+                side,
+                pedSpriteIdx: Math.floor(Math.random() * PED_PHOTO_IMAGES.length),
+                pedWalkMs: 1800 + Math.random() * 1400,
+                pedReturnAt: now + PARK_APPROACH_MS + parkedMs - 2000,
+              };
+              victim.pausedS = victim.s;
+              victim.speed = 0;
+            }
+          }
         }
       }
 
@@ -673,6 +755,68 @@ export default function CityTraffic() {
           // Le rendu applique <g transform="rotate(90)"> donc le rotate externe = angle de marche.
           node.setAttribute("transform", `translate(${cx.toFixed(2)},${cy.toFixed(2)}) rotate(${ang.toFixed(2)})`);
           if (st.mission) continue; // reste en mission → skip path logic
+        }
+
+        // ===== Branche PARKING : la voiture se gare sur le trottoir =====
+        if (st.parking) {
+          const pk = st.parking;
+          let cx = pk.px, cy = pk.py;
+          // Phase approaching : lerp depuis startX/Y vers px/py
+          if (pk.phase === "approaching") {
+            const k = Math.min(1, 1 - (pk.phaseEndsAt - now) / PARK_APPROACH_MS);
+            cx = pk.startX + (pk.px - pk.startX) * k;
+            cy = pk.startY + (pk.py - pk.startY) * k;
+            if (now >= pk.phaseEndsAt) {
+              pk.phase = "parked";
+            }
+          } else if (pk.phase === "parked") {
+            if (now >= pk.parkedUntil) {
+              pk.phase = "leaving";
+              pk.phaseEndsAt = now + PARK_LEAVE_MS;
+            }
+          } else if (pk.phase === "leaving") {
+            const k = Math.min(1, 1 - (pk.phaseEndsAt - now) / PARK_LEAVE_MS);
+            cx = pk.px + (pk.startX - pk.px) * k;
+            cy = pk.py + (pk.startY - pk.py) * k;
+            if (now >= pk.phaseEndsAt) {
+              // Fin : reprise du trafic
+              st.parking = undefined;
+              st.speed = st.baseSpeed * 0.4;
+              st.nextParkAttemptAt = now + PARK_COOLDOWN_MS;
+              if (st.pedNode) st.pedNode.setAttribute("opacity", "0");
+            }
+          }
+          node.setAttribute("transform", `translate(${cx.toFixed(2)},${cy.toFixed(2)}) rotate(${pk.angle.toFixed(2)})`);
+
+          // Animation du conducteur : sort, marche en avant, idle, revient
+          const ped = st.pedNode;
+          if (ped) {
+            if (pk.phase === "parked") {
+              // Base : position sur le trottoir, à côté de la voiture garée
+              const baseX = pk.startX + (-pk.tdy) * PARK_PED_OFFSET * pk.side;
+              const baseY = pk.startY + ( pk.tdx) * PARK_PED_OFFSET * pk.side;
+              let walkK = 0;
+              let facingBack = false;
+              if (now < pk.pedReturnAt) {
+                // aller : 0 → 1 sur pedWalkMs
+                walkK = Math.max(0, Math.min(1, (now - (pk.pedReturnAt - pk.pedWalkMs)) / pk.pedWalkMs));
+              } else {
+                // retour : 1 → 0 sur ce qui reste avant parkedUntil
+                const back = Math.max(400, pk.parkedUntil - pk.pedReturnAt);
+                walkK = 1 - Math.max(0, Math.min(1, (now - pk.pedReturnAt) / back));
+                facingBack = true;
+              }
+              const off = walkK * PARK_PED_WALK_PX;
+              const px = baseX + pk.tdx * off;
+              const py = baseY + pk.tdy * off;
+              const pAng = (Math.atan2(pk.tdy, pk.tdx) * 180) / Math.PI + (facingBack ? 180 : 0);
+              ped.setAttribute("transform", `translate(${px.toFixed(2)},${py.toFixed(2)}) rotate(${pAng.toFixed(2)})`);
+              ped.setAttribute("opacity", "1");
+            } else {
+              ped.setAttribute("opacity", "0");
+            }
+          }
+          if (st.parking) continue;
         }
 
         // ===== Trafic normal =====
@@ -785,6 +929,32 @@ export default function CityTraffic() {
       })}
 
 
+
+      {/* Conducteurs sortis de leur voiture garée (cachés par défaut, opacity=0) */}
+      <g pointerEvents="none">
+        {activeCars.map((_, i) => {
+          const S = 22;
+          return (
+            <g
+              key={`pd-${i}`}
+              opacity="0"
+              ref={(el) => { parkPedNodes.current[i] = el; }}
+            >
+              <ellipse cx="0" cy={S * 0.2} rx={S * 0.35} ry={S * 0.18} fill="rgba(0,0,0,0.45)" />
+              <g transform="rotate(90)">
+                <image
+                  href={PED_PHOTO_IMAGES[0]}
+                  x={-S / 2}
+                  y={-S / 2}
+                  width={S}
+                  height={S}
+                  preserveAspectRatio="xMidYMid meet"
+                />
+              </g>
+            </g>
+          );
+        })}
+      </g>
 
       {/* Piétons photos qui marchent sur les trottoirs (markets/promeneurs) */}
       <PhotoPedestrians pathRefs={pathRefs} />
