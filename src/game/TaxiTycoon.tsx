@@ -2585,11 +2585,27 @@ export default function TaxiTycoon() {
             const angle = p.angle;
             const fuelPct = Math.max(0, Math.min(1, taxi.fuel / 100));
             const fuelLow = taxi.fuel < FUEL_LOW_THRESHOLD;
+            const isHonking = honkingTaxis.has(taxi.id);
             return (
               <g key={taxi.id}>
-                <g transform={`translate(${p.x},${p.y}) rotate(${angle})`} filter="url(#taxi-shadow)">
+                <g
+                  transform={`translate(${p.x},${p.y}) rotate(${angle})`}
+                  filter="url(#taxi-shadow)"
+                  style={{ cursor: "pointer", pointerEvents: "auto" }}
+                  onClick={(e) => { e.stopPropagation(); honkTaxi(taxi.id); }}
+                >
                   <TaxiSprite image={currentLivery.image} faceRight={currentLivery.faceRight} paintFilter={currentPaint.filter} markerColor={currentPaint.color} withClient={taxi.mode === "to_dest"} moving={taxi.mode !== "idle" && taxi.mode !== "refueling" && taxi.mode !== "depositing"} />
                 </g>
+                {/* Coup de phare + halo klaxon */}
+                {isHonking && (
+                  <g transform={`translate(${p.x},${p.y})`} pointerEvents="none">
+                    <circle r="34" fill="none" stroke="#fde047" strokeWidth="3" opacity="0.85">
+                      <animate attributeName="r" from="14" to="44" dur="0.6s" fill="freeze" />
+                      <animate attributeName="opacity" from="0.95" to="0" dur="0.6s" fill="freeze" />
+                    </circle>
+                    <text y="-36" fontSize="14" fontWeight="900" textAnchor="middle" fill="#fde047" stroke="#0a0c10" strokeWidth="2" paintOrder="stroke">📯 BIP</text>
+                  </g>
+                )}
                 {/* Mini jauge essence sous le taxi */}
                 <g transform={`translate(${p.x - 12},${p.y + 22})`}>
                   <rect x="0" y="0" width="24" height="3" rx="1" fill="#0a0c10" opacity="0.7" />
