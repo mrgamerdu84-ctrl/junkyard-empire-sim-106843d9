@@ -77,7 +77,7 @@ export default function ArmoredTruck() {
   const [heister, setHeister] = useState<Heister>(null);
   const [toast, setToast] = useState<string | null>(null);
   const [spriteUrl, setSpriteUrl] = useState<string | null>(() => {
-    try { return localStorage.getItem(ARMORED_SPRITE_KEY); } catch { return null; }
+    try { return localStorage.getItem(ARMORED_SPRITE_KEY) ?? DEFAULT_ARMORED_SPRITE; } catch { return DEFAULT_ARMORED_SPRITE; }
   });
 
   // Re-charge le sprite si modifié depuis l'admin
