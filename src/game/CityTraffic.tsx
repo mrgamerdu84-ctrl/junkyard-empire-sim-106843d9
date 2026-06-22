@@ -229,7 +229,7 @@ function PhotoPedestrians({ pathRefs }: { pathRefs: React.MutableRefObject<(SVGP
             {/* +90° : sprite top-down "tête au nord", parent applique rotate(angle) basé sur +x */}
             <g transform="rotate(90)">
               <image
-                href={getPedPhotoImages()[spec.imageIdx]}
+                href={pool[spec.imageIdx % Math.max(1, pool.length)] ?? pool[0]}
                 x={-S / 2}
                 y={-S / 2}
                 width={S}
