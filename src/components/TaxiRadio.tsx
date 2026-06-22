@@ -34,11 +34,50 @@ const station = (id: string, name: string, emoji: string, playlist: string[], fa
     ? { id, name, emoji, playlist, loop: true, volume }
     : { id, name, emoji, url: fallback, volume };
 
+// Tournois sportifs majeurs : la station "Radio Mondial" n'apparaît que pendant ces fenêtres.
+const SPORT_TOURNAMENTS: { name: string; emoji: string; start: string; end: string }[] = [
+  // Coupe du Monde FIFA 2026 (USA / Canada / Mexique)
+  { name: "Coupe du Monde 2026", emoji: "🏆", start: "2026-06-11", end: "2026-07-19" },
+  // Euro 2028 (UK / Irlande)
+  { name: "Euro 2028", emoji: "🏆", start: "2028-06-09", end: "2028-07-09" },
+  // Coupe du Monde 2030
+  { name: "Coupe du Monde 2030", emoji: "🏆", start: "2030-06-08", end: "2030-07-21" },
+];
+
+function getActiveTournament(): { name: string; emoji: string } | null {
+  const today = new Date();
+  const iso = today.toISOString().slice(0, 10);
+  for (const t of SPORT_TOURNAMENTS) {
+    if (iso >= t.start && iso <= t.end) return { name: t.name, emoji: t.emoji };
+  }
+  return null;
+}
+
+const ACTIVE_TOURNAMENT = getActiveTournament();
+
 const STATIONS: Station[] = [
   { id: "main", name: "Junky Empire Taxi", emoji: "🚖", url: GAME_ASSETS["audio.music"], loop: true, volume: 0.4 },
   { id: "jce", name: "Junky City Empire", emoji: "🎵", url: junkyCityEmpireAsset.url, loop: true, volume: 0.6 },
   { id: "iron", name: "Iron Tooth", emoji: "🦷", url: ironToothAsset.url, loop: true, volume: 0.6 },
   { id: "infos", name: "Junky Infos", emoji: "📰", tts: true },
+  // ===== Vraies radios françaises (flux MP3 publics) =====
+  { id: "franceinter", name: "France Inter", emoji: "📻", url: "https://icecast.radiofrance.fr/franceinter-midfi.mp3", volume: 0.6 },
+  { id: "franceinfo",  name: "France Info",  emoji: "🗞️", url: "https://icecast.radiofrance.fr/franceinfo-midfi.mp3", volume: 0.6 },
+  { id: "nrj",         name: "NRJ",          emoji: "⚡", url: "https://scdn.nrjaudio.fm/adwz1/fr/30001/mp3_128.mp3",  volume: 0.6 },
+  { id: "skyrock",     name: "Skyrock",      emoji: "🎤", url: "https://icecast.skyrock.net/s/natio_mp3_128k",          volume: 0.6 },
+  { id: "rmc_sport",   name: "RMC — Sport",  emoji: "⚽", url: "https://chai5she.cdn.dvmr.fr/rmcinfo",                   volume: 0.6 },
+  // ===== Station spéciale tournoi (n'apparaît que pendant Coupe du Monde / Euro) =====
+  ...(ACTIVE_TOURNAMENT
+    ? [{
+        id: "mondial",
+        name: `Radio Mondial — ${ACTIVE_TOURNAMENT.name}`,
+        emoji: ACTIVE_TOURNAMENT.emoji,
+        // RMC = couverture sport / matchs en direct
+        url: "https://chai5she.cdn.dvmr.fr/rmcinfo",
+        volume: 0.7,
+      } as Station]
+    : []),
+  // ===== Playlists locales (fallback flux libre si vide) =====
   station("pop",      "Radio Pop",        "🎤", POP_PLAYLIST,     "https://ice1.somafm.com/poptron-128-mp3"),
   station("electro",  "Radio Electro",    "🎧", ELECTRO_PLAYLIST, "https://ice1.somafm.com/groovesalad-128-mp3"),
   station("rock",     "Radio Rock",       "🎸", ROCK_PLAYLIST,    "https://ice1.somafm.com/u80s-128-mp3"),
