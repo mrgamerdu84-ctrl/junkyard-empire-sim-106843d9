@@ -721,45 +721,48 @@ export default function CityTraffic() {
         st.speed = st.baseSpeed;
       }
 
-      // 1c) Spawner de stationnements — maintient entre PARK_TARGET_MIN et PARK_TARGET_MAX
-      //     voitures garées simultanément (jitter aléatoire dans cette plage).
+      // 1c) Spawner de stationnements — pioche une zone fixe dans PARKING_ZONES.
+      //     Les voitures garées n'utilisent PAS le réseau de waypoints :
+      //     elles sont alignées exactement sur (zone.x, zone.y, zone.angle).
       const activeParked = states.reduce((n, s) => n + (s.parking ? 1 : 0), 0);
       const target = PARK_TARGET_MIN + Math.floor(Math.random() * (PARK_TARGET_MAX - PARK_TARGET_MIN + 1));
-      if (activeParked < target) {
-        // ~30 % de chance par frame (rate-limited par cooldown)
+      if (activeParked < target && PARKING_ZONES.length > 0) {
         if (Math.random() < 0.02) {
-          const candidates = states.filter(s =>
-            !s.mission && !s.parking &&
-            (s.nextParkAttemptAt === undefined || now >= s.nextParkAttemptAt) &&
-            s.speed > s.baseSpeed * 0.3,
-          );
-          if (candidates.length > 0) {
-            const victim = candidates[Math.floor(Math.random() * candidates.length)];
-            const wp = wps.get(victim);
-            if (wp) {
-              const side: 1 | -1 = victim.spec.flip ? -1 : 1;
-              // sens de marche = (dx,dy) si !flip, sinon inversé
-              const dirX = victim.spec.flip ? -wp.dx : wp.dx;
-              const dirY = victim.spec.flip ? -wp.dy : wp.dy;
-              const nx = -dirY, ny = dirX; // normale à droite du sens de marche
-              const px = wp.x + nx * (LANE_HALF + PARK_LANE_OFFSET);
-              const py = wp.y + ny * (LANE_HALF + PARK_LANE_OFFSET);
-              const angle = (Math.atan2(dirY, dirX) * 180) / Math.PI;
-              const parkedMs = PARK_DURATION_MIN_MS + Math.random() * (PARK_DURATION_MAX_MS - PARK_DURATION_MIN_MS);
-              victim.parking = {
-                phase: "approaching",
-                phaseEndsAt: now + PARK_APPROACH_MS,
-                parkedUntil: now + PARK_APPROACH_MS + parkedMs,
-                startX: wp.x, startY: wp.y,
-                px, py, angle,
-                tdx: dirX, tdy: dirY,
-                side,
-                pedSpriteIdx: Math.floor(Math.random() * PED_PHOTO_IMAGES.length),
-                pedWalkMs: 1800 + Math.random() * 1400,
-                pedReturnAt: now + PARK_APPROACH_MS + parkedMs - 2000,
-              };
-              victim.pausedS = victim.s;
-              victim.speed = 0;
+          const occupied = new Set<string>();
+          for (const s of states) if (s.parking) occupied.add(s.parking.zoneId);
+          const zone = pickFreeZone(occupied);
+          if (zone) {
+            const candidates = states.filter(s =>
+              !s.mission && !s.parking &&
+              (s.nextParkAttemptAt === undefined || now >= s.nextParkAttemptAt) &&
+              s.speed > s.baseSpeed * 0.3,
+            );
+            if (candidates.length > 0) {
+              const victim = candidates[Math.floor(Math.random() * candidates.length)];
+              const wp = wps.get(victim);
+              if (wp) {
+                const side: 1 | -1 = (zone.side as 1 | -1);
+                const angleRad = (zone.angle * Math.PI) / 180;
+                const tdx = Math.cos(angleRad);
+                const tdy = Math.sin(angleRad);
+                const parkedMs = PARK_DURATION_MIN_MS + Math.random() * (PARK_DURATION_MAX_MS - PARK_DURATION_MIN_MS);
+                victim.parking = {
+                  phase: "approaching",
+                  phaseEndsAt: now + PARK_APPROACH_MS,
+                  parkedUntil: now + PARK_APPROACH_MS + parkedMs,
+                  zoneId: zone.id,
+                  startX: wp.x, startY: wp.y,
+                  px: zone.x, py: zone.y,
+                  angle: zone.angle,
+                  tdx, tdy,
+                  side,
+                  pedSpriteIdx: Math.floor(Math.random() * PED_PHOTO_IMAGES.length),
+                  pedWalkMs: 1800 + Math.random() * 1400,
+                  pedReturnAt: now + PARK_APPROACH_MS + parkedMs - 2000,
+                };
+                victim.pausedS = victim.s;
+                victim.speed = 0;
+              }
             }
           }
         }
