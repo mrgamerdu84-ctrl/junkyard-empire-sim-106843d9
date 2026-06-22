@@ -1474,3 +1474,128 @@ function ArmoredTruckSpriteSection() {
   );
 }
 
+
+// ---------- Onglet Missions spéciales : déclencher braquages & événements ----------
+function SpecialMissionsTab({ cfg, goSkins }: { cfg: AdminConfig; goSkins: () => void }) {
+  const [flash, setFlash] = useState<string | null>(null);
+  const fire = (event: string, detail?: Record<string, unknown>, label?: string) => {
+    window.dispatchEvent(new CustomEvent(event, { detail }));
+    if (label) {
+      setFlash(label);
+      window.setTimeout(() => setFlash(null), 2200);
+    }
+  };
+  return (
+    <>
+      <div style={{ fontSize: 12, color: "#c8ccd2", lineHeight: 1.5, marginBottom: 8 }}>
+        💥 <strong style={{ color: "#f5c542" }}>Missions spéciales</strong>
+      </div>
+      <div style={{ fontSize: 11, color: "#8a8e94", lineHeight: 1.5, marginBottom: 10 }}>
+        Déclenche un événement immédiatement. Le joueur ET les rivaux peuvent rafler la mission.
+      </div>
+
+      {/* Bannière vers Skins */}
+      <button
+        onClick={goSkins}
+        style={{
+          width: "100%", padding: "8px 10px", marginBottom: 12,
+          background: "linear-gradient(90deg,#1e293b,#0f172a)",
+          border: "1px solid #f5c542", borderRadius: 8,
+          color: "#f5c542", font: "600 11px ui-sans-serif", textAlign: "left", cursor: "pointer",
+        }}
+      >
+        🎨 Voitures de police / pompiers / ambulance pas belles ? → Onglet Skins pour remplacer les visuels
+      </button>
+
+      {/* Boutons d'action */}
+      <div style={{ display: "grid", gap: 8, marginBottom: 14 }}>
+        <button
+          onClick={() => fire("jce:armored-spawn-now", undefined, "🚛 Camion blindé lancé !")}
+          style={specBtn("#fde047", "#78350f")}
+        >
+          🚛 Lancer un camion blindé maintenant
+          <div style={specHint}>Le camion traverse la ville, cliquable pour braquage. Rivaux peuvent intercepter.</div>
+        </button>
+        <button
+          onClick={() => fire("jce:crime-spawn-now", { kind: "robbery" }, "🚨 Braquage en cours !")}
+          style={specBtn("#ef4444", "#7f1d1d")}
+        >
+          🏦 Déclencher un braquage de banque
+          <div style={specHint}>Marqueur rouge sur la carte. Envoie la police avant que l'IA rafle la mission.</div>
+        </button>
+        <button
+          onClick={() => fire("jce:crime-spawn-now", { kind: "fire" }, "🔥 Incendie déclaré !")}
+          style={specBtn("#f97316", "#7c2d12")}
+        >
+          🔥 Déclencher un incendie
+        </button>
+        <button
+          onClick={() => fire("jce:crime-spawn-now", { kind: "accident" }, "🚑 Accident grave !")}
+          style={specBtn("#fb923c", "#9a3412")}
+        >
+          🚑 Déclencher un accident
+        </button>
+        <button
+          onClick={() => fire("jce:crime-spawn-now", { kind: "fight" }, "🥊 Rixe en cours !")}
+          style={specBtn("#a855f7", "#581c87")}
+        >
+          🥊 Déclencher une rixe
+        </button>
+      </div>
+
+      {flash && (
+        <div style={{
+          padding: "6px 10px", marginBottom: 12, borderRadius: 6,
+          background: "#0f3d24", border: "1px solid #22c55e", color: "#bbf7d0",
+          font: "600 11px ui-sans-serif",
+        }}>{flash}</div>
+      )}
+
+      {/* Réglages camion blindé */}
+      <div style={{ background: "#1f242b", padding: "10px 12px", borderRadius: 8, marginBottom: 10 }}>
+        <div style={{ fontSize: 11, fontWeight: 700, color: "#f5c542", marginBottom: 8, letterSpacing: 0.3 }}>
+          🚛 RÉGLAGES CAMION BLINDÉ
+        </div>
+        <label className="adm-toggle" style={{ marginBottom: 8 }}>
+          <input
+            type="checkbox"
+            checked={cfg.armoredAutoSpawn !== false}
+            onChange={(e) => setAdmin({ armoredAutoSpawn: e.target.checked })}
+          />
+          Apparition automatique (toutes les 5–8 min)
+        </label>
+        <label className="adm-toggle" style={{ marginBottom: 8 }}>
+          <input
+            type="checkbox"
+            checked={cfg.rivalsCanHeist !== false}
+            onChange={(e) => setAdmin({ rivalsCanHeist: e.target.checked })}
+          />
+          Les rivaux peuvent tenter le braquage
+        </label>
+        <Slider
+          label="Fréquence d'apparition"
+          hint="×0.25 = 4× plus souvent · ×3 = 3× plus rare"
+          value={cfg.armoredFreqMult ?? 1}
+          min={0.25} max={3} step={0.05}
+          format={(v) => "×" + v.toFixed(2)}
+          onChange={(v) => setAdmin({ armoredFreqMult: v })}
+        />
+      </div>
+    </>
+  );
+}
+
+const specBtn = (accent: string, bg: string): CSSProperties => ({
+  padding: "10px 12px",
+  background: bg,
+  border: `1px solid ${accent}`,
+  borderRadius: 8,
+  color: "#fff8e7",
+  font: "700 12px ui-sans-serif",
+  textAlign: "left",
+  cursor: "pointer",
+  lineHeight: 1.3,
+});
+const specHint: CSSProperties = {
+  marginTop: 4, fontSize: 10, fontWeight: 500, color: "#fde68a", opacity: 0.85,
+};
