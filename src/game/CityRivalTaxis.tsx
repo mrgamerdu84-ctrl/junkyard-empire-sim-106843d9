@@ -14,6 +14,7 @@ type Competitor = {
   name: string;
   color: string;
   bankrupt: boolean;
+  vehicleUrl?: string;
 };
 
 type RivalSpec = {
@@ -24,6 +25,7 @@ type RivalSpec = {
   duration: number; // s pour parcourir le path
   offset: number;   // 0..1 décalage initial le long du path
   letter: string;
+  vehicleUrl?: string;
 };
 
 const LANE_HALF = 11;
@@ -45,6 +47,7 @@ function buildSpecs(comps: Competitor[]): RivalSpec[] {
         duration: 16 + ((i * 3) % 7),
         offset: ((i * 0.137) + k * 0.41) % 1,
         letter: (c.name?.[0] ?? "?").toUpperCase(),
+        vehicleUrl: c.vehicleUrl,
       });
       i++;
     }
