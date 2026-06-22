@@ -1,17 +1,22 @@
 // =============================================================
-// Lot 4 — Petit HUD : horloge, période et densité estimée.
-// Placé en haut à gauche, sous le bandeau version.
+// Petit HUD : horloge, période et densité estimée.
+// Heure et jour RÉELS du joueur ; densité ajustée à la taille
+// de sa vraie ville (population via reverse-geo).
 // =============================================================
 import { useEffect, useState } from "react";
 import { getGameTime, periodLabel, type GameTime } from "./cityClock";
+import { useRealWorldEnv } from "@/lib/realWorldEnv";
 
 export default function CityHud() {
-  const [t, setT] = useState<GameTime>(() => getGameTime());
+  const env = useRealWorldEnv();
+  const pop = env?.population ?? null;
+  const [t, setT] = useState<GameTime>(() => getGameTime(undefined, pop));
 
   useEffect(() => {
-    const id = window.setInterval(() => setT(getGameTime()), 1000);
+    setT(getGameTime(undefined, pop));
+    const id = window.setInterval(() => setT(getGameTime(undefined, pop)), 30_000);
     return () => window.clearInterval(id);
-  }, []);
+  }, [pop]);
 
   const periodColor =
     t.period === "rushAM" || t.period === "rushPM" ? "#ef4444" :
@@ -36,7 +41,7 @@ export default function CityHud() {
         backdropFilter: "blur(6px)",
         pointerEvents: "none",
         display: "flex", flexDirection: "column", gap: 2,
-        minWidth: 118,
+        minWidth: 140,
       }}
     >
       <div style={{ fontSize: 12 }}>{t.label}</div>
@@ -46,10 +51,10 @@ export default function CityHud() {
           boxShadow: `0 0 6px ${periodColor}`,
         }} />
         <span>{periodLabel(t.period)}</span>
-        {t.isHoliday && <span style={{ color: "#fbbf24" }}>· Vac.</span>}
+        {t.isHoliday && <span style={{ color: "#fbbf24" }}>· Férié</span>}
       </div>
       <div style={{ opacity: 0.75, fontSize: 10 }}>
-        Densité ×{t.density.toFixed(2)}
+        {env?.city ? `${env.city} · ` : ""}Densité ×{t.density.toFixed(2)}
       </div>
     </div>
   );
