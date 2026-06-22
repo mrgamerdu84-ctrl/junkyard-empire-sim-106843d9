@@ -84,7 +84,51 @@ const STATIONS: Station[] = [
   station("retro",    "Radio Retro Wave", "🌆", RETRO_PLAYLIST,   "https://ice1.somafm.com/defcon-128-mp3"),
   station("emotions", "Radio Émotions",   "💖", RELAX_PLAYLIST,   "https://ice1.somafm.com/lush-128-mp3"),
   station("kids",     "Radio Kids",       "🧸", KIDS_PLAYLIST,    "https://ice1.somafm.com/fluid-128-mp3"),
+  // Rire & Chansons (humour) — flux MP3 public
+  { id: "rire", name: "Rire & Chansons", emoji: "😂", url: "https://broadcast.infomaniak.net/rireetchansons-high.mp3", volume: 0.6 },
 ];
+
+// ====== Animateurs radio (par station, par tranche horaire) ======
+// Tranches : matin (5-11), journée (11-17), soir (17-22), nuit (22-5).
+// Voix OpenAI : femmes = alloy/coral/nova/sage/shimmer ; hommes = ash/ballad/echo/fable/onyx/verse.
+type Host = { name: string; voice: string; gender: "f" | "m" };
+type HostSchedule = { morning: Host; day: Host; evening: Host; night: Host };
+
+const DEFAULT_HOSTS: HostSchedule = {
+  morning: { name: "Léa",     voice: "shimmer", gender: "f" },
+  day:     { name: "Marc",    voice: "echo",    gender: "m" },
+  evening: { name: "Sofia",   voice: "nova",    gender: "f" },
+  night:   { name: "Karim",   voice: "onyx",    gender: "m" },
+};
+
+const STATION_HOSTS: Record<string, HostSchedule> = {
+  main: DEFAULT_HOSTS,
+  jce:  DEFAULT_HOSTS,
+  iron: { morning: { name: "Tom", voice: "ash", gender: "m" }, day: { name: "Iggy", voice: "verse", gender: "m" }, evening: { name: "Joan", voice: "coral", gender: "f" }, night: { name: "Rex", voice: "onyx", gender: "m" } },
+  infos:{ morning: { name: "Claire", voice: "sage", gender: "f" }, day: { name: "Julien", voice: "ballad", gender: "m" }, evening: { name: "Inès", voice: "shimmer", gender: "f" }, night: { name: "Hugo", voice: "fable", gender: "m" } },
+  franceinter: { morning: { name: "Nicolas", voice: "ballad", gender: "m" }, day: { name: "Sonia", voice: "coral", gender: "f" }, evening: { name: "Thomas", voice: "echo", gender: "m" }, night: { name: "Élise", voice: "nova", gender: "f" } },
+  franceinfo:  { morning: { name: "Marc", voice: "echo", gender: "m" }, day: { name: "Anna", voice: "sage", gender: "f" }, evening: { name: "David", voice: "onyx", gender: "m" }, night: { name: "Léa", voice: "shimmer", gender: "f" } },
+  nrj:         { morning: { name: "Manu", voice: "verse", gender: "m" }, day: { name: "Cathy", voice: "nova", gender: "f" }, evening: { name: "Yann", voice: "ash", gender: "m" }, night: { name: "Maya", voice: "alloy", gender: "f" } },
+  skyrock:     { morning: { name: "Difool", voice: "onyx", gender: "m" }, day: { name: "Karine", voice: "coral", gender: "f" }, evening: { name: "Romano", voice: "ash", gender: "m" }, night: { name: "Mehdi", voice: "verse", gender: "m" } },
+  rmc_sport:   { morning: { name: "Jérôme", voice: "echo", gender: "m" }, day: { name: "Pierre", voice: "ballad", gender: "m" }, evening: { name: "Christophe", voice: "onyx", gender: "m" }, night: { name: "Anaïs", voice: "nova", gender: "f" } },
+  mondial:     { morning: { name: "Coach Lucas", voice: "onyx", gender: "m" }, day: { name: "Capi", voice: "verse", gender: "m" }, evening: { name: "Camille", voice: "coral", gender: "f" }, night: { name: "Zizou", voice: "echo", gender: "m" } },
+  pop:         { morning: { name: "Chloé", voice: "shimmer", gender: "f" }, day: { name: "Léo", voice: "ballad", gender: "m" }, evening: { name: "Mia", voice: "nova", gender: "f" }, night: { name: "Sam", voice: "verse", gender: "m" } },
+  electro:     { morning: { name: "Zoé", voice: "alloy", gender: "f" }, day: { name: "Max", voice: "ash", gender: "m" }, evening: { name: "Nyx", voice: "coral", gender: "f" }, night: { name: "DJ Vex", voice: "onyx", gender: "m" } },
+  rock:        { morning: { name: "Jess", voice: "sage", gender: "f" }, day: { name: "Slash", voice: "ash", gender: "m" }, evening: { name: "Lana", voice: "coral", gender: "f" }, night: { name: "Axel", voice: "onyx", gender: "m" } },
+  retro:       { morning: { name: "Sandra", voice: "nova", gender: "f" }, day: { name: "Patrick", voice: "ballad", gender: "m" }, evening: { name: "Véro", voice: "shimmer", gender: "f" }, night: { name: "Bruno", voice: "echo", gender: "m" } },
+  emotions:    { morning: { name: "Camille", voice: "sage", gender: "f" }, day: { name: "Anne", voice: "coral", gender: "f" }, evening: { name: "Jules", voice: "fable", gender: "m" }, night: { name: "Eva", voice: "shimmer", gender: "f" } },
+  kids:        { morning: { name: "Tata Lou", voice: "shimmer", gender: "f" }, day: { name: "Tonton Théo", voice: "fable", gender: "m" }, evening: { name: "Mamie Rose", voice: "sage", gender: "f" }, night: { name: "Papi Léon", voice: "ballad", gender: "m" } },
+  rire:        { morning: { name: "Bruno", voice: "ash", gender: "m" }, day: { name: "Élodie", voice: "coral", gender: "f" }, evening: { name: "Karim", voice: "onyx", gender: "m" }, night: { name: "Sophie", voice: "nova", gender: "f" } },
+};
+
+function getCurrentHost(stationId: string): Host {
+  const sched = STATION_HOSTS[stationId] ?? DEFAULT_HOSTS;
+  const h = new Date().getHours();
+  if (h >= 5 && h < 11) return sched.morning;
+  if (h >= 11 && h < 17) return sched.day;
+  if (h >= 17 && h < 22) return sched.evening;
+  return sched.night;
+}
 
 // Index courant de chaque playlist (persiste tant que le composant vit)
 const playlistIndex = new Map<string, number>();
@@ -319,7 +363,7 @@ export default function TaxiRadio() {
   // Lit une brève via le serveur (Lovable AI) → audio mp3 réel (marche partout, incl. WebView Android)
   // Si `onComplete` est fourni, il est appelé EXACTEMENT une fois quand la TTS se termine
   // (fin naturelle, erreur, ou indisponibilité). Garantit l'enchaînement séquentiel DJ→musique.
-  const speak = async (news: RadioNews, onComplete?: () => void) => {
+  const speak = async (news: RadioNews, onComplete?: () => void, voice?: string) => {
     const l = langRef.current;
     const text = l === "en" ? news.en : news.fr;
     showTicker(text);
@@ -374,7 +418,7 @@ export default function TaxiRadio() {
       const res = await fetch("/api/public/radio-tts", {
         method: "POST",
         headers,
-        body: JSON.stringify({ text, lang: l }),
+        body: JSON.stringify({ text, lang: l, voice }),
       });
       if (!res.ok) {
         console.warn("[Radio] TTS HTTP", res.status);
@@ -419,7 +463,7 @@ export default function TaxiRadio() {
 
 // ====== Animateur radio (DJ) ======
 
-const djLine = (stationName: string): RadioNews => {
+const djLine = (stationName: string, hostName?: string): RadioNews => {
     const l = langRef.current;
     const now = new Date();
     const hh = now.getHours();
@@ -429,21 +473,23 @@ const djLine = (stationName: string): RadioNews => {
     const w = weatherRef.current;
     const weatherFr = w ? `${weatherCodeText(w.code, "fr")}, ${w.tempC}°C${w.city ? " à " + w.city : ""}` : "météo en cours de mise à jour";
     const weatherEn = w ? `${weatherCodeText(w.code, "en")}, ${w.tempC}°C${w.city ? " in " + w.city : ""}` : "weather updating";
+    const sigFr = hostName ? `Ici ${hostName}. ` : "";
+    const sigEn = hostName ? `${hostName} here. ` : "";
     const intros: RadioNews[] = [
-      { fr: `Il est ${timeFr} sur ${stationName} ! Côté météo : ${weatherFr}. On enchaîne avec un titre du tonnerre, restez branchés !`,
-        en: `It's ${timeEn} on ${stationName}! Weather report: ${weatherEn}. Next track is fire — stay tuned!` },
-      { fr: `Ici ${stationName}, ${timeFr} pile ! ${weatherFr.charAt(0).toUpperCase() + weatherFr.slice(1)} dehors, parfait pour rouler. Prochain morceau dans un instant !`,
-        en: `This is ${stationName}, ${timeEn} sharp! ${weatherEn} outside, perfect driving weather. Next track coming up!` },
-      { fr: `Salut les chauffeurs, ${stationName} vous accompagne. Il est ${timeFr}, ${weatherFr}. On continue avec une pépite, c'est cadeau !`,
-        en: `Hey drivers, ${stationName} keeps you company. It's ${timeEn}, ${weatherEn}. Up next, a real gem — enjoy!` },
-      { fr: `${stationName} ! ${timeFr}, et dehors c'est ${weatherFr}. Le prochain titre est encore meilleur. Roulez prudemment !`,
-        en: `${stationName}! ${timeEn}, and outside it's ${weatherEn}. What's next is even better. Drive safe!` },
-      { fr: `Bienvenue de retour sur ${stationName} ! Il est ${timeFr}, météo : ${weatherFr}. La musique qui envoie, c'est parti !`,
-        en: `Welcome back to ${stationName}! It's ${timeEn}, weather: ${weatherEn}. Pumping music, here we go!` },
-      { fr: `Vous êtes sur ${stationName} ! ${timeFr}, ${weatherFr} sur Junky City. Marathon musical, tenez bon !`,
-        en: `You're on ${stationName}! ${timeEn}, ${weatherEn} over Junky City. Music marathon, hold tight!` },
-      { fr: `${stationName} en direct ! ${timeFr} à l'horloge, ${weatherFr} au thermomètre. Le prochain titre, vous allez kiffer !`,
-        en: `${stationName} live! ${timeEn} on the clock, ${weatherEn} on the thermometer. You're gonna love the next one!` },
+      { fr: `${sigFr}Il est ${timeFr} sur ${stationName} ! Côté météo : ${weatherFr}. On enchaîne avec un titre du tonnerre, restez branchés !`,
+        en: `${sigEn}It's ${timeEn} on ${stationName}! Weather report: ${weatherEn}. Next track is fire — stay tuned!` },
+      { fr: `${sigFr}Ici ${stationName}, ${timeFr} pile ! ${weatherFr.charAt(0).toUpperCase() + weatherFr.slice(1)} dehors, parfait pour rouler. Prochain morceau dans un instant !`,
+        en: `${sigEn}This is ${stationName}, ${timeEn} sharp! ${weatherEn} outside, perfect driving weather. Next track coming up!` },
+      { fr: `${sigFr}Salut les chauffeurs, ${stationName} vous accompagne. Il est ${timeFr}, ${weatherFr}. On continue avec une pépite, c'est cadeau !`,
+        en: `${sigEn}Hey drivers, ${stationName} keeps you company. It's ${timeEn}, ${weatherEn}. Up next, a real gem — enjoy!` },
+      { fr: `${sigFr}${stationName} ! ${timeFr}, et dehors c'est ${weatherFr}. Le prochain titre est encore meilleur. Roulez prudemment !`,
+        en: `${sigEn}${stationName}! ${timeEn}, and outside it's ${weatherEn}. What's next is even better. Drive safe!` },
+      { fr: `${sigFr}Bienvenue de retour sur ${stationName} ! Il est ${timeFr}, météo : ${weatherFr}. La musique qui envoie, c'est parti !`,
+        en: `${sigEn}Welcome back to ${stationName}! It's ${timeEn}, weather: ${weatherEn}. Pumping music, here we go!` },
+      { fr: `${sigFr}Vous êtes sur ${stationName} ! ${timeFr}, ${weatherFr} sur Junky City. Marathon musical, tenez bon !`,
+        en: `${sigEn}You're on ${stationName}! ${timeEn}, ${weatherEn} over Junky City. Music marathon, hold tight!` },
+      { fr: `${sigFr}${stationName} en direct ! ${timeFr} à l'horloge, ${weatherFr} au thermomètre. Le prochain titre, vous allez kiffer !`,
+        en: `${sigEn}${stationName} live! ${timeEn} on the clock, ${weatherEn} on the thermometer. You're gonna love the next one!` },
     ];
     return intros[Math.floor(Math.random() * intros.length)];
   };
@@ -481,12 +527,13 @@ const djLine = (stationName: string): RadioNews => {
 
     if (st.tts) {
       a.pause();
-      speak(WELCOME_JINGLE);
+      const host = getCurrentHost(st.id);
+      speak(WELCOME_JINGLE, undefined, host.voice);
       let cycle = 0;
       // première brève rapidement (météo / événement / trafic)
       window.setTimeout(() => {
         ambientIdxRef.current++;
-        speak(pickNextBreve());
+        speak(pickNextBreve(), undefined, getCurrentHost(st.id).voice);
       }, 6000);
       // puis enchaîne toutes les ~18s, avec un intermède musical tous les 3 brèves
       ambientTimerRef.current = window.setInterval(() => {
@@ -496,7 +543,7 @@ const djLine = (stationName: string): RadioNews => {
           return;
         }
         ambientIdxRef.current++;
-        speak(pickNextBreve());
+        speak(pickNextBreve(), undefined, getCurrentHost(st.id).voice);
       }, 18000);
       return;
     }
@@ -507,11 +554,12 @@ const djLine = (stationName: string): RadioNews => {
       // les radios musicales basculent sur les brèves (avec courts intermèdes musicaux).
       if (newsHour) {
         a.pause();
-        speak(WELCOME_JINGLE);
+        const host = getCurrentHost(st.id);
+        speak(WELCOME_JINGLE, undefined, host.voice);
         let cycle = 0;
         window.setTimeout(() => {
           ambientIdxRef.current++;
-          speak(pickNextBreve());
+          speak(pickNextBreve(), undefined, getCurrentHost(st.id).voice);
         }, 4000);
         ambientTimerRef.current = window.setInterval(() => {
           cycle++;
@@ -520,7 +568,7 @@ const djLine = (stationName: string): RadioNews => {
             return;
           }
           ambientIdxRef.current++;
-          speak(pickNextBreve());
+          speak(pickNextBreve(), undefined, getCurrentHost(st.id).voice);
         }, 18000);
         return;
       }
@@ -565,10 +613,11 @@ const djLine = (stationName: string): RadioNews => {
         if (session !== radioSessionRef.current) return;
         if (pausedRef.current) { startSong(); return; }
         if (!isAnnounceTime()) { startSong(); return; }
-        speak(djLine(st.name), () => {
+        const host = getCurrentHost(st.id);
+        speak(djLine(st.name, host.name), () => {
           if (session !== radioSessionRef.current) return;
           startSong();
-        });
+        }, host.voice);
       };
 
       // Petit délai pour que la transition soit nette (changement de station perceptible)
@@ -686,10 +735,11 @@ const djLine = (stationName: string): RadioNews => {
           };
           const m = new Date().getMinutes();
           if (m === 0 || m === 30) {
-            speak(djLine(st.name), () => {
+            const host = getCurrentHost(st.id);
+            speak(djLine(st.name, host.name), () => {
               if (session !== radioSessionRef.current) return;
               startSong();
-            });
+            }, host.voice);
           } else {
             startSong();
           }
