@@ -142,7 +142,7 @@ function DefisPage() {
           <>
             <div className="defi-section-title">🚀 À jouer (j'ai lancé)</div>
             {myPending.map(d => (
-              <DefiCard key={d.id} d={d} meId={user!.id} actionLabel="🎮 Jouer ma manche" onAction={() => launchDefi(d)} altLabel="✍️ Saisir score" onAlt={() => fakeSubmit(d)} submitting={submitting === d.id} />
+              <DefiCard key={d.id} d={d} meId={user!.id} actionLabel="🎮 Jouer ma manche" onAction={() => launchDefi(d)} submitting={submitting === d.id} />
             ))}
           </>
         )}
