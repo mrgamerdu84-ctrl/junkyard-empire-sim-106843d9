@@ -118,7 +118,8 @@ export default function CrimeEvents() {
             ? isolatedPool
             : HOTSPOTS;
           const spot = pool[Math.floor(Math.random() * pool.length)];
-          const kind = pickKind(isNight);
+          const robberyOk = rollRobberyForDay(now);
+          const kind = pickKind(isNight, robberyOk);
           const ttl = kind === "control" ? 9000 : kind === "accident" ? 14000 : kind === "fire" ? 16000 : 11000;
           const meta = KIND_META[kind];
           // Délai avant que l'AI rafle la mission : plus le joueur monte de niveau, plus l'AI est rapide.
