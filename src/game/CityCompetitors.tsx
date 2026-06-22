@@ -74,6 +74,19 @@ export default function CityCompetitors() {
     window.dispatchEvent(new CustomEvent("jce:competitors-changed", { detail: comps }));
   }, [comps]);
 
+  // Hydratation depuis le cloud (admin sync) OU depuis le panel admin (ajout/suppression).
+  useEffect(() => {
+    const onSet = (e: Event) => {
+      const detail = (e as CustomEvent<Competitor[]>).detail;
+      if (Array.isArray(detail) && detail.length > 0) {
+        setComps(detail);
+      }
+    };
+    window.addEventListener("jce:competitors-set", onSet as EventListener);
+    return () => window.removeEventListener("jce:competitors-set", onSet as EventListener);
+  }, []);
+
+
 
   // Level-up joueur → nouveau concurrent agressif (cap 10).
   useEffect(() => {

@@ -3,113 +3,65 @@ import { useEffect, useRef, useState } from "react";
 import { useAdminConfig, setAdmin, resetAdmin, type AdminConfig } from "./adminConfig";
 import { useVersionCheck, formatBuildDate } from "@/lib/version-check";
 import { GAME_ASSETS, setAssetOverride, listAssetKeys, type AssetKey, listCustomVehicles, addCustomVehicle, removeCustomVehicle, type CustomVehicle, type CustomVehicleCategory, VEHICLE_CATEGORY_LABELS } from "./gameAssets";
+import { useAuth } from "@/lib/useAuth";
+import { useIsAdmin, useCloudAdminSync, getLocalCompetitors, setCompetitorsFromCloud, type CloudCompetitor } from "@/lib/adminState";
 
-// SHA-256 du mot de passe admin par défaut. Peut être remplacé via localStorage (PWD_HASH_KEY).
-const ADMIN_PASS_HASH_DEFAULT = "7d473072673d5b86575304cb2a23b92a51e0cde043856919249b3df582a8625d";
-const UNLOCK_KEY = "tt-admin-unlocked";
-const PWD_HASH_KEY = "tt-admin-pwd-hash";
-const PWD_HASH_COOKIE = "tt_admin_pwd_hash";
-const RESET_PHRASE = "RESET";
-
-async function sha256(s: string): Promise<string> {
-  const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(s));
-  return Array.from(new Uint8Array(buf)).map((b) => b.toString(16).padStart(2, "0")).join("");
-}
-
-function getCurrentHash(): string {
-  try {
-    const localHash = localStorage.getItem(PWD_HASH_KEY);
-    if (localHash) return localHash;
-  } catch {}
-  try {
-    const cookieHash = document.cookie
-      .split(";")
-      .map((part) => part.trim())
-      .find((part) => part.startsWith(`${PWD_HASH_COOKIE}=`))
-      ?.split("=")[1];
-    if (cookieHash) return decodeURIComponent(cookieHash);
-  } catch {}
-  return ADMIN_PASS_HASH_DEFAULT;
-}
-
-function savePasswordHash(hash: string): boolean {
-  let saved = false;
-  try {
-    localStorage.removeItem(PWD_HASH_KEY);
-    localStorage.setItem(PWD_HASH_KEY, hash);
-    saved = localStorage.getItem(PWD_HASH_KEY) === hash;
-  } catch {}
-  try {
-    document.cookie = `${PWD_HASH_COOKIE}=${encodeURIComponent(hash)}; Max-Age=31536000; Path=/; SameSite=Lax`;
-    saved = saved || getCurrentHash() === hash;
-  } catch {}
-  return saved;
-}
-
-/* Floating gear button + slide-in admin panel. */
+/* Floating gear button + slide-in admin panel.
+ * Accès = rôle "admin" sur le compte connecté (table user_roles).
+ * Plus aucun mot de passe local. */
 export default function AdminPanel() {
+  const { user } = useAuth();
+  const { isAdmin, loading: adminLoading } = useIsAdmin(user);
+  const { syncing, lastError, pullNow, pushNow } = useCloudAdminSync(user);
+
   const [open, setOpen] = useState(false);
-  const [unlocked, setUnlocked] = useState(false);
-  const [pwd, setPwd] = useState("");
-  const [pwdErr, setPwdErr] = useState("");
-  const [resetMode, setResetMode] = useState(false);
-  const [resetPhrase, setResetPhrase] = useState("");
-  const [newPwd, setNewPwd] = useState("");
-  const [newPwd2, setNewPwd2] = useState("");
-  const [resetMsg, setResetMsg] = useState("");
-  const [adminPwdOpen, setAdminPwdOpen] = useState(false);
-  const [adminPwdNew, setAdminPwdNew] = useState("");
-  const [adminPwdNew2, setAdminPwdNew2] = useState("");
-  const [adminPwdMsg, setAdminPwdMsg] = useState("");
-  const [tab, setTab] = useState<"trafic" | "hq" | "missions" | "rival" | "circuit" | "skins" | "export">("trafic");
+  const [tab, setTab] = useState<"trafic" | "hq" | "missions" | "rival" | "concurrents" | "circuit" | "skins" | "export">("trafic");
   const [placeMode, setPlaceMode] = useState(false);
   const [drawMode, setDrawMode] = useState(false);
   const [resetGameOpen, setResetGameOpen] = useState(false);
   const [resetGamePhrase, setResetGamePhrase] = useState("");
   const [resetGameMsg, setResetGameMsg] = useState("");
-  const cfg = useAdminConfig();
 
-  // Rappel du déverrouillage pour la session courante
+  // État de la liste des concurrents (mis à jour via l'event publié par CityCompetitors).
+  const [comps, setCompsLocal] = useState<CloudCompetitor[]>(() => getLocalCompetitors());
   useEffect(() => {
-    try { if (sessionStorage.getItem(UNLOCK_KEY) === "1") setUnlocked(true); } catch {}
+    const onChange = (e: Event) => {
+      const detail = (e as CustomEvent<CloudCompetitor[]>).detail;
+      if (Array.isArray(detail)) setCompsLocal(detail);
+    };
+    window.addEventListener("jce:competitors-changed", onChange as EventListener);
+    return () => window.removeEventListener("jce:competitors-changed", onChange as EventListener);
   }, []);
 
-  const tryUnlock = async () => {
-    const h = await sha256(pwd);
-    if (h === getCurrentHash()) {
-      setUnlocked(true);
-      setPwd("");
-      setPwdErr("");
-      try { sessionStorage.setItem(UNLOCK_KEY, "1"); } catch {}
-    } else {
-      setPwdErr("Mot de passe incorrect");
-      setPwd("");
-    }
+  // Formulaire d'ajout concurrent
+  const [newCompName, setNewCompName] = useState("");
+  const [newCompColor, setNewCompColor] = useState("#ef4444");
+  const [newCompTreasury, setNewCompTreasury] = useState(15000);
+
+  const addCompetitor = () => {
+    if (!newCompName.trim()) return;
+    if (comps.length >= 10) return;
+    const next: CloudCompetitor = {
+      id: `custom-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+      name: newCompName.trim(),
+      color: newCompColor,
+      x: 200 + Math.round(Math.random() * 1500),
+      y: 200 + Math.round(Math.random() * 700),
+      treasury: Math.max(500, newCompTreasury),
+      taxiCount: 6,
+      bankrupt: false,
+    };
+    setCompetitorsFromCloud([...comps, next]);
+    setNewCompName("");
   };
 
-  const doReset = async () => {
-    setResetMsg("");
-    if (resetPhrase.trim() !== RESET_PHRASE) { setResetMsg(`Tape exactement "${RESET_PHRASE}" pour confirmer.`); return; }
-    if (newPwd.length < 4) { setResetMsg("Le nouveau mot de passe doit faire au moins 4 caractères."); return; }
-    if (newPwd !== newPwd2) { setResetMsg("Les deux mots de passe ne correspondent pas."); return; }
-    const h = await sha256(newPwd);
-    if (!savePasswordHash(h)) { setResetMsg("Impossible d'enregistrer le mot de passe sur cet appareil."); return; }
-    setResetMsg("✅ Mot de passe réinitialisé. Tu peux te connecter.");
-    setNewPwd(""); setNewPwd2(""); setResetPhrase("");
-    setTimeout(() => { setResetMode(false); setResetMsg(""); }, 1200);
+  const removeCompetitor = (id: string) => {
+    setCompetitorsFromCloud(comps.filter((c) => c.id !== id));
   };
 
-  const changeAdminPassword = async () => {
-    setAdminPwdMsg("");
-    if (adminPwdNew.length < 4) { setAdminPwdMsg("Le nouveau mot de passe doit faire au moins 4 caractères."); return; }
-    if (adminPwdNew !== adminPwdNew2) { setAdminPwdMsg("Les deux mots de passe ne correspondent pas."); return; }
-    const h = await sha256(adminPwdNew);
-    if (!savePasswordHash(h)) { setAdminPwdMsg("Impossible d'enregistrer le mot de passe sur cet appareil."); return; }
-    setAdminPwdMsg("✅ Mot de passe admin enregistré.");
-    setAdminPwdNew("");
-    setAdminPwdNew2("");
-    setPwd("");
-  };
+  const cfg = useAdminConfig();
+
+
 
   const doResetGame = () => {
     setResetGameMsg("");
@@ -325,86 +277,31 @@ export default function AdminPanel() {
         </>
       )}
 
-      {!open && (
+      {!open && isAdmin && (
         <button className="adm-btn" onClick={() => setOpen(true)} aria-label="Panneau admin" title="Panneau admin">⚙</button>
       )}
 
-
-      {open && !unlocked && (
+      {open && !isAdmin && (
         <>
           <div className="adm-overlay" onClick={() => setOpen(false)} />
           <div className="adm-panel" onClick={(e) => e.stopPropagation()} style={{ maxWidth: 360 }}>
             <div className="adm-h">
               <h2>🔒 Accès admin</h2>
-              <button className="adm-close" onClick={() => { setOpen(false); setPwd(""); setPwdErr(""); }} aria-label="Fermer">×</button>
+              <button className="adm-close" onClick={() => setOpen(false)} aria-label="Fermer">×</button>
             </div>
-            {!resetMode ? (
-              <div style={{ padding: 16, display: "flex", flexDirection: "column", gap: 10 }}>
-                <p style={{ margin: 0, fontSize: 13, opacity: 0.8 }}>Entre le mot de passe pour accéder au panneau.</p>
-                <input
-                  type="password"
-                  autoFocus
-                  value={pwd}
-                  onChange={(e) => setPwd(e.target.value)}
-                  onKeyDown={(e) => { if (e.key === "Enter") void tryUnlock(); }}
-                  placeholder="Mot de passe"
-                  style={{ padding: "10px 12px", borderRadius: 8, border: "1px solid #444", background: "#111", color: "#fff", fontSize: 14 }}
-                />
-                {pwdErr && <div style={{ color: "#ff6b6b", fontSize: 13 }}>{pwdErr}</div>}
-                <button
-                  onClick={() => void tryUnlock()}
-                  style={{ padding: "10px 12px", borderRadius: 8, border: "none", background: "#facc15", color: "#111", fontWeight: 700, cursor: "pointer" }}
-                >Déverrouiller</button>
-                <button
-                  onClick={() => { setResetMode(true); setPwdErr(""); }}
-                  style={{ padding: "8px 12px", borderRadius: 8, border: "1px solid #555", background: "transparent", color: "#facc15", fontSize: 13, cursor: "pointer" }}
-                >Mot de passe oublié ?</button>
-              </div>
-            ) : (
-              <div style={{ padding: 16, display: "flex", flexDirection: "column", gap: 10 }}>
-                <p style={{ margin: 0, fontSize: 13, opacity: 0.85 }}>
-                  Réinitialise ton mot de passe admin. Pour confirmer, tape <b>{RESET_PHRASE}</b> dans le champ ci-dessous.
-                </p>
-                <input
-                  type="text"
-                  value={resetPhrase}
-                  onChange={(e) => setResetPhrase(e.target.value)}
-                  placeholder={`Tape ${RESET_PHRASE}`}
-                  style={{ padding: "10px 12px", borderRadius: 8, border: "1px solid #444", background: "#111", color: "#fff", fontSize: 14 }}
-                />
-                <input
-                  type="password"
-                  value={newPwd}
-                  onChange={(e) => setNewPwd(e.target.value)}
-                  placeholder="Nouveau mot de passe"
-                  style={{ padding: "10px 12px", borderRadius: 8, border: "1px solid #444", background: "#111", color: "#fff", fontSize: 14 }}
-                />
-                <input
-                  type="password"
-                  value={newPwd2}
-                  onChange={(e) => setNewPwd2(e.target.value)}
-                  onKeyDown={(e) => { if (e.key === "Enter") void doReset(); }}
-                  placeholder="Confirme le mot de passe"
-                  style={{ padding: "10px 12px", borderRadius: 8, border: "1px solid #444", background: "#111", color: "#fff", fontSize: 14 }}
-                />
-                {resetMsg && <div style={{ color: resetMsg.startsWith("✅") ? "#4ade80" : "#ff6b6b", fontSize: 13 }}>{resetMsg}</div>}
-                <div style={{ display: "flex", gap: 8 }}>
-                  <button
-                    onClick={() => { setResetMode(false); setResetMsg(""); setNewPwd(""); setNewPwd2(""); setResetPhrase(""); }}
-                    style={{ flex: 1, padding: "10px 12px", borderRadius: 8, border: "1px solid #555", background: "transparent", color: "#fff", cursor: "pointer" }}
-                  >Annuler</button>
-                  <button
-                    onClick={() => void doReset()}
-                    style={{ flex: 1, padding: "10px 12px", borderRadius: 8, border: "none", background: "#facc15", color: "#111", fontWeight: 700, cursor: "pointer" }}
-                  >Réinitialiser</button>
-                </div>
-              </div>
-            )}
+            <div style={{ padding: 16, fontSize: 13, opacity: 0.9 }}>
+              {adminLoading
+                ? "Vérification du compte…"
+                : !user
+                  ? "Connecte-toi avec ton compte admin pour accéder au panneau."
+                  : "Ce compte n'a pas le rôle admin."}
+            </div>
           </div>
         </>
       )}
 
-      {open && unlocked && (
+      {open && isAdmin && (
+
 
         <>
           <div className="adm-overlay" onClick={() => setOpen(false)} />
@@ -419,6 +316,7 @@ export default function AdminPanel() {
               <button className={`adm-tab ${tab === "hq" ? "active" : ""}`} onClick={() => setTab("hq")}>QG</button>
               <button className={`adm-tab ${tab === "missions" ? "active" : ""}`} onClick={() => setTab("missions")}>Miss.</button>
               <button className={`adm-tab ${tab === "rival" ? "active" : ""}`} onClick={() => setTab("rival")}>Rival</button>
+              <button className={`adm-tab ${tab === "concurrents" ? "active" : ""}`} onClick={() => setTab("concurrents")}>Conc.</button>
               <button className={`adm-tab ${tab === "circuit" ? "active" : ""}`} onClick={() => setTab("circuit")}>Circuit</button>
              <button className={`adm-tab ${tab === "skins" ? "active" : ""}`} onClick={() => setTab("skins")}>Skins</button>
              <button className={`adm-tab ${tab === "export" ? "active" : ""}`} onClick={() => setTab("export")}>Export</button>
@@ -531,6 +429,60 @@ export default function AdminPanel() {
                   format={(v) => v.toFixed(0)} onChange={(v) => setAdmin({ rivalHQY: v })} />
               </>
             )}
+            {tab === "concurrents" && (
+              <>
+                <div className="adm-hint" style={{ marginBottom: 8 }}>
+                  Ajoute jusqu'à 10 entreprises concurrentes. Les taxis rivaux roulent sur la map dans la couleur choisie.
+                </div>
+                <div style={{ display: "flex", flexDirection: "column", gap: 6, marginBottom: 12 }}>
+                  {comps.length === 0 && (
+                    <div className="adm-hint">Aucun concurrent. Ajoute-en ci-dessous.</div>
+                  )}
+                  {comps.map((c) => (
+                    <div key={c.id} style={{ display: "flex", alignItems: "center", gap: 8, padding: "6px 8px", background: "#1f242b", borderRadius: 6, border: "1px solid #2a2f38" }}>
+                      <span style={{ width: 14, height: 14, borderRadius: "50%", background: c.color, border: "1px solid #0b0d10", flexShrink: 0 }} />
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ fontSize: 12, fontWeight: 700, color: "#e8edf2", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{c.name}</div>
+                        <div style={{ fontSize: 10, color: "#8a8e94" }}>💰 {Math.round(c.treasury).toLocaleString()}$ · ({Math.round(c.x)},{Math.round(c.y)}){c.bankrupt ? " · 💀 faillite" : ""}</div>
+                      </div>
+                      <button onClick={() => removeCompetitor(c.id)} aria-label="Supprimer"
+                        style={{ background: "transparent", border: "1px solid #7f1d1d", color: "#fca5a5", borderRadius: 6, padding: "4px 8px", fontSize: 12, cursor: "pointer" }}>🗑</button>
+                    </div>
+                  ))}
+                </div>
+                <div style={{ display: "flex", flexDirection: "column", gap: 8, padding: 10, background: "#0f1318", borderRadius: 8, border: "1px solid #2a2f38" }}>
+                  <div style={{ fontSize: 12, fontWeight: 700, color: "#f5c542" }}>➕ Nouveau concurrent</div>
+                  <input
+                    type="text"
+                    value={newCompName}
+                    onChange={(e) => setNewCompName(e.target.value)}
+                    placeholder="Nom de l'entreprise"
+                    style={{ padding: "8px 10px", borderRadius: 6, border: "1px solid #444", background: "#111", color: "#fff", fontSize: 13 }}
+                  />
+                  <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                    <label style={{ fontSize: 11, color: "#c8ccd2" }}>Couleur</label>
+                    <input
+                      type="color"
+                      value={newCompColor}
+                      onChange={(e) => setNewCompColor(e.target.value)}
+                      style={{ width: 40, height: 28, border: "none", background: "transparent", cursor: "pointer" }}
+                    />
+                    <span style={{ fontSize: 11, color: "#8a8e94", fontFamily: "monospace" }}>{newCompColor}</span>
+                  </div>
+                  <Slider label="Trésorerie de départ"
+                    value={newCompTreasury} min={500} max={100000} step={500}
+                    format={(v) => Math.round(v).toLocaleString() + "$"}
+                    onChange={(v) => setNewCompTreasury(v)} />
+                  <button
+                    onClick={addCompetitor}
+                    disabled={!newCompName.trim() || comps.length >= 10}
+                    style={{ padding: "9px 12px", borderRadius: 8, border: "none", background: comps.length >= 10 ? "#3a3f48" : "#22c55e", color: "#fff", fontWeight: 700, cursor: comps.length >= 10 ? "not-allowed" : "pointer", fontSize: 13 }}
+                  >
+                    {comps.length >= 10 ? "Cap atteint (10)" : "Ajouter ce concurrent"}
+                  </button>
+                </div>
+              </>
+            )}
             {tab === "circuit" && (
               <>
                 <button className="adm-place" onClick={startDraw}>
@@ -559,38 +511,20 @@ export default function AdminPanel() {
             {tab === "export" && <ExportTab />}
 
             <div className="adm-section" style={{ marginTop: 14, paddingTop: 12, borderTop: "1px solid #2a2f38" }}>
-              <button className="adm-reset" type="button" onClick={() => setAdminPwdOpen((v) => !v)}>
-                🔑 Changer le mot de passe admin
-              </button>
-              {adminPwdOpen && (
-                <div style={{ display: "flex", flexDirection: "column", gap: 8, marginTop: 8 }}>
-                  <input
-                    type="password"
-                    value={adminPwdNew}
-                    onChange={(e) => setAdminPwdNew(e.target.value)}
-                    placeholder="Nouveau mot de passe"
-                    style={{ padding: "9px 10px", borderRadius: 8, border: "1px solid #444", background: "#111", color: "#fff", fontSize: 13 }}
-                  />
-                  <input
-                    type="password"
-                    value={adminPwdNew2}
-                    onChange={(e) => setAdminPwdNew2(e.target.value)}
-                    onKeyDown={(e) => { if (e.key === "Enter") void changeAdminPassword(); }}
-                    placeholder="Confirme le mot de passe"
-                    style={{ padding: "9px 10px", borderRadius: 8, border: "1px solid #444", background: "#111", color: "#fff", fontSize: 13 }}
-                  />
-                  {adminPwdMsg && <div style={{ color: adminPwdMsg.startsWith("✅") ? "#4ade80" : "#ff6b6b", fontSize: 12 }}>{adminPwdMsg}</div>}
-                  <button
-                    className="adm-place active"
-                    type="button"
-                    onClick={() => void changeAdminPassword()}
-                    style={{ marginTop: 0 }}
-                  >
-                    Enregistrer le mot de passe
-                  </button>
-                </div>
-              )}
+              <div style={{ display: "flex", gap: 6 }}>
+                <button className="adm-reset" type="button" onClick={() => void pushNow()} disabled={syncing} style={{ flex: 1 }}>
+                  {syncing ? "⏳ Sync…" : "☁️↑ Pousser sur mon compte"}
+                </button>
+                <button className="adm-reset" type="button" onClick={() => void pullNow()} disabled={syncing} style={{ flex: 1 }}>
+                  {syncing ? "⏳ Sync…" : "☁️↓ Tirer depuis mon compte"}
+                </button>
+              </div>
+              {lastError && <div style={{ color: "#ff6b6b", fontSize: 12, marginTop: 6 }}>⚠️ {lastError}</div>}
+              <div className="adm-hint" style={{ marginTop: 4 }}>
+                Tout (concurrents, véhicules, config) est auto-synchronisé sur ton compte. Utilise ces boutons en cas de bug pour forcer une direction.
+              </div>
             </div>
+
 
             <button className="adm-reset" onClick={resetAdmin}>↺ Réinitialiser les valeurs</button>
 

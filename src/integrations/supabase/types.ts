@@ -14,6 +14,33 @@ export type Database = {
   }
   public: {
     Tables: {
+      admin_state: {
+        Row: {
+          competitors: Json
+          config: Json
+          created_at: string
+          custom_vehicles: Json
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          competitors?: Json
+          config?: Json
+          created_at?: string
+          custom_vehicles?: Json
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          competitors?: Json
+          config?: Json
+          created_at?: string
+          custom_vehicles?: Json
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       daily_scores: {
         Row: {
           created_at: string
