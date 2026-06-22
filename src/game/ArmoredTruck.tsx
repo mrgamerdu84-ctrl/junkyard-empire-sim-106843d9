@@ -68,7 +68,8 @@ function fmtMoney(n: number): string {
 
 export default function ArmoredTruck() {
   const cfg = useAdminConfig();
-  void cfg; // (placeholder pour usage futur — fréquence configurable)
+  const cfgRef = useRef(cfg);
+  useEffect(() => { cfgRef.current = cfg; }, [cfg]);
 
   const [phase, setPhase] = useState<Phase>("idle");
   const [pathIdx, setPathIdx] = useState(0);
