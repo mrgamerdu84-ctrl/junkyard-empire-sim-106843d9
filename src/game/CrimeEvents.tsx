@@ -188,9 +188,36 @@ export default function CrimeEvents() {
       });
     };
     window.addEventListener("jce.intervention.resolved", onResolved as EventListener);
+
+    const onManual = (ev: Event) => {
+      const detail = (ev as CustomEvent<{ kind?: CrimeKind }>).detail ?? {};
+      const kind: CrimeKind = detail.kind ?? "robbery";
+      const meta = KIND_META[kind];
+      const spot = HOTSPOTS[Math.floor(Math.random() * HOTSPOTS.length)];
+      const ttl = kind === "control" ? 9000 : kind === "accident" ? 14000 : kind === "fire" ? 16000 : 11000;
+      const tier = readDepotTier();
+      const diff = getAdmin().aiDifficulty;
+      const diffMult = diff === "easy" ? 1.8 : diff === "hard" ? 0.65 : 1;
+      const aiDelay = Math.max(2200, (7500 - tier * 950) * diffMult);
+      const now = performance.now();
+      const ev2: CrimeEvent = {
+        id: nextId++,
+        kind,
+        x: spot.x + (Math.random() - 0.5) * 60,
+        y: spot.y + (Math.random() - 0.5) * 60,
+        startedAt: now,
+        ttl,
+        label: `${meta.label} · admin`,
+        aiClaimAt: now + aiDelay,
+      };
+      setEvents(es => [...es, ev2]);
+    };
+    window.addEventListener("jce:crime-spawn-now", onManual as EventListener);
+
     return () => {
       window.clearInterval(id);
       window.removeEventListener("jce.intervention.resolved", onResolved as EventListener);
+      window.removeEventListener("jce:crime-spawn-now", onManual as EventListener);
     };
   }, []);
 
