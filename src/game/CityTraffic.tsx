@@ -173,6 +173,8 @@ function PhotoPedestrians({ pathRefs }: { pathRefs: React.MutableRefObject<(SVGP
         if (!path || !node) continue;
         st.s = (st.s + st.spec.speed * dt) % st.pathLen;
         const p = path.getPointAtLength(st.s);
+        // CULLING : hors viewport SVG (avec marge) → skip getPointAtLength d'appoint + DOM write.
+        if (p.x < -200 || p.x > 2120 || p.y < -200 || p.y > 1280) continue;
         const p2 = path.getPointAtLength(Math.min(st.pathLen, st.s + 1));
         const dx = p2.x - p.x, dy = p2.y - p.y;
         const L = Math.hypot(dx, dy) || 1;
