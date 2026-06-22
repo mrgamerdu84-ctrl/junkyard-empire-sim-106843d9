@@ -316,6 +316,7 @@ export default function AdminPanel() {
               <button className={`adm-tab ${tab === "hq" ? "active" : ""}`} onClick={() => setTab("hq")}>QG</button>
               <button className={`adm-tab ${tab === "missions" ? "active" : ""}`} onClick={() => setTab("missions")}>Miss.</button>
               <button className={`adm-tab ${tab === "rival" ? "active" : ""}`} onClick={() => setTab("rival")}>Rival</button>
+              <button className={`adm-tab ${tab === "concurrents" ? "active" : ""}`} onClick={() => setTab("concurrents")}>Conc.</button>
               <button className={`adm-tab ${tab === "circuit" ? "active" : ""}`} onClick={() => setTab("circuit")}>Circuit</button>
              <button className={`adm-tab ${tab === "skins" ? "active" : ""}`} onClick={() => setTab("skins")}>Skins</button>
              <button className={`adm-tab ${tab === "export" ? "active" : ""}`} onClick={() => setTab("export")}>Export</button>
