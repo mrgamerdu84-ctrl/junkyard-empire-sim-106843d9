@@ -321,6 +321,25 @@ type Mission = {
   pausedS: number;                            // st.s gelé pendant la mission
 };
 
+// === Stationnement dynamique ===
+// Cycle : approaching → parked (conducteur sort, marche, revient) → leaving → reprise.
+type ParkPhase = "approaching" | "parked" | "leaving";
+type Parking = {
+  phase: ParkPhase;
+  phaseEndsAt: number;
+  parkedUntil: number;          // fin de la phase "parked"
+  // Pose figée pendant le parking (snapshot à la fin de l'approche)
+  startX: number; startY: number; // position monde avant décalage trottoir
+  px: number; py: number;        // position monde de la voiture garée (sur trottoir)
+  angle: number;                 // angle (deg) de la voiture garée
+  tdx: number; tdy: number;      // tangente unitaire au moment du parking
+  side: 1 | -1;                  // côté trottoir (selon flip)
+  // Conducteur
+  pedSpriteIdx: number;
+  pedWalkMs: number;             // durée d'aller (puis idem pour retour)
+  pedReturnAt: number;           // instant où il commence à revenir
+};
+
 type CarState = {
   spec: CarSpec;
   pathLen: number;
@@ -329,8 +348,24 @@ type CarState = {
   speed: number;       // px/s instantanée
   laneKey: string;     // pathIdx + sens -> regroupe les véhicules qui peuvent se gêner
   node: SVGGElement | null;
+  pedNode: SVGGElement | null;   // sprite du conducteur (caché par défaut)
   mission?: Mission;
+  parking?: Parking;
+  pausedS?: number;              // st.s gelé pendant le parking
+  nextParkAttemptAt?: number;    // cooldown anti re-park immédiat
 };
+
+// Réglages parking
+const PARK_TARGET_MIN = 3;
+const PARK_TARGET_MAX = 6;
+const PARK_APPROACH_MS = 1400;
+const PARK_LEAVE_MS = 1100;
+const PARK_DURATION_MIN_MS = 10000;
+const PARK_DURATION_MAX_MS = 22000;
+const PARK_COOLDOWN_MS = 45000;
+const PARK_LANE_OFFSET = 18;
+const PARK_PED_OFFSET = 34;
+const PARK_PED_WALK_PX = 55;
 
 // Toutes les catégories sauf "taxi" peuvent rouler dans la circulation.
 const TRAFFIC_CATEGORIES: CustomVehicleCategory[] = [
