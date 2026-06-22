@@ -1280,3 +1280,137 @@ const btnMini: CSSProperties = {
   fontSize: 10, padding: "4px 6px", background: "#14171c",
   border: "1px solid #3a3f48", borderRadius: 4, cursor: "pointer", color: "#e8edf2",
 };
+
+// =============================================================
+// Section piétons personnalisés — upload de sprites vue du ciel
+// (PNG transparent, tête vers le nord). Stockés en localStorage
+// et mergés dans le pool de piétons qui marchent sur les trottoirs.
+// =============================================================
+function CustomPedestriansSection() {
+  const [items, setItems] = useState<CustomPedestrian[]>(() => listCustomPedestrians());
+  const [pending, setPending] = useState<{ src: string; name: string } | null>(null);
+  const [rotation, setRotation] = useState<0 | 90 | 180 | 270>(0);
+  const fileRef = useRef<HTMLInputElement>(null);
+
+  const refresh = () => setItems(listCustomPedestrians());
+
+  const onPick = (f: File | null) => {
+    if (!f) return;
+    const r = new FileReader();
+    r.onload = () => {
+      setPending({ src: String(r.result), name: f.name.replace(/\.[^.]+$/, "") });
+      setRotation(0);
+      if (fileRef.current) fileRef.current.value = "";
+    };
+    r.readAsDataURL(f);
+  };
+
+  const confirmAdd = async () => {
+    if (!pending) return;
+    try {
+      const finalUrl = await rotateToDataUrl(pending.src, rotation);
+      addCustomPedestrian({ name: pending.name || "Piéton", url: finalUrl });
+      setPending(null);
+      setRotation(0);
+      refresh();
+    } catch {
+      window.alert("Impossible de charger l'image.");
+    }
+  };
+
+  const onRemove = (id: string) => {
+    if (!window.confirm("Supprimer ce piéton ?")) return;
+    removeCustomPedestrian(id);
+    refresh();
+  };
+
+  return (
+    <div style={{ marginTop: 16, paddingTop: 12, borderTop: "1px solid #2a2f38" }}>
+      <div style={{ fontSize: 12, fontWeight: 700, color: "#f5c542", marginBottom: 6 }}>
+        🚶 Piétons personnalisés
+      </div>
+      <div style={{ fontSize: 11, color: "#8a8e94", lineHeight: 1.4, marginBottom: 8 }}>
+        Ajoute des piétons qui marchent sur les trottoirs. PNG transparent vu du ciel, tête vers le haut (↑).
+      </div>
+
+      <label style={{
+        display: "inline-block", fontSize: 11, padding: "6px 10px", background: "#14171c",
+        border: "1px solid #3a3f48", borderRadius: 6, cursor: "pointer", color: "#e8edf2",
+      }}>
+        📁 Choisir une image
+        <input
+          ref={fileRef}
+          type="file"
+          accept="image/*"
+          style={{ display: "none" }}
+          onChange={(e) => onPick(e.target.files?.[0] ?? null)}
+        />
+      </label>
+
+      {pending && (
+        <div style={{
+          marginTop: 8, padding: 10, background: "#0f1318",
+          borderRadius: 8, border: "1px solid #2a2f38",
+          display: "flex", flexDirection: "column", gap: 8,
+        }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+            <img
+              src={pending.src}
+              alt=""
+              style={{
+                width: 72, height: 72, objectFit: "contain",
+                background: "#1f242b", borderRadius: 6, border: "1px solid #2a2f38",
+                transform: `rotate(${rotation}deg)`,
+              }}
+            />
+            <input
+              type="text"
+              value={pending.name}
+              onChange={(e) => setPending({ ...pending, name: e.target.value })}
+              placeholder="Nom du piéton"
+              style={{
+                flex: 1, padding: "6px 8px", borderRadius: 6,
+                border: "1px solid #444", background: "#111", color: "#fff", fontSize: 12,
+              }}
+            />
+          </div>
+          <div style={{ display: "flex", gap: 6 }}>
+            <button onClick={() => setRotation((r) => ((r + 270) % 360) as 0 | 90 | 180 | 270)} style={btnMini}>↺ -90°</button>
+            <button onClick={() => setRotation((r) => ((r + 90) % 360) as 0 | 90 | 180 | 270)} style={btnMini}>↻ +90°</button>
+            <button onClick={() => setRotation((r) => ((r + 180) % 360) as 0 | 90 | 180 | 270)} style={btnMini}>↕ 180°</button>
+            <span style={{ alignSelf: "center", fontSize: 10, color: "#8a8e94" }}>{rotation}°</span>
+          </div>
+          <div style={{ display: "flex", gap: 6 }}>
+            <button
+              onClick={confirmAdd}
+              style={{ flex: 1, padding: "8px 10px", borderRadius: 6, border: "none", background: "#22c55e", color: "#fff", fontWeight: 700, cursor: "pointer", fontSize: 12 }}
+            >
+              ✓ Ajouter
+            </button>
+            <button
+              onClick={() => { setPending(null); setRotation(0); }}
+              style={{ padding: "8px 10px", borderRadius: 6, border: "1px solid #444", background: "transparent", color: "#c8ccd2", cursor: "pointer", fontSize: 12 }}
+            >
+              Annuler
+            </button>
+          </div>
+        </div>
+      )}
+
+      {items.length > 0 && (
+        <div style={{ marginTop: 10, display: "grid", gap: 6 }}>
+          {items.map((p) => (
+            <div key={p.id} style={{
+              background: "#1f242b", padding: 8, borderRadius: 6,
+              display: "flex", alignItems: "center", gap: 8,
+            }}>
+              <img src={p.url} alt="" style={{ width: 36, height: 36, objectFit: "contain", background: "#0a0c10", borderRadius: 4 }} />
+              <div style={{ flex: 1, fontSize: 11, color: "#e8edf2", fontWeight: 600 }}>{p.name}</div>
+              <button onClick={() => onRemove(p.id)} style={{ ...btnMini, borderColor: "#7f1d1d", color: "#fca5a5" }}>🗑</button>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
