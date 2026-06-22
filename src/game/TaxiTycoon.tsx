@@ -514,6 +514,7 @@ export default function TaxiTycoon() {
   const lastTaxiDispatchRef = useRef(0);
   const [, forceRender] = useState(0);
   const [toast, setToast] = useState<string | null>(null);
+  const [saveBlink, setSaveBlink] = useState(false);
   const [popups, setPopups] = useState<{ id: number; text: string; x: number; y: number }[]>([]);
   const popIdRef = useRef(0);
 
