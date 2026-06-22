@@ -297,11 +297,15 @@ function PedestrianSVG({ shirt, pants, skin, side, scale = 1 }: { shirt: string;
 }
 
 // Distance de sécurité et freinage (en px du viewBox 1920x1080)
-const SAFE_GAP = 55;     // distance désirée pare-chocs à pare-chocs
-const BRAKE_GAP = 110;   // au-delà : pleine vitesse ; en deçà : freinage progressif
+const SAFE_GAP = 70;     // distance désirée pare-chocs à pare-chocs (raycast 70 px)
+const BRAKE_GAP = 140;   // au-delà : pleine vitesse ; en deçà : freinage progressif
 const ACCEL = 0.6;       // px/s² lissage vers la vitesse cible (réaccélération douce)
-const BRAKE = 1.8;       // px/s² lissage en freinage (plus mordant que l'accélération)
-const MIN_SPEED_RATIO = 0.35; // plancher anti-figeage (% de baseSpeed)
+const BRAKE = 2.4;       // px/s² lissage en freinage (mordant pour anti-empilement)
+const MIN_SPEED_RATIO = 0.25; // plancher anti-figeage (% de baseSpeed)
+// Anti-collision cross-lane (intersections) : si une autre voiture (toute lane confondue)
+// est dans ce rayon DEVANT moi (cône avant), je freine fort. Évite les empilements aux carrefours.
+const CROSS_LANE_RADIUS = 50;
+const CROSS_LANE_FORWARD_DOT = 0.3; // ~72° devant moi
 
 type Mission = {
   eventId: number;
@@ -557,6 +561,20 @@ export default function CityTraffic() {
 
       // 1) calcul de la vitesse cible (freinage selon distance au véhicule devant)
       //    Les voitures en mission sont retirées de la circulation : on les ignore.
+      // 1a) Pré-calcul des positions monde + vecteur direction pour le check cross-lane.
+      type WP = { x: number; y: number; dx: number; dy: number };
+      const wps = new Map<CarState, WP>();
+      for (const st of states) {
+        if (st.mission) continue;
+        const path = pathRefs.current[st.spec.pathIdx];
+        if (!path) continue;
+        const fwd = st.spec.flip ? st.pathLen - st.s : st.s;
+        const p = path.getPointAtLength(fwd);
+        const p2 = path.getPointAtLength(Math.min(st.pathLen, fwd + (st.spec.flip ? -1 : 1)));
+        const tdx = p2.x - p.x, tdy = p2.y - p.y;
+        const L = Math.hypot(tdx, tdy) || 1;
+        wps.set(st, { x: p.x, y: p.y, dx: tdx / L, dy: tdy / L });
+      }
       for (const lane of lanes.values()) {
         const sorted = [...lane].filter(s => !s.mission).sort((a, b) => b.s - a.s);
         for (let i = 0; i < sorted.length; i++) {
@@ -578,6 +596,27 @@ export default function CityTraffic() {
             target = leaderEff * (1 - k) + me.baseSpeed * k;
             if (gap < safe) target = Math.min(target, leaderEff * (gap / safe));
           }
+          // 1b) Cross-lane raycast : freine si un autre véhicule est devant moi
+          //     dans CROSS_LANE_RADIUS (carrefours, voies qui se croisent).
+          const myWp = wps.get(me);
+          if (myWp) {
+            for (const other of states) {
+              if (other === me || other.mission) continue;
+              if (other.laneKey === me.laneKey) continue; // même lane déjà traité
+              const owp = wps.get(other);
+              if (!owp) continue;
+              const rx = owp.x - myWp.x, ry = owp.y - myWp.y;
+              const dist = Math.hypot(rx, ry);
+              if (dist > CROSS_LANE_RADIUS || dist < 1) continue;
+              const dot = (rx / dist) * myWp.dx + (ry / dist) * myWp.dy;
+              if (dot < CROSS_LANE_FORWARD_DOT) continue; // pas devant moi
+              // proximité : plus c'est proche, plus on freine ; en dessous de 25 px → stop
+              const stopAt = 25;
+              const k = Math.max(0, Math.min(1, (dist - stopAt) / (CROSS_LANE_RADIUS - stopAt)));
+              const ct = me.baseSpeed * k * 0.6;
+              if (ct < target) target = ct;
+            }
+          }
           const diff = target - me.speed;
           const rate = diff < 0 ? BRAKE * (target === 0 ? 2.5 : 1) : ACCEL;
           const maxStep = rate * me.baseSpeed * dt;
@@ -588,6 +627,7 @@ export default function CityTraffic() {
           } else if (me.speed < 0) me.speed = 0;
         }
       }
+
 
       // 2) avancer et appliquer le transform
       let needsRebuild = false;

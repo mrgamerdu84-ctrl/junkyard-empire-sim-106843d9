@@ -2872,6 +2872,12 @@ export default function TaxiTycoon() {
           box-shadow: 0 3px 0 rgba(0,0,0,0.6), inset 0 1px 0 rgba(255,255,255,0.08);
           min-width: 95px;
           transition: transform 0.08s ease;
+          touch-action: manipulation;
+          -webkit-tap-highlight-color: transparent;
+        }
+        .tt-missions-fab, .tt-garage-fab, .tt-c-accept, .tt-c-x, .tt-missions-x, .tt-missions-tab {
+          touch-action: manipulation;
+          -webkit-tap-highlight-color: transparent;
         }
         .tt-btn:active { transform: translateY(2px); box-shadow: 0 1px 0 rgba(0,0,0,0.6); }
         .tt-btn:disabled { opacity: 0.42; cursor: not-allowed; }

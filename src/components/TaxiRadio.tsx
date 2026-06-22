@@ -540,10 +540,16 @@ const djLine = (stationName: string): RadioNews => {
         });
       };
 
-      // Annonce l'animateur, PUIS démarre la chanson quand sa voix se termine.
+      // Annonce l'animateur UNIQUEMENT aux heures piles (xx:00) et demies (xx:30).
+      // Entre-temps, on enchaîne directement la chanson — pas de DJ qui spam.
+      const isAnnounceTime = () => {
+        const m = new Date().getMinutes();
+        return m === 0 || m === 30;
+      };
       const runDjThenSong = () => {
         if (session !== radioSessionRef.current) return;
         if (pausedRef.current) { startSong(); return; }
+        if (!isAnnounceTime()) { startSong(); return; }
         speak(djLine(st.name), () => {
           if (session !== radioSessionRef.current) return;
           startSong();
@@ -663,10 +669,15 @@ const djLine = (stationName: string): RadioNews => {
             a.currentTime = 0;
             a.play().catch(() => {});
           };
-          speak(djLine(st.name), () => {
-            if (session !== radioSessionRef.current) return;
+          const m = new Date().getMinutes();
+          if (m === 0 || m === 30) {
+            speak(djLine(st.name), () => {
+              if (session !== radioSessionRef.current) return;
+              startSong();
+            });
+          } else {
             startSong();
-          });
+          }
         }}
       />
 
