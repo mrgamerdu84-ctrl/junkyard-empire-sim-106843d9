@@ -102,7 +102,10 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
         href: appCss,
       },
       { rel: "manifest", href: "/manifest.webmanifest" },
-      { rel: "apple-touch-icon", href: "/favicon.ico" },
+      { rel: "apple-touch-icon", href: "/apple-touch-icon.png" },
+      { rel: "icon", type: "image/png", sizes: "192x192", href: "/icon-192.png" },
+      { rel: "icon", type: "image/png", sizes: "512x512", href: "/icon-512.png" },
+
     ],
   }),
   shellComponent: RootShell,
@@ -129,8 +132,27 @@ function RootComponent() {
   const { queryClient } = Route.useRouteContext();
 
   useEffect(() => {
-    registerServiceWorker();
+    // Register the kill-switch SW at /sw.js so returning users with the old
+    // offline worker get it evicted on next visit. New users see a tiny
+    // install→unregister cycle and end up with no SW (manifest-only PWA).
+    if (
+      typeof window === "undefined" ||
+      !("serviceWorker" in navigator) ||
+      !import.meta.env.PROD
+    )
+      return;
+    const host = window.location.hostname;
+    const isPreview =
+      host.endsWith(".lovableproject.com") ||
+      host.endsWith(".lovableproject-dev.com") ||
+      host.endsWith(".beta.lovable.dev") ||
+      host.startsWith("id-preview--") ||
+      host.startsWith("preview--") ||
+      window.self !== window.top;
+    if (isPreview) return;
+    navigator.serviceWorker.register("/sw.js").catch(() => {});
   }, []);
+
 
   return (
     <QueryClientProvider client={queryClient}>
