@@ -241,27 +241,33 @@ export default function TaxiRadio() {
 
 
 
-  // Débloque la synthèse vocale au premier geste utilisateur (requis sur mobile)
+  // Débloque la synthèse vocale au premier geste utilisateur (requis sur mobile).
+  // iOS/Android Safari re-verrouille après chaque pause longue → on garde les
+  // listeners actifs et on renvoie une utterance silencieuse à chaque geste.
   useEffect(() => {
     if (typeof window === "undefined" || !("speechSynthesis" in window)) return;
     const unlock = () => {
-      if (ttsUnlockedRef.current) return;
       try {
+        window.speechSynthesis.resume();
         const u = new SpeechSynthesisUtterance(" ");
         u.volume = 0;
+        u.rate = 1.0;
         window.speechSynthesis.speak(u);
         ttsUnlockedRef.current = true;
       } catch {}
     };
-    window.addEventListener("pointerdown", unlock, { once: true });
-    window.addEventListener("touchstart", unlock, { once: true });
-    window.addEventListener("keydown", unlock, { once: true });
+    window.addEventListener("pointerdown", unlock);
+    window.addEventListener("touchstart", unlock, { passive: true });
+    window.addEventListener("click", unlock);
+    window.addEventListener("keydown", unlock);
     return () => {
       window.removeEventListener("pointerdown", unlock);
       window.removeEventListener("touchstart", unlock);
+      window.removeEventListener("click", unlock);
       window.removeEventListener("keydown", unlock);
     };
   }, []);
+
 
   useEffect(() => {
     setStationId(readPref());
