@@ -2663,7 +2663,23 @@ export default function TaxiTycoon() {
             const movingForward = taxi.target >= taxi.pos;
             const onPath = taxi.lane ?? getLaneXY(taxi.pathIdx, taxi.pos, movingForward);
             const parkInfo = parked.find((q) => q.taxi.id === taxi.id);
-            const p = parkInfo ? slotWorld(parkInfo.slot) : onPath;
+            let p = parkInfo ? slotWorld(parkInfo.slot) : onPath;
+            // Transition douce après acceptation : lerp visuel pour éviter le saut.
+            if (!parkInfo && taxi.transitionUntil && taxi.transitionFromX != null && taxi.transitionFromY != null) {
+              const tNow = performance.now();
+              if (tNow < taxi.transitionUntil) {
+                const k = 1 - (taxi.transitionUntil - tNow) / TRANSITION_MS;
+                const ease = k * k * (3 - 2 * k);
+                const lx = taxi.transitionFromX + (onPath.x - taxi.transitionFromX) * ease;
+                const ly = taxi.transitionFromY + (onPath.y - taxi.transitionFromY) * ease;
+                const dxA = onPath.x - taxi.transitionFromX;
+                const dyA = onPath.y - taxi.transitionFromY;
+                const ang = Math.hypot(dxA, dyA) > 2
+                  ? (Math.atan2(dyA, dxA) * 180) / Math.PI
+                  : onPath.angle;
+                p = { x: lx, y: ly, angle: ang };
+              }
+            }
             const angle = p.angle;
             const fuelPct = Math.max(0, Math.min(1, taxi.fuel / 100));
             const fuelLow = taxi.fuel < FUEL_LOW_THRESHOLD;
