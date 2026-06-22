@@ -91,10 +91,8 @@ export default function TutorialDialog({ onClose }: { onClose: () => void }) {
     try { window.speechSynthesis.cancel(); } catch {}
     if (mutedRef.current) return;
     const utter = new SpeechSynthesisUtterance(`${s.title}. ${s.text}`);
-    utter.lang = "fr-FR";
-    utter.rate = 1.02;
-    utter.pitch = 1.0;
-    const v = pickFrenchVoice();
+    applyVeteranTone(utter);
+    const v = pickFrenchMaleVoice();
     if (v) utter.voice = v;
     try { window.speechSynthesis.speak(utter); } catch {}
   }, [step, s.title, s.text]);
