@@ -7,6 +7,7 @@ import CityCompetitors from "@/game/CityCompetitors";
 import CityHud from "@/game/CityHud";
 import CrimeEvents from "@/game/CrimeEvents";
 import InterventionDispatcher from "@/game/InterventionDispatcher";
+import EmergencyStations from "@/game/EmergencyStations";
 import RadarFlash from "@/game/RadarFlash";
 import AmbientSirens from "@/game/AmbientSirens";
 import AdminPanel from "@/game/AdminPanel";
@@ -71,6 +72,7 @@ function TaxiTycoonPage() {
       <div className="tt-vignette" />
       <CityTraffic />
       <CityCompetitors />
+      <EmergencyStations />
       <CrimeEvents />
       <InterventionDispatcher />
       <TaxiTycoon />
