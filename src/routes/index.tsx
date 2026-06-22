@@ -18,6 +18,7 @@ import VersionBanner from "@/game/VersionBanner";
 import HomeScreen from "@/game/HomeScreen";
 import SplashScreen from "@/game/SplashScreen";
 import GameMenu from "@/game/GameMenu";
+import RadioPlayer from "@/game/RadioPlayer";
 
 export const Route = createFileRoute("/")({
   head: () => ({
