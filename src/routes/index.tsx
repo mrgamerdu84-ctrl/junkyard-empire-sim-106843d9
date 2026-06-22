@@ -5,6 +5,7 @@ import TaxiTycoon from "@/game/TaxiTycoon";
 import CityTraffic from "@/game/CityTraffic";
 import CityCompetitors from "@/game/CityCompetitors";
 import CityRivalTaxis from "@/game/CityRivalTaxis";
+import ArmoredTruck from "@/game/ArmoredTruck";
 import CityHud from "@/game/CityHud";
 import CrimeEvents from "@/game/CrimeEvents";
 import InterventionDispatcher from "@/game/InterventionDispatcher";
@@ -172,6 +173,7 @@ function TaxiTycoonPage() {
         <CrimeEvents />
         <InterventionDispatcher />
         <TaxiTycoon />
+        <ArmoredTruck />
       </div>
 
       {/* HUD et panneaux hors zoom (toujours nets) */}

@@ -1,66 +1,52 @@
+# Camion blindé & braquages
 
-## 1. Couper le bruit des sirènes
+Un camion blindé qui traverse la ville de temps en temps, transportant l'argent des banques. Le joueur (ou un rival) peut l'intercepter pour rafler le butin — mais la police s'en mêle, et un échec coûte cher.
 
-- `src/routes/index.tsx` : supprimer le montage de `<AmbientSirens />` (import + balise). Plus aucun son d'ambulance/pompiers/police.
+## Comportement du camion
 
-## 2. Taxis rivaux : position, ombre, voie
+- **Apparition** : toutes les 5 à 8 minutes, à un bord de la map. Il roule sur les routes normales (réutilise `ROADS` de `CityTraffic`) vers une "banque" (point fixe sur la map). Une seule instance à la fois.
+- **Butin** : montant aléatoire entre **500 et 1500 $** affiché en pastille au-dessus du camion.
+- **Cible cliquable** : tant qu'il roule, un halo doré pulse autour du camion. Cliquer dessus = "tentative de braquage".
 
-Dans `src/game/CityRivalTaxis.tsx` :
-- Retirer le `rotate(-90)` interne qui désaxe le sprite par rapport à la route.
-- Sprite custom (image uploadée par l'utilisateur, nez vers le haut) : appliquer un seul `rotate(90)` sur l'`<image>`, pas sur le groupe ni sur l'ombre.
-- Ombre : `ellipse cx=0 cy=0 rx=9 ry=3 opacity=0.3` centrée sous la voiture, plus de gros calque noir qui dépasse.
-- `LANE_HALF` alterné selon le sens (`flip`) : les rivaux qui descendent prennent la voie de droite, ceux qui montent l'autre voie — fini les voitures sur le trottoir.
+## Boucle de braquage (joueur)
 
-## 3. Musique : démarrage immédiat, plus de coupure "heure d'infos"
+1. Clic sur le camion → un de tes taxis libres est envoyé l'intercepter (le plus proche).
+2. Quand le taxi atteint le camion, le camion est immobilisé et **2-3 voitures de police** (sprite `police` existant) spawnent et convergent vers le taxi avec sirène visuelle.
+3. Le taxi doit ramener le butin au **QG du joueur**. Pendant le trajet de retour, les voitures de police le poursuivent.
+4. **Issue** :
+   - Arrivé au QG avant capture → **+butin complet** au joueur.
+   - Rattrapé par la police (distance < seuil) → **−50 % du butin** retiré du cash du joueur (min 0), notif "Braqué !".
 
-Dans `src/components/TaxiRadio.tsx` :
-- Supprimer le mode `newsHour` (les 10 premières minutes de chaque heure qui forcent toutes les stations en TTS). Les infos restent uniquement sur "Junky Infos".
-- `DJ_FIRST_DELAY_MS` → 0, lancer `a.play()` dès le clic sur une station musicale. Le DJ ne parle plus en intro.
+## Boucle de braquage (rivaux)
 
-## 4. Synthèse vocale sur mobile
+- Chaque rival actif a une petite chance (~25 %) de tenter le braquage à chaque apparition. Si un rival arrive en premier, il fait le même cycle (taxi rival → QG rival), avec un sprite "halo" de sa couleur sur le camion.
+- Si un **rival réussit** son braquage → **chaque autre compagnie (joueur inclus) perd 15 % de son cash**.
+- Si un **rival échoue** → seul ce rival paie la pénalité (50 % de son cash).
+- Si **personne ne braque** → le camion atteint la banque, disparaît, aucun effet.
 
-- Dans `speak()`, appeler `/api/public/radio-tts` **sans exiger d'access token** (la route est publique). Si la route renvoie un MP3, on le joue → fonctionne sur Android/iOS.
-- `speechSynthesis` reste un dernier recours desktop uniquement.
+## UI
 
-## 5. Concurrents actifs sur la map (gros morceau)
+- **Toast d'apparition** : "🚛 Camion blindé repéré ! Butin : 1 240 $".
+- **Toast de résolution** : "💰 Braquage réussi !" / "🚨 Braquage raté, −620 $" / "💸 [Rival] vous a braqué, −15 %".
+- **Pastille butin** suit le camion (chiffre lisible).
 
-Aujourd'hui les rivaux roulent en boucle décorative et les missions du joueur (points verts/jaunes/bleus) n'existent que pour lui. Nouveau comportement :
+## Slot upload Admin
 
-### 5a. Couleur du joueur
-- Dans le menu / panel admin, ajouter un sélecteur **"Ma couleur de compagnie"** (palette 8 couleurs). Stocké dans `localStorage` (`jce.player.color`) et exposé sur `window.__jcePlayerColor` + event `jce:player-color-changed`.
-- Les marqueurs de mission (pastilles dans `TaxiTycoon.tsx`) prennent cette couleur tant qu'aucun concurrent n'a "réservé" la mission. Verre/jaune/bleu actuels deviennent un dégradé de tailles selon le tarif, pas selon la nature.
+Nouveau champ dans `AdminPanel.tsx` : **"Camion blindé (sprite)"** — un seul upload, stocké dans `localStorage` (`jce.armored.sprite`). Fallback : sprite SVG par défaut (rectangle gris foncé avec coffre, gyrophare).
 
-### 5b. Concurrents qui chassent les missions
-Nouveau module `src/game/CompetitorDispatcher.tsx` :
-- Écoute la liste des missions disponibles publiée par `TaxiTycoon` (nouvel event `jce:jobs-changed` avec `{id, x, y, fare, color, takenBy}`).
-- Pour chaque concurrent **actif et non-faillite**, si un de ses taxis rivaux est libre, il "vise" la mission la plus proche non encore prise. Il calcule une ETA (distance / vitesse).
-- Si l'ETA du concurrent < ETA du joueur (= distance joueur/mission convertie), il **revendique** la mission : la pastille passe à sa couleur ; si le concurrent arrive avant le joueur, il encaisse la course et le joueur ne touche rien (event `jce:job-stolen`).
-- Inversement, si le joueur arrive en premier, il "vole" la mission au concurrent : la pastille reprend la couleur du joueur, le concurrent perd son ETA.
+## Architecture technique
 
-### 5c. Rivaux qui sortent du QG, vont chercher le client, déposent, reviennent
-Refonte `CityRivalTaxis.tsx` :
-- Plus de boucle décorative sur `ROADS`. Chaque concurrent a un pool de N taxis (`taxiCount`), chacun avec un état : `IDLE_AT_HQ → GO_TO_PICKUP → GO_TO_DROPOFF → RETURN_TO_HQ → IDLE`.
-- Les positions sont interpolées le long du segment QG ↔ mission ↔ destination ↔ QG (lignes droites suffisent pour rester simple ; pas besoin de pathfinding sur les routes réelles à ce stade).
-- Vitesse exprimée en `worldUnits/s`, identique à celle du taxi joueur pour que la course soit équitable.
-- Quand un taxi rival arrive au pickup avant le joueur → encaisse la mission, dépose, rentre au QG, devient `IDLE`.
-- Quand un taxi rival se fait griller → fait demi-tour, retour QG.
+Nouveau composant **`src/game/ArmoredTruck.tsx`** :
+- Manage le state d'un seul camion (`idle | rolling | intercepted | escaping | done`).
+- Timer d'apparition (`setTimeout` 5-8 min aléatoire).
+- Anime le sprite sur un path `ROADS` choisi au hasard.
+- Expose des événements : `jce:armored-spawn`, `jce:armored-claim`, `jce:armored-resolved` (CustomEvent avec `{ winner: "player" | "rivalId" | null, amount, success }`).
+- Spawn temporaire de 2-3 sprites "police" (composant interne, animation simple de poursuite — pas de couplage avec `CityTraffic`).
 
-### 5d. Rendu visuel
-- Les taxis rivaux restent visibles sur toute la map (sprite custom + ombre propre cf. point 2).
-- Une petite ligne pointillée discrète relie chaque taxi rival à sa cible courante (option, désactivable via admin).
-- Le compteur HUD ajoute "Missions volées : X" et "Missions arrachées aux rivaux : Y".
+Modifications :
+- **`TaxiTycoon.tsx`** : écoute `jce:armored-claim` (envoie le taxi libre le plus proche), `jce:armored-resolved` (applique +butin ou −50 %).
+- **`CityCompetitors.tsx`** : écoute les mêmes events, applique les gains/pertes aux rivaux + applique la pénalité de 15 % aux autres compagnies sur succès rival.
+- **`AdminPanel.tsx`** : ajoute le slot upload "Camion blindé".
+- **`src/routes/index.tsx`** : monte `<ArmoredTruck />` à côté des autres calques de la map.
 
-### 5e. État partagé
-- Source de vérité dans `TaxiTycoon.tsx` : missions, statut, propriétaire courant. Émet `jce:jobs-changed` à chaque tick.
-- Source de vérité concurrents : `CityCompetitors` étendu pour exposer `hqX, hqY` (déjà existant) + `taxiCount, color, vehicleUrl`.
-- `CompetitorDispatcher` orchestre, `CityRivalTaxis` se contente d'afficher l'état que le dispatcher publie sur `window.__jceRivalTaxis` + event `jce:rival-taxis-changed`.
-
-## Fichiers modifiés / créés
-
-- `src/routes/index.tsx` (retirer sirènes, monter `<CompetitorDispatcher />`)
-- `src/game/CityRivalTaxis.tsx` (rendu pur, états dispatcher)
-- `src/game/CompetitorDispatcher.tsx` **(nouveau)**
-- `src/game/CityCompetitors.tsx` (expose hqX/hqY/taxiCount/color au dispatcher)
-- `src/game/TaxiTycoon.tsx` (émet `jce:jobs-changed`, écoute `jce:job-stolen`, couleur joueur sur les pastilles, gestion "mission revendiquée par un rival")
-- `src/game/AdminPanel.tsx` (sélecteur "Ma couleur de compagnie")
-- `src/components/TaxiRadio.tsx` (suppression `newsHour`, démarrage immédiat, TTS sans token)
+Pas de migration DB — tout est côté client (state in-memory + localStorage pour le sprite).

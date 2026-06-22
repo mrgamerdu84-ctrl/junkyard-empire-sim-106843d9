@@ -181,6 +181,38 @@ export default function CityCompetitors() {
     });
   }, [playerMoney]);
 
+  // === Camion blindé : résolution croisée sur les rivaux ===
+  // - success + rival → +loot pour le rival vainqueur, -15% pour TOUS les autres rivaux (joueur géré côté ArmoredTruck)
+  // - !success + rival → ce rival perd 50% du butin
+  useEffect(() => {
+    const onArmored = (e: Event) => {
+      const d = (e as CustomEvent<{ winner: "player" | "rival" | "none"; rivalId?: string; amount: number; success: boolean }>).detail;
+      if (!d) return;
+      setComps((arr) => arr.map((c) => {
+        if (c.bankrupt) return c;
+        if (d.winner === "rival" && d.success) {
+          if (c.id === d.rivalId) {
+            return { ...c, treasury: c.treasury + d.amount };
+          }
+          // Autres rivaux : -15%
+          return { ...c, treasury: Math.max(100, c.treasury * 0.85) };
+        }
+        if (d.winner === "none" && d.rivalId && c.id === d.rivalId) {
+          // Rival raté : pénalité 50% du butin
+          return { ...c, treasury: Math.max(100, c.treasury - d.amount * 0.5) };
+        }
+        return c;
+      }));
+      if (d.winner === "rival" && d.success) {
+        const name = (window as unknown as { __jceCompetitors?: Competitor[] }).__jceCompetitors?.find((c) => c.id === d.rivalId)?.name;
+        setBankruptToast(`💸 ${name ?? "Un rival"} a braqué le camion ! −15 % pour les autres`);
+        window.setTimeout(() => setBankruptToast(null), 5500);
+      }
+    };
+    window.addEventListener("jce:armored-resolved", onArmored as EventListener);
+    return () => window.removeEventListener("jce:armored-resolved", onArmored as EventListener);
+  }, []);
+
   return (
     <>
       <svg

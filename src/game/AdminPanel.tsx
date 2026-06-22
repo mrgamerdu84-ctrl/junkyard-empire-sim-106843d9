@@ -776,6 +776,10 @@ function SkinsTab() {
 
       <CustomPedestriansSection />
 
+      <ArmoredTruckSpriteSection />
+
+
+
       <button
         onClick={reload}
         style={{
@@ -1414,3 +1418,57 @@ function CustomPedestriansSection() {
     </div>
   );
 }
+
+const ARMORED_SPRITE_KEY = "jce.armored.sprite";
+function ArmoredTruckSpriteSection() {
+  const [url, setUrl] = useState<string | null>(() => {
+    try { return localStorage.getItem(ARMORED_SPRITE_KEY); } catch { return null; }
+  });
+  const onFile = (f: File | null) => {
+    if (!f) return;
+    const r = new FileReader();
+    r.onload = () => {
+      const dataUrl = String(r.result || "");
+      try { localStorage.setItem(ARMORED_SPRITE_KEY, dataUrl); } catch { /* noop */ }
+      setUrl(dataUrl);
+      window.dispatchEvent(new CustomEvent("jce:armored-sprite-changed"));
+    };
+    r.readAsDataURL(f);
+  };
+  const clear = () => {
+    try { localStorage.removeItem(ARMORED_SPRITE_KEY); } catch { /* noop */ }
+    setUrl(null);
+    window.dispatchEvent(new CustomEvent("jce:armored-sprite-changed"));
+  };
+  return (
+    <div style={{ marginTop: 14, padding: 10, background: "#1a1f26", border: "1px solid #2a2f38", borderRadius: 8 }}>
+      <div style={{ fontSize: 12, color: "#fde047", fontWeight: 800, marginBottom: 6 }}>
+        🚛 Camion blindé (sprite)
+      </div>
+      <div style={{ fontSize: 10, color: "#8a8e94", marginBottom: 8, lineHeight: 1.4 }}>
+        Sprite vu du dessus, nez vers le haut. Le camion apparaît toutes les 5-8 min ;
+        clique dessus en jeu pour tenter un braquage.
+      </div>
+      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+        {url ? (
+          <img src={url} alt="Camion blindé" style={{ width: 44, height: 44, objectFit: "contain", background: "#0a0c10", borderRadius: 4 }} />
+        ) : (
+          <div style={{ width: 44, height: 44, background: "#0a0c10", borderRadius: 4, display: "flex", alignItems: "center", justifyContent: "center", color: "#52525b", fontSize: 18 }}>🚛</div>
+        )}
+        <label style={{ fontSize: 11, padding: "6px 10px", background: "#14171c", border: "1px solid #3a3f48", borderRadius: 4, cursor: "pointer", color: "#e8edf2" }}>
+          📁 Choisir
+          <input
+            type="file"
+            accept="image/*"
+            style={{ display: "none" }}
+            onChange={(e) => onFile(e.target.files?.[0] ?? null)}
+          />
+        </label>
+        {url && (
+          <button onClick={clear} style={{ ...btnMini, borderColor: "#7f1d1d", color: "#fca5a5" }}>🗑</button>
+        )}
+      </div>
+    </div>
+  );
+}
+
