@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import citymap from "@/assets/citymap2.jpg";
 import TaxiTycoon from "@/game/TaxiTycoon";
 import CityTraffic from "@/game/CityTraffic";
@@ -31,8 +31,61 @@ export const Route = createFileRoute("/")({
   component: TaxiTycoonPage,
 });
 
+const ZOOM_LEVELS = [1, 1.5, 2, 2.75] as const;
+
 function TaxiTycoonPage() {
   const [phase, setPhase] = useState<"splash" | "home" | "game">("splash");
+  const [zoomIdx, setZoomIdx] = useState(0);
+  const [pan, setPan] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
+  const dragRef = useRef<{ startX: number; startY: number; baseX: number; baseY: number } | null>(null);
+  const worldRef = useRef<HTMLDivElement | null>(null);
+
+  const zoom = ZOOM_LEVELS[zoomIdx];
+
+  // Clamp pan : on n'a pas le droit de tirer la carte hors-écran.
+  useEffect(() => {
+    const el = worldRef.current;
+    if (!el) return;
+    const maxX = (zoom - 1) * el.clientWidth / 2;
+    const maxY = (zoom - 1) * el.clientHeight / 2;
+    setPan((p) => ({
+      x: Math.max(-maxX, Math.min(maxX, p.x)),
+      y: Math.max(-maxY, Math.min(maxY, p.y)),
+    }));
+  }, [zoom]);
+
+  const cycleZoom = () => {
+    const next = (zoomIdx + 1) % ZOOM_LEVELS.length;
+    setZoomIdx(next);
+    if (next === 0) setPan({ x: 0, y: 0 });
+  };
+
+  // Drag pour panoramique (uniquement quand zoom > 1).
+  const onPointerDown = (e: React.PointerEvent) => {
+    if (zoom <= 1) return;
+    // Ne pas voler les clics sur boutons / SVG interactifs.
+    const t = e.target as HTMLElement;
+    if (t.closest("button, input, [data-no-pan], .tt-hud, .adm-panel, .adm-btn")) return;
+    dragRef.current = { startX: e.clientX, startY: e.clientY, baseX: pan.x, baseY: pan.y };
+    (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
+  };
+  const onPointerMove = (e: React.PointerEvent) => {
+    if (!dragRef.current) return;
+    const el = worldRef.current;
+    if (!el) return;
+    const maxX = (zoom - 1) * el.clientWidth / 2;
+    const maxY = (zoom - 1) * el.clientHeight / 2;
+    const nx = dragRef.current.baseX + (e.clientX - dragRef.current.startX);
+    const ny = dragRef.current.baseY + (e.clientY - dragRef.current.startY);
+    setPan({
+      x: Math.max(-maxX, Math.min(maxX, nx)),
+      y: Math.max(-maxY, Math.min(maxY, ny)),
+    });
+  };
+  const onPointerUp = (e: React.PointerEvent) => {
+    dragRef.current = null;
+    try { (e.currentTarget as HTMLElement).releasePointerCapture(e.pointerId); } catch {}
+  };
 
   if (phase === "splash") {
     return <SplashScreen onDone={() => setPhase("home")} />;
@@ -55,6 +108,13 @@ function TaxiTycoonPage() {
           overflow: hidden;
           background: #0c0d10;
         }
+        .tt-world {
+          position: absolute; inset: 0;
+          transform-origin: center center;
+          transition: transform 0.18s ease-out;
+          will-change: transform;
+          touch-action: none;
+        }
         .tt-map {
           position: absolute; inset: 0; width: 100%; height: 100%;
           object-fit: cover; display: block; z-index: 1;
@@ -64,20 +124,57 @@ function TaxiTycoonPage() {
           position: absolute; inset: 0; z-index: 2; pointer-events: none;
           background: radial-gradient(ellipse at center, transparent 55%, rgba(0,0,0,0.55) 100%);
         }
+        .tt-zoom-btn {
+          position: fixed;
+          right: 12px;
+          bottom: 110px;
+          z-index: 9999;
+          width: 46px; height: 46px;
+          border-radius: 50%;
+          border: 2px solid #f5c542;
+          background: rgba(12, 14, 22, 0.92);
+          color: #fde047;
+          font-size: 11px; font-weight: 900;
+          font-family: system-ui, sans-serif;
+          cursor: pointer;
+          box-shadow: 0 4px 14px rgba(0,0,0,0.6);
+          display: flex; flex-direction: column;
+          align-items: center; justify-content: center;
+          line-height: 1;
+          gap: 1px;
+          padding: 0;
+        }
+        .tt-zoom-btn:active { transform: scale(0.94); }
+        .tt-zoom-btn .ico { font-size: 16px; }
+        .tt-zoom-btn .lbl { font-size: 9px; opacity: 0.9; }
         @media (orientation: landscape) and (max-height: 500px) {
           .adm-panel { width: min(360px, 60vw) !important; padding: 10px 12px 14px !important; }
           .adm-btn { top: 8px !important; right: 8px !important; width: 38px !important; height: 38px !important; }
+          .tt-zoom-btn { bottom: 12px; right: 60px; }
         }
       `}</style>
-      <img src={citymap} alt="Plan de la ville pour le jeu de taxi" className="tt-map" />
-      <div className="tt-vignette" />
-      <CityTraffic />
-      <CityCompetitors />
-      <CityRivalTaxis />
-      <EmergencyStations />
-      <CrimeEvents />
-      <InterventionDispatcher />
-      <TaxiTycoon />
+
+      <div
+        ref={worldRef}
+        className="tt-world"
+        style={{ transform: `translate(${pan.x}px, ${pan.y}px) scale(${zoom})`, cursor: zoom > 1 ? (dragRef.current ? "grabbing" : "grab") : "default" }}
+        onPointerDown={onPointerDown}
+        onPointerMove={onPointerMove}
+        onPointerUp={onPointerUp}
+        onPointerCancel={onPointerUp}
+      >
+        <img src={citymap} alt="Plan de la ville pour le jeu de taxi" className="tt-map" />
+        <div className="tt-vignette" />
+        <CityTraffic />
+        <CityCompetitors />
+        <CityRivalTaxis />
+        <EmergencyStations />
+        <CrimeEvents />
+        <InterventionDispatcher />
+        <TaxiTycoon />
+      </div>
+
+      {/* HUD et panneaux hors zoom (toujours nets) */}
       <CityHud />
       <RadarFlash />
       <AmbientSirens />
@@ -85,7 +182,18 @@ function TaxiTycoonPage() {
       <RulesPanel />
       <VersionBanner />
       <GameMenu onHome={() => setPhase("home")} />
+
+      <button
+        type="button"
+        className="tt-zoom-btn"
+        onClick={cycleZoom}
+        title={`Zoom ×${zoom}`}
+        aria-label="Changer le zoom"
+        data-no-pan
+      >
+        <span className="ico">🔍</span>
+        <span className="lbl">×{zoom}</span>
+      </button>
     </div>
   );
 }
-
