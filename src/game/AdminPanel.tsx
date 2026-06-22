@@ -488,6 +488,27 @@ export default function AdminPanel() {
                     value={newCompTreasury} min={500} max={100000} step={500}
                     format={(v) => Math.round(v).toLocaleString() + "$"}
                     onChange={(v) => setNewCompTreasury(v)} />
+                  <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+                    <label style={{ fontSize: 11, color: "#c8ccd2" }}>
+                      🚕 Sprite voiture (vue du ciel, optionnel)
+                    </label>
+                    <input
+                      type="file"
+                      accept="image/png,image/jpeg,image/webp,image/svg+xml"
+                      onChange={(e) => onPickCompVehicle(e.target.files?.[0] ?? null)}
+                      style={{ fontSize: 11, color: "#c8ccd2" }}
+                    />
+                    {newCompVehicleUrl && (
+                      <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 4 }}>
+                        <img src={newCompVehicleUrl} alt="" style={{ width: 36, height: 36, objectFit: "contain", background: "#1f242b", borderRadius: 4, border: "1px solid #2a2f38" }} />
+                        <span style={{ fontSize: 10, color: "#8a8e94", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", flex: 1 }}>{newCompVehicleName}</span>
+                        <button onClick={() => onPickCompVehicle(null)} style={{ background: "transparent", border: "1px solid #7f1d1d", color: "#fca5a5", borderRadius: 4, padding: "2px 6px", fontSize: 10, cursor: "pointer" }}>Retirer</button>
+                      </div>
+                    )}
+                    <div className="adm-hint" style={{ fontSize: 10 }}>
+                      Si vide, sprite par défaut coloré (damier). PNG transparent recommandé, nez vers le haut.
+                    </div>
+                  </div>
                   <button
                     onClick={addCompetitor}
                     disabled={!newCompName.trim() || comps.length >= 10}
