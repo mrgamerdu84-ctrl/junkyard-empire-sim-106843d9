@@ -1,0 +1,14 @@
+{
+  "name": "Junkyard Tycoon — Taxi City",
+  "short_name": "Junkyard",
+  "description": "Junky City Empire — gère ton empire de taxis.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#0b0d10",
+  "theme_color": "#facc15",
+  "icons": [
+    { "src": "/favicon.ico", "sizes": "64x64 32x32 24x24 16x16", "type": "image/x-icon" }
+  ]
+}
