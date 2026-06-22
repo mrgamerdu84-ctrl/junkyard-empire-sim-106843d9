@@ -173,6 +173,7 @@ function TaxiTycoonPage() {
         <CrimeEvents />
         <InterventionDispatcher />
         <TaxiTycoon />
+        <ArmoredTruck />
       </div>
 
       {/* HUD et panneaux hors zoom (toujours nets) */}
