@@ -8,6 +8,7 @@ import { defineConfig } from "@lovable.dev/vite-tanstack-config";
 import { writeFileSync, mkdirSync } from "node:fs";
 import { resolve } from "node:path";
 import type { Plugin } from "vite";
+import { VitePWA } from "vite-plugin-pwa";
 
 // Version du jeu - incrémenter à chaque mise à jour majeure
 const GAME_VERSION = "1.0.0";
@@ -47,6 +48,46 @@ export default defineConfig({
     server: { entry: "server" },
   },
   vite: {
-    plugins: [versionStampPlugin()],
+    plugins: [
+      versionStampPlugin(),
+      VitePWA({
+        registerType: "autoUpdate",
+        injectRegister: null, // we register from src/lib/registerSW.ts only
+        filename: "sw.js",
+        devOptions: { enabled: false },
+        manifest: false, // we ship our own /public/manifest.webmanifest
+        workbox: {
+          // Cache hashed client assets only; HTML is handled by NetworkFirst.
+          globPatterns: ["**/*.{js,css,woff2,woff,ttf,otf,png,jpg,jpeg,svg,webp,ico,mp3}"],
+          navigateFallback: "/",
+          navigateFallbackDenylist: [/^\/~oauth/, /^\/api\//],
+          cleanupOutdatedCaches: true,
+          clientsClaim: true,
+          skipWaiting: false,
+          runtimeCaching: [
+            {
+              // HTML navigations: always try network first so updates ship fast.
+              urlPattern: ({ request }) => request.mode === "navigate",
+              handler: "NetworkFirst",
+              options: {
+                cacheName: "jce-html",
+                networkTimeoutSeconds: 4,
+                expiration: { maxEntries: 20, maxAgeSeconds: 60 * 60 * 24 },
+              },
+            },
+            {
+              // Same-origin hashed assets.
+              urlPattern: ({ url, sameOrigin }) =>
+                sameOrigin && /\.(?:js|css|woff2?|ttf|otf|png|jpe?g|svg|webp|ico|mp3)$/.test(url.pathname),
+              handler: "CacheFirst",
+              options: {
+                cacheName: "jce-assets",
+                expiration: { maxEntries: 200, maxAgeSeconds: 60 * 60 * 24 * 30 },
+              },
+            },
+          ],
+        },
+      }),
+    ],
   },
 });
