@@ -442,6 +442,7 @@ export default function CityTraffic() {
   const activeCars = allCustomCars;
   const pathRefs = useRef<(SVGPathElement | null)[]>([]);
   const carNodes = useRef<(SVGGElement | null)[]>([]);
+  const parkPedNodes = useRef<(SVGGElement | null)[]>([]);
   const [lights, setLights] = useState<TrafficLight[]>([]);
 
 
