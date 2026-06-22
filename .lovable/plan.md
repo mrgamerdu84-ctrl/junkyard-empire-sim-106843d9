@@ -1,28 +1,47 @@
-## Ce que je vais ajouter
+## Objectif
 
-### 1. Nouvel onglet **"💥 Missions spéciales"** dans le panneau Admin
+Remplacer l'horloge accélérée (5 min réelles = 1 jour de jeu) par l'heure et le jour réels du joueur, et faire varier la densité de circulation selon la taille de sa vraie ville (déduite du reverse-geo déjà en place).
 
-Un onglet dédié dans `AdminPanel.tsx` avec :
+## Changements
 
-- **Bouton "🚛 Lancer un camion blindé maintenant"** — déclenche immédiatement un convoi (au lieu d'attendre 5–8 min). Le joueur **et** les rivaux peuvent l'intercepter, exactement comme le système actuel.
-- **Bouton "🏦 Braquage de banque"** — apparition immédiate d'un marqueur "robbery" (sirène rouge) sur la carte, cliquable par le joueur (envoie la police), avec course contre l'IA pour rafler la mission (système `CrimeEvents` existant).
-- **Réglage "Fréquence camion blindé"** — multiplicateur 0.25× → 3× sur l'intervalle d'apparition automatique (stocké dans `adminConfig`).
-- **Toggle "Rivals peuvent braquer"** — on/off de la tentative IA (35% par défaut).
-- **Toggle "Auto-spawn camion blindé"** — pour désactiver l'apparition automatique et ne déclencher que manuellement.
+### 1. `src/game/cityClock.ts` — heure réelle
 
-### 2. Section **"🎨 Skins véhicules"** mieux mise en avant
+- `getGameTime()` lit `new Date()` au lieu de `performance.now() / DAY_MS`.
+  - `hour` / `minute` = heure locale du joueur.
+  - `dayOfWeek` = `Date.getDay()` (0 dim … 6 sam) — vrai jour de la semaine.
+  - `isWeekend` = samedi/dimanche réels.
+  - `isHoliday` = jours fériés français (liste fixe : 01/01, 01/05, 08/05, 14/07, 15/08, 01/11, 11/11, 25/12, + Pâques/Ascension/Pentecôte calculés via Butcher/Meeus). Aucune dépendance externe.
+  - `label` = `"Lundi 14:37"` formaté en français.
+- Les périodes (`rushAM`, `lunch`, `rushPM`, etc.) et la fonction `densityFor` restent inchangées — elles consomment juste les nouvelles valeurs.
+- Ajout d'un export `getCityDensityMultiplier(population: number | null)` :
+  - `null` → 1.0
+  - `< 10 000` → 0.55 (village)
+  - `< 100 000` → 0.85
+  - `< 500 000` → 1.10
+  - `< 2 000 000` → 1.35 (grande ville type Lyon/Marseille)
+  - `≥ 2 000 000` → 1.6 (mégapole type Paris)
 
-L'onglet **Skins** existe déjà et permet de remplacer voiture police / ambulance / pompiers / taxis / civils + camion blindé par upload d'image. Je vais juste :
+### 2. `src/lib/realWorldEnv.ts` — récupérer la taille de la ville
 
-- Ajouter une bannière en haut de l'onglet Missions spéciales avec un lien rapide "→ Changer les skins" qui ouvre l'onglet Skins (les véhicules par défaut que tu trouves moches sont remplaçables là).
-- Vérifier que le skin "police" uploadé via la section "Véhicules personnalisés" (catégorie 🚓 Police) est bien utilisé par les voitures de police d'intervention — actuellement il n'alimente que le trafic civil. Je le branche aussi sur `EmergencyStations` / `TaxiTycoon` (véhicules d'urgence police), avec rotation aléatoire si plusieurs skins police sont uploadés.
+- Étendre `RealWorldEnv` avec `population: number | null`.
+- Dans `reverseCity()`, garder BigDataCloud comme aujourd'hui, puis appeler l'API gratuite Open-Meteo Geocoding `https://geocoding-api.open-meteo.com/v1/search?name=<city>&count=1` qui renvoie un champ `population`. Stocké en cache localStorage à côté du reste.
+- Fallback Paris : si géoloc refusée ET IP échoue → `{ city: "Paris", country: "France", lat: 48.8566, lon: 2.3522, population: 2161000 }` (au lieu du flou "votre ville" actuel).
 
-## Fichiers modifiés
+### 3. Branchement densité → trafic
 
-- `src/game/adminConfig.ts` — 3 nouveaux champs : `armoredFreqMult`, `armoredAutoSpawn`, `rivalsCanHeist`.
-- `src/game/ArmoredTruck.tsx` — écoute `jce:armored-spawn-now` (clic admin) ; respecte les 3 nouveaux réglages ; lit la palette des skins police custom pour les flics affichés.
-- `src/game/CrimeEvents.tsx` — écoute `jce:crime-spawn-now` (kind="robbery") pour spawn manuel.
-- `src/game/EmergencyStations.tsx` + `src/game/TaxiTycoon.tsx` — utilise un skin police custom s'il en existe (catégorie "police"), sinon retombe sur `GAME_ASSETS["police.car"]`.
-- `src/game/AdminPanel.tsx` — nouvel onglet "Missions spéciales", bannière vers Skins.
+- `getGameTime()` accepte un paramètre optionnel `cityPopulation?: number | null` et multiplie `density` par `getCityDensityMultiplier(cityPopulation)`.
+- `src/game/CityHud.tsx` : lit `useRealWorldEnv()` et passe `env.population` à `getGameTime()`. Le tick passe de 1 s à 30 s (l'heure réelle change lentement).
+- `src/game/CrimeEvents.tsx` : même branchement (la criminalité suit déjà `density`).
+- Les autres consommateurs du trafic (taxis, files d'attente) utilisent déjà `density` indirectement via les périodes — rien à toucher.
 
-Aucun changement DB, aucun nouveau composant lourd, pas de toucher au gameplay existant.
+### 4. Affichage
+
+`CityHud` montre désormais :
+- `"Lundi 22 juin · 14:37"` (vraie date + heure locale)
+- `"Paris · Pointe soir · Densité ×1.85"` (ville réelle + multiplicateur appliqué)
+
+## Hors scope
+
+- Pas d'intégration TomTom/HERE (payant, l'utilisateur a choisi l'option gratuite).
+- Pas de saisie manuelle de ville (fallback Paris confirmé).
+- Aucun changement de gameplay au-delà de la densité ; les revenus/missions restent calibrés.
