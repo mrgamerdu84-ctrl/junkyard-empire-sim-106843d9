@@ -216,7 +216,18 @@ export default function ArmoredTruck() {
   // ---------- Boucle de planification ----------
   useEffect(() => {
     const t = scheduleNext(true);
-    return () => window.clearTimeout(t);
+    const onManual = () => {
+      setPhase((p) => {
+        if (p !== "idle" && p !== "done") return p; // déjà en cours
+        spawn();
+        return "rolling";
+      });
+    };
+    window.addEventListener("jce:armored-spawn-now", onManual);
+    return () => {
+      window.clearTimeout(t);
+      window.removeEventListener("jce:armored-spawn-now", onManual);
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
