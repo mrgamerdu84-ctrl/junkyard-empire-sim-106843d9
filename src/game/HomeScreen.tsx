@@ -223,7 +223,7 @@ export default function HomeScreen({ onPlay }: { onPlay: () => void }) {
           }}
           style={{ cursor: "default", userSelect: "none", WebkitUserSelect: "none" }}
         >
-          My Taxi World Tycoon
+          My Taxi World Rivalité
         </h1>
       </div>
 

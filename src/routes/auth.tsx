@@ -6,7 +6,7 @@ import { lovable } from "@/integrations/lovable";
 export const Route = createFileRoute("/auth")({
   ssr: false,
   component: AuthPage,
-  head: () => ({ meta: [{ title: "Connexion — Taxi Tycoon" }] }),
+  head: () => ({ meta: [{ title: "Connexion — My Taxi World Rivalité" }] }),
 });
 
 function AuthPage() {
@@ -102,7 +102,7 @@ function AuthPage() {
         .auth-back { display:block; text-align:center; color:#9ca3af; margin-top:14px; font-size:13px; text-decoration:none; cursor:pointer; background:none; border:none; width:100%; }
       `}</style>
       <div className="auth-card">
-        <h1 className="auth-title">🚕 Taxi Tycoon</h1>
+        <h1 className="auth-title">🚕 My Taxi World Rivalité</h1>
         <p className="auth-sub">Crée ton compte pour sauver tes scores</p>
 
         <div className="auth-tabs">

@@ -22,10 +22,10 @@ import GameMenu from "@/game/GameMenu";
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: "Taxi Tycoon — City Cab Empire" },
+      { title: "My Taxi World Rivalité" },
       { name: "description", content: "Hérite d'un garage délabré et bâtis le plus grand empire de taxis de la ville." },
       { name: "viewport", content: "width=device-width, initial-scale=1, viewport-fit=cover" },
-      { property: "og:title", content: "Taxi Tycoon — City Cab Empire" },
+      { property: "og:title", content: "My Taxi World Rivalité" },
       { property: "og:description", content: "Tycoon idle : tes taxis vont chercher les clients, tu agrandis l'entrepôt." },
     ],
   }),
