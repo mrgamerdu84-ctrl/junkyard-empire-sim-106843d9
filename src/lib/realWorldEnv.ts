@@ -101,19 +101,32 @@ async function getPosition(): Promise<{ lat: number; lon: number; source: "geo" 
   return { lat: 48.8566, lon: 2.3522, source: "ip" };
 }
 
-async function reverseCity(lat: number, lon: number): Promise<{ city: string; country: string }> {
+async function reverseCity(lat: number, lon: number): Promise<{ city: string; country: string; population: number | null }> {
+  let city = "Paris";
+  let country = "France";
   try {
     const r = await fetch(
       `https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${lat}&longitude=${lon}&localityLanguage=fr`
     );
     if (r.ok) {
       const j = await r.json();
-      const city = j.city || j.locality || j.principalSubdivision || "votre ville";
-      const country = j.countryName || "";
-      return { city, country };
+      city = j.city || j.locality || j.principalSubdivision || city;
+      country = j.countryName || country;
     }
   } catch {}
-  return { city: "votre ville", country: "" };
+  // Population via Open-Meteo Geocoding (gratuit, sans clé)
+  let population: number | null = null;
+  try {
+    const r = await fetch(
+      `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(city)}&count=1&language=fr&format=json`
+    );
+    if (r.ok) {
+      const j = await r.json();
+      const first = Array.isArray(j.results) && j.results.length > 0 ? j.results[0] : null;
+      if (first && typeof first.population === "number") population = first.population;
+    }
+  } catch {}
+  return { city, country, population };
 }
 
 async function fetchWeather(lat: number, lon: number): Promise<{ kind: WeatherKind; tempC: number | null; isDay: boolean }> {
