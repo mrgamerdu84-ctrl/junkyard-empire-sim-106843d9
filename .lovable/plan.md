@@ -1,62 +1,65 @@
+# Panel admin par compte + concurrents synchronisés
 
-## Objectif
+## 1. Accès admin par email (plus de mot de passe)
 
-1. Que **toutes les routes** de la map soient utilisées (y compris la route du haut actuellement bloquée).
-2. Plus de **distance de sécurité** entre voitures pour éviter qu'elles se collent.
-3. Voir les **taxis concurrents** circuler sur la map, **chacun à la couleur de son QG**.
+### Côté base
+- Lookup de ton user `mrgamerdu84@gmail.com` dans `auth.users`, puis `INSERT INTO public.user_roles(user_id, role) VALUES (<ton uid>, 'admin')` (table et fonction `has_role` déjà en place).
+- Nouvelle server fn `isAdmin()` (`createServerFn` + `requireSupabaseAuth`) qui retourne `await context.supabase.rpc('has_role', { _user_id: context.userId, _role: 'admin' })`. RLS naturelle : un user lambda ne peut pas se faire passer pour admin.
 
----
+### Côté UI (`AdminPanel.tsx`)
+- Au mount du panel, appel `isAdmin()` via `useQuery`.
+  - **Non connecté** → message "Connecte-toi pour accéder à l'admin" + bouton retour.
+  - **Connecté mais pas admin** → message "Accès réservé" (et on cache même le bouton engrenage).
+  - **Admin** → panel ouvert direct, plus aucun champ mot de passe.
+- Suppression du gros bloc password (hash SHA-256, `sessionStorage`, reset phrase, "Changer le mot de passe admin"). Code mort retiré.
 
-## 1. Activer la route du haut (`CityTraffic.tsx`)
+## 2. Données du panel synchronisées sur ton compte
 
-Aujourd'hui, `VILLAGE_PATHS = new Set([1])` exclut la route du haut (le « village ») du trafic. La route est tracée (pointillés visibles) mais aucune voiture n'y est jamais affectée.
+Une seule table pour tout l'état admin (concurrents + véhicules custom + config sliders), keyed par user.
 
-Action :
-- Vider `VILLAGE_PATHS` → `new Set<number>()`. Toutes les `ROADS[0..3]` deviennent disponibles pour `buildCarsFromCustom` + `rerollSpec` (qui passent déjà par `allowedPaths` / `civilAllowed`).
-- Conserver `VILLAGE_PATHS` comme export (utilisé ailleurs pour les piétons / clients) — juste vide, donc plus aucun path n'est filtré.
-- Vérifier `PhotoPedestrians` et les `PARKING_ZONES` : si une zone de parking tombait pile sur la route du haut, OK ; sinon en ajouter 2-3 le long de cette route dans `parkingZones.ts` pour que des voitures s'y garent aussi.
+### Nouvelle table `public.admin_state`
+- `user_id uuid` (PK, FK `auth.users`)
+- `competitors jsonb` (array d'objets `{id, name, color, x, y, treasury, taxiCount, bankrupt}`)
+- `custom_vehicles jsonb` (array existant côté `gameAssets.listCustomVehicles()`)
+- `config jsonb` (snapshot `AdminConfig` actuel)
+- RLS : un user voit/modifie uniquement sa ligne (admin compris — la table est par compte). Aucun accès `anon`.
 
-## 2. Plus de distance entre voitures (`CityTraffic.tsx`)
+### Server fns (`src/lib/admin-state.functions.ts`)
+- `loadAdminState()` → renvoie la ligne du user (ou défauts).
+- `saveAdminState({ competitors?, customVehicles?, config? })` → upsert partiel (merge des clés fournies).
 
-Constantes actuelles trop serrées :
-- `SAFE_GAP = 70` (distance désirée)
-- `BRAKE_GAP = 140` (début de freinage)
-- `CROSS_LANE_RADIUS = 50` (anti-collision intersections)
+### Câblage client
+- Au login (ou ouverture du panel), `loadAdminState()` hydrate :
+  - `setComps(...)` dans `CityCompetitors`
+  - import dans la store `gameAssets` (réutilise `addCustomVehicle` ligne par ligne)
+  - `setAdmin(...)` pour la config
+- Toute mutation (ajout véhicule, ajout/suppression concurrent, slider) appelle `saveAdminState(...)` débouncé (~800ms) sur le champ concerné.
+- Bouton manuel **"🔄 Synchroniser maintenant"** dans le panel (utile si bug) qui :
+  - **Pousser** : envoie l'état local en base.
+  - **Tirer** : remplace l'état local par celui de la base.
 
-Action : passer à des valeurs plus aérées, type :
-- `SAFE_GAP = 110`
-- `BRAKE_GAP = 220`
-- `CROSS_LANE_RADIUS = 75`
-- `MIN_SPEED_RATIO = 0.18` (descend un poil plus bas en cas de bouchon, évite les blocages)
+## 3. Ajouter des concurrents comme on ajoute des véhicules
 
-Ça augmente la « bulle » autour de chaque voiture sans tout figer.
+Nouvel onglet **"Concurrents"** dans `AdminPanel` (ou dans l'onglet `rival` existant), liste éditable :
+- Tableau des concurrents actuels (couleur, nom, treasury, position X/Y, bouton 🗑).
+- Formulaire d'ajout : champ nom + color picker + bouton "📍 Placer sur la carte" (même UX que le QG joueur, pose en cliquant sur la map) + treasury initiale (slider).
+- Cap conservé à 10 (`MAX_COMPETITORS`).
+- Les concurrents IA "level-up" continuent de spawner automatiquement ; ceux ajoutés à la main vivent dans la même liste et sont aussi synchronisés.
 
-## 3. Taxis rivaux colorés visibles sur la map
+`CityCompetitors.tsx` :
+- L'état `comps` part de `loadAdminState().competitors` au lieu de la constante `INITIAL` figée (qui ne sert plus que de fallback à la première ouverture). Les level-ups continuent d'`append` dans la liste, qui re-sync vers la base.
+- L'event `jce:competitors-changed` continue d'alimenter `CityRivalTaxis` côté affichage (pas de changement de format).
 
-Aujourd'hui `CityCompetitors.tsx` n'affiche que des **bâtiments QG fixes**. Aucune voiture rivale ne roule.
+## Hors scope
 
-Action — ajouter une couche **taxis rivaux** dans `CityTraffic.tsx` (même SVG, même réseau de routes pour rester cohérent) :
+- Pas de version multi-utilisateurs partagée (chaque compte a sa propre sandbox admin).
+- Pas de migration des concurrents IA legacy (`INITIAL`) : ils restent les valeurs par défaut tant que la table est vide.
+- Pas de modif du look des rivaux (déjà fait au tour précédent).
 
-- Lire la liste des concurrents (id, color, bankrupt, taxiCount) via un event/window store partagé exposé par `CityCompetitors`. Le plus simple sans gros refactor : `CityCompetitors` publie `window.__jceCompetitors = [...]` à chaque update + dispatch `jce:competitors-changed`, et `CityTraffic` écoute.
-- Dans `CityTraffic`, créer un nouveau set d'entités `RivalTaxi` (parallèle aux `CarState`, partageant les mêmes `pathRefs` / `lanes`) :
-  - 1 à 2 taxis par concurrent vivant (max ~10 taxis rivaux au total pour rester léger).
-  - Sprite simple : un rectangle de taxi avec `fill = competitor.color`, contour noir, petit damier blanc sur le toit pour bien dire « taxi ».
-  - Roule sur n'importe quelle `ROADS[i]` autorisée, comme les civils, avec le même système de freinage / lanes / feux rouges → ils se mêlent au trafic.
-  - Disparaissent (fade out) quand le concurrent passe `bankrupt`.
-- Petite étiquette flottante optionnelle au-dessus (1ʳᵉ lettre du concurrent) pour les identifier sans surcharger.
+## Validation
 
-## 4. Validation
-
-Avant de clôturer :
-- Rafraîchir la map et vérifier visuellement qu'au moins 1-2 voitures roulent sur la route du haut.
-- Vérifier qu'on n'a plus de voitures qui se touchent sur les axes principaux.
-- Vérifier qu'on voit au moins 4 taxis colorés (un par couleur de QG actif) circuler.
-- Vérifier qu'un concurrent en faillite voit ses taxis disparaître.
-
----
-
-## Détails techniques
-
-- Fichiers touchés : `src/game/CityTraffic.tsx` (principal), `src/game/CityCompetitors.tsx` (publication de la liste), éventuellement `src/game/parkingZones.ts` (ajout de zones sur la route du haut).
-- Aucune migration DB, aucune dépendance ajoutée.
-- Pas de modif du gameplay joueur / missions / économie.
+- Connecté avec ton email → engrenage ouvre direct le panel, plus de prompt mot de passe.
+- Connecté avec un autre compte → bouton engrenage caché.
+- Ajout d'un concurrent depuis le panel → apparaît sur la map et un taxi de sa couleur circule.
+- Recharge page / change d'appareil → tout est restauré depuis ton compte.
+- Bouton "Synchroniser maintenant" → permet de force-push ou force-pull en cas de désync.
