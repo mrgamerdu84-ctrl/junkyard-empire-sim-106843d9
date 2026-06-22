@@ -17,7 +17,10 @@ const PED_PHOTO_IMAGES = PEDESTRIAN_PHOTO_URLS;
 // Plus aucun path n'est interdit : toutes les routes de la map sont utilisées
 // par le trafic civil, les courses taxi et les concurrents. On conserve
 // l'export pour la compat avec TaxiTycoon (qui filtre via cet ensemble).
-export const VILLAGE_PATHS = new Set<number>();
+// Index 1 = petite arche tout en haut (y≈0-90) : off-screen en portrait,
+// les voitures semblaient "voler". On l'exclut du trafic et on ne la
+// dessine plus comme route (ci-dessous dans le rendu).
+export const VILLAGE_PATHS = new Set<number>([1]);
 
 // === SÉPARATION DES VOIES (code de la route) ===
 // Demi-largeur d'une route ≈ 23 px. On place chaque véhicule à LANE_HALF px
