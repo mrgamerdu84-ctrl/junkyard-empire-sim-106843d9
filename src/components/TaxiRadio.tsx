@@ -669,10 +669,15 @@ const djLine = (stationName: string): RadioNews => {
             a.currentTime = 0;
             a.play().catch(() => {});
           };
-          speak(djLine(st.name), () => {
-            if (session !== radioSessionRef.current) return;
+          const m = new Date().getMinutes();
+          if (m === 0 || m === 30) {
+            speak(djLine(st.name), () => {
+              if (session !== radioSessionRef.current) return;
+              startSong();
+            });
+          } else {
             startSong();
-          });
+          }
         }}
       />
 
