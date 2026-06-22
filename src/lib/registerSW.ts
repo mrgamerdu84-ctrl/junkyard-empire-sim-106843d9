@@ -68,8 +68,9 @@ export function registerServiceWorker(): void {
       .catch(() => {});
   };
 
-  if ("requestIdleCallback" in window) {
-    (window as any).requestIdleCallback(start, { timeout: 4000 });
+  const w = window as any;
+  if (typeof w.requestIdleCallback === "function") {
+    w.requestIdleCallback(start, { timeout: 4000 });
   } else {
     window.setTimeout(start, 1500);
   }
