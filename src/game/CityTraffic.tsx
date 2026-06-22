@@ -930,6 +930,32 @@ export default function CityTraffic() {
 
 
 
+      {/* Conducteurs sortis de leur voiture garée (cachés par défaut, opacity=0) */}
+      <g pointerEvents="none">
+        {activeCars.map((_, i) => {
+          const S = 22;
+          return (
+            <g
+              key={`pd-${i}`}
+              opacity="0"
+              ref={(el) => { parkPedNodes.current[i] = el; }}
+            >
+              <ellipse cx="0" cy={S * 0.2} rx={S * 0.35} ry={S * 0.18} fill="rgba(0,0,0,0.45)" />
+              <g transform="rotate(90)">
+                <image
+                  href={PED_PHOTO_IMAGES[0]}
+                  x={-S / 2}
+                  y={-S / 2}
+                  width={S}
+                  height={S}
+                  preserveAspectRatio="xMidYMid meet"
+                />
+              </g>
+            </g>
+          );
+        })}
+      </g>
+
       {/* Piétons photos qui marchent sur les trottoirs (markets/promeneurs) */}
       <PhotoPedestrians pathRefs={pathRefs} />
 
