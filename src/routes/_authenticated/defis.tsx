@@ -84,26 +84,9 @@ function DefisPage() {
     router.navigate({ to: "/" });
   };
 
-  const fakeSubmit = async (d: DefiWithPeers) => {
-    // Tant que l'intégration jeu n'est pas branchée, on saisit la manche jouée.
-    // Le serveur recalcule le score depuis le seed — le client ne peut PAS
-    // envoyer un montant arbitraire en €.
-    const rawMissions = prompt(`Nombre de courses terminées pendant ta manche :`, "0");
-    if (rawMissions === null) return;
-    const missionsCompleted = Math.max(0, Math.floor(Number(rawMissions) || 0));
-    const rawElapsed = prompt(`Temps écoulé (en secondes, max ${d.duration_sec}) :`, String(d.duration_sec));
-    if (rawElapsed === null) return;
-    const elapsedSec = Math.max(0, Math.floor(Number(rawElapsed) || 0));
-    setSubmitting(d.id);
-    try {
-      await submit({ data: { defiId: d.id, missionsCompleted, elapsedSec } });
-      await refetch();
-    } catch (e: any) {
-      alert(e?.message ?? "Erreur");
-    } finally {
-      setSubmitting(null);
-    }
-  };
+  // Saisie manuelle retirée : tout passe par une vraie manche jouée
+  // (submit_defi_run est appelé en fin de partie depuis le jeu).
+
 
   return (
     <div style={{ minHeight: "100vh", background: "linear-gradient(180deg,#0f172a,#1f2937)", color: "#fff7d6", fontFamily: "system-ui, sans-serif", padding: "16px" }}>
