@@ -375,8 +375,8 @@ type CarState = {
 };
 
 // Réglages parking
-const PARK_TARGET_MIN = 3;
-const PARK_TARGET_MAX = 6;
+const PARK_TARGET_MIN = 0;
+const PARK_TARGET_MAX = 0;
 const PARK_APPROACH_MS = 1400;
 const PARK_LEAVE_MS = 1100;
 const PARK_DURATION_MIN_MS = 10000;
