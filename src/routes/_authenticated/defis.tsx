@@ -7,7 +7,7 @@ import { useAuth } from "@/lib/useAuth";
 import {
   createDefi,
   listMyDefis,
-  submitDefiScore,
+  submitDefiRun,
   type DefiWithPeers,
 } from "@/lib/defis.functions";
 
@@ -34,7 +34,7 @@ function DefisPage() {
   const { user } = useAuth();
   const list = useServerFn(listMyDefis);
   const create = useServerFn(createDefi);
-  const submit = useServerFn(submitDefiScore);
+  const submit = useServerFn(submitDefiRun);
 
   const { data: defis, isLoading, refetch } = useQuery({
     queryKey: ["defis"],
@@ -85,13 +85,18 @@ function DefisPage() {
   };
 
   const fakeSubmit = async (d: DefiWithPeers) => {
-    // Permet de saisir un score manuellement tant que l'intégration jeu n'est pas branchée.
-    const raw = prompt(`Entrer ton score final pour ce défi (€) :`, "0");
-    if (raw === null) return;
-    const score = Math.max(0, Math.floor(Number(raw) || 0));
+    // Tant que l'intégration jeu n'est pas branchée, on saisit la manche jouée.
+    // Le serveur recalcule le score depuis le seed — le client ne peut PAS
+    // envoyer un montant arbitraire en €.
+    const rawMissions = prompt(`Nombre de courses terminées pendant ta manche :`, "0");
+    if (rawMissions === null) return;
+    const missionsCompleted = Math.max(0, Math.floor(Number(rawMissions) || 0));
+    const rawElapsed = prompt(`Temps écoulé (en secondes, max ${d.duration_sec}) :`, String(d.duration_sec));
+    if (rawElapsed === null) return;
+    const elapsedSec = Math.max(0, Math.floor(Number(rawElapsed) || 0));
     setSubmitting(d.id);
     try {
-      await submit({ data: { defiId: d.id, score } });
+      await submit({ data: { defiId: d.id, missionsCompleted, elapsedSec } });
       await refetch();
     } catch (e: any) {
       alert(e?.message ?? "Erreur");
