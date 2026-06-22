@@ -8,6 +8,7 @@ export type WeatherKind = "clear" | "clouds" | "rain" | "snow" | "fog" | "storm"
 export type RealWorldEnv = {
   city: string;
   country: string;
+  population: number | null;
   weather: WeatherKind;
   tempC: number | null;
   isDay: boolean;
