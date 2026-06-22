@@ -6,101 +6,62 @@ import { GAME_ASSETS, setAssetOverride, listAssetKeys, type AssetKey, listCustom
 import { useAuth } from "@/lib/useAuth";
 import { useIsAdmin, useCloudAdminSync, getLocalCompetitors, setCompetitorsFromCloud, type CloudCompetitor } from "@/lib/adminState";
 
-
-function getCurrentHash(): string {
-  try {
-    const localHash = localStorage.getItem(PWD_HASH_KEY);
-    if (localHash) return localHash;
-  } catch {}
-  try {
-    const cookieHash = document.cookie
-      .split(";")
-      .map((part) => part.trim())
-      .find((part) => part.startsWith(`${PWD_HASH_COOKIE}=`))
-      ?.split("=")[1];
-    if (cookieHash) return decodeURIComponent(cookieHash);
-  } catch {}
-  return ADMIN_PASS_HASH_DEFAULT;
-}
-
-function savePasswordHash(hash: string): boolean {
-  let saved = false;
-  try {
-    localStorage.removeItem(PWD_HASH_KEY);
-    localStorage.setItem(PWD_HASH_KEY, hash);
-    saved = localStorage.getItem(PWD_HASH_KEY) === hash;
-  } catch {}
-  try {
-    document.cookie = `${PWD_HASH_COOKIE}=${encodeURIComponent(hash)}; Max-Age=31536000; Path=/; SameSite=Lax`;
-    saved = saved || getCurrentHash() === hash;
-  } catch {}
-  return saved;
-}
-
-/* Floating gear button + slide-in admin panel. */
+/* Floating gear button + slide-in admin panel.
+ * Accès = rôle "admin" sur le compte connecté (table user_roles).
+ * Plus aucun mot de passe local. */
 export default function AdminPanel() {
+  const { user } = useAuth();
+  const { isAdmin, loading: adminLoading } = useIsAdmin(user);
+  const { syncing, lastError, pullNow, pushNow } = useCloudAdminSync(user);
+
   const [open, setOpen] = useState(false);
-  const [unlocked, setUnlocked] = useState(false);
-  const [pwd, setPwd] = useState("");
-  const [pwdErr, setPwdErr] = useState("");
-  const [resetMode, setResetMode] = useState(false);
-  const [resetPhrase, setResetPhrase] = useState("");
-  const [newPwd, setNewPwd] = useState("");
-  const [newPwd2, setNewPwd2] = useState("");
-  const [resetMsg, setResetMsg] = useState("");
-  const [adminPwdOpen, setAdminPwdOpen] = useState(false);
-  const [adminPwdNew, setAdminPwdNew] = useState("");
-  const [adminPwdNew2, setAdminPwdNew2] = useState("");
-  const [adminPwdMsg, setAdminPwdMsg] = useState("");
-  const [tab, setTab] = useState<"trafic" | "hq" | "missions" | "rival" | "circuit" | "skins" | "export">("trafic");
+  const [tab, setTab] = useState<"trafic" | "hq" | "missions" | "rival" | "concurrents" | "circuit" | "skins" | "export">("trafic");
   const [placeMode, setPlaceMode] = useState(false);
   const [drawMode, setDrawMode] = useState(false);
   const [resetGameOpen, setResetGameOpen] = useState(false);
   const [resetGamePhrase, setResetGamePhrase] = useState("");
   const [resetGameMsg, setResetGameMsg] = useState("");
-  const cfg = useAdminConfig();
 
-  // Rappel du déverrouillage pour la session courante
+  // État de la liste des concurrents (mis à jour via l'event publié par CityCompetitors).
+  const [comps, setCompsLocal] = useState<CloudCompetitor[]>(() => getLocalCompetitors());
   useEffect(() => {
-    try { if (sessionStorage.getItem(UNLOCK_KEY) === "1") setUnlocked(true); } catch {}
+    const onChange = (e: Event) => {
+      const detail = (e as CustomEvent<CloudCompetitor[]>).detail;
+      if (Array.isArray(detail)) setCompsLocal(detail);
+    };
+    window.addEventListener("jce:competitors-changed", onChange as EventListener);
+    return () => window.removeEventListener("jce:competitors-changed", onChange as EventListener);
   }, []);
 
-  const tryUnlock = async () => {
-    const h = await sha256(pwd);
-    if (h === getCurrentHash()) {
-      setUnlocked(true);
-      setPwd("");
-      setPwdErr("");
-      try { sessionStorage.setItem(UNLOCK_KEY, "1"); } catch {}
-    } else {
-      setPwdErr("Mot de passe incorrect");
-      setPwd("");
-    }
+  // Formulaire d'ajout concurrent
+  const [newCompName, setNewCompName] = useState("");
+  const [newCompColor, setNewCompColor] = useState("#ef4444");
+  const [newCompTreasury, setNewCompTreasury] = useState(15000);
+
+  const addCompetitor = () => {
+    if (!newCompName.trim()) return;
+    if (comps.length >= 10) return;
+    const next: CloudCompetitor = {
+      id: `custom-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+      name: newCompName.trim(),
+      color: newCompColor,
+      x: 200 + Math.round(Math.random() * 1500),
+      y: 200 + Math.round(Math.random() * 700),
+      treasury: Math.max(500, newCompTreasury),
+      taxiCount: 6,
+      bankrupt: false,
+    };
+    setCompetitorsFromCloud([...comps, next]);
+    setNewCompName("");
   };
 
-  const doReset = async () => {
-    setResetMsg("");
-    if (resetPhrase.trim() !== RESET_PHRASE) { setResetMsg(`Tape exactement "${RESET_PHRASE}" pour confirmer.`); return; }
-    if (newPwd.length < 4) { setResetMsg("Le nouveau mot de passe doit faire au moins 4 caractères."); return; }
-    if (newPwd !== newPwd2) { setResetMsg("Les deux mots de passe ne correspondent pas."); return; }
-    const h = await sha256(newPwd);
-    if (!savePasswordHash(h)) { setResetMsg("Impossible d'enregistrer le mot de passe sur cet appareil."); return; }
-    setResetMsg("✅ Mot de passe réinitialisé. Tu peux te connecter.");
-    setNewPwd(""); setNewPwd2(""); setResetPhrase("");
-    setTimeout(() => { setResetMode(false); setResetMsg(""); }, 1200);
+  const removeCompetitor = (id: string) => {
+    setCompetitorsFromCloud(comps.filter((c) => c.id !== id));
   };
 
-  const changeAdminPassword = async () => {
-    setAdminPwdMsg("");
-    if (adminPwdNew.length < 4) { setAdminPwdMsg("Le nouveau mot de passe doit faire au moins 4 caractères."); return; }
-    if (adminPwdNew !== adminPwdNew2) { setAdminPwdMsg("Les deux mots de passe ne correspondent pas."); return; }
-    const h = await sha256(adminPwdNew);
-    if (!savePasswordHash(h)) { setAdminPwdMsg("Impossible d'enregistrer le mot de passe sur cet appareil."); return; }
-    setAdminPwdMsg("✅ Mot de passe admin enregistré.");
-    setAdminPwdNew("");
-    setAdminPwdNew2("");
-    setPwd("");
-  };
+  const cfg = useAdminConfig();
+
+
 
   const doResetGame = () => {
     setResetGameMsg("");
