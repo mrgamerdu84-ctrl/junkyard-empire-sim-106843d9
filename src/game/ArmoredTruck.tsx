@@ -144,7 +144,7 @@ export default function ArmoredTruck() {
     // Tentative IA : un rival peut se lancer après un délai aléatoire
     const w = window as unknown as { __jceCompetitors?: Competitor[] };
     const alive = (w.__jceCompetitors ?? []).filter((c) => !c.bankrupt);
-    if (alive.length > 0 && Math.random() < RIVAL_ATTEMPT_CHANCE) {
+    if (cfgRef.current.rivalsCanHeist !== false && alive.length > 0 && Math.random() < RIVAL_ATTEMPT_CHANCE) {
       const r = alive[Math.floor(Math.random() * alive.length)];
       const delay = 2500 + Math.random() * (TRUCK_TRAVEL_S * 1000 - 5000);
       window.setTimeout(() => {
