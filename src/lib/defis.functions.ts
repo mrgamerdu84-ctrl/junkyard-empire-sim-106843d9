@@ -77,13 +77,20 @@ export const listMyDefis = createServerFn({ method: "GET" })
     })) as DefiWithPeers[];
   });
 
-export const submitDefiScore = createServerFn({ method: "POST" })
+/**
+ * Soumet une manche de défi. Le client n'envoie PAS de score €.
+ * Il envoie uniquement (missions terminées, temps écoulé) — le serveur
+ * recalcule le score depuis le seed du défi, avec plafond temps + plafond
+ * physique (1 course / 8 s max).
+ */
+export const submitDefiRun = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d: { defiId: string; score: number }) => d)
+  .inputValidator((d: { defiId: string; missionsCompleted: number; elapsedSec: number }) => d)
   .handler(async ({ data, context }) => {
-    const { data: updated, error } = await context.supabase.rpc("submit_defi_score", {
+    const { data: updated, error } = await (context.supabase as any).rpc("submit_defi_run", {
       _defi_id: data.defiId,
-      _score: Math.max(0, Math.floor(data.score)),
+      _missions_completed: Math.max(0, Math.floor(data.missionsCompleted)),
+      _elapsed_sec: Math.max(0, Math.floor(data.elapsedSec)),
     });
     if (error) throw new Error(error.message);
     return updated as Defi;
