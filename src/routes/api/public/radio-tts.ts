@@ -24,7 +24,7 @@ export const Route = createFileRoute("/api/public/radio-tts")({
         try {
           // Route publique : pas d'auth requise (la radio doit marcher sur mobile
           // y compris pour les visiteurs anonymes). Anti-abus : on tronque à 500 chars.
-          const { text, lang } = (await request.json()) as { text?: string; lang?: string };
+          const { text, lang, voice: voiceParam } = (await request.json()) as { text?: string; lang?: string; voice?: string };
           if (!text || typeof text !== "string") {
             return new Response("Missing text", { status: 400, headers: CORS });
           }
@@ -32,7 +32,10 @@ export const Route = createFileRoute("/api/public/radio-tts")({
           if (!apiKey) {
             return new Response("TTS not configured", { status: 503, headers: CORS });
           }
-          const voice = lang === "en" ? "alloy" : "shimmer";
+          // Voix OpenAI autorisées. Femmes : alloy, coral, nova, sage, shimmer. Hommes : ash, ballad, echo, fable, onyx, verse.
+          const ALLOWED = new Set(["alloy","ash","ballad","coral","echo","fable","nova","onyx","sage","shimmer","verse"]);
+          const fallback = lang === "en" ? "alloy" : "shimmer";
+          const voice = voiceParam && ALLOWED.has(voiceParam) ? voiceParam : fallback;
           const r = await fetch("https://ai.gateway.lovable.dev/v1/audio/speech", {
             method: "POST",
             headers: {
