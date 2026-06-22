@@ -14,6 +14,7 @@ type Competitor = {
   name: string;
   color: string;
   bankrupt: boolean;
+  vehicleUrl?: string;
 };
 
 type RivalSpec = {
@@ -24,6 +25,7 @@ type RivalSpec = {
   duration: number; // s pour parcourir le path
   offset: number;   // 0..1 décalage initial le long du path
   letter: string;
+  vehicleUrl?: string;
 };
 
 const LANE_HALF = 11;
@@ -45,6 +47,7 @@ function buildSpecs(comps: Competitor[]): RivalSpec[] {
         duration: 16 + ((i * 3) % 7),
         offset: ((i * 0.137) + k * 0.41) % 1,
         letter: (c.name?.[0] ?? "?").toUpperCase(),
+        vehicleUrl: c.vehicleUrl,
       });
       i++;
     }
@@ -131,30 +134,43 @@ export default function CityRivalTaxis() {
         >
           {/* Sprite taxi vu du dessus, nez vers la droite (rotate angle = direction marche) */}
           <g transform="rotate(-90)">
-            {/* ombre */}
-            <ellipse cx="0" cy="2" rx="13" ry="5" fill="rgba(0,0,0,0.45)" />
-            {/* carrosserie */}
-            <rect x="-10" y="-16" width="20" height="32" rx="4" fill={sp.color} stroke="#0b0d10" strokeWidth="1.5" />
-            {/* damier toit */}
-            <rect x="-9" y="-6" width="18" height="6" fill="#fff" />
-            <rect x="-9" y="-6" width="3" height="3" fill="#0b0d10" />
-            <rect x="-3" y="-6" width="3" height="3" fill="#0b0d10" />
-            <rect x="3" y="-6" width="3" height="3" fill="#0b0d10" />
-            <rect x="-6" y="-3" width="3" height="3" fill="#0b0d10" />
-            <rect x="0" y="-3" width="3" height="3" fill="#0b0d10" />
-            <rect x="6" y="-3" width="3" height="3" fill="#0b0d10" />
-            {/* pare-brises */}
-            <rect x="-8" y="-14" width="16" height="6" rx="1.5" fill="rgba(15,23,42,0.7)" />
-            <rect x="-8" y="8" width="16" height="6" rx="1.5" fill="rgba(15,23,42,0.7)" />
-            {/* phares */}
-            <circle cx="-7" cy="-15" r="1.4" fill="#fde047" />
-            <circle cx="7" cy="-15" r="1.4" fill="#fde047" />
-            {/* badge couleur concurrent */}
-            <circle cx="0" cy="3" r="3" fill={sp.color} stroke="#0b0d10" strokeWidth="0.8" />
-            <text x="0" y="5.5" textAnchor="middle" fontSize="5" fontWeight="900"
-              fill="#0b0d10" fontFamily="system-ui, sans-serif">
-              {sp.letter}
-            </text>
+            {sp.vehicleUrl ? (
+              <>
+                {/* ombre */}
+                <ellipse cx="0" cy="2" rx="14" ry="5" fill="rgba(0,0,0,0.45)" />
+                {/* image personnalisée du concurrent (nez vers le haut dans le sprite) */}
+                <image href={sp.vehicleUrl} x="-16" y="-20" width="32" height="40" preserveAspectRatio="xMidYMid meet" />
+                {/* pastille couleur pour distinguer */}
+                <circle cx="11" cy="-14" r="3.5" fill={sp.color} stroke="#0b0d10" strokeWidth="0.8" />
+              </>
+            ) : (
+              <>
+                {/* ombre */}
+                <ellipse cx="0" cy="2" rx="13" ry="5" fill="rgba(0,0,0,0.45)" />
+                {/* carrosserie */}
+                <rect x="-10" y="-16" width="20" height="32" rx="4" fill={sp.color} stroke="#0b0d10" strokeWidth="1.5" />
+                {/* damier toit */}
+                <rect x="-9" y="-6" width="18" height="6" fill="#fff" />
+                <rect x="-9" y="-6" width="3" height="3" fill="#0b0d10" />
+                <rect x="-3" y="-6" width="3" height="3" fill="#0b0d10" />
+                <rect x="3" y="-6" width="3" height="3" fill="#0b0d10" />
+                <rect x="-6" y="-3" width="3" height="3" fill="#0b0d10" />
+                <rect x="0" y="-3" width="3" height="3" fill="#0b0d10" />
+                <rect x="6" y="-3" width="3" height="3" fill="#0b0d10" />
+                {/* pare-brises */}
+                <rect x="-8" y="-14" width="16" height="6" rx="1.5" fill="rgba(15,23,42,0.7)" />
+                <rect x="-8" y="8" width="16" height="6" rx="1.5" fill="rgba(15,23,42,0.7)" />
+                {/* phares */}
+                <circle cx="-7" cy="-15" r="1.4" fill="#fde047" />
+                <circle cx="7" cy="-15" r="1.4" fill="#fde047" />
+                {/* badge couleur concurrent */}
+                <circle cx="0" cy="3" r="3" fill={sp.color} stroke="#0b0d10" strokeWidth="0.8" />
+                <text x="0" y="5.5" textAnchor="middle" fontSize="5" fontWeight="900"
+                  fill="#0b0d10" fontFamily="system-ui, sans-serif">
+                  {sp.letter}
+                </text>
+              </>
+            )}
           </g>
         </g>
       ))}

@@ -37,6 +37,18 @@ export default function AdminPanel() {
   const [newCompName, setNewCompName] = useState("");
   const [newCompColor, setNewCompColor] = useState("#ef4444");
   const [newCompTreasury, setNewCompTreasury] = useState(15000);
+  const [newCompVehicleUrl, setNewCompVehicleUrl] = useState<string>("");
+  const [newCompVehicleName, setNewCompVehicleName] = useState<string>("");
+
+  const onPickCompVehicle = (file: File | null) => {
+    if (!file) { setNewCompVehicleUrl(""); setNewCompVehicleName(""); return; }
+    const reader = new FileReader();
+    reader.onload = () => {
+      setNewCompVehicleUrl(String(reader.result || ""));
+      setNewCompVehicleName(file.name);
+    };
+    reader.readAsDataURL(file);
+  };
 
   const addCompetitor = () => {
     if (!newCompName.trim()) return;
@@ -50,9 +62,12 @@ export default function AdminPanel() {
       treasury: Math.max(500, newCompTreasury),
       taxiCount: 6,
       bankrupt: false,
+      vehicleUrl: newCompVehicleUrl || undefined,
     };
     setCompetitorsFromCloud([...comps, next]);
     setNewCompName("");
+    setNewCompVehicleUrl("");
+    setNewCompVehicleName("");
   };
 
   const removeCompetitor = (id: string) => {
@@ -441,6 +456,9 @@ export default function AdminPanel() {
                   {comps.map((c) => (
                     <div key={c.id} style={{ display: "flex", alignItems: "center", gap: 8, padding: "6px 8px", background: "#1f242b", borderRadius: 6, border: "1px solid #2a2f38" }}>
                       <span style={{ width: 14, height: 14, borderRadius: "50%", background: c.color, border: "1px solid #0b0d10", flexShrink: 0 }} />
+                      {c.vehicleUrl && (
+                        <img src={c.vehicleUrl} alt="" style={{ width: 24, height: 24, objectFit: "contain", background: "#0b0d10", borderRadius: 4, flexShrink: 0 }} />
+                      )}
                       <div style={{ flex: 1, minWidth: 0 }}>
                         <div style={{ fontSize: 12, fontWeight: 700, color: "#e8edf2", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{c.name}</div>
                         <div style={{ fontSize: 10, color: "#8a8e94" }}>💰 {Math.round(c.treasury).toLocaleString()}$ · ({Math.round(c.x)},{Math.round(c.y)}){c.bankrupt ? " · 💀 faillite" : ""}</div>
@@ -473,6 +491,27 @@ export default function AdminPanel() {
                     value={newCompTreasury} min={500} max={100000} step={500}
                     format={(v) => Math.round(v).toLocaleString() + "$"}
                     onChange={(v) => setNewCompTreasury(v)} />
+                  <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+                    <label style={{ fontSize: 11, color: "#c8ccd2" }}>
+                      🚕 Sprite voiture (vue du ciel, optionnel)
+                    </label>
+                    <input
+                      type="file"
+                      accept="image/png,image/jpeg,image/webp,image/svg+xml"
+                      onChange={(e) => onPickCompVehicle(e.target.files?.[0] ?? null)}
+                      style={{ fontSize: 11, color: "#c8ccd2" }}
+                    />
+                    {newCompVehicleUrl && (
+                      <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 4 }}>
+                        <img src={newCompVehicleUrl} alt="" style={{ width: 36, height: 36, objectFit: "contain", background: "#1f242b", borderRadius: 4, border: "1px solid #2a2f38" }} />
+                        <span style={{ fontSize: 10, color: "#8a8e94", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", flex: 1 }}>{newCompVehicleName}</span>
+                        <button onClick={() => onPickCompVehicle(null)} style={{ background: "transparent", border: "1px solid #7f1d1d", color: "#fca5a5", borderRadius: 4, padding: "2px 6px", fontSize: 10, cursor: "pointer" }}>Retirer</button>
+                      </div>
+                    )}
+                    <div className="adm-hint" style={{ fontSize: 10 }}>
+                      Si vide, sprite par défaut coloré (damier). PNG transparent recommandé, nez vers le haut.
+                    </div>
+                  </div>
                   <button
                     onClick={addCompetitor}
                     disabled={!newCompName.trim() || comps.length >= 10}

@@ -20,6 +20,7 @@ type Competitor = {
   treasury: number;
   taxiCount: number;
   bankrupt: boolean;
+  vehicleUrl?: string;
 };
 
 const INITIAL: Competitor[] = [

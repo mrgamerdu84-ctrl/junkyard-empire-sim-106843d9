@@ -30,6 +30,8 @@ export type CloudCompetitor = {
   treasury: number;
   taxiCount: number;
   bankrupt: boolean;
+  /** Optionnel : sprite vue du ciel pour les taxis rivaux de ce concurrent (data URL ou URL CDN). */
+  vehicleUrl?: string;
 };
 
 export type AdminStateRow = {
