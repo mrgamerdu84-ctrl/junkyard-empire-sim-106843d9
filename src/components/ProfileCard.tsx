@@ -344,6 +344,10 @@ export default function ProfileCard({ onClose }: { onClose: () => void }) {
           <div style={{ fontSize: 10, color: "#8a8e94", marginTop: 4 }}>💡 De nouveaux modèles peuvent être ajoutés par l'admin.</div>
         </div>
 
+        {/* Catalogue véhicules ajoutés par l'admin — lecture seule */}
+        <AdminVehiclesCatalog />
+
+
 
         <div className="pc-actions">
           <button className="pc-btn ghost" type="button" onClick={onClose}>Fermer</button>
