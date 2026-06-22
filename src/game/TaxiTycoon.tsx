@@ -2063,6 +2063,11 @@ export default function TaxiTycoon() {
     free.target = job.pickup;
     free.mode = "to_pickup";
     syncVehicleLane(free);
+    // Transition douce : on mémorise la position actuelle pour interpoler
+    // visuellement vers le nouveau path (évite le « saut » de voie).
+    free.transitionFromX = here.x;
+    free.transitionFromY = here.y;
+    free.transitionUntil = performance.now() + TRANSITION_MS;
     setJobs((js) => js.map((j) => j.id === id ? { ...j, status: "accepted", acceptedAt: Date.now() } : j));
   };
 
