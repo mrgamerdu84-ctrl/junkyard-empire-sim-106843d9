@@ -757,6 +757,74 @@ export default function CityTraffic() {
           if (st.mission) continue; // reste en mission → skip path logic
         }
 
+        // ===== Branche PARKING : la voiture se gare sur le trottoir =====
+        if (st.parking) {
+          const pk = st.parking;
+          let cx = pk.px, cy = pk.py;
+          // Phase approaching : lerp depuis startX/Y vers px/py
+          if (pk.phase === "approaching") {
+            const k = Math.min(1, 1 - (pk.phaseEndsAt - now) / PARK_APPROACH_MS);
+            cx = pk.startX + (pk.px - pk.startX) * k;
+            cy = pk.startY + (pk.py - pk.startY) * k;
+            if (now >= pk.phaseEndsAt) {
+              pk.phase = "parked";
+            }
+          } else if (pk.phase === "parked") {
+            if (now >= pk.parkedUntil) {
+              pk.phase = "leaving";
+              pk.phaseEndsAt = now + PARK_LEAVE_MS;
+            }
+          } else if (pk.phase === "leaving") {
+            const k = Math.min(1, 1 - (pk.phaseEndsAt - now) / PARK_LEAVE_MS);
+            cx = pk.px + (pk.startX - pk.px) * k;
+            cy = pk.py + (pk.startY - pk.py) * k;
+            if (now >= pk.phaseEndsAt) {
+              // Fin : reprise du trafic
+              st.parking = undefined;
+              st.speed = st.baseSpeed * 0.4;
+              st.nextParkAttemptAt = now + PARK_COOLDOWN_MS;
+              if (st.pedNode) st.pedNode.setAttribute("opacity", "0");
+            }
+          }
+          node.setAttribute("transform", `translate(${cx.toFixed(2)},${cy.toFixed(2)}) rotate(${pk.angle.toFixed(2)})`);
+
+          // Animation du conducteur : sort, marche, revient
+          const ped = st.pedNode;
+          if (ped) {
+            if (pk.phase === "parked") {
+              // base = position au bord du trottoir, juste à côté de la portière
+              const baseX = pk.startX + (-pk.tdy) * PARK_PED_OFFSET * pk.side;
+              const baseY = pk.startY + ( pk.tdx) * PARK_PED_OFFSET * pk.side;
+              // progression 0 → 1 → 0 (aller-retour le long du trottoir)
+              const elapsed = now - (pk.parkedUntil - (pk.parkedUntil - (pk.phaseEndsAt - PARK_APPROACH_MS)));
+              // Simplification : fraction du temps écoulé depuis le début de la phase parked
+              const totalParked = pk.parkedUntil - (pk.phaseEndsAt); // négatif pendant approach
+              void elapsed; void totalParked;
+              const remaining = pk.parkedUntil - now;
+              const fullParked = pk.parkedUntil - (pk.parkedUntil - (PARK_DURATION_MIN_MS)); // pas utilisé
+              void fullParked;
+              // On utilise pk.pedReturnAt : avant → marche en avant, après → revient
+              let walkK: number;
+              if (now < pk.pedReturnAt) {
+                walkK = Math.min(1, (now - (pk.parkedUntil - (pk.pedReturnAt + 0 - (pk.parkedUntil - pk.pedWalkMs)))) / pk.pedWalkMs);
+                // Fallback simple : fraction = 1 - remaining/total
+                walkK = Math.max(0, Math.min(1, 1 - (pk.pedReturnAt - now) / pk.pedWalkMs));
+              } else {
+                walkK = 1 - Math.max(0, Math.min(1, (now - pk.pedReturnAt) / Math.max(800, remaining)));
+              }
+              const off = walkK * PARK_PED_WALK_PX;
+              const px = baseX + pk.tdx * off;
+              const py = baseY + pk.tdy * off;
+              const pAng = (Math.atan2(pk.tdy, pk.tdx) * 180) / Math.PI + (now < pk.pedReturnAt ? 0 : 180);
+              ped.setAttribute("transform", `translate(${px.toFixed(2)},${py.toFixed(2)}) rotate(${pAng.toFixed(2)})`);
+              ped.setAttribute("opacity", "1");
+            } else {
+              ped.setAttribute("opacity", "0");
+            }
+          }
+          if (st.parking) continue;
+        }
+
         // ===== Trafic normal =====
         const prev = st.s;
         st.s += st.speed * dt;
