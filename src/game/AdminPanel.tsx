@@ -15,7 +15,7 @@ export default function AdminPanel() {
   const { syncing, lastError, pullNow, pushNow } = useCloudAdminSync(user);
 
   const [open, setOpen] = useState(false);
-  const [tab, setTab] = useState<"trafic" | "hq" | "missions" | "rival" | "concurrents" | "circuit" | "skins" | "export">("trafic");
+  const [tab, setTab] = useState<"trafic" | "hq" | "missions" | "spec" | "rival" | "concurrents" | "circuit" | "skins" | "export">("trafic");
   const [placeMode, setPlaceMode] = useState(false);
   const [drawMode, setDrawMode] = useState(false);
   const [resetGameOpen, setResetGameOpen] = useState(false);
