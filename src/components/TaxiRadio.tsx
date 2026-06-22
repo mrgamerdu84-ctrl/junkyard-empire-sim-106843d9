@@ -363,7 +363,7 @@ export default function TaxiRadio() {
   // Lit une brève via le serveur (Lovable AI) → audio mp3 réel (marche partout, incl. WebView Android)
   // Si `onComplete` est fourni, il est appelé EXACTEMENT une fois quand la TTS se termine
   // (fin naturelle, erreur, ou indisponibilité). Garantit l'enchaînement séquentiel DJ→musique.
-  const speak = async (news: RadioNews, onComplete?: () => void) => {
+  const speak = async (news: RadioNews, onComplete?: () => void, voice?: string) => {
     const l = langRef.current;
     const text = l === "en" ? news.en : news.fr;
     showTicker(text);
