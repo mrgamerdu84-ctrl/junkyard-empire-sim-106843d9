@@ -889,6 +889,13 @@ export default function CityTraffic() {
         } else if (prev > st.s) {
           st.s = st.s % st.pathLen;
         }
+        // CULLING : hors-écran → on n'a pas besoin de calculer la tangente ni
+        // d'écrire dans le DOM. La voiture continue d'avancer (st.s) à
+        // baseSpeed et sera remise à jour visuellement dès qu'elle réapparaît.
+        if (!st.visible) {
+          checkRadars(st, prev);
+          continue;
+        }
         const path = pathRefs.current[st.spec.pathIdx];
         if (!path) continue;
         const lenForward = st.spec.flip ? st.pathLen - st.s : st.s;
