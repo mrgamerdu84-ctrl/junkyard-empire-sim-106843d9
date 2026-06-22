@@ -1,65 +1,50 @@
-# Panel admin par compte + concurrents synchronisés
 
-## 1. Accès admin par email (plus de mot de passe)
+## Oui, c'est faisable — et gratuit
 
-### Côté base
-- Lookup de ton user `mrgamerdu84@gmail.com` dans `auth.users`, puis `INSERT INTO public.user_roles(user_id, role) VALUES (<ton uid>, 'admin')` (table et fonction `has_role` déjà en place).
-- Nouvelle server fn `isAdmin()` (`createServerFn` + `requireSupabaseAuth`) qui retourne `await context.supabase.rpc('has_role', { _user_id: context.userId, _role: 'admin' })`. RLS naturelle : un user lambda ne peut pas se faire passer pour admin.
+Pas besoin de payer. On utilise deux APIs publiques sans clé :
 
-### Côté UI (`AdminPanel.tsx`)
-- Au mount du panel, appel `isAdmin()` via `useQuery`.
-  - **Non connecté** → message "Connecte-toi pour accéder à l'admin" + bouton retour.
-  - **Connecté mais pas admin** → message "Accès réservé" (et on cache même le bouton engrenage).
-  - **Admin** → panel ouvert direct, plus aucun champ mot de passe.
-- Suppression du gros bloc password (hash SHA-256, `sessionStorage`, reset phrase, "Changer le mot de passe admin"). Code mort retiré.
+- **Open-Meteo** (https://open-meteo.com) — météo temps réel + lever/coucher du soleil. 100% gratuit, sans clé API, sans limite raisonnable.
+- **BigDataCloud reverse-geocode-client** — nom de ville à partir des coordonnées GPS. Gratuit, sans clé, conçu pour le navigateur.
 
-## 2. Données du panel synchronisées sur ton compte
+Localisation : `navigator.geolocation` du navigateur. Le joueur doit accepter une fois la demande de position. S'il refuse → fallback ville par défaut (Paris) ou IP-geo (`https://ipapi.co/json/`, gratuit, sans clé, basé IP donc approximatif).
 
-Une seule table pour tout l'état admin (concurrents + véhicules custom + config sliders), keyed par user.
+## Ce qu'on ajoute
 
-### Nouvelle table `public.admin_state`
-- `user_id uuid` (PK, FK `auth.users`)
-- `competitors jsonb` (array d'objets `{id, name, color, x, y, treasury, taxiCount, bankrupt}`)
-- `custom_vehicles jsonb` (array existant côté `gameAssets.listCustomVehicles()`)
-- `config jsonb` (snapshot `AdminConfig` actuel)
-- RLS : un user voit/modifie uniquement sa ligne (admin compris — la table est par compte). Aucun accès `anon`.
+### 1. Hook `useRealWorldEnv` (`src/lib/realWorldEnv.ts`)
+- Demande la géoloc au démarrage (avec bouton « Autoriser la localisation » dans le menu si refusée).
+- Cache résultat dans `localStorage` (ville + coords) pour éviter re-prompt.
+- Appelle Open-Meteo : `temperature_2m, weather_code, is_day, wind_speed_10m` + `daily=sunrise,sunset`.
+- Refresh toutes les 15 min.
+- Expose : `{ city, weather: 'clear'|'clouds'|'rain'|'snow'|'fog'|'storm', tempC, isDay, sunrise, sunset }`.
 
-### Server fns (`src/lib/admin-state.functions.ts`)
-- `loadAdminState()` → renvoie la ligne du user (ou défauts).
-- `saveAdminState({ competitors?, customVehicles?, config? })` → upsert partiel (merge des clés fournies).
+### 2. Annonce radio (`CityRadio` / système radio existant)
+- Nouveau type de message radio : `"Météo à {city} : {description}, {temp}°C"`.
+- Joué toutes les ~3 min en rotation avec les autres messages radio existants.
+- Exemples : « Soleil sur Marseille, 24°C, bonne route ! », « Pluie battante à Lille, prudence sur les routes ».
 
-### Câblage client
-- Au login (ou ouverture du panel), `loadAdminState()` hydrate :
-  - `setComps(...)` dans `CityCompetitors`
-  - import dans la store `gameAssets` (réutilise `addCustomVehicle` ligne par ligne)
-  - `setAdmin(...)` pour la config
-- Toute mutation (ajout véhicule, ajout/suppression concurrent, slider) appelle `saveAdminState(...)` débouncé (~800ms) sur le champ concerné.
-- Bouton manuel **"🔄 Synchroniser maintenant"** dans le panel (utile si bug) qui :
-  - **Pousser** : envoie l'état local en base.
-  - **Tirer** : remplace l'état local par celui de la base.
+### 3. Cycle jour/nuit visuel
+- `isDay` pilote un overlay CSS sur la map (teinte bleutée sombre la nuit, opacité ~0.35).
+- Phares des voitures : nouveau composant SVG `<CarHeadlights />` (deux cônes jaunes devant le véhicule) rendu uniquement si `!isDay`. S'applique au taxi joueur, rivaux, et trafic.
+- Lampadaires : petits halos jaunes sur la map la nuit (optionnel, points fixes).
 
-## 3. Ajouter des concurrents comme on ajoute des véhicules
+### 4. Météo visuelle (léger)
+- `rain` / `storm` : overlay CSS de gouttes animées + assombrissement.
+- `snow` : flocons CSS.
+- `fog` : voile blanc semi-opaque.
+- `clear` / `clouds` : rien de spécial le jour, ciel normal.
 
-Nouvel onglet **"Concurrents"** dans `AdminPanel` (ou dans l'onglet `rival` existant), liste éditable :
-- Tableau des concurrents actuels (couleur, nom, treasury, position X/Y, bouton 🗑).
-- Formulaire d'ajout : champ nom + color picker + bouton "📍 Placer sur la carte" (même UX que le QG joueur, pose en cliquant sur la map) + treasury initiale (slider).
-- Cap conservé à 10 (`MAX_COMPETITORS`).
-- Les concurrents IA "level-up" continuent de spawner automatiquement ; ceux ajoutés à la main vivent dans la même liste et sont aussi synchronisés.
+### 5. Réglages admin
+- Dans `AdminPanel` → onglet « Monde » : toggle « Météo réelle » + « Cycle jour/nuit » + override manuel (forcer jour, nuit, pluie…) pour debug.
 
-`CityCompetitors.tsx` :
-- L'état `comps` part de `loadAdminState().competitors` au lieu de la constante `INITIAL` figée (qui ne sert plus que de fallback à la première ouverture). Les level-ups continuent d'`append` dans la liste, qui re-sync vers la base.
-- L'event `jce:competitors-changed` continue d'alimenter `CityRivalTaxis` côté affichage (pas de changement de format).
+## Détails techniques
+
+- **Aucune clé API** → aucun secret à stocker côté serveur. Tout côté client.
+- **Privacy** : la position reste dans le navigateur, jamais envoyée à notre backend. On appelle Open-Meteo et BigDataCloud directement depuis le client.
+- **Fallback** : si géoloc refusée ET ipapi échoue → ville = « Paris », météo désactivée, cycle jour/nuit basé sur l'heure locale du device (06h–20h = jour).
+- **Mapping weather_code Open-Meteo** : 0→clear, 1-3→clouds, 45/48→fog, 51-67→rain, 71-77→snow, 80-82→rain, 95-99→storm.
 
 ## Hors scope
 
-- Pas de version multi-utilisateurs partagée (chaque compte a sa propre sandbox admin).
-- Pas de migration des concurrents IA legacy (`INITIAL`) : ils restent les valeurs par défaut tant que la table est vide.
-- Pas de modif du look des rivaux (déjà fait au tour précédent).
-
-## Validation
-
-- Connecté avec ton email → engrenage ouvre direct le panel, plus de prompt mot de passe.
-- Connecté avec un autre compte → bouton engrenage caché.
-- Ajout d'un concurrent depuis le panel → apparaît sur la map et un taxi de sa couleur circule.
-- Recharge page / change d'appareil → tout est restauré depuis ton compte.
-- Bouton "Synchroniser maintenant" → permet de force-push ou force-pull en cas de désync.
+- Pas de prévisions multi-jours, juste la météo actuelle.
+- Pas de saisons (neige seulement si l'API la signale).
+- Pas de vent qui pousse les voitures, pas de routes glissantes — purement visuel + radio.
