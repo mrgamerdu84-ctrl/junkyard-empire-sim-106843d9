@@ -168,13 +168,14 @@ export async function refreshRealWorldEnv(force = false): Promise<RealWorldEnv |
       } catch {}
     }
     const pos = await getPosition();
-    const [{ city, country }, weather] = await Promise.all([
+    const [{ city, country, population }, weather] = await Promise.all([
       reverseCity(pos.lat, pos.lon),
       fetchWeather(pos.lat, pos.lon),
     ]);
     const env: RealWorldEnv = {
       city,
       country,
+      population,
       weather: weather.kind,
       tempC: weather.tempC,
       isDay: weather.isDay,
