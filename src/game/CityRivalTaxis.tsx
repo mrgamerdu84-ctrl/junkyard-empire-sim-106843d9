@@ -79,28 +79,47 @@ export default function CityRivalTaxis() {
   const pathRefs = useRef<(SVGPathElement | null)[]>([]);
   const carRefs = useRef<(SVGGElement | null)[]>([]);
 
+  // État mutable par taxi : path courant, sens, durée, t0. Quand u atteint 1,
+  // on tire une nouvelle route au hasard → on voit les rivaux rouler partout.
+  type Roam = { pathIdx: number; flip: boolean; duration: number; startedAt: number };
+  const roamRef = useRef<Roam[]>([]);
+
   useEffect(() => {
     const lens = pathRefs.current.map((p) => (p ? p.getTotalLength() : 0));
     if (lens.some((l) => l <= 1)) return;
+    const pickPath = () => RIVAL_ROAD_IDX[Math.floor(Math.random() * RIVAL_ROAD_IDX.length)] ?? 0;
+    const now0 = performance.now();
+    roamRef.current = specs.map((sp) => ({
+      pathIdx: sp.pathIdx,
+      flip: sp.flip,
+      duration: sp.duration,
+      startedAt: now0 - sp.offset * sp.duration * 1000,
+    }));
     let raf = 0;
-    const t0 = performance.now();
     const step = (now: number) => {
-      const tSec = (now - t0) / 1000;
       for (let i = 0; i < specs.length; i++) {
-        const sp = specs[i];
         const node = carRefs.current[i];
-        const path = pathRefs.current[sp.pathIdx];
-        if (!node || !path) continue;
-        const len = lens[sp.pathIdx];
-        const u = ((tSec / sp.duration) + sp.offset) % 1;
-        const fwd = sp.flip ? len * (1 - u) : len * u;
+        const roam = roamRef.current[i];
+        if (!node || !roam) continue;
+        const path = pathRefs.current[roam.pathIdx];
+        if (!path) continue;
+        const len = lens[roam.pathIdx];
+        let u = (now - roam.startedAt) / (roam.duration * 1000);
+        if (u >= 1) {
+          // Tirer une nouvelle route + sens aléatoires
+          roam.pathIdx = pickPath();
+          roam.flip = Math.random() < 0.5;
+          roam.duration = 14 + Math.random() * 10;
+          roam.startedAt = now;
+          u = 0;
+        }
+        const fwd = roam.flip ? len * (1 - u) : len * u;
         const p = path.getPointAtLength(fwd);
-        const p2 = path.getPointAtLength(Math.min(len, fwd + (sp.flip ? -1 : 1)));
+        const p2 = path.getPointAtLength(Math.min(len, Math.max(0, fwd + (roam.flip ? -1 : 1))));
         const tdx = p2.x - p.x, tdy = p2.y - p.y;
         const L = Math.hypot(tdx, tdy) || 1;
         const ang = (Math.atan2(tdy, tdx) * 180) / Math.PI;
-        // Lane offset : voiture qui descend (flip=false) à droite, qui monte à gauche.
-        const laneSign = sp.flip ? -1 : 1;
+        const laneSign = roam.flip ? -1 : 1;
         const ox = (-tdy / L) * LANE_HALF * laneSign;
         const oy = (tdx / L) * LANE_HALF * laneSign;
         node.setAttribute(
@@ -113,6 +132,7 @@ export default function CityRivalTaxis() {
     raf = requestAnimationFrame(step);
     return () => cancelAnimationFrame(raf);
   }, [specs]);
+
 
   return (
     <svg
