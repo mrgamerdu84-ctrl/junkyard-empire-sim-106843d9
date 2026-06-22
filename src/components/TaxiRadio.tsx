@@ -84,7 +84,51 @@ const STATIONS: Station[] = [
   station("retro",    "Radio Retro Wave", "🌆", RETRO_PLAYLIST,   "https://ice1.somafm.com/defcon-128-mp3"),
   station("emotions", "Radio Émotions",   "💖", RELAX_PLAYLIST,   "https://ice1.somafm.com/lush-128-mp3"),
   station("kids",     "Radio Kids",       "🧸", KIDS_PLAYLIST,    "https://ice1.somafm.com/fluid-128-mp3"),
+  // Rire & Chansons (humour) — flux MP3 public
+  { id: "rire", name: "Rire & Chansons", emoji: "😂", url: "https://broadcast.infomaniak.net/rireetchansons-high.mp3", volume: 0.6 },
 ];
+
+// ====== Animateurs radio (par station, par tranche horaire) ======
+// Tranches : matin (5-11), journée (11-17), soir (17-22), nuit (22-5).
+// Voix OpenAI : femmes = alloy/coral/nova/sage/shimmer ; hommes = ash/ballad/echo/fable/onyx/verse.
+type Host = { name: string; voice: string; gender: "f" | "m" };
+type HostSchedule = { morning: Host; day: Host; evening: Host; night: Host };
+
+const DEFAULT_HOSTS: HostSchedule = {
+  morning: { name: "Léa",     voice: "shimmer", gender: "f" },
+  day:     { name: "Marc",    voice: "echo",    gender: "m" },
+  evening: { name: "Sofia",   voice: "nova",    gender: "f" },
+  night:   { name: "Karim",   voice: "onyx",    gender: "m" },
+};
+
+const STATION_HOSTS: Record<string, HostSchedule> = {
+  main: DEFAULT_HOSTS,
+  jce:  DEFAULT_HOSTS,
+  iron: { morning: { name: "Tom", voice: "ash", gender: "m" }, day: { name: "Iggy", voice: "verse", gender: "m" }, evening: { name: "Joan", voice: "coral", gender: "f" }, night: { name: "Rex", voice: "onyx", gender: "m" } },
+  infos:{ morning: { name: "Claire", voice: "sage", gender: "f" }, day: { name: "Julien", voice: "ballad", gender: "m" }, evening: { name: "Inès", voice: "shimmer", gender: "f" }, night: { name: "Hugo", voice: "fable", gender: "m" } },
+  franceinter: { morning: { name: "Nicolas", voice: "ballad", gender: "m" }, day: { name: "Sonia", voice: "coral", gender: "f" }, evening: { name: "Thomas", voice: "echo", gender: "m" }, night: { name: "Élise", voice: "nova", gender: "f" } },
+  franceinfo:  { morning: { name: "Marc", voice: "echo", gender: "m" }, day: { name: "Anna", voice: "sage", gender: "f" }, evening: { name: "David", voice: "onyx", gender: "m" }, night: { name: "Léa", voice: "shimmer", gender: "f" } },
+  nrj:         { morning: { name: "Manu", voice: "verse", gender: "m" }, day: { name: "Cathy", voice: "nova", gender: "f" }, evening: { name: "Yann", voice: "ash", gender: "m" }, night: { name: "Maya", voice: "alloy", gender: "f" } },
+  skyrock:     { morning: { name: "Difool", voice: "onyx", gender: "m" }, day: { name: "Karine", voice: "coral", gender: "f" }, evening: { name: "Romano", voice: "ash", gender: "m" }, night: { name: "Mehdi", voice: "verse", gender: "m" } },
+  rmc_sport:   { morning: { name: "Jérôme", voice: "echo", gender: "m" }, day: { name: "Pierre", voice: "ballad", gender: "m" }, evening: { name: "Christophe", voice: "onyx", gender: "m" }, night: { name: "Anaïs", voice: "nova", gender: "f" } },
+  mondial:     { morning: { name: "Coach Lucas", voice: "onyx", gender: "m" }, day: { name: "Capi", voice: "verse", gender: "m" }, evening: { name: "Camille", voice: "coral", gender: "f" }, night: { name: "Zizou", voice: "echo", gender: "m" } },
+  pop:         { morning: { name: "Chloé", voice: "shimmer", gender: "f" }, day: { name: "Léo", voice: "ballad", gender: "m" }, evening: { name: "Mia", voice: "nova", gender: "f" }, night: { name: "Sam", voice: "verse", gender: "m" } },
+  electro:     { morning: { name: "Zoé", voice: "alloy", gender: "f" }, day: { name: "Max", voice: "ash", gender: "m" }, evening: { name: "Nyx", voice: "coral", gender: "f" }, night: { name: "DJ Vex", voice: "onyx", gender: "m" } },
+  rock:        { morning: { name: "Jess", voice: "sage", gender: "f" }, day: { name: "Slash", voice: "ash", gender: "m" }, evening: { name: "Lana", voice: "coral", gender: "f" }, night: { name: "Axel", voice: "onyx", gender: "m" } },
+  retro:       { morning: { name: "Sandra", voice: "nova", gender: "f" }, day: { name: "Patrick", voice: "ballad", gender: "m" }, evening: { name: "Véro", voice: "shimmer", gender: "f" }, night: { name: "Bruno", voice: "echo", gender: "m" } },
+  emotions:    { morning: { name: "Camille", voice: "sage", gender: "f" }, day: { name: "Anne", voice: "coral", gender: "f" }, evening: { name: "Jules", voice: "fable", gender: "m" }, night: { name: "Eva", voice: "shimmer", gender: "f" } },
+  kids:        { morning: { name: "Tata Lou", voice: "shimmer", gender: "f" }, day: { name: "Tonton Théo", voice: "fable", gender: "m" }, evening: { name: "Mamie Rose", voice: "sage", gender: "f" }, night: { name: "Papi Léon", voice: "ballad", gender: "m" } },
+  rire:        { morning: { name: "Bruno", voice: "ash", gender: "m" }, day: { name: "Élodie", voice: "coral", gender: "f" }, evening: { name: "Karim", voice: "onyx", gender: "m" }, night: { name: "Sophie", voice: "nova", gender: "f" } },
+};
+
+function getCurrentHost(stationId: string): Host {
+  const sched = STATION_HOSTS[stationId] ?? DEFAULT_HOSTS;
+  const h = new Date().getHours();
+  if (h >= 5 && h < 11) return sched.morning;
+  if (h >= 11 && h < 17) return sched.day;
+  if (h >= 17 && h < 22) return sched.evening;
+  return sched.night;
+}
 
 // Index courant de chaque playlist (persiste tant que le composant vit)
 const playlistIndex = new Map<string, number>();
