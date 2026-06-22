@@ -300,14 +300,14 @@ function PedestrianSVG({ shirt, pants, skin, side, scale = 1 }: { shirt: string;
 }
 
 // Distance de sécurité et freinage (en px du viewBox 1920x1080)
-const SAFE_GAP = 70;     // distance désirée pare-chocs à pare-chocs (raycast 70 px)
-const BRAKE_GAP = 140;   // au-delà : pleine vitesse ; en deçà : freinage progressif
+const SAFE_GAP = 110;    // distance désirée pare-chocs à pare-chocs
+const BRAKE_GAP = 220;   // au-delà : pleine vitesse ; en deçà : freinage progressif
 const ACCEL = 0.6;       // px/s² lissage vers la vitesse cible (réaccélération douce)
 const BRAKE = 2.4;       // px/s² lissage en freinage (mordant pour anti-empilement)
-const MIN_SPEED_RATIO = 0.25; // plancher anti-figeage (% de baseSpeed)
+const MIN_SPEED_RATIO = 0.18; // plancher anti-figeage (% de baseSpeed)
 // Anti-collision cross-lane (intersections) : si une autre voiture (toute lane confondue)
 // est dans ce rayon DEVANT moi (cône avant), je freine fort. Évite les empilements aux carrefours.
-const CROSS_LANE_RADIUS = 50;
+const CROSS_LANE_RADIUS = 75;
 const CROSS_LANE_FORWARD_DOT = 0.3; // ~72° devant moi
 
 type Mission = {
