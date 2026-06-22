@@ -114,7 +114,9 @@ export type CustomVehicleCategory =
   | "police"
   | "ambulance"
   | "firetruck"
-  | "service";
+  | "service"
+  | "robber"
+  | "armored";
 
 export type CustomVehicle = {
   id: string;
@@ -130,6 +132,8 @@ export const VEHICLE_CATEGORY_LABELS: Record<CustomVehicleCategory, string> = {
   ambulance: "🚑 Ambulance",
   firetruck: "🚒 Pompiers",
   service: "🚛 Utilitaire (poubelle, livraison…)",
+  robber: "🦹 Braqueur / fuyard",
+  armored: "💰 Camion blindé",
 };
 
 const CUSTOM_KEY = "jce.customVehicles";
