@@ -1868,6 +1868,12 @@ export default function TaxiTycoon() {
   const [musicOn, setMusicOn] = useState(false);
   const [missionsOpen, setMissionsOpen] = useState(false);
   const [missionsTab, setMissionsTab] = useState<"contracts" | "depot">("contracts");
+  const [actionsOpen, setActionsOpen] = useState<boolean>(() => {
+    try { return localStorage.getItem("tt-actions-open") === "1"; } catch { return false; }
+  });
+  useEffect(() => {
+    try { localStorage.setItem("tt-actions-open", actionsOpen ? "1" : "0"); } catch {}
+  }, [actionsOpen]);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const allLiveries = useMemo(() => getAllLiveries(), []);
   const currentLivery = allLiveries.find((l) => l.id === save.liveryId) ?? allLiveries[0];
