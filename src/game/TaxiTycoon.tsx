@@ -514,6 +514,7 @@ export default function TaxiTycoon() {
   const lastTaxiDispatchRef = useRef(0);
   const [, forceRender] = useState(0);
   const [toast, setToast] = useState<string | null>(null);
+  const [saveBlink, setSaveBlink] = useState(false);
   const [popups, setPopups] = useState<{ id: number; text: string; x: number; y: number }[]>([]);
   const popIdRef = useRef(0);
 
@@ -985,6 +986,8 @@ export default function TaxiTycoon() {
     if (!hydrated) return;
     const id = setTimeout(() => {
       try { localStorage.setItem(SAVE_KEY, JSON.stringify(save)); } catch {}
+      setSaveBlink(true);
+      window.setTimeout(() => setSaveBlink(false), 1000);
       (async () => {
         try {
           const { pushCloudSave } = await import("@/lib/cloudSave");
@@ -2594,6 +2597,9 @@ export default function TaxiTycoon() {
               </div>
             );
           })()}
+          {saveBlink && (
+            <div className="tt-save-blink">💾 Sauvegardé</div>
+          )}
         </div>
 
 
@@ -3234,6 +3240,24 @@ export default function TaxiTycoon() {
           border-radius: 8px; font-size: 13px; color: #c8ccd2;
         }
         .tt-depot-stat-row b { color: #fff; }
+
+        .tt-save-blink {
+          position: absolute; top: 12px; right: 12px;
+          background: rgba(20,22,28,0.92);
+          border: 1px solid #34d399;
+          color: #34d399;
+          font-size: 11px; font-weight: 800;
+          padding: 4px 10px; border-radius: 20px;
+          pointer-events: none;
+          animation: ttSaveBlink 1s ease forwards;
+          box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+          z-index: 40;
+        }
+        @keyframes ttSaveBlink {
+          0% { opacity: 0; transform: translateY(-6px); }
+          20%, 80% { opacity: 1; transform: translateY(0); }
+          100% { opacity: 0; transform: translateY(-6px); }
+        }
       `}</style>
 
     </>

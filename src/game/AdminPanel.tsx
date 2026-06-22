@@ -64,6 +64,9 @@ export default function AdminPanel() {
   const [tab, setTab] = useState<"trafic" | "hq" | "missions" | "rival" | "circuit" | "skins" | "export">("trafic");
   const [placeMode, setPlaceMode] = useState(false);
   const [drawMode, setDrawMode] = useState(false);
+  const [resetGameOpen, setResetGameOpen] = useState(false);
+  const [resetGamePhrase, setResetGamePhrase] = useState("");
+  const [resetGameMsg, setResetGameMsg] = useState("");
   const cfg = useAdminConfig();
 
   // Rappel du déverrouillage pour la session courante
@@ -106,6 +109,21 @@ export default function AdminPanel() {
     setAdminPwdNew("");
     setAdminPwdNew2("");
     setPwd("");
+  };
+
+  const doResetGame = () => {
+    setResetGameMsg("");
+    if (resetGamePhrase.trim() !== "RESET") {
+      setResetGameMsg('Tape exactement "RESET" pour effacer toute la progression.');
+      return;
+    }
+    try {
+      localStorage.removeItem("taxi-tycoon-v4");
+      setResetGameMsg("✅ Partie réinitialisée. Rechargement…");
+      window.setTimeout(() => window.location.reload(), 800);
+    } catch {
+      setResetGameMsg("❌ Impossible d'effacer la sauvegarde.");
+    }
   };
 
 
@@ -575,6 +593,37 @@ export default function AdminPanel() {
             </div>
 
             <button className="adm-reset" onClick={resetAdmin}>↺ Réinitialiser les valeurs</button>
+
+            <div className="adm-section" style={{ marginTop: 14, paddingTop: 12, borderTop: "1px solid #2a2f38" }}>
+              <button
+                className="adm-reset"
+                style={{ borderColor: "#7f1d1d", color: "#fca5a5" }}
+                onClick={() => { setResetGameOpen((v) => !v); setResetGameMsg(""); }}
+              >
+                🗑 Réinitialiser la partie
+              </button>
+              {resetGameOpen && (
+                <div style={{ display: "flex", flexDirection: "column", gap: 8, marginTop: 8 }}>
+                  <p style={{ margin: 0, fontSize: 12, color: "#fca5a5" }}>
+                    Cela efface <b>toute la progression</b> (argent, taxis, améliorations). Tape <b>RESET</b> pour confirmer.
+                  </p>
+                  <input
+                    type="text"
+                    value={resetGamePhrase}
+                    onChange={(e) => setResetGamePhrase(e.target.value)}
+                    placeholder="Tape RESET"
+                    style={{ padding: "9px 10px", borderRadius: 8, border: "1px solid #444", background: "#111", color: "#fff", fontSize: 13 }}
+                  />
+                  {resetGameMsg && <div style={{ color: resetGameMsg.startsWith("✅") ? "#4ade80" : "#ff6b6b", fontSize: 12 }}>{resetGameMsg}</div>}
+                  <button
+                    style={{ padding: "10px 12px", borderRadius: 8, border: "none", background: "#ef4444", color: "#fff", fontWeight: 700, cursor: "pointer" }}
+                    onClick={doResetGame}
+                  >
+                    Effacer ma progression
+                  </button>
+                </div>
+              )}
+            </div>
           </div>
         </>
       )}
