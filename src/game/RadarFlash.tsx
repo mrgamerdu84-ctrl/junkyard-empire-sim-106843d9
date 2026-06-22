@@ -83,14 +83,15 @@ export default function RadarFlash() {
         style={{
           position: "absolute", top: 56, left: "50%", zIndex: 61, pointerEvents: "none",
           padding: "10px 14px", borderRadius: 10,
-          background: "rgba(120,10,10,0.95)",
-          border: "1px solid #ffb4b4", color: "#fff7f7",
+          background: flash.amount > 0 ? "rgba(120,10,10,0.95)" : "rgba(30,30,30,0.92)",
+          border: `1px solid ${flash.amount > 0 ? "#ffb4b4" : "#9ca3af"}`,
+          color: "#fff7f7",
           font: "800 13px/1.2 ui-sans-serif, system-ui",
           animation: "jce-radar-toast 1800ms ease-out forwards",
           boxShadow: "0 6px 20px rgba(255,30,30,0.45)",
         }}
       >
-        📷 RADAR — {flash.reason} : -{flash.amount} $
+        📷 RADAR — {flash.reason}{flash.amount > 0 ? ` : -${flash.amount} $` : ""}
       </div>
     </>
   );
