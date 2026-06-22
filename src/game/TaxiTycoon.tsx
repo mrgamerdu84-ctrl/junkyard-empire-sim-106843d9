@@ -2154,7 +2154,9 @@ export default function TaxiTycoon() {
           // Couleur du joueur pour les courses encore proposées : chaque compagnie a sa
           // teinte, les missions affichent celle de qui les "revendique" (par défaut le joueur).
           const playerColor = currentPaint.color;
-          const haloColor = isSpecial ? "#fde047" : isStar ? "#a855f7" : isVip ? "#fbbf24" : (j.status === "accepted" ? "#3b82f6" : playerColor);
+          // Couleur "revendiquée" par une compagnie (joueur ou rival).
+          const claimColor = j.claimedColor ?? playerColor;
+          const haloColor = isSpecial ? "#fde047" : isStar ? "#a855f7" : isVip ? "#fbbf24" : (j.status === "accepted" ? "#3b82f6" : claimColor);
           const ringColor = isSpecial ? "#a855f7" : haloColor;
           return (
             <g
