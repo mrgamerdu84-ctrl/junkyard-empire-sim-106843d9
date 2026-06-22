@@ -82,7 +82,15 @@ type Taxi = {
   ridesSinceDeposit: number; // nb courses depuis le dernier dépôt au QG
   depositUntil?: number;     // timestamp ms : fin du dépôt au QG
   mustDeposit?: boolean;     // flag : doit déposer au QG en retournant
+  // Transition douce lors d'un changement de path (acceptation de course) :
+  // on évite le « saut » visuel en interpolant entre la position d'origine
+  // et la nouvelle position sur le path pickup pendant TRANSITION_MS.
+  transitionFromX?: number;
+  transitionFromY?: number;
+  transitionUntil?: number;
 };
+const TRANSITION_MS = 700;
+
 
 // Mécanique : retour au QG tous les N courses, attente de DEPOSIT_MS
 const DEPOSIT_EVERY_RIDES = 3;
