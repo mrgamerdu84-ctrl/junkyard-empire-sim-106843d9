@@ -1,47 +1,73 @@
-## Objectif
+# Multijoueur temps réel mondial — My Taxi World Rivalité
 
-Remplacer l'horloge accélérée (5 min réelles = 1 jour de jeu) par l'heure et le jour réels du joueur, et faire varier la densité de circulation selon la taille de sa vraie ville (déduite du reverse-geo déjà en place).
+## Mon avis franchement
 
-## Changements
+**Oui, ça vaut le coup, mais avec un cadre précis.** Le vrai temps réel (voir la voiture adverse rouler sur ta carte) est techniquement lourd et coûteux en bande passante. Je propose un **"temps réel compétitif léger"** : tu joues ta partie, ton adversaire joue la sienne en simultané, et vous voyez en direct son score, ses courses terminées, son chrono, ses notifications ("Adversaire a terminé une course +52€"). C'est nerveux, ça pousse à jouer vite, et ça reste fluide.
 
-### 1. `src/game/cityClock.ts` — heure réelle
+Pour voir littéralement la voiture adverse rouler sur la même ville, il faudrait synchroniser positions 10 fois par seconde — possible mais ça change la nature du jeu (collisions ? blocage ?). À garder pour une V2 si la base marche.
 
-- `getGameTime()` lit `new Date()` au lieu de `performance.now() / DAY_MS`.
-  - `hour` / `minute` = heure locale du joueur.
-  - `dayOfWeek` = `Date.getDay()` (0 dim … 6 sam) — vrai jour de la semaine.
-  - `isWeekend` = samedi/dimanche réels.
-  - `isHoliday` = jours fériés français (liste fixe : 01/01, 01/05, 08/05, 14/07, 15/08, 01/11, 11/11, 25/12, + Pâques/Ascension/Pentecôte calculés via Butcher/Meeus). Aucune dépendance externe.
-  - `label` = `"Lundi 14:37"` formaté en français.
-- Les périodes (`rushAM`, `lunch`, `rushPM`, etc.) et la fonction `densityFor` restent inchangées — elles consomment juste les nouvelles valeurs.
-- Ajout d'un export `getCityDensityMultiplier(population: number | null)` :
-  - `null` → 1.0
-  - `< 10 000` → 0.55 (village)
-  - `< 100 000` → 0.85
-  - `< 500 000` → 1.10
-  - `< 2 000 000` → 1.35 (grande ville type Lyon/Marseille)
-  - `≥ 2 000 000` → 1.6 (mégapole type Paris)
+## Ce que je propose pour la V1
 
-### 2. `src/lib/realWorldEnv.ts` — récupérer la taille de la ville
+### Modes de jeu
+- **Match rapide mondial** : bouton "Trouver un adversaire", matchmaking automatique parmi les joueurs en attente
+- **Durée fixe** : 5 min (rapide) ou 10 min (standard)
+- **Objectif** : faire le plus de chiffre d'affaires en taxi pendant le temps imparti
+- **Même seed de ville et même flux de clients** pour les deux joueurs → équitable
+- **Écran de fin** : gagnant, scores, gains XP/€
 
-- Étendre `RealWorldEnv` avec `population: number | null`.
-- Dans `reverseCity()`, garder BigDataCloud comme aujourd'hui, puis appeler l'API gratuite Open-Meteo Geocoding `https://geocoding-api.open-meteo.com/v1/search?name=<city>&count=1` qui renvoie un champ `population`. Stocké en cache localStorage à côté du reste.
-- Fallback Paris : si géoloc refusée ET IP échoue → `{ city: "Paris", country: "France", lat: 48.8566, lon: 2.3522, population: 2161000 }` (au lieu du flou "votre ville" actuel).
+### HUD pendant le match
+- Bandeau adversaire en haut : pseudo, score live, courses terminées, écart
+- Notifications discrètes : "🚕 Adversaire +47€", "⚡ Adversaire prend la tête"
+- Compte à rebours commun
 
-### 3. Branchement densité → trafic
+### Récompenses
+- Victoire : +XP licence, +€ bonus
+- Défaite : petit lot de consolation
+- Classement ELO mondial (top 100 affiché)
 
-- `getGameTime()` accepte un paramètre optionnel `cityPopulation?: number | null` et multiplie `density` par `getCityDensityMultiplier(cityPopulation)`.
-- `src/game/CityHud.tsx` : lit `useRealWorldEnv()` et passe `env.population` à `getGameTime()`. Le tick passe de 1 s à 30 s (l'heure réelle change lentement).
-- `src/game/CrimeEvents.tsx` : même branchement (la criminalité suit déjà `density`).
-- Les autres consommateurs du trafic (taxis, files d'attente) utilisent déjà `density` indirectement via les périodes — rien à toucher.
+## Détails techniques
 
-### 4. Affichage
+### Backend (Lovable Cloud / Supabase)
+Tables à créer :
+- `mp_matches` : id, status (waiting/active/finished), seed, duration_sec, started_at, ended_at, winner_id
+- `mp_match_players` : match_id, user_id, score, missions_completed, elo_before, elo_after
+- `mp_match_events` : match_id, user_id, event_type, payload, created_at (pour le score live)
+- `mp_queue` : user_id, duration_sec, joined_at (file d'attente matchmaking)
+- `mp_elo` : user_id, rating, wins, losses, draws
 
-`CityHud` montre désormais :
-- `"Lundi 22 juin · 14:37"` (vraie date + heure locale)
-- `"Paris · Pointe soir · Densité ×1.85"` (ville réelle + multiplicateur appliqué)
+### Realtime
+- Souscription Supabase Realtime sur `mp_match_events` filtré par `match_id` → score adversaire en direct
+- Souscription sur `mp_matches` → notification quand match passe à `active`/`finished`
 
-## Hors scope
+### Server functions (TanStack `createServerFn` + `requireSupabaseAuth`)
+- `joinMatchmaking({ duration })` : insère dans `mp_queue`, tente d'apparier avec un joueur en attente
+- `submitMatchEvent({ matchId, type, amount })` : enregistre une course terminée (anti-triche : cap par seconde comme dans `submit_defi_run`)
+- `finishMatch({ matchId })` : calcule gagnant, met à jour ELO, distribue récompenses
+- `getLeaderboard()` : top 100 ELO
 
-- Pas d'intégration TomTom/HERE (payant, l'utilisateur a choisi l'option gratuite).
-- Pas de saisie manuelle de ville (fallback Paris confirmé).
-- Aucun changement de gameplay au-delà de la densité ; les revenus/missions restent calibrés.
+### Anti-triche
+- Cap serveur : 1 course / 8s max (déjà fait dans `submit_defi_run`)
+- Score recalculé serveur depuis le seed (le client envoie l'index de course, pas le montant)
+- Match annulé si un joueur n'envoie aucun event pendant 60s (déconnexion)
+
+### Frontend
+- `src/game/multiplayer/MatchmakingScreen.tsx` : écran de recherche d'adversaire avec timer
+- `src/game/multiplayer/MultiplayerHUD.tsx` : bandeau adversaire pendant la partie
+- `src/game/multiplayer/MatchResultScreen.tsx` : écran de fin avec gagnant + ELO
+- `src/game/multiplayer/LeaderboardScreen.tsx` : classement mondial
+- Bouton "Multijoueur" sur `HomeScreen`
+
+### Réutilisation
+- Le système de `defis` existe déjà (asynchrone, 1v1 par pseudo) → on garde, et le mode mondial temps réel devient un nouveau mode parallèle
+
+## Limites assumées de la V1
+- Pas de voiture adverse visible sur la carte (V2)
+- Pas de chat (V2, risque modération)
+- Pas de parties privées avec amis (V2, tu n'en as pas demandé)
+- Matchmaking simple par durée + ELO proche (pas de filtres avancés)
+
+## Question avant que je code
+
+**Durée des matchs** : je pars sur **5 min seulement** (plus simple, plus addictif, file d'attente plus rapide à remplir), ou tu veux **5 et 10 min au choix** ?
+
+Si tu valides ce plan, je l'implémente en build mode.
