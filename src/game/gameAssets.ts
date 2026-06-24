@@ -178,8 +178,9 @@ export function removeCustomVehicle(id: string) {
   emitCustomChange();
 }
 
-// Toutes les catégories sauf "taxi" roulent dans la circulation civile
-const TRAFFIC_CATEGORIES: CustomVehicleCategory[] = ["civil", "police", "ambulance", "firetruck", "service"];
+// Circulation libre : civils + services seulement.
+// Police / ambulance / pompiers restent à leur base et ne sortent que sur mission.
+const TRAFFIC_CATEGORIES: CustomVehicleCategory[] = ["civil", "service"];
 
 /** 🔧 DYNAMIC - Se met à jour chaque fois qu'on l'appelle */
 function getCustomTrafficUrls(): string[] {
