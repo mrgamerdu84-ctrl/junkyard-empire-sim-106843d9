@@ -217,7 +217,7 @@ export default function CityCompetitors() {
     <>
       <svg
         viewBox="0 0 1920 1080"
-        preserveAspectRatio="xMidYMid slice"
+        preserveAspectRatio="xMidYMid meet"
         style={{ position: "absolute", inset: 0, width: "100%", height: "100%", pointerEvents: "none", zIndex: 6 }}
       >
         {comps.map((c) => {

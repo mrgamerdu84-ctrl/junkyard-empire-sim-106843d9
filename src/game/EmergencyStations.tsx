@@ -95,7 +95,7 @@ export default function EmergencyStations() {
       `}</style>
       <svg
         viewBox="0 0 1920 1080"
-        preserveAspectRatio="xMidYMid slice"
+        preserveAspectRatio="xMidYMid meet"
         style={{
           position: "absolute", inset: 0, width: "100%", height: "100%",
           zIndex: 4, pointerEvents: "none",
