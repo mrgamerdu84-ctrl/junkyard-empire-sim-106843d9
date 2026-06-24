@@ -1,49 +1,55 @@
-## Contexte
 
-Le moteur de circulation actuel (`CityTraffic.tsx` 1130 lignes, `CityRivalTaxis.tsx`, `CrimeEvents.tsx`, `ArmoredTruck.tsx`, `EmergencyStations.tsx`, `InterventionDispatcher.tsx`, `AmbientSirens.tsx`, `City3D.tsx`) totalise plus de 4 000 lignes étroitement couplées. Une refonte « tout en un coup » casserait à coup sûr le rendu actuel de la ville. Je propose une exécution **en 4 étapes livrées une par une**, validables visuellement entre chaque, **sans toucher aux composants graphiques des voitures, ambulances, pompiers ni police**.
+## Objectif
 
-## Règles invariantes (toutes les étapes)
+Repartir sur une base propre. Un seul composant `GameMap` pilote l'affichage de la carte et le mouvement des taxis selon les coordonnées strictes fournies — toutes les anciennes couches de trafic qui calculaient leurs propres trajectoires sont coupées.
 
-- Aucune modification de `src/game/vehicles/*`, des sprites de mes taxis, ni des composants `<ArmoredTruck>`, ambulance/pompiers/police existants. On ne touche **que** les coordonnées (x, y) et la vitesse.
-- Pas de téléportation : tout véhicule arrivé à la fin d'un segment **enchaîne** sur un segment voisin via un graphe d'intersections (pas de saut à `s = 0`).
-- Respect des feux : tout véhicule qui arrive sur une intersection rouge décélère puis s'arrête à la ligne d'arrêt, comme déjà fait pour les taxis joueurs.
+## 1. Nouveau fichier `src/game/GameMap.tsx`
 
-## Étape 1 — Graphe routier continu
+Composant unique, autonome. Aucune logique de détection auto, aucun ancien tracé.
 
-- Extraire `ROADS` (déjà dans `CityTraffic.tsx`) vers `src/game/roadGraph.ts`.
-- Construire un graphe : chaque path = arête, ses extrémités = nœuds, fusionnés par proximité (rayon ~12 px) pour reconnecter les ronds-points.
-- Remplacer la logique `s = s % pathLen` du trafic ambiant et des taxis rivaux par un curseur `(edgeId, s, dir)` qui choisit un voisin au prochain nœud (tirage pondéré pour favoriser les ronds-points). → fin des « sauts » en boucle, voitures qui parcourent **toute** la carte.
+Constantes injectées en dur (pas d'import de l'ancien `mapConfig` pour éviter tout conflit) :
 
-## Étape 2 — Piétons code de la route
-
-- Dans `PhotoPedestrians` (et le squelette `Pedestrian`), ajouter un état `walking | waiting | crossing`.
-- Détection d'intersection : quand `s` approche d'un nœud, on relit le feu via `trafficLights.ts`. Rouge piéton → `waiting`, vert piéton → `crossing` sur le passage clouté.
-- Les voitures déjà en vue d'un piéton sur passage ralentissent (réutilise le système de freinage existant des taxis).
-
-## Étape 3 — Patrouilles urgences + flics en civil
-
-- `EmergencyStations.tsx` : ajouter un planificateur qui sort 1 véhicule (police, ambulance, pompier) toutes les 45–90 s, le fait patrouiller via le graphe Étape 1, puis le ramène à sa station. **Le sprite reste exactement celui déjà utilisé.**
-- Nouveau composant `PlainclothesCops.tsx` : 1 à 2 piétons spéciaux (sprite piéton existant + petit badge SVG en overlay) qui marchent sur les trottoirs, font des arrêts contrôle aléatoires sur les parkings (`parkingZones.ts`), fréquence très basse (60–120 s entre deux contrôles).
-
-## Étape 4 — Événements braquages / cambriolages
-
-- Activer pleinement la logique déjà esquissée dans `CrimeEvents.tsx` + `ArmoredTruck.tsx` :
-  - Déclencheur aléatoire (cooldown 90–180 s) : cambriolage de banque **ou** braquage de camion blindé.
-  - Pose d'une zone de blocage temporaire (10–25 s) sur l'arête concernée.
-  - Les taxis et le trafic ambiant lisent cette zone et **recalculent** un détour via le graphe (choix d'un voisin différent au prochain nœud).
-  - `InterventionDispatcher` + `AmbientSirens` envoient les véhicules d'urgence sur place.
-
-## Détails techniques
-
-```text
-roadGraph.ts
-  ├─ nodes:  [{ id, x, y, neighbors: edgeId[] }]
-  ├─ edges:  [{ id, pathIdx, fromNode, toNode, length }]
-  └─ pickNextEdge(nodeId, comingFromEdge, opts) → edgeId
+```ts
+const ROADS = {
+  axeGauche: [{x:100,y:150},{x:420,y:360},{x:320,y:780},{x:100,y:1000}],
+  axeDroite: [{x:1800,y:100},{x:1460,y:280},{x:1520,y:740},{x:1850,y:950}],
+  axeBas:    [{x:320,y:780},{x:960,y:840},{x:1520,y:740}],
+};
+const HANGARS = { gauche:{x:880,y:520}, droite:{x:1040,y:520} };
+const PORTAIL = { x:960, y:840 };
+const IDLE_PARKING = { x:1000, y:920 };
 ```
 
-Tous les acteurs mobiles passent par un seul `useTraffic` hook qui avance `(edgeId, s, dir)` et expose `(x, y, heading)`. Les composants de rendu existants restent inchangés et consomment juste `x, y, heading`.
+Rendu :
+- `<svg viewBox="0 0 1920 1080" preserveAspectRatio="xMidYMid meet">` calé sur l'image de fond `citymap-v3.jpg` (même viewBox que le `<img>` existant → alignement pixel-près).
+- Un `<path>` par axe (3 polylines reliant les waypoints, fin, semi-transparent — utile pour vérifier le tracé, peut être masqué par flag).
+- Pour chaque taxi du joueur : un sprite animé via `<animateMotion>` SVG sur un `<path>` composé Hangar → Portail → axe choisi (Gauche/Droite/Bas). Au retour idle, path Portail → IDLE_PARKING.
 
-## Livraison
+Pas de boucle physique, pas de `requestAnimationFrame` maison : `animateMotion` gère l'interpolation strictement le long du path = zéro dérive.
 
-Je commence par l'**Étape 1** seule pour valider visuellement que la circulation reste fluide sans régression, puis j'enchaîne 2, 3, 4 dans des messages suivants. Confirme-moi que je peux démarrer par l'Étape 1.
+API exposée : `<GameMap taxiCount={n} />` (lit le nombre de taxis depuis le state actuel de `TaxiTycoon` via un petit hook ou prop).
+
+## 2. `src/routes/index.tsx`
+
+Dans le bloc `<div className="tt-world">` :
+- **Supprimer** : `<CityTraffic />`, `<CityCompetitors />`, `<CityRivalTaxis />`, `<EmergencyStations />`, `<EmergencyPatrols />`, `<PlainclothesCops />`, `<CrimeEvents />`, `<CrimeResponses />`, `<InterventionDispatcher />`, `<ArmoredTruck />`, `<DebugMapGrid />`.
+- **Remplacer** par `<GameMap />`.
+- **Garder intacts** : `<img>` de fond, vignette, `<TaxiTycoon />` (UI bas : Acheter taxi, Améliorer dépôt…), `<CityHud />`, `<AdminPanel />`, `<RulesPanel />`, `<VersionBanner />`, `<GameMenu />`, `<RadioPlayer />`, bouton zoom.
+
+## 3. `src/game/TaxiTycoon.tsx`
+
+Aucune modif fonctionnelle des boutons (achat taxi / upgrade dépôt restent identiques). On supprime juste son rendu interne de taxis sur la carte (ancien système) — ils sont désormais affichés par `GameMap`. Le compteur de taxis achetés est partagé via le state existant (lu par `GameMap`).
+
+Si le state n'est pas déjà exporté, ajout d'un petit store local (zustand-style via `useSyncExternalStore`) pour que `GameMap` lise `taxiCount` sans toucher à la logique d'achat.
+
+## 4. Fichiers laissés en place mais inutilisés
+
+`CityTraffic.tsx`, `CityRivalTaxis.tsx`, `EmergencyPatrols.tsx`, etc. ne sont plus montés → plus aucun calcul en arrière-plan. On ne les supprime pas (rollback facile), mais ils sortent du graphe React.
+
+## 5. Vérification
+
+Après build : lancer Playwright en headless, screenshot de `/`, vérifier visuellement qu'un taxi sort du hangar (880,520), passe par le portail (960,840) et suit un des 3 axes sans déborder.
+
+## Question avant exécution
+
+L'image de fond actuelle est `citymap-v3.jpg` (asset déjà câblé dans `index.tsx`). Tu mentionnes `1000024732.jpg` — je pars sur l'asset actuel `citymap-v3.jpg`, dis-moi si tu veux qu'on bascule sur un autre fichier image avant que j'implémente.
