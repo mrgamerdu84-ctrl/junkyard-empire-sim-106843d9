@@ -11,6 +11,9 @@ import {
   type TrafficLight,
 } from "./trafficLights";
 import { PARKING_ZONES, pickFreeZone } from "./parkingZones";
+import { getGameTime } from "./cityClock";
+// Réf. inutilisées après suppression du script de parking — gardées pour compat exports.
+void PARKING_ZONES; void pickFreeZone;
 
 // Dynamique : inclut les piétons custom uploadés via le panel admin.
 // Recalculé à chaque appel — les composants qui en dépendent écoutent
