@@ -52,6 +52,9 @@ export const TaxiTycoon: React.FC = () => {
   const [ecranActuel, setEcranActuel] = useState<'bureau' | 'gps_zoom'>('bureau');
   const [ongletBeeper, setOngletBeeper] = useState<'missions' | 'messages' | 'radio'>('missions');
   const [pseudo, setPseudo] = useState('Mrgamerdu84');
+  const [showLeaderboard, setShowLeaderboard] = useState(false);
+  const [showTutorial, setShowTutorial] = useState(false);
+  const navigate = useNavigate();
   const [, setMissionActive] = useState<boolean>(false);
   const [timerBeeper, setTimerBeeper] = useState<number>(12);
 
