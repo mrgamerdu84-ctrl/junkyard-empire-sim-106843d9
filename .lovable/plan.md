@@ -1,44 +1,60 @@
-## 1. Sync des personnalisations entre appareils (voitures, camion blindé, etc.)
+# Refonte visuelle du QG — 3 paliers stylés, zéro carré moche
 
-**Problème** : Les véhicules custom (voitures, camion blindé, piétons, sprite du blindé, overrides d'assets) sont stockés uniquement en `localStorage`, donc invisibles sur un autre téléphone.
+## Objectif
+Remplacer le rendu actuel du QG (`Depot` dans `src/game/TaxiTycoon.tsx`, lignes ~319-405) qui affiche une dalle béton rectangulaire grise très visible, par un vrai bâtiment 2D vue de dessus/3/4 qui évolue en 3 paliers selon le niveau total des upgrades (`capLvl + revLvl + prodLvl`).
 
-**Solution** : Sauvegarder ces personnalisations dans Lovable Cloud, liées au compte utilisateur, avec fallback localStorage hors-ligne.
+Aucune dalle rectangulaire pleine en fond. Le bâtiment et son parvis s'intègrent au bitume/herbe de la map via des bords irréguliers (asphalte avec coins coupés, micro-texture) et une ombre douce elliptique — pas de `rect` plein qui découpe le décor.
 
-- Nouvelle table `user_customizations` (1 ligne par user) :
-  - `custom_vehicles` (JSON — la liste actuelle `jce.customVehicles`)
-  - `custom_pedestrians` (JSON — `jce.customPedestrians`)
-  - `armored_sprite` (TEXT — `jce.armoredSprite`)
-  - `asset_overrides` (JSON — `jce.assetOverrides`)
-- RLS : chaque user lit/écrit uniquement sa propre ligne. GRANT authenticated + service_role.
-- Hook `useCloudCustomizations()` qui :
-  - Au login : télécharge depuis le cloud → écrit dans localStorage → déclenche les events `jce.customVehicles.changed` / reload du sprite blindé.
-  - À chaque ajout/suppression : pousse vers le cloud (debounce 800 ms).
-- Wrappers `addCustomVehicle`, `removeCustomVehicle`, `setArmoredSprite`, override d'asset → marquent dirty pour upload.
+## Les 3 paliers
 
-**Résultat** : tu changes une voiture / le camion blindé sur ton téléphone A → tu te connectes sur ton téléphone B → tout est là.
+**Palier 1 — QG Abandonné** (`total < 3`)
+- Hangar industriel vieux : murs en bardage métallique délavé (gris-beige) avec traînées de rouille
+- Porte de garage enroulable visible avec rainures horizontales, peinture écaillée
+- Petite enseigne lumineuse rectangulaire au-dessus de la porte « TAXI » à moitié éteinte (lettres `TA_I` clignotantes la nuit, tube néon cassé)
+- 2-3 tags graffitis discrets (formes SVG stylisées, pas du texte lisible) sur le mur latéral
+- Toit plat en tôle ondulée avec une cheminée d'aération rouillée
+- Quelques places de parking au sol mais marquages effacés (peinture jaune fanée, traits brisés)
+- Halo lumineux nocturne faible et vacillant
 
-## 2. Phrase de copyright
+**Palier 2 — QG Rénové** (`total 3-7`)
+- Mêmes proportions de bâtiment mais murs repeints en beige propre + bandeau jaune taxi
+- Nouvelle porte de garage sectionnelle nette (panneaux gris anthracite avec hublots)
+- Grande enseigne lumineuse « MY TAXI WORLD » bien éclairée au-dessus de la porte (fond noir, lettres jaune vif avec halo)
+- Barrières de sécurité chromées autour du parvis (petits poteaux + chaînes ou tubes)
+- Marquages parking nets (lignes jaunes pleines, numéros lisibles)
+- Toit avec petits panneaux solaires ou skylights propres
+- Néons bord de toit allumés régulièrement la nuit
 
-Ajouter en bas de l'écran d'accueil (`HomeScreen`) et mettre à jour la ligne finale de `mentions-legales.tsx` avec **exactement** :
+**Palier 3+ — Empire du Taxi** (`total ≥ 8`)
+- Bâtiment agrandi visuellement (~+25% largeur) avec une aile vitrée moderne
+- Grandes baies vitrées teintées (dégradés bleu-noir avec reflets) sur la façade
+- Grand parking goudronné devant : asphalte noir lisse, marquages blancs/jaunes ultra-nets, places numérotées, allées de circulation marquées
+- Auvent design au-dessus de l'entrée taxis : structure en porte-à-faux jaune avec spots LED en dessous
+- Logo lumineux « MY TAXI WORLD » sur l'auvent + drapeau ou totem vertical
+- Éclairage architectural (bandes LED le long des arêtes, halos colorés au sol la nuit)
 
-> 2026 My taxi world rivalité — Tous droits réservés.
+## Intégration map (anti-carré)
+- Supprimer la grosse `rect` de dalle béton plein écran (ligne 335 actuelle)
+- Remplacer par un parvis d'asphalte à forme **octogonale ou avec coins arrondis variables** (un seul `path` avec coins biseautés) limité au strict nécessaire autour du bâtiment
+- Ajouter une ombre portée douce (`ellipse` floutée) au lieu d'une bordure dure
+- Bords du parvis fondus avec micro-bandes herbe/gravier autour
+- Aucun `stroke` noir épais sur le rectangle de fond
 
-## 3. Radios — réparation
+## Détails techniques
 
-Le `<audio>` ne se recharge pas correctement quand on change de piste/station sur certains navigateurs (le `src` change mais `load()` n'est pas appelé) → certaines pistes restent muettes ou bloquées sur la précédente.
+**Fichier modifié** : `src/game/TaxiTycoon.tsx` — fonction `Depot` uniquement (lignes 319-405). API/props inchangées (`tier, x, y, scale, rotation, capLvl, revLvl, prodLvl, night`), donc l'appel ligne 2341 reste identique.
 
-Corrections dans `RadioPlayer.tsx` :
-- Appeler `audio.load()` à chaque changement de `track.url`.
-- Bloquer la lecture suivante tant que `loadedmetadata` n'est pas reçu (évite les `play()` rejetés).
-- Logger l'event `error` de l'audio + passer auto à la piste suivante si une piste casse (URL morte).
-- Vérifier que les 13 fichiers `.asset.json` pointent vers des URLs valides ; remplacer ceux qui renvoient 404.
+**Calcul du palier visuel** :
+```ts
+const upgradeTotal = capLvl + revLvl + prodLvl;
+const visualTier = upgradeTotal >= 8 ? 3 : upgradeTotal >= 3 ? 2 : 1;
+```
 
-## Techniques
+**Structure SVG** par palier : un sous-composant ou un `switch (visualTier)` interne rendant 3 sous-arbres SVG distincts partageant un même footprint d'asphalte. Le nombre de places de parking visibles continue d'évoluer avec `capLvl` (4..9), l'intensité des néons avec `revLvl`, et l'éclairage entrée avec `prodLvl` — mais cette fois en s'appliquant aux éléments cohérents avec le palier (enseigne cassée P1, enseigne nette P2, auvent LED P3).
 
-- Migration SQL : `public.user_customizations (user_id PK → auth.users, ...)`, GRANT + RLS `auth.uid() = user_id`, trigger `updated_at`.
-- Server functions `getMyCustomizations` / `saveMyCustomizations` (avec `requireSupabaseAuth`).
-- Pas d'autre changement de logique gameplay.
+**Aucun changement gameplay** : on touche uniquement au rendu SVG. Les coûts d'upgrade, capacités, multiplicateurs, logique de spawn/dépôt restent identiques.
 
-Fichiers touchés (estimation) :
-- nouveau : `supabase/migrations/*_user_customizations.sql`, `src/lib/customizations.functions.ts`, `src/hooks/useCloudCustomizations.ts`
-- édités : `src/game/gameAssets.ts`, `src/game/ArmoredTruck.tsx`, `src/game/RadioPlayer.tsx`, `src/game/HomeScreen.tsx`, `src/routes/mentions-legales.tsx`, `src/routes/_authenticated/route.tsx` (montage du hook)
+## Hors scope
+- Pas de remplacement par une image PNG (rester en SVG vectoriel pur, cohérent avec le reste du jeu)
+- Pas de modification du `RivalDepot` concurrent
+- Pas de changement de la boutique QG ni des libellés d'upgrade

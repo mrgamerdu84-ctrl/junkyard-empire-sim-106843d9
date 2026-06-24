@@ -317,89 +317,283 @@ function RoadAlignedVehicleSprite({
 
 
 function Depot({ tier, x, y, scale = 1, rotation = 0, capLvl = 0, revLvl = 0, prodLvl = 0, night = 0 }: { tier: DepotTier; x: number; y: number; scale?: number; rotation?: number; capLvl?: number; revLvl?: number; prodLvl?: number; night?: number }) {
-  // QG "Garage industriel chic" — SVG vue du ciel.
-  // Évolue avec les upgrades : places parking (cap), néons (rev), enseigne lumineuse (prod).
-  const W = 260;
-  const H = 260;
+  // QG évolutif en 3 paliers : hangar abandonné → rénové → empire moderne.
+  // Aucune dalle carrée pleine — parvis octogonal fondu dans la map.
   const _tier = tier; void _tier;
   const lit = night > 0.35;
-  const neonOp = 0.55 + 0.09 * revLvl; // plus de revLvl = néons + lumineux
-  const slots = 4 + capLvl; // 4..9 places
-  const slotW = (W - 60) / slots;
+  const upgradeTotal = capLvl + revLvl + prodLvl;
+  const visualTier: 1 | 2 | 3 = upgradeTotal >= 8 ? 3 : upgradeTotal >= 3 ? 2 : 1;
+
+  // Footprint élargi au palier 3
+  const W = visualTier === 3 ? 320 : 260;
+  const H = visualTier === 3 ? 280 : 260;
+  const slots = Math.min(9, 4 + capLvl);
+
+  // Parvis asphalte octogonal (coins biseautés) — pas de rect plein
+  const pw = W / 2 + 14;
+  const ph = H / 2 + 10;
+  const bev = 26;
+  const parvisPath = `M ${-pw + bev} ${-ph} L ${pw - bev} ${-ph} L ${pw} ${-ph + bev} L ${pw} ${ph - bev} L ${pw - bev} ${ph} L ${-pw + bev} ${ph} L ${-pw} ${ph - bev} L ${-pw} ${-ph + bev} Z`;
+
+  // Couleurs par palier
+  const asphaltFill = visualTier === 1 ? "#3a3a3a" : visualTier === 2 ? "#2f3138" : "#1d1f24";
+  const markingColor = visualTier === 1 ? "#9a8a3a" : visualTier === 2 ? "#f5c542" : "#ffd84a";
+  const markingOp = visualTier === 1 ? 0.45 : visualTier === 2 ? 0.85 : 1;
+  const markingDash = visualTier === 1 ? "2 5" : visualTier === 2 ? "4 2" : undefined;
+
+  // Bâtiment principal
+  const bx = -W / 2 + 20;
+  const by = -H / 2 + 24;
+  const bw = W - 40;
+  const bh = H / 2 - 6;
+
+  const wallFill = visualTier === 1 ? "#807468" : visualTier === 2 ? "#e8d9b8" : "#2a3142";
+  const wallStroke = visualTier === 1 ? "#3a332a" : visualTier === 2 ? "#5a4a30" : "#0a0c12";
+  const roofFill = visualTier === 1 ? "#5a544a" : visualTier === 2 ? "#3e4651" : "#161922";
+
+  // Slots de parking (toujours visibles selon capLvl, restitués selon palier)
+  const parkY = bh / 2 + 14;
+  const parkAreaW = W - 60;
+  const slotW = parkAreaW / slots;
+
   return (
     <g transform={`translate(${x},${y}) scale(${scale}) rotate(${rotation})`}>
-      {/* ombre */}
-      <ellipse cx="0" cy={H / 2 - 8} rx={W / 2 + 6} ry="18" fill="rgba(0,0,0,0.5)" />
+      {/* Ombre douce elliptique (pas de bord dur) */}
+      <ellipse cx="0" cy={H / 2 + 6} rx={W / 2 + 18} ry="22" fill="rgba(0,0,0,0.45)" opacity="0.7" />
+      <ellipse cx="0" cy={H / 2 + 4} rx={W / 2 + 28} ry="14" fill="rgba(0,0,0,0.25)" />
 
-      {/* Dalle béton + marquages */}
-      <rect x={-W / 2} y={-H / 2} width={W} height={H} rx="6" fill="#2a2d33" stroke="#0a0b0d" strokeWidth="2" />
-      {/* Hachures bordure */}
-      <g opacity="0.55">
-        {Array.from({ length: 18 }).map((_, i) => (
-          <rect key={i} x={-W / 2 + i * (W / 18)} y={-H / 2} width={W / 36} height="6" fill="#f5c542" />
-        ))}
+      {/* Parvis asphalte octogonal — bord fondu (pas de stroke noir épais) */}
+      <path d={parvisPath} fill={asphaltFill} opacity="0.96" />
+      {/* Micro-bandes herbe/gravier autour pour fondre */}
+      <path d={parvisPath} fill="none" stroke={visualTier === 1 ? "#4a4438" : "#1a1c20"} strokeWidth="1" opacity="0.5" />
+      {/* Texture asphalte (taches subtiles) */}
+      <g opacity={visualTier === 1 ? 0.25 : 0.15} clipPath="none">
+        {Array.from({ length: 14 }).map((_, i) => {
+          const ax = -pw + 10 + (i * (pw * 2 - 20)) / 14;
+          const ay = -ph + 18 + ((i * 37) % (ph * 2 - 30));
+          return <circle key={i} cx={ax} cy={ay} r={1 + (i % 3)} fill="#000" />;
+        })}
       </g>
 
-      {/* Bâtiment principal (atelier toit plat) */}
-      <rect x={-W / 2 + 16} y={-H / 2 + 22} width={W - 32} height={H / 2 - 10} rx="3" fill="#3a3e46" stroke="#0a0b0d" strokeWidth="1.5" />
-      {/* Skylights */}
-      {[0, 1, 2, 3].map(i => (
-        <rect key={i} x={-W / 2 + 30 + i * ((W - 60) / 4)} y={-H / 2 + 34} width={(W - 80) / 4} height="14" rx="1" fill={lit ? "#ffe48a" : "#7d8390"} opacity={lit ? 0.95 : 0.6} />
-      ))}
-      {/* Cheminée d'aération */}
-      <circle cx={W / 2 - 36} cy={-H / 2 + 32} r="6" fill="#1a1d22" stroke="#000" strokeWidth="1" />
-      <circle cx={W / 2 - 36} cy={-H / 2 + 32} r="2.5" fill="#5a5f68" />
-
-      {/* Enseigne au sol */}
-      <rect x={-70} y={-H / 2 + 6} width={140} height={14} rx="3" fill="#0a0b0d" stroke={lit ? "#f5c542" : "#7a5f1a"} strokeWidth="1.5" opacity={lit ? neonOp + 0.3 : 0.9} />
-      <text x="0" y={-H / 2 + 16} fontSize="11" fontWeight="900" textAnchor="middle" fill={lit ? "#fff7c0" : "#f5c542"} letterSpacing="2" style={{ filter: lit ? "drop-shadow(0 0 4px #f5c542)" : undefined }}>TAXI DEPOT</text>
-
-      {/* Parvis : places de parking taxis (visibles, jaunes) */}
+      {/* Marquages parking au sol — places + flèches selon palier */}
       <g>
         {Array.from({ length: slots }).map((_, i) => {
-          const px = -W / 2 + 30 + i * slotW + slotW / 2;
-          const py = 30;
+          const px = -parkAreaW / 2 + i * slotW + slotW / 2;
           return (
             <g key={i}>
-              <rect x={px - slotW / 2 + 3} y={py - 18} width={slotW - 6} height="36" rx="2" fill="#1f2228" stroke="#f5c542" strokeWidth="1.2" strokeDasharray="3 2" opacity="0.9" />
-              {/* numéro */}
-              <text x={px} y={py + 24} fontSize="6" textAnchor="middle" fill="#f5c542" opacity="0.6">{String(i + 1).padStart(2, "0")}</text>
+              <rect
+                x={px - slotW / 2 + 3}
+                y={parkY - 18}
+                width={slotW - 6}
+                height="36"
+                rx="1"
+                fill="none"
+                stroke={markingColor}
+                strokeWidth={visualTier === 3 ? 1.6 : 1.2}
+                strokeDasharray={markingDash}
+                opacity={markingOp}
+              />
+              {visualTier >= 2 && (
+                <text x={px} y={parkY + 26} fontSize="6" textAnchor="middle" fill={markingColor} opacity={markingOp * 0.8} fontWeight="700">
+                  {String(i + 1).padStart(2, "0")}
+                </text>
+              )}
             </g>
           );
         })}
       </g>
 
-      {/* Bandes de circulation au sol (entrée / sortie) */}
-      <path d={`M ${-W / 2 + 8} ${H / 2 - 14} L ${W / 2 - 8} ${H / 2 - 14}`} stroke="#f5c542" strokeWidth="2" strokeDasharray="8 6" opacity="0.7" />
-      {/* Flèche entrée */}
-      <path d={`M ${-W / 2 + 16} ${H / 2 - 6} l 10 -4 l -10 -4 z`} fill="#f5c542" opacity="0.8" />
-      <path d={`M ${W / 2 - 16} ${H / 2 - 6} l -10 -4 l 10 -4 z`} fill="#f5c542" opacity="0.8" />
+      {/* Bandes de circulation (entrée/sortie) — nettes au P3, fanées au P1 */}
+      <path d={`M ${-W / 2 + 14} ${H / 2 - 14} L ${W / 2 - 14} ${H / 2 - 14}`} stroke={markingColor} strokeWidth={visualTier === 3 ? 2.4 : 2} strokeDasharray={visualTier === 1 ? "3 7" : "8 6"} opacity={markingOp * 0.85} />
 
-      {/* Néons bord de toit */}
-      {lit && (
+      {/* ============ BÂTIMENT ============ */}
+      {visualTier === 1 && (
         <g>
-          <rect x={-W / 2 + 16} y={-H / 2 + 20} width={W - 32} height="2" fill="#ffd84a" opacity={neonOp}>
-            <animate attributeName="opacity" values={`${neonOp};${Math.min(1, neonOp + 0.25)};${neonOp}`} dur="2.4s" repeatCount="indefinite" />
-          </rect>
-          <rect x={-W / 2 + 16} y={H / 2 / 2 + 10} width={W - 32} height="1.5" fill="#ffd84a" opacity={neonOp * 0.7} />
+          {/* Hangar bardage métallique délavé */}
+          <rect x={bx} y={by} width={bw} height={bh} rx="2" fill={wallFill} stroke={wallStroke} strokeWidth="1.5" />
+          {/* Rainures bardage horizontales */}
+          {Array.from({ length: 8 }).map((_, i) => (
+            <line key={i} x1={bx + 2} y1={by + 6 + i * (bh / 8)} x2={bx + bw - 2} y2={by + 6 + i * (bh / 8)} stroke="#4a4036" strokeWidth="0.6" opacity="0.5" />
+          ))}
+          {/* Traînées de rouille */}
+          <path d={`M ${bx + bw * 0.2} ${by + 4} q 2 ${bh * 0.4} 0 ${bh * 0.7}`} stroke="#8a4a20" strokeWidth="2.5" opacity="0.55" fill="none" />
+          <path d={`M ${bx + bw * 0.75} ${by + 8} q -1 ${bh * 0.3} 1 ${bh * 0.5}`} stroke="#7a3a18" strokeWidth="2" opacity="0.5" fill="none" />
+          <path d={`M ${bx + bw * 0.45} ${by + 6} q 1 ${bh * 0.25} -1 ${bh * 0.4}`} stroke="#6a2f12" strokeWidth="1.5" opacity="0.4" fill="none" />
+
+          {/* Tags graffitis (formes abstraites) */}
+          <path d={`M ${bx + 8} ${by + bh * 0.55} q 6 -8 12 -2 q 4 6 -2 8 q -8 2 -10 -6 z`} fill="#c2185b" opacity="0.55" />
+          <path d={`M ${bx + bw - 28} ${by + bh * 0.35} l 8 -4 l 4 6 l -6 4 l -8 -2 z`} fill="#1976d2" opacity="0.55" />
+          <circle cx={bx + bw - 20} cy={by + bh * 0.6} r="4" fill="#43a047" opacity="0.5" />
+
+          {/* Porte de garage enroulable (rainures horizontales, peinture écaillée) */}
+          <rect x={-bw * 0.22} y={by + bh - 38} width={bw * 0.44} height="36" fill="#6a5f50" stroke="#2a2218" strokeWidth="1.2" />
+          {Array.from({ length: 9 }).map((_, i) => (
+            <line key={i} x1={-bw * 0.22} y1={by + bh - 38 + i * 4} x2={bw * 0.22} y2={by + bh - 38 + i * 4} stroke="#3a3024" strokeWidth="0.5" opacity="0.7" />
+          ))}
+          {/* Écailles peinture */}
+          <rect x={-bw * 0.18} y={by + bh - 30} width="6" height="3" fill="#3a3024" opacity="0.6" />
+          <rect x={bw * 0.12} y={by + bh - 20} width="5" height="2.5" fill="#3a3024" opacity="0.5" />
+
+          {/* Toit tôle ondulée */}
+          <rect x={bx} y={by} width={bw} height="14" fill={roofFill} stroke={wallStroke} strokeWidth="1" />
+          {Array.from({ length: 20 }).map((_, i) => (
+            <line key={i} x1={bx + 2 + i * ((bw - 4) / 20)} y1={by} x2={bx + 2 + i * ((bw - 4) / 20)} y2={by + 14} stroke="#2a261e" strokeWidth="0.4" opacity="0.5" />
+          ))}
+          {/* Cheminée rouillée */}
+          <rect x={bx + bw - 24} y={by - 8} width="10" height="10" fill="#5a3a20" stroke="#2a1a08" strokeWidth="0.8" />
+          <circle cx={bx + bw - 19} cy={by - 9} r="3.5" fill="#3a2410" />
+
+          {/* Enseigne lumineuse cassée "TA_I" au-dessus de la porte */}
+          <rect x={-32} y={by + bh - 56} width={64} height={14} rx="1" fill="#1a1208" stroke={lit ? "#d4a020" : "#5a4818"} strokeWidth="1.2" opacity="0.95" />
+          <text x="-18" y={by + bh - 46} fontSize="11" fontWeight="900" textAnchor="middle" fill={lit ? "#ffd060" : "#6a5418"} style={{ filter: lit ? "drop-shadow(0 0 2px #ffb020)" : undefined }}>
+            T
+            <tspan opacity={lit ? 0.95 : 0.6}>A</tspan>
+          </text>
+          <text x="6" y={by + bh - 46} fontSize="11" fontWeight="900" textAnchor="middle" fill={lit ? "#ffd060" : "#6a5418"} opacity={lit ? 0.2 : 0.3}>
+            X
+            {lit && <animate attributeName="opacity" values="0.05;0.6;0.05" dur="1.3s" repeatCount="indefinite" />}
+          </text>
+          <text x="22" y={by + bh - 46} fontSize="11" fontWeight="900" textAnchor="middle" fill={lit ? "#ffd060" : "#6a5418"} style={{ filter: lit ? "drop-shadow(0 0 2px #ffb020)" : undefined }}>I</text>
+
+          {/* Halo nocturne faible et vacillant */}
+          {lit && (
+            <circle r="38" cx="0" cy={by + bh - 48} fill="#ffb040" opacity={0.12}>
+              <animate attributeName="opacity" values="0.06;0.18;0.08;0.14" dur="3.2s" repeatCount="indefinite" />
+            </circle>
+          )}
         </g>
       )}
 
-      {/* Plot d'entrée illuminé (proportionnel à prodLvl) */}
-      <g>
-        {Array.from({ length: 2 }).map((_, i) => {
-          const cx = i === 0 ? -W / 2 + 8 : W / 2 - 8;
-          return (
-            <g key={i} transform={`translate(${cx},${H / 2 - 26})`}>
-              <circle r="5" fill="#0e1217" stroke="#f5c542" strokeWidth="1.2" />
-              <circle r="2.5" fill={lit ? "#ffd84a" : "#5a4818"} opacity={lit ? Math.min(1, 0.6 + 0.08 * prodLvl) : 0.7} />
-            </g>
-          );
-        })}
-      </g>
+      {visualTier === 2 && (
+        <g>
+          {/* Murs repeints propres */}
+          <rect x={bx} y={by} width={bw} height={bh} rx="3" fill={wallFill} stroke={wallStroke} strokeWidth="1.5" />
+          {/* Bandeau jaune taxi */}
+          <rect x={bx} y={by + bh * 0.5 - 6} width={bw} height="10" fill="#f5c542" opacity="0.95" />
+          <line x1={bx} y1={by + bh * 0.5 - 6} x2={bx + bw} y2={by + bh * 0.5 - 6} stroke="#9a7a18" strokeWidth="0.5" />
+          <line x1={bx} y1={by + bh * 0.5 + 4} x2={bx + bw} y2={by + bh * 0.5 + 4} stroke="#9a7a18" strokeWidth="0.5" />
 
-      {/* Halo nuit global */}
-      {lit && <circle r={W * 0.62} fill="#f5c542" opacity={night * 0.08} />}
+          {/* Toit avec skylights propres */}
+          <rect x={bx} y={by} width={bw} height="16" fill={roofFill} stroke={wallStroke} strokeWidth="1" />
+          {[0, 1, 2, 3].map(i => (
+            <rect key={i} x={bx + 12 + i * ((bw - 24) / 4)} y={by + 3} width={(bw - 40) / 4} height="10" rx="1" fill={lit ? "#ffe48a" : "#9aa4b5"} opacity={lit ? 0.95 : 0.7} />
+          ))}
+
+          {/* Porte de garage sectionnelle moderne (panneaux + hublots) */}
+          <rect x={-bw * 0.26} y={by + bh - 44} width={bw * 0.52} height="42" rx="2" fill="#3a414a" stroke="#0e1117" strokeWidth="1.3" />
+          {[0, 1, 2, 3].map(i => (
+            <line key={i} x1={-bw * 0.26} y1={by + bh - 44 + (i + 1) * 8.4} x2={bw * 0.26} y2={by + bh - 44 + (i + 1) * 8.4} stroke="#1a1f26" strokeWidth="0.8" />
+          ))}
+          {/* Hublots */}
+          {[0, 1, 2].map(i => (
+            <circle key={i} cx={-bw * 0.18 + i * bw * 0.18} cy={by + bh - 36} r="2.5" fill="#9ad0f5" stroke="#0e1117" strokeWidth="0.6" opacity="0.85" />
+          ))}
+
+          {/* Grande enseigne "MY TAXI WORLD" éclairée */}
+          <rect x={-bw * 0.4} y={by + bh - 70} width={bw * 0.8} height="20" rx="2" fill="#0a0b10" stroke={lit ? "#ffd84a" : "#8a7022"} strokeWidth="1.5" />
+          <text x="0" y={by + bh - 56} fontSize="11" fontWeight="900" textAnchor="middle" fill={lit ? "#ffe070" : "#f5c542"} letterSpacing="1.2" style={{ filter: lit ? "drop-shadow(0 0 4px #ffb020)" : undefined }}>
+            MY TAXI WORLD
+          </text>
+
+          {/* Barrières chromées autour du parvis (poteaux + tube) */}
+          <g>
+            {Array.from({ length: 6 }).map((_, i) => {
+              const px = -W / 2 + 26 + i * ((W - 52) / 5);
+              return (
+                <g key={i}>
+                  <line x1={px} y1={parkY - 30} x2={px} y2={parkY - 22} stroke="#b8c0c8" strokeWidth="1.5" />
+                  <circle cx={px} cy={parkY - 30} r="1.6" fill="#e0e6ec" stroke="#5a6068" strokeWidth="0.4" />
+                </g>
+              );
+            })}
+            <line x1={-W / 2 + 26} y1={parkY - 26} x2={W / 2 - 26} y2={parkY - 26} stroke="#c8d0d8" strokeWidth="1" opacity="0.85" />
+          </g>
+
+          {/* Néons bord de toit réguliers */}
+          {lit && (
+            <rect x={bx} y={by + 16} width={bw} height="2" fill="#ffd84a" opacity={0.7 + revLvl * 0.04}>
+              <animate attributeName="opacity" values="0.75;0.95;0.75" dur="2.4s" repeatCount="indefinite" />
+            </rect>
+          )}
+
+          {/* Halo nocturne */}
+          {lit && <circle r="90" cx="0" cy={by + bh - 60} fill="#ffd84a" opacity="0.1" />}
+        </g>
+      )}
+
+      {visualTier === 3 && (
+        <g>
+          {/* Aile vitrée moderne (côté gauche, façade en dégradé) */}
+          <defs>
+            <linearGradient id="glassG" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stopColor="#1a2a4a" />
+              <stop offset="50%" stopColor="#2d4870" />
+              <stop offset="100%" stopColor="#0a1428" />
+            </linearGradient>
+            <linearGradient id="canopyG" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stopColor="#ffd84a" />
+              <stop offset="100%" stopColor="#c89018" />
+            </linearGradient>
+          </defs>
+
+          {/* Bâtiment principal anthracite */}
+          <rect x={bx} y={by} width={bw} height={bh} rx="4" fill={wallFill} stroke={wallStroke} strokeWidth="1.5" />
+
+          {/* Toit moderne plat avec rebord LED */}
+          <rect x={bx} y={by} width={bw} height="14" fill={roofFill} stroke={wallStroke} strokeWidth="1" />
+          {/* Bande LED rebord */}
+          <rect x={bx + 2} y={by + 12} width={bw - 4} height="1.6" fill={lit ? "#7df0ff" : "#2a4a6a"} opacity={lit ? 0.95 : 0.7}>
+            {lit && <animate attributeName="opacity" values="0.7;1;0.8" dur="3s" repeatCount="indefinite" />}
+          </rect>
+
+          {/* Grandes baies vitrées teintées (façade) */}
+          {[0, 1, 2, 3].map(i => (
+            <g key={i}>
+              <rect x={bx + 10 + i * ((bw - 20) / 4)} y={by + 22} width={(bw - 28) / 4} height={bh * 0.42} rx="1" fill="url(#glassG)" stroke="#0a0c12" strokeWidth="0.8" />
+              {/* Reflet diagonal */}
+              <path d={`M ${bx + 10 + i * ((bw - 20) / 4) + 2} ${by + 24} l ${(bw - 28) / 8} ${bh * 0.18}`} stroke="#7090c0" strokeWidth="1.2" opacity="0.4" />
+            </g>
+          ))}
+
+          {/* Auvent design en porte-à-faux au-dessus de l'entrée taxis */}
+          <path d={`M ${-bw * 0.34} ${by + bh - 48} L ${bw * 0.34} ${by + bh - 48} L ${bw * 0.4} ${by + bh - 36} L ${-bw * 0.4} ${by + bh - 36} Z`} fill="url(#canopyG)" stroke="#5a4010" strokeWidth="1.2" />
+          {/* Spots LED sous auvent */}
+          {[0, 1, 2, 3, 4].map(i => (
+            <circle key={i} cx={-bw * 0.3 + i * (bw * 0.15)} cy={by + bh - 39} r="1.6" fill={lit ? "#fff8c0" : "#a89a40"} opacity={lit ? Math.min(1, 0.7 + 0.05 * prodLvl) : 0.6}>
+              {lit && <animate attributeName="opacity" values="0.85;1;0.85" dur={`${2 + i * 0.2}s`} repeatCount="indefinite" />}
+            </circle>
+          ))}
+
+          {/* Logo "MY TAXI WORLD" sur l'auvent */}
+          <text x="0" y={by + bh - 40} fontSize="9" fontWeight="900" textAnchor="middle" fill="#1a1208" letterSpacing="1.5">MY TAXI WORLD</text>
+
+          {/* Porte d'entrée taxis (vitre teintée sous auvent) */}
+          <rect x={-bw * 0.22} y={by + bh - 34} width={bw * 0.44} height="32" rx="1" fill="url(#glassG)" stroke="#0a0c12" strokeWidth="1" />
+          <line x1="0" y1={by + bh - 34} x2="0" y2={by + bh - 2} stroke="#0a0c12" strokeWidth="0.8" />
+
+          {/* Totem vertical lumineux côté droit */}
+          <rect x={W / 2 - 18} y={-H / 2 + 28} width="8" height="56" rx="1.5" fill="#0a0b10" stroke={lit ? "#ffd84a" : "#7a6020"} strokeWidth="1" />
+          <text x={W / 2 - 14} y={-H / 2 + 58} fontSize="6" fontWeight="900" textAnchor="middle" fill={lit ? "#ffe070" : "#c89030"} writingMode="tb" style={{ filter: lit ? "drop-shadow(0 0 2px #ffb020)" : undefined }}>TAXI</text>
+
+          {/* Halo coloré sol nuit */}
+          {lit && (
+            <>
+              <ellipse cx="0" cy={parkY} rx={W * 0.42} ry="38" fill="#ffd84a" opacity="0.08" />
+              <ellipse cx={-bw * 0.3} cy={parkY - 6} rx="40" ry="14" fill="#7df0ff" opacity="0.06" />
+            </>
+          )}
+        </g>
+      )}
+
+      {/* Plots d'entrée illuminés (toujours présents, intensité = prodLvl) */}
+      <g>
+        {[-1, 1].map((s, i) => (
+          <g key={i} transform={`translate(${s * (W / 2 - 10)},${H / 2 - 22})`}>
+            <circle r="4.5" fill="#0e1217" stroke={markingColor} strokeWidth="1" opacity={markingOp} />
+            <circle r="2.2" fill={lit ? "#ffd84a" : "#5a4818"} opacity={lit ? Math.min(1, 0.55 + 0.08 * prodLvl) : 0.65} />
+          </g>
+        ))}
+      </g>
     </g>
   );
 }
