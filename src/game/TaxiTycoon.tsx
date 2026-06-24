@@ -322,7 +322,8 @@ function Depot({ tier, x, y, scale = 1, rotation = 0, capLvl = 0, revLvl = 0, pr
   const _tier = tier; void _tier;
   const lit = night > 0.35;
   const upgradeTotal = capLvl + revLvl + prodLvl;
-  const visualTier: 1 | 2 | 3 = upgradeTotal >= 8 ? 3 : upgradeTotal >= 3 ? 2 : 1;
+  // Seuils abaissés pour rendre l'évolution visuelle immédiate dès les premières améliorations
+  const visualTier: 1 | 2 | 3 = upgradeTotal >= 4 ? 3 : upgradeTotal >= 1 ? 2 : 1;
 
   // Footprint élargi au palier 3
   const W = visualTier === 3 ? 320 : 260;
