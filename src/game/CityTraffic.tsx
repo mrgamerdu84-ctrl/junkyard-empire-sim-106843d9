@@ -515,17 +515,18 @@ export default function CityTraffic() {
   useEffect(() => {
     // Mesurer les longueurs réelles des paths.
     const lens = pathRefs.current.map((p: SVGPathElement | null) => (p ? p.getTotalLength() : 1));
-    if (lens.some((l: number) => l <= 1)) return;
+    if (lens.length === 0 || lens.some((l: number) => l <= 1)) return;
 
     // Initialise les feux rouges (singleton partagé avec TaxiTycoon).
     initTrafficLights(pathRefs.current, lens);
     setLights(getTrafficLights());
 
-    // Paths autorisés pour le trafic civil : tout sauf village.
+    // Tous les paths existants sont utilisables (1 = le circuit du joueur).
     const civilAllowed: number[] = [];
     for (let i = 0; i < pathRefs.current.length; i++) {
-      if (!VILLAGE_PATHS.has(i)) civilAllowed.push(i);
+      civilAllowed.push(i);
     }
+
     // Round-robin strict pour garantir une distribution équilibrée sur toutes les routes
     // (sinon la route du haut, plus courte, reste souvent vide visuellement).
     let pickCursor = Math.floor(Math.random() * Math.max(1, civilAllowed.length));
