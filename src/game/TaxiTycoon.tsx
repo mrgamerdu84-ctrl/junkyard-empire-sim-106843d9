@@ -2911,7 +2911,7 @@ export default function TaxiTycoon() {
 
       <style>{`
         .tt-hud {
-          position: absolute; inset: 0; z-index: 30;
+          position: fixed; inset: 0; z-index: 9000;
           font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
           color: #fff; pointer-events: none;
         }
