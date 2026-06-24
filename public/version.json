@@ -1,6 +1,6 @@
 {
   "version": "1.0.0",
-  "buildId": "2026-06-24T15:37:49.798Z",
-  "builtAt": 1782315469798,
-  "changelog": "Mise à jour automatique active"
+  "buildId": "2026-06-24T16:00:00.000Z",
+  "builtAt": 1782318000000,
+  "changelog": "Toutes les routes pré-dessinées supprimées : trafic = uniquement ton circuit admin"
 }
