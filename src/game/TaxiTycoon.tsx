@@ -9,6 +9,7 @@ import { useRealWorldEnv, weatherLabelFr, weatherLabelEn, refreshRealWorldEnv } 
 import { WeatherNightOverlay } from "@/components/WeatherNightOverlay";
 import { getLicense, addLicenseXp, rollClientTier, tierFareMult, tierXp } from "@/lib/license";
 import { pickSpecialMission, SPECIAL_COOLDOWN_MS } from "@/lib/specialMissions";
+import { OfficeControlCenter } from "./OfficeControlCenter";
 
 
 
@@ -724,6 +725,7 @@ export default function TaxiTycoon() {
   const lastTaxiDispatchRef = useRef(0);
   const [, forceRender] = useState(0);
   const [toast, setToast] = useState<string | null>(null);
+  const [officeOpen, setOfficeOpen] = useState(false);
   const [saveBlink, setSaveBlink] = useState(false);
   const [popups, setPopups] = useState<{ id: number; text: string; x: number; y: number }[]>([]);
   const popIdRef = useRef(0);
@@ -2331,7 +2333,9 @@ export default function TaxiTycoon() {
 
   return (
     <>
+      {officeOpen && <OfficeControlCenter onClose={() => setOfficeOpen(false)} />}
       <WeatherNightOverlay />
+
 
       {/* === Calque SVG du jeu === */}
       <svg
@@ -2964,7 +2968,15 @@ export default function TaxiTycoon() {
       {/* === HUD HTML === */}
       <div className="tt-hud">
         <div className="tt-top">
+          <button
+            onClick={() => setOfficeOpen(true)}
+            title="Ouvrir le bureau du patron"
+            style={{ background: 'linear-gradient(180deg,#1f2937,#0b1220)', color: '#00ffcc', border: '1px solid #00ffcc55', borderRadius: 6, padding: '6px 10px', fontWeight: 700, cursor: 'pointer', fontSize: 13 }}
+          >
+            🏢 Bureau
+          </button>
           <div className="tt-stat money">
+
             <span className="tt-stat-icon">💰</span>
             <span className="tt-stat-val">{fmt(save.money)}$</span>
           </div>
