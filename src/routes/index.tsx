@@ -3,19 +3,9 @@ import { useEffect, useRef, useState } from "react";
 import citymapAsset from "@/assets/citymap-v3.jpg.asset.json";
 const citymap = citymapAsset.url;
 import TaxiTycoon from "@/game/TaxiTycoon";
-import CityTraffic from "@/game/CityTraffic";
-import CityCompetitors from "@/game/CityCompetitors";
-import CityRivalTaxis from "@/game/CityRivalTaxis";
-import ArmoredTruck from "@/game/ArmoredTruck";
+import GameMap from "@/game/GameMap";
 import CityHud from "@/game/CityHud";
-import CrimeEvents from "@/game/CrimeEvents";
-import CrimeResponses from "@/game/CrimeResponses";
-import InterventionDispatcher from "@/game/InterventionDispatcher";
-import EmergencyStations from "@/game/EmergencyStations";
-import EmergencyPatrols from "@/game/EmergencyPatrols";
-import PlainclothesCops from "@/game/PlainclothesCops";
 import RadarFlash from "@/game/RadarFlash";
-// AmbientSirens retiré : plus de bruits d'ambulance/pompiers/police en fond.
 import AdminPanel from "@/game/AdminPanel";
 import RulesPanel from "@/game/RulesPanel";
 import VersionBanner from "@/game/VersionBanner";
@@ -23,7 +13,6 @@ import HomeScreen from "@/game/HomeScreen";
 import SplashScreen from "@/game/SplashScreen";
 import GameMenu from "@/game/GameMenu";
 import RadioPlayer from "@/game/RadioPlayer";
-import DebugMapGrid from "@/game/DebugMapGrid";
 
 export const Route = createFileRoute("/")({
   head: () => ({
