@@ -2968,7 +2968,15 @@ export default function TaxiTycoon() {
       {/* === HUD HTML === */}
       <div className="tt-hud">
         <div className="tt-top">
+          <button
+            onClick={() => setOfficeOpen(true)}
+            title="Ouvrir le bureau du patron"
+            style={{ background: 'linear-gradient(180deg,#1f2937,#0b1220)', color: '#00ffcc', border: '1px solid #00ffcc55', borderRadius: 6, padding: '6px 10px', fontWeight: 700, cursor: 'pointer', fontSize: 13 }}
+          >
+            🏢 Bureau
+          </button>
           <div className="tt-stat money">
+
             <span className="tt-stat-icon">💰</span>
             <span className="tt-stat-val">{fmt(save.money)}$</span>
           </div>
