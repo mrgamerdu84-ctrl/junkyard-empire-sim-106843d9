@@ -322,7 +322,7 @@ export default function ArmoredTruck() {
         }}
       >
         <defs>
-          {ROADS.map((d, i) => (
+          {dynamicPaths.map((d, i) => (
             <path
               key={i}
               id={`jce-armored-road-${i}`}
