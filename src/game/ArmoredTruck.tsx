@@ -39,7 +39,7 @@ const RIVAL_SUCCESS = 0.5;
 // Chance qu'un rival tente le braquage à chaque apparition
 const RIVAL_ATTEMPT_CHANCE = 0.35;
 
-const TRUCK_ROAD_IDX = ROADS.map((_, i) => i).filter((i) => !VILLAGE_PATHS.has(i));
+// Le camion suit le circuit dessiné par le joueur (un seul path → index 0).
 
 type Phase = "idle" | "rolling" | "heist" | "done";
 type Heister = { kind: "player" | "rival"; rivalId?: string; color: string } | null;
