@@ -505,7 +505,8 @@ export default function TaxiTycoon() {
   const playerRoads = useMemo<string[]>(() => {
     const pts = admin.circuitPoints;
     if (!pts || pts.length < 2) return [];
-    return [circuitToSvgPath(pts)];
+    const d = circuitToSvgPath(pts);
+    return d ? [d] : [];
   }, [admin.circuitPoints]);
 
   // === Persistent state ===
