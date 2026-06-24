@@ -1,44 +1,49 @@
-## 1. Sync des personnalisations entre appareils (voitures, camion blindé, etc.)
+## Contexte
 
-**Problème** : Les véhicules custom (voitures, camion blindé, piétons, sprite du blindé, overrides d'assets) sont stockés uniquement en `localStorage`, donc invisibles sur un autre téléphone.
+Le moteur de circulation actuel (`CityTraffic.tsx` 1130 lignes, `CityRivalTaxis.tsx`, `CrimeEvents.tsx`, `ArmoredTruck.tsx`, `EmergencyStations.tsx`, `InterventionDispatcher.tsx`, `AmbientSirens.tsx`, `City3D.tsx`) totalise plus de 4 000 lignes étroitement couplées. Une refonte « tout en un coup » casserait à coup sûr le rendu actuel de la ville. Je propose une exécution **en 4 étapes livrées une par une**, validables visuellement entre chaque, **sans toucher aux composants graphiques des voitures, ambulances, pompiers ni police**.
 
-**Solution** : Sauvegarder ces personnalisations dans Lovable Cloud, liées au compte utilisateur, avec fallback localStorage hors-ligne.
+## Règles invariantes (toutes les étapes)
 
-- Nouvelle table `user_customizations` (1 ligne par user) :
-  - `custom_vehicles` (JSON — la liste actuelle `jce.customVehicles`)
-  - `custom_pedestrians` (JSON — `jce.customPedestrians`)
-  - `armored_sprite` (TEXT — `jce.armoredSprite`)
-  - `asset_overrides` (JSON — `jce.assetOverrides`)
-- RLS : chaque user lit/écrit uniquement sa propre ligne. GRANT authenticated + service_role.
-- Hook `useCloudCustomizations()` qui :
-  - Au login : télécharge depuis le cloud → écrit dans localStorage → déclenche les events `jce.customVehicles.changed` / reload du sprite blindé.
-  - À chaque ajout/suppression : pousse vers le cloud (debounce 800 ms).
-- Wrappers `addCustomVehicle`, `removeCustomVehicle`, `setArmoredSprite`, override d'asset → marquent dirty pour upload.
+- Aucune modification de `src/game/vehicles/*`, des sprites de mes taxis, ni des composants `<ArmoredTruck>`, ambulance/pompiers/police existants. On ne touche **que** les coordonnées (x, y) et la vitesse.
+- Pas de téléportation : tout véhicule arrivé à la fin d'un segment **enchaîne** sur un segment voisin via un graphe d'intersections (pas de saut à `s = 0`).
+- Respect des feux : tout véhicule qui arrive sur une intersection rouge décélère puis s'arrête à la ligne d'arrêt, comme déjà fait pour les taxis joueurs.
 
-**Résultat** : tu changes une voiture / le camion blindé sur ton téléphone A → tu te connectes sur ton téléphone B → tout est là.
+## Étape 1 — Graphe routier continu
 
-## 2. Phrase de copyright
+- Extraire `ROADS` (déjà dans `CityTraffic.tsx`) vers `src/game/roadGraph.ts`.
+- Construire un graphe : chaque path = arête, ses extrémités = nœuds, fusionnés par proximité (rayon ~12 px) pour reconnecter les ronds-points.
+- Remplacer la logique `s = s % pathLen` du trafic ambiant et des taxis rivaux par un curseur `(edgeId, s, dir)` qui choisit un voisin au prochain nœud (tirage pondéré pour favoriser les ronds-points). → fin des « sauts » en boucle, voitures qui parcourent **toute** la carte.
 
-Ajouter en bas de l'écran d'accueil (`HomeScreen`) et mettre à jour la ligne finale de `mentions-legales.tsx` avec **exactement** :
+## Étape 2 — Piétons code de la route
 
-> 2026 My taxi world rivalité — Tous droits réservés.
+- Dans `PhotoPedestrians` (et le squelette `Pedestrian`), ajouter un état `walking | waiting | crossing`.
+- Détection d'intersection : quand `s` approche d'un nœud, on relit le feu via `trafficLights.ts`. Rouge piéton → `waiting`, vert piéton → `crossing` sur le passage clouté.
+- Les voitures déjà en vue d'un piéton sur passage ralentissent (réutilise le système de freinage existant des taxis).
 
-## 3. Radios — réparation
+## Étape 3 — Patrouilles urgences + flics en civil
 
-Le `<audio>` ne se recharge pas correctement quand on change de piste/station sur certains navigateurs (le `src` change mais `load()` n'est pas appelé) → certaines pistes restent muettes ou bloquées sur la précédente.
+- `EmergencyStations.tsx` : ajouter un planificateur qui sort 1 véhicule (police, ambulance, pompier) toutes les 45–90 s, le fait patrouiller via le graphe Étape 1, puis le ramène à sa station. **Le sprite reste exactement celui déjà utilisé.**
+- Nouveau composant `PlainclothesCops.tsx` : 1 à 2 piétons spéciaux (sprite piéton existant + petit badge SVG en overlay) qui marchent sur les trottoirs, font des arrêts contrôle aléatoires sur les parkings (`parkingZones.ts`), fréquence très basse (60–120 s entre deux contrôles).
 
-Corrections dans `RadioPlayer.tsx` :
-- Appeler `audio.load()` à chaque changement de `track.url`.
-- Bloquer la lecture suivante tant que `loadedmetadata` n'est pas reçu (évite les `play()` rejetés).
-- Logger l'event `error` de l'audio + passer auto à la piste suivante si une piste casse (URL morte).
-- Vérifier que les 13 fichiers `.asset.json` pointent vers des URLs valides ; remplacer ceux qui renvoient 404.
+## Étape 4 — Événements braquages / cambriolages
 
-## Techniques
+- Activer pleinement la logique déjà esquissée dans `CrimeEvents.tsx` + `ArmoredTruck.tsx` :
+  - Déclencheur aléatoire (cooldown 90–180 s) : cambriolage de banque **ou** braquage de camion blindé.
+  - Pose d'une zone de blocage temporaire (10–25 s) sur l'arête concernée.
+  - Les taxis et le trafic ambiant lisent cette zone et **recalculent** un détour via le graphe (choix d'un voisin différent au prochain nœud).
+  - `InterventionDispatcher` + `AmbientSirens` envoient les véhicules d'urgence sur place.
 
-- Migration SQL : `public.user_customizations (user_id PK → auth.users, ...)`, GRANT + RLS `auth.uid() = user_id`, trigger `updated_at`.
-- Server functions `getMyCustomizations` / `saveMyCustomizations` (avec `requireSupabaseAuth`).
-- Pas d'autre changement de logique gameplay.
+## Détails techniques
 
-Fichiers touchés (estimation) :
-- nouveau : `supabase/migrations/*_user_customizations.sql`, `src/lib/customizations.functions.ts`, `src/hooks/useCloudCustomizations.ts`
-- édités : `src/game/gameAssets.ts`, `src/game/ArmoredTruck.tsx`, `src/game/RadioPlayer.tsx`, `src/game/HomeScreen.tsx`, `src/routes/mentions-legales.tsx`, `src/routes/_authenticated/route.tsx` (montage du hook)
+```text
+roadGraph.ts
+  ├─ nodes:  [{ id, x, y, neighbors: edgeId[] }]
+  ├─ edges:  [{ id, pathIdx, fromNode, toNode, length }]
+  └─ pickNextEdge(nodeId, comingFromEdge, opts) → edgeId
+```
+
+Tous les acteurs mobiles passent par un seul `useTraffic` hook qui avance `(edgeId, s, dir)` et expose `(x, y, heading)`. Les composants de rendu existants restent inchangés et consomment juste `x, y, heading`.
+
+## Livraison
+
+Je commence par l'**Étape 1** seule pour valider visuellement que la circulation reste fluide sans régression, puis j'enchaîne 2, 3, 4 dans des messages suivants. Confirme-moi que je peux démarrer par l'Étape 1.

@@ -106,9 +106,15 @@ export default function CityRivalTaxis() {
         const len = lens[roam.pathIdx];
         let u = (now - roam.startedAt) / (roam.duration * 1000);
         if (u >= 1) {
-          // Tirer une nouvelle route + sens aléatoires
-          roam.pathIdx = pickPath();
-          roam.flip = Math.random() < 0.5;
+          // BOUNCE fluide : on inverse le sens à l'extrémité plutôt que
+          // de téléporter le taxi au début d'un nouveau path. La position
+          // monde reste identique (fwd = (!flip) ? len : 0 — l'extrémité
+          // actuelle) → aucun saut visible. 1 fois sur 3 on rerolle aussi
+          // le path pour que les taxis tournent sur tout le réseau.
+          if (Math.random() < 0.34) {
+            roam.pathIdx = pickPath();
+          }
+          roam.flip = !roam.flip;
           roam.duration = 14 + Math.random() * 10;
           roam.startedAt = now;
           u = 0;

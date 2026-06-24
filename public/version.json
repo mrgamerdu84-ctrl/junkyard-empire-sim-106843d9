@@ -1,6 +1,6 @@
 {
-  "version": "1.0.0",
-  "buildId": "2026-06-24T13:40:17.624Z",
-  "builtAt": 1782308417624,
-  "changelog": "Mise à jour automatique active"
+  "version": "1.0.1",
+  "buildId": "2026-06-24T15:30:00.000Z",
+  "builtAt": 1782322200000,
+  "changelog": "Trafic fluide : fin des téléports en bout de route (rebond progressif)"
 }
