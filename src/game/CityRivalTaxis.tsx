@@ -7,11 +7,9 @@
 // simple progression linéaire avec lane offset, fade-out à la faillite.
 // =============================================================
 import { useEffect, useMemo, useRef, useState } from "react";
-import { ROADS, VILLAGE_PATHS } from "./CityTraffic";
+import { useAdminConfig } from "./adminConfig";
+import { circuitToSvgPath } from "./circuitPath";
 
-// Routes utilisables par les taxis rivaux : on exclut les "village paths"
-// (ex: index 1, off-screen en portrait) pour ne pas voir des voitures voler.
-const RIVAL_ROAD_IDX = ROADS.map((_, i) => i).filter((i) => !VILLAGE_PATHS.has(i));
 
 type Competitor = {
   id: string;
@@ -35,7 +33,8 @@ type RivalSpec = {
 const LANE_HALF = 9;
 const MAX_RIVALS = 16;
 
-function buildSpecs(comps: Competitor[]): RivalSpec[] {
+function buildSpecs(comps: Competitor[], pathCount: number): RivalSpec[] {
+  if (pathCount <= 0) return [];
   const alive = comps.filter((c) => !c.bankrupt);
   if (alive.length === 0) return [];
   const out: RivalSpec[] = [];
@@ -47,8 +46,8 @@ function buildSpecs(comps: Competitor[]): RivalSpec[] {
       out.push({
         compId: c.id,
         color: c.color,
-        // Distribue les rivaux sur TOUTES les routes du réseau (round-robin).
-        pathIdx: RIVAL_ROAD_IDX[(i * 3 + k) % RIVAL_ROAD_IDX.length] ?? 0,
+        // Un seul circuit pour l'instant → pathIdx = 0.
+        pathIdx: (i * 3 + k) % pathCount,
         flip: ((i + k) % 2) === 1,
         duration: 14 + ((i * 3 + k * 5) % 9),
         offset: ((i * 0.137) + k * 0.41) % 1,
@@ -62,7 +61,14 @@ function buildSpecs(comps: Competitor[]): RivalSpec[] {
 }
 
 
+
 export default function CityRivalTaxis() {
+  const admin = useAdminConfig();
+  const dynamicPaths = useMemo(() => {
+    const d = circuitToSvgPath(admin.circuitPoints);
+    return d ? [d] : [];
+  }, [admin.circuitPoints]);
+
   const [comps, setComps] = useState<Competitor[]>(() => {
     const w = window as unknown as { __jceCompetitors?: Competitor[] };
     return w.__jceCompetitors ?? [];
@@ -77,7 +83,7 @@ export default function CityRivalTaxis() {
     return () => window.removeEventListener("jce:competitors-changed", onChange as EventListener);
   }, []);
 
-  const specs = useMemo(() => buildSpecs(comps), [comps]);
+  const specs = useMemo(() => buildSpecs(comps, dynamicPaths.length), [comps, dynamicPaths.length]);
 
   const pathRefs = useRef<(SVGPathElement | null)[]>([]);
   const carRefs = useRef<(SVGGElement | null)[]>([]);
@@ -89,8 +95,10 @@ export default function CityRivalTaxis() {
 
   useEffect(() => {
     const lens = pathRefs.current.map((p) => (p ? p.getTotalLength() : 0));
-    if (lens.some((l) => l <= 1)) return;
-    const pickPath = () => RIVAL_ROAD_IDX[Math.floor(Math.random() * RIVAL_ROAD_IDX.length)] ?? 0;
+    if (lens.length === 0 || lens.some((l) => l <= 1)) return;
+    const pathCount = pathRefs.current.length;
+    const pickPath = () => Math.floor(Math.random() * pathCount);
+
     const now0 = performance.now();
     roamRef.current = specs.map((sp) => ({
       pathIdx: sp.pathIdx,
@@ -144,7 +152,7 @@ export default function CityRivalTaxis() {
       style={{ position: "absolute", inset: 0, width: "100%", height: "100%", pointerEvents: "none", zIndex: 4 }}
     >
       <defs>
-        {ROADS.map((d, i) => (
+        {dynamicPaths.map((d, i) => (
           <path
             key={i}
             id={`jce-rival-road-${i}`}
