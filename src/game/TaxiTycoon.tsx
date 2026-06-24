@@ -926,67 +926,18 @@ export default function TaxiTycoon() {
     };
   }, [pathsReady, admin.rivalEnabled, save.taxis.length, admin.rivalHQX, admin.rivalHQY]);
 
-  // Sync police fleet (nombre paramétrable depuis le panel admin)
+  // Police: plus aucune patrouille libre sur le circuit. Les véhicules restent
+  // dans EmergencyStations et sortent uniquement quand une mission les appelle.
   useEffect(() => {
-    if (!pathsReady) return;
-    const N = pathLensRef.current.length;
-    if (N === 0) return;
-    const allowed: number[] = [];
-    for (let i = 0; i < N; i++) if (!VILLAGE_PATHS.has(i)) allowed.push(i);
-    if (allowed.length === 0) return;
-    const target = Math.max(0, Math.min(6, admin.policeCarCount ?? 2));
-    while (policeCarsRef.current.length < target) {
-      const pIdx = allowed[policeCarsRef.current.length % allowed.length];
-      const plen = pathLensRef.current[pIdx] ?? 0;
-      const spawnedPolice: PoliceCar = {
-        id: 30000 + policeCarsRef.current.length,
-        pathIdx: pIdx,
-        pos: (policeCarsRef.current.length / Math.max(1, target)) * plen,
-        target: plen - 1,
-        mode: "patrol",
-        chaseRivalId: null,
-        chasePlayerTaxiId: null,
-      };
-      syncVehicleLane(spawnedPolice);
-      policeCarsRef.current.push(spawnedPolice);
-    }
-    while (policeCarsRef.current.length > target) policeCarsRef.current.pop();
+    policeCarsRef.current.length = 0;
     forceRender((n) => n + 1);
-  }, [pathsReady, admin.policeCarCount]);
+  }, []);
 
-  // Spawn ambulance + camion pompiers (1 de chaque) qui patrouillent
+  // Urgences: pas de patrouille libre; sortie uniquement via EmergencyStations.
   useEffect(() => {
-    if (!pathsReady) return;
-    const N = pathLensRef.current.length;
-    if (N === 0) return;
-    const allowed: number[] = [];
-    for (let i = 0; i < N; i++) if (!VILLAGE_PATHS.has(i)) allowed.push(i);
-    if (allowed.length < 1) return;
-    if (emergencyRef.current.length === 0) {
-      const mkVeh = (kind: "ambulance" | "firetruck" | "police", i: number): EmergencyVehicle => {
-        const pIdx = allowed[i % allowed.length];
-        const plen = pathLensRef.current[pIdx] ?? 0;
-        const v: EmergencyVehicle = {
-          id: 40000 + i,
-          kind,
-          pathIdx: pIdx,
-          pos: (i / 3) * plen,
-          target: plen - 1,
-          mode: "patrol",
-          onsiteUntil: 0,
-          accidentId: null,
-          respondAfter: 0,
-        };
-        syncVehicleLane(v);
-        return v;
-      };
-      emergencyRef.current.push(mkVeh("ambulance", 0));
-      emergencyRef.current.push(mkVeh("firetruck", 1));
-      emergencyRef.current.push(mkVeh("police", 2));
-    }
-
+    emergencyRef.current.length = 0;
     forceRender((n) => n + 1);
-  }, [pathsReady]);
+  }, []);
 
 
 
@@ -1558,141 +1509,12 @@ export default function TaxiTycoon() {
       rivalTaxisRef.current.forEach(syncVehicleLane);
       policeCarsRef.current.forEach(syncVehicleLane);
 
-      // ====== Accidents aléatoires + dispatch des secours ======
-      {
-        const tMs = performance.now();
-        // Spawn d'un nouvel accident périodique (1 max à la fois pour éviter le chaos)
-        if (accidentsRef.current.length === 0 && tMs >= nextAccidentAtRef.current) {
-          const allowed: number[] = [];
-          for (let i = 0; i < pathRefs.current.length; i++) if (!VILLAGE_PATHS.has(i)) allowed.push(i);
-          if (allowed.length > 0) {
-            const pIdx = allowed[Math.floor(Math.random() * allowed.length)];
-            const plen = pathLensRef.current[pIdx] ?? 0;
-            const sPos = 80 + Math.random() * Math.max(80, plen - 160);
-            const pt = pathRefs.current[pIdx]?.getPointAtLength(sPos);
-            if (pt) {
-              const id = ++accidentIdRef.current;
-              const kind: "vehicle" | "pedestrian" = Math.random() < 0.7 ? "vehicle" : "pedestrian";
-              const severity: "minor" | "serious" = kind === "vehicle" ? "serious" : "minor";
-              const interventionMs = severity === "serious"
-                ? ACCIDENT_BLOCK_MIN_MS + 4000 + Math.random() * 6000  // 13–19s
-                : ACCIDENT_BLOCK_MIN_MS;                                 // 9s
-              const acc: Accident = {
-                id, pathIdx: pIdx, s: sPos, x: pt.x, y: pt.y, kind,
-                startedAt: tMs, clearAt: null, responders: new Set(),
-                severity, interventionMs,
-              };
-              accidentsRef.current.push(acc);
-              registerAccident({ id, pathIdx: pIdx, s: sPos, x: pt.x, y: pt.y, kind });
-              // Délais de réponse aléatoires (plus longs si accident grave)
-              const delayRanges = severity === "serious"
-                ? { police: [1000, 5000], ambulance: [2000, 6000], firetruck: [3000, 8000] }
-                : { police: [0, 1500], ambulance: [0, 1500], firetruck: [0, 1500] };
-              for (const ev of emergencyRef.current) {
-                const r = delayRanges[ev.kind];
-                ev.respondAfter = tMs + r[0] + Math.random() * (r[1] - r[0]);
-              }
-              showToast(severity === "serious"
-                ? "💥 Accident GRAVE ! Secours dépêchés…"
-                : "🚑 Piéton renversé ! Ambulance en route…");
-              pushNews(severity === "serious"
-                ? { fr: "Flash info : accident grave de la circulation, pompiers, ambulance et police sont mobilisés.", en: "News flash: a serious traffic accident, firefighters, ambulance and police have been dispatched." }
-                : { fr: "Flash info : un piéton vient d'être renversé, l'ambulance est en chemin.", en: "News flash: a pedestrian has just been hit, an ambulance is on its way." }
-              );
-            }
-          }
-          nextAccidentAtRef.current = tMs + 40000 + Math.random() * 40000;
-        }
-
-        // Dispatch : tous les EV (même en respond/onsite d'un ancien) -> respond vers l'accident courant
-        for (const ev of emergencyRef.current) {
-          if (accidentsRef.current.length > 0 && tMs >= ev.respondAfter) {
-            const acc = accidentsRef.current[0];
-            if (ev.mode === "patrol" || (ev.mode !== "onsite" && ev.accidentId !== acc.id)) {
-              ev.mode = "respond";
-              ev.accidentId = acc.id;
-              const here = pathRefs.current[ev.pathIdx]?.getPointAtLength(ev.pos);
-              ev.pathIdx = acc.pathIdx;
-              ev.pos = here ? closestOnPath(acc.pathIdx, here.x, here.y) : ev.pos;
-              ev.target = acc.s;
-            }
-          }
-        }
-
-        // MAJ chaque véhicule d'urgence
-        for (const ev of emergencyRef.current) {
-          const plen = pathLensRef.current[ev.pathIdx] ?? 0;
-          if (plen <= 1) continue;
-          const acc = ev.accidentId != null ? accidentsRef.current.find(a => a.id === ev.accidentId) ?? null : null;
-
-          if (ev.mode === "onsite") {
-            if (acc) acc.responders.add(ev.id);
-            if (tMs >= ev.onsiteUntil) {
-              // Fin d'intervention pour ce véhicule
-              ev.mode = "patrol";
-              ev.accidentId = null;
-              ev.onsiteUntil = 0;
-              ev.target = ev.pos < plen / 2 ? plen - 1 : 1;
-            }
-            continue;
-          }
-
-          if (ev.mode === "respond") {
-            if (!acc) { ev.mode = "patrol"; ev.accidentId = null; continue; }
-            const diff = acc.s - ev.pos;
-            const step = EMERGENCY_RUSH_SPEED * dt;
-            if (Math.abs(diff) <= step) {
-              ev.pos = acc.s;
-              ev.mode = "onsite";
-              acc.responders.add(ev.id);
-              // La minuterie de dégagement ne démarre que quand les 3 secours sont sur place
-              const allHere = emergencyRef.current.every(e => e.accidentId === acc.id && e.mode === "onsite") || acc.responders.size >= 3;
-              if (allHere && !acc.clearAt) {
-                acc.clearAt = tMs + acc.interventionMs;
-                // Aligne la fin d'intervention de tous les secours présents
-                for (const e of emergencyRef.current) {
-                  if (e.accidentId === acc.id) e.onsiteUntil = acc.clearAt;
-                }
-              } else if (!acc.clearAt) {
-                // En attendant les autres, reste sur place sans limite
-                ev.onsiteUntil = tMs + 60000;
-              } else {
-                ev.onsiteUntil = acc.clearAt;
-              }
-            } else {
-              ev.pos += Math.sign(diff) * step;
-            }
-            continue;
-          }
-
-          // patrol
-          const diff = ev.target - ev.pos;
-          const step = EMERGENCY_SPEED * dt;
-          if (Math.abs(diff) <= step) {
-            ev.target = ev.target > 1 ? 1 : Math.max(1, plen - 1);
-          } else {
-            const forward = diff > 0;
-            if (!shouldStopAhead(ev.pathIdx, ev.pos, forward, nowSeconds())) {
-              ev.pos += Math.sign(diff) * step;
-            }
-          }
-        }
-
-        // Clôture des accidents : quand les responders ont fini ET clearAt atteint
-        for (let i = accidentsRef.current.length - 1; i >= 0; i--) {
-          const a = accidentsRef.current[i];
-          if (a.clearAt && tMs >= a.clearAt && a.responders.size > 0) {
-            const stillOnsite = emergencyRef.current.some(e => e.accidentId === a.id && e.mode === "onsite");
-            if (!stillOnsite) {
-              clearAccident(a.id);
-              accidentsRef.current.splice(i, 1);
-              showToast("✅ Accident dégagé, circulation rétablie.");
-              pushNews({ fr: "Bonne nouvelle : l'accident a été dégagé, la circulation reprend normalement.", en: "Good news: the accident has been cleared, traffic is back to normal." });
-            }
-          }
-        }
+      // Secours et police restent à leur base; EmergencyStations gère les sorties de mission.
+      if (accidentsRef.current.length > 0) {
+        for (const a of accidentsRef.current) clearAccident(a.id);
+        accidentsRef.current.length = 0;
       }
-      emergencyRef.current.forEach(syncVehicleLane);
+      emergencyRef.current.length = 0;
 
 
 

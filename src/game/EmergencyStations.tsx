@@ -1,12 +1,7 @@
 // =============================================================
-// Stations d'urgence — overlays statiques (commissariat, caserne,
-// hôpital) avec véhicules garés visibles + gyrophares qui clignotent
-// quand une intervention de la catégorie correspondante est active.
-//
-// Purement visuel : le système d'assignation (CityTraffic) garde
-// 1 véhicule de chaque catégorie en circulation pour répondre aux
-// missions. Ces sprites donnent l'impression que la flotte est
-// "garée au QG" la majeure partie du temps.
+// Stations d'urgence — commissariat, caserne, hôpital.
+// Les véhicules restent garés au QG et ne sortent que lorsqu'une mission
+// demande explicitement leur catégorie.
 // =============================================================
 import { useEffect, useState } from "react";
 import { GAME_ASSETS } from "./gameAssets";
@@ -45,26 +40,85 @@ const STATIONS = [
 
 type Active = Record<string, number>; // category -> expiresAt
 
+type Responder = {
+  id: number;
+  eventId: number;
+  category: "police" | "firetruck" | "ambulance";
+  label: string;
+  sprite: string;
+  color: string;
+  fromX: number;
+  fromY: number;
+  toX: number;
+  toY: number;
+  startedAt: number;
+  arriveAt: number;
+  leaveAt: number;
+  doneAt: number;
+  resolved: boolean;
+};
+
+let responderSeq = 1;
+
 export default function EmergencyStations() {
   const [active, setActive] = useState<Active>({});
+  const [responders, setResponders] = useState<Responder[]>([]);
+  const [, forceFrame] = useState(0);
 
   useEffect(() => {
-    const on = (ev: Event) => {
+    const onAssigned = (ev: Event) => {
       const d = (ev as CustomEvent<{ category?: string }>).detail;
       const cat = d?.category;
       if (!cat) return;
       setActive((prev) => ({ ...prev, [cat]: performance.now() + 6000 }));
     };
-    window.addEventListener("jce.intervention.assigned", on as EventListener);
-    window.addEventListener("jce.intervention.request", on as EventListener);
+    const onRequest = (ev: Event) => {
+      const d = (ev as CustomEvent<{ id: number; x: number; y: number; category?: string; label?: string }>).detail;
+      if (!d?.category) return;
+      const station = STATIONS.find((s) => s.category === d.category);
+      if (!station) {
+        window.dispatchEvent(new CustomEvent("jce.intervention.nomatch", {
+          detail: { id: d.id, category: d.category, label: d.label ?? "Mission" },
+        }));
+        return;
+      }
+      const dist = Math.hypot(d.x - station.x, d.y - station.y);
+      const travelMs = Math.max(1400, Math.min(5200, (dist / 250) * 1000));
+      const now = performance.now();
+      setActive((prev) => ({ ...prev, [station.category]: now + travelMs * 2 + 2600 }));
+      setResponders((prev) => [
+        ...prev.filter((r) => r.category !== station.category),
+        {
+          id: responderSeq++,
+          eventId: d.id,
+          category: station.category,
+          label: d.label ?? station.label,
+          sprite: station.sprite,
+          color: station.color,
+          fromX: station.x,
+          fromY: station.y,
+          toX: d.x,
+          toY: d.y,
+          startedAt: now,
+          arriveAt: now + travelMs,
+          leaveAt: now + travelMs + 2200,
+          doneAt: now + travelMs * 2 + 2200,
+          resolved: false,
+        },
+      ]);
+      window.dispatchEvent(new CustomEvent("jce.intervention.assigned", {
+        detail: { id: d.id, category: station.category, label: d.label ?? station.label },
+      }));
+    };
+    window.addEventListener("jce.intervention.assigned", onAssigned as EventListener);
+    window.addEventListener("jce.intervention.request", onRequest as EventListener);
     return () => {
-      window.removeEventListener("jce.intervention.assigned", on as EventListener);
-      window.removeEventListener("jce.intervention.request", on as EventListener);
+      window.removeEventListener("jce.intervention.assigned", onAssigned as EventListener);
+      window.removeEventListener("jce.intervention.request", onRequest as EventListener);
     };
   }, []);
 
-  // Nettoie les états expirés régulièrement pour stopper les gyrophares.
-  const [, force] = useState(0);
+  // Nettoie les états expirés et clôture les missions arrivées sur place.
   useEffect(() => {
     const id = window.setInterval(() => {
       const now = performance.now();
@@ -76,9 +130,27 @@ export default function EmergencyStations() {
         }
         return changed ? next : prev;
       });
-      force((v) => (v + 1) % 1000);
-    }, 1500);
+      setResponders((prev) => prev
+        .map((r) => {
+          if (!r.resolved && now >= r.arriveAt) {
+            window.dispatchEvent(new CustomEvent("jce.intervention.resolved", { detail: { id: r.eventId } }));
+            return { ...r, resolved: true };
+          }
+          return r;
+        })
+        .filter((r) => now < r.doneAt));
+    }, 180);
     return () => window.clearInterval(id);
+  }, []);
+
+  useEffect(() => {
+    let raf = 0;
+    const tick = () => {
+      forceFrame((v) => (v + 1) % 1_000_000);
+      raf = requestAnimationFrame(tick);
+    };
+    raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
   }, []);
 
   return (
@@ -104,6 +176,7 @@ export default function EmergencyStations() {
       >
         {STATIONS.map((s) => {
           const isActive = (active[s.category] ?? 0) > performance.now();
+          const isAway = responders.some((r) => r.category === s.category);
           return (
             <g key={s.id} transform={`translate(${s.x} ${s.y})`}>
               {/* Plateforme du garage */}
@@ -138,7 +211,7 @@ export default function EmergencyStations() {
                 width={44} height={28}
                 preserveAspectRatio="xMidYMid meet"
                 style={{
-                  opacity: isActive ? 0.5 : 1,
+                  opacity: isAway ? 0.28 : isActive ? 0.5 : 1,
                   filter: isActive ? "grayscale(0.5)" : "none",
                 }}
               />
@@ -152,6 +225,36 @@ export default function EmergencyStations() {
                   }} />
                 </foreignObject>
               )}
+            </g>
+          );
+        })}
+        {responders.map((r) => {
+          const now = performance.now();
+          const outbound = now < r.leaveAt;
+          const start = outbound ? r.startedAt : r.leaveAt;
+          const end = outbound ? r.arriveAt : r.doneAt;
+          const rawK = end > start ? (now - start) / (end - start) : 1;
+          const k = Math.max(0, Math.min(1, rawK));
+          const ax = outbound ? r.fromX : r.toX;
+          const ay = outbound ? r.fromY : r.toY;
+          const bx = outbound ? r.toX : r.fromX;
+          const by = outbound ? r.toY : r.fromY;
+          const x = ax + (bx - ax) * k;
+          const y = ay + (by - ay) * k;
+          const angle = (Math.atan2(by - ay, bx - ax) * 180) / Math.PI;
+          const flash = Math.floor(now / 160) % 2 === 0;
+          return (
+            <g key={r.id} transform={`translate(${x} ${y}) rotate(${angle})`}>
+              <circle r="25" fill={flash ? "#3b82f6" : "#ef4444"} opacity="0.24" />
+              <g transform="rotate(90)">
+                <image href={r.sprite} x={-22} y={-17} width={44} height={34} preserveAspectRatio="xMidYMid meet" />
+              </g>
+              <rect x="-8" y="-4" width="16" height="5" rx="2" fill="#0b0d10" />
+              <rect x="-7" y="-3" width="6" height="3" rx="1" fill={flash ? "#60a5fa" : "#1e3a8a"} />
+              <rect x="1" y="-3" width="6" height="3" rx="1" fill={flash ? "#7f1d1d" : "#f87171"} />
+              <text x="0" y="30" textAnchor="middle" fontSize="4.5" fontWeight="900" fill="#fbbf24" stroke="#0b0d10" strokeWidth="0.9" paintOrder="stroke">
+                {r.label.toUpperCase()}
+              </text>
             </g>
           );
         })}

@@ -1,6 +1,6 @@
 {
   "version": "1.0.0",
-  "buildId": "2026-06-24T10:15:00.000Z",
-  "builtAt": 1782295700000,
-  "changelog": "Trafic continu (parking supprimé), densité jour/nuit, urgences QG-only"
+  "buildId": "2026-06-24T17:45:00.000Z",
+  "builtAt": 1782323100000,
+  "changelog": "Trafic sain restauré: boucle fluide, debug retiré, urgences au QG"
 }

@@ -1,19 +1,15 @@
 import { useEffect, useRef, useState } from "react";
 import { useAdminConfig } from "./adminConfig";
-import { getPedestrianPhotoUrls, listCustomVehicles, getCivilCarUrls, GAME_ASSETS, type CustomVehicleCategory } from "./gameAssets";
+import { getPedestrianPhotoUrls, listCustomVehicles, getCivilCarUrls, type CustomVehicleCategory } from "./gameAssets";
 import { VehicleSvg, type VehicleSvgKind } from "./vehicles/VehicleSvgs";
 import {
   initTrafficLights,
   getTrafficLights,
   getLightState,
-  shouldStopAhead,
   nowSeconds,
   type TrafficLight,
 } from "./trafficLights";
-import { PARKING_ZONES, pickFreeZone } from "./parkingZones";
 import { getGameTime } from "./cityClock";
-// Réf. inutilisées après suppression du script de parking — gardées pour compat exports.
-void PARKING_ZONES; void pickFreeZone;
 
 // Dynamique : inclut les piétons custom uploadés via le panel admin.
 // Recalculé à chaque appel — les composants qui en dépendent écoutent
@@ -316,51 +312,6 @@ function PedestrianSVG({ shirt, pants, skin, side, scale = 1 }: { shirt: string;
   );
 }
 
-// Distance de sécurité et freinage (en px du viewBox 1920x1080)
-const SAFE_GAP = 110;    // distance désirée pare-chocs à pare-chocs
-const BRAKE_GAP = 220;   // au-delà : pleine vitesse ; en deçà : freinage progressif
-const ACCEL = 0.6;       // px/s² lissage vers la vitesse cible (réaccélération douce)
-const BRAKE = 2.4;       // px/s² lissage en freinage (mordant pour anti-empilement)
-const MIN_SPEED_RATIO = 0.18; // plancher anti-figeage (% de baseSpeed)
-// Anti-collision cross-lane (intersections) : si une autre voiture (toute lane confondue)
-// est dans ce rayon DEVANT moi (cône avant), je freine fort. Évite les empilements aux carrefours.
-const CROSS_LANE_RADIUS = 75;
-const CROSS_LANE_FORWARD_DOT = 0.3; // ~72° devant moi
-
-type Mission = {
-  eventId: number;
-  phase: "going" | "staying" | "returning";
-  startedAt: number;
-  fromX: number; fromY: number;
-  toX: number; toY: number;
-  travelMs: number;
-  arriveAt: number;
-  stayUntil: number;
-  returnUntil: number;
-  returnFromX: number; returnFromY: number;  // snapshot au départ du retour
-  pausedS: number;                            // st.s gelé pendant la mission
-};
-
-// === Stationnement dynamique ===
-// Cycle : approaching → parked (conducteur sort, marche, revient) → leaving → reprise.
-type ParkPhase = "approaching" | "parked" | "leaving";
-type Parking = {
-  phase: ParkPhase;
-  phaseEndsAt: number;
-  parkedUntil: number;          // fin de la phase "parked"
-  zoneId: string;               // zone de parking pré-définie occupée
-  // Pose figée pendant le parking (snapshot à la fin de l'approche)
-  startX: number; startY: number; // position monde avant décalage trottoir
-  px: number; py: number;        // position monde de la voiture garée (sur trottoir) = zone.x/y
-  angle: number;                 // angle (deg) de la voiture garée = zone.angle
-  tdx: number; tdy: number;      // tangente unitaire au moment du parking (cos/sin angle)
-  side: 1 | -1;                  // côté trottoir (selon flip)
-  // Conducteur
-  pedSpriteIdx: number;
-  pedWalkMs: number;             // durée d'aller (puis idem pour retour)
-  pedReturnAt: number;           // instant où il commence à revenir
-};
-
 type CarState = {
   spec: CarSpec;
   pathLen: number;
@@ -369,25 +320,8 @@ type CarState = {
   speed: number;       // px/s instantanée
   laneKey: string;     // pathIdx + sens -> regroupe les véhicules qui peuvent se gêner
   node: SVGGElement | null;
-  pedNode: SVGGElement | null;   // sprite du conducteur (caché par défaut)
-  mission?: Mission;
-  parking?: Parking;
-  pausedS?: number;              // st.s gelé pendant le parking
-  nextParkAttemptAt?: number;    // cooldown anti re-park immédiat
   visible?: boolean;             // CULLING : dans le viewport visible (+ marge)
 };
-
-// Réglages parking
-const PARK_TARGET_MIN = 0;
-const PARK_TARGET_MAX = 0;
-const PARK_APPROACH_MS = 1400;
-const PARK_LEAVE_MS = 1100;
-const PARK_DURATION_MIN_MS = 10000;
-const PARK_DURATION_MAX_MS = 22000;
-const PARK_COOLDOWN_MS = 45000;
-const PARK_LANE_OFFSET = 18;
-const PARK_PED_OFFSET = 34;
-const PARK_PED_WALK_PX = 55;
 
 // Catégories autorisées dans le trafic libre : uniquement les civils & véhicules
 // de service. Police / ambulance / pompiers ne roulent QUE sur intervention
@@ -458,7 +392,6 @@ export default function CityTraffic() {
   const activeCars = allCustomCars;
   const pathRefs = useRef<(SVGPathElement | null)[]>([]);
   const carNodes = useRef<(SVGGElement | null)[]>([]);
-  const parkPedNodes = useRef<(SVGGElement | null)[]>([]);
   const svgRef = useRef<SVGSVGElement | null>(null);
   // Viewport visible en coordonnées SVG (avec preserveAspectRatio="xMidYMid slice").
   // Recalculé sur resize. Marge de 200 px pour pré-activer les véhicules qui entrent.
@@ -574,96 +507,19 @@ export default function CityTraffic() {
         speed: baseSpeed,
         laneKey: `${spec.pathIdx}:${spec.flip ? "r" : "f"}`,
         node: carNodes.current[i],
-        pedNode: parkPedNodes.current[i] ?? null,
-        nextParkAttemptAt: performance.now() + 5000 + Math.random() * 15000,
       };
     });
-
-    // Index par lane pour la recherche du véhicule devant (recalculé après chaque reroll).
-    const rebuildLanes = (): Map<string, CarState[]> => {
-      const m = new Map<string, CarState[]>();
-      for (const st of states) {
-        if (!m.has(st.laneKey)) m.set(st.laneKey, []);
-        m.get(st.laneKey)!.push(st);
-      }
-      return m;
-    };
-    let lanes = rebuildLanes();
 
     // Radars retirés : noop pour préserver l'API d'appel dans la boucle.
     const checkRadars = (_st: CarState, _prev: number) => {};
 
-    // === Helper : position monde courante d'une voiture sur son path ===
-    const worldPos = (st: CarState) => {
-      const path = pathRefs.current[st.spec.pathIdx];
-      if (!path) return null;
-      const fwd = st.spec.flip ? st.pathLen - st.s : st.s;
-      const p = path.getPointAtLength(fwd);
-      const p2 = path.getPointAtLength(Math.min(st.pathLen, fwd + (st.spec.flip ? -1 : 1)));
-      const tdx = p2.x - p.x, tdy = p2.y - p.y;
-      const L = Math.hypot(tdx, tdy) || 1;
-      const ox = (-tdy / L) * LANE_HALF;
-      const oy = (tdx / L) * LANE_HALF;
-      return { x: p.x + ox, y: p.y + oy };
-    };
-
-    // === Mission d'intervention : un véhicule de la map se détourne ===
-    const onIntervention = (ev: Event) => {
-      const d = (ev as CustomEvent<{
-        id: number; x: number; y: number; category: CustomVehicleCategory; label: string;
-      }>).detail;
-      if (!d) return;
-      // Cherche le véhicule libre le plus proche de la bonne catégorie.
-      let best: CarState | null = null;
-      let bestDist = Infinity;
-      for (const st of states) {
-        if (st.mission) continue;
-        if (st.spec.category !== d.category) continue;
-        const w = worldPos(st);
-        if (!w) continue;
-        const dd = Math.hypot(w.x - d.x, w.y - d.y);
-        if (dd < bestDist) { bestDist = dd; best = st; }
-      }
-      if (!best) {
-        window.dispatchEvent(new CustomEvent("jce.intervention.nomatch", { detail: { id: d.id, category: d.category, label: d.label } }));
-        return;
-      }
-      const w = worldPos(best);
-      if (!w) return;
-      const dist = Math.hypot(d.x - w.x, d.y - w.y);
-      // ~260 px/s en intervention (un peu plus vite que le trafic normal)
-      const travelMs = Math.max(1200, Math.min(5000, (dist / 260) * 1000));
-      const now = performance.now();
-      best.mission = {
-        eventId: d.id,
-        phase: "going",
-        startedAt: now,
-        fromX: w.x, fromY: w.y,
-        toX: d.x, toY: d.y,
-        travelMs,
-        arriveAt: now + travelMs,
-        stayUntil: now + travelMs + 2800,
-        returnUntil: now + travelMs + 2800 + travelMs,
-        returnFromX: d.x, returnFromY: d.y,
-        pausedS: best.s,
-      };
-      best.speed = 0;
-      window.dispatchEvent(new CustomEvent("jce.intervention.assigned", {
-        detail: { id: d.id, category: d.category, label: d.label },
-      }));
-    };
-    window.addEventListener("jce.intervention.request", onIntervention as EventListener);
-
 
     let last = performance.now();
     let raf = 0;
-    // Densité jour/nuit : recalculée toutes les 4s. La nuit, on cache une grande
-    // partie des voitures pour simuler un trafic clairsemé (comme dans la vraie vie).
+    // Densité jour/nuit : on garde le moteur d'origine (progression linéaire)
+    // et on affiche simplement moins de véhicules la nuit.
     let lastDensityCheck = 0;
     let activeCount = states.length;
-    // Stats debug : rotations de path par seconde (proxy du "spawn rate").
-    let lapCount = 0;
-    let lapWindowStart = performance.now();
     const step = (now: number) => {
       const dt = Math.min(0.05, (now - last) / 1000); // clamp à 50ms (onglet inactif)
       last = now;
@@ -671,200 +527,38 @@ export default function CityTraffic() {
       if (now - lastDensityCheck > 4000) {
         lastDensityCheck = now;
         const gt = getGameTime();
-        // density ≈ 0.15 (nuit) .. 1.55 (rush). On mappe sur 15%..100% du parc.
+        // Beaucoup de monde le jour, trafic très réduit la nuit.
         const ratio = Math.max(0.12, Math.min(1, gt.density / 1.2));
         activeCount = Math.max(1, Math.round(states.length * ratio));
-        for (let i = 0; i < states.length; i++) {
-          const dormant = i >= activeCount;
-          const st = states[i];
-          if (dormant && !st.mission) {
-            if (st.node) st.node.setAttribute("opacity", "0");
-            st.visible = false;
-          } else if (st.node) {
-            st.node.setAttribute("opacity", "1");
-          }
-          (st as CarState & { dormant?: boolean }).dormant = dormant && !st.mission;
-        }
-        // Publication des stats debug (lap rate fenêtre glissante).
-        const windowSec = Math.max(0.5, (now - lapWindowStart) / 1000);
-        const lapsPerMin = (lapCount / windowSec) * 60;
-        lapCount = 0;
-        lapWindowStart = now;
-        (window as unknown as { __jceTrafficStats?: unknown }).__jceTrafficStats = {
-          density: gt.density,
-          period: gt.period,
-          hour: gt.hour,
-          total: states.length,
-          active: activeCount,
-          ratio,
-          lapsPerMin,
-        };
       }
 
-
-
-
-
-      // 1) calcul de la vitesse cible (freinage selon distance au véhicule devant)
-      //    Les voitures en mission sont retirées de la circulation : on les ignore.
-      // 1a) Pré-calcul des positions monde + vecteur direction pour le check cross-lane.
-      type WP = { x: number; y: number; dx: number; dy: number };
-      const wps = new Map<CarState, WP>();
       const vr = visibleRect.current;
-      for (const st of states) {
-        if ((st as CarState & { dormant?: boolean }).dormant) { st.visible = false; continue; }
-        if (st.mission || st.parking) { st.visible = true; continue; }
+      for (let i = 0; i < states.length; i++) {
+        const st = states[i];
         const path = pathRefs.current[st.spec.pathIdx];
-        if (!path) { st.visible = false; continue; }
+        const densityVisible = i < activeCount;
+        if (!path || !densityVisible) {
+          st.visible = false;
+          if (st.node) st.node.setAttribute("opacity", "0");
+          continue;
+        }
         const fwd = st.spec.flip ? st.pathLen - st.s : st.s;
         const p = path.getPointAtLength(fwd);
-        // CULLING : hors viewport (+ marge) → pas de tangente, pas de raycast, pas de DOM write.
+        // CULLING : hors viewport (+ marge) → pas de DOM write, mais la voiture continue d'avancer.
         st.visible = p.x >= vr.minX && p.x <= vr.maxX && p.y >= vr.minY && p.y <= vr.maxY;
-        if (!st.visible) continue;
-        const p2 = path.getPointAtLength(Math.min(st.pathLen, fwd + (st.spec.flip ? -1 : 1)));
-        const tdx = p2.x - p.x, tdy = p2.y - p.y;
-        const L = Math.hypot(tdx, tdy) || 1;
-        wps.set(st, { x: p.x, y: p.y, dx: tdx / L, dy: tdy / L });
-      }
-      for (const lane of lanes.values()) {
-        const sorted = [...lane].filter(s => !s.mission && !s.parking && s.visible).sort((a, b) => b.s - a.s);
-        for (let i = 0; i < sorted.length; i++) {
-          const me = sorted[i];
-          const ahead = sorted[(i - 1 + sorted.length) % sorted.length];
-          let gap = ahead.s - me.s;
-          if (gap <= 0) gap += me.pathLen;
-          const myLen = me.spec.kind === "truck" ? 60 : me.spec.kind === "van" ? 50 : 38;
-          const safe = SAFE_GAP + myLen * 0.2;
-          const brake = BRAKE_GAP + myLen * 0.2;
-          let target = me.baseSpeed;
-          const forward = !me.spec.flip;
-          const sigS = me.spec.flip ? me.pathLen - me.s : me.s;
-          if (shouldStopAhead(me.spec.pathIdx, sigS, forward, nowSeconds())) {
-            target = 0;
-          } else if (gap < brake) {
-            const k = Math.max(0, (gap - safe) / (brake - safe));
-            const leaderEff = Math.max(ahead.speed, ahead.baseSpeed * MIN_SPEED_RATIO);
-            target = leaderEff * (1 - k) + me.baseSpeed * k;
-            if (gap < safe) target = Math.min(target, leaderEff * (gap / safe));
-          }
-          // 1b) Cross-lane raycast : freine si un autre véhicule est devant moi
-          //     dans CROSS_LANE_RADIUS (carrefours, voies qui se croisent).
-          const myWp = wps.get(me);
-          if (myWp) {
-            for (const other of states) {
-              if (other === me || other.mission || other.parking || !other.visible) continue;
-              if (other.laneKey === me.laneKey) continue; // même lane déjà traité
-              const owp = wps.get(other);
-              if (!owp) continue;
-              const rx = owp.x - myWp.x, ry = owp.y - myWp.y;
-              const dist = Math.hypot(rx, ry);
-              if (dist > CROSS_LANE_RADIUS || dist < 1) continue;
-              const dot = (rx / dist) * myWp.dx + (ry / dist) * myWp.dy;
-              if (dot < CROSS_LANE_FORWARD_DOT) continue; // pas devant moi
-              // proximité : plus c'est proche, plus on freine. Plancher anti-blocage
-              // pour éviter les deadlocks "après vous / non après vous" aux ronds-points.
-              const stopAt = 18;
-              const k = Math.max(0, Math.min(1, (dist - stopAt) / (CROSS_LANE_RADIUS - stopAt)));
-              const minCrawl = me.baseSpeed * 0.20; // toujours nudger : jamais à l'arrêt complet
-              const ct = Math.max(minCrawl, me.baseSpeed * k * 0.6);
-              if (ct < target) target = ct;
-            }
-          }
-          // Stops réels = uniquement feux rouges (shouldStopAhead). Sinon, plancher.
-          const sigS2 = me.spec.flip ? me.pathLen - me.s : me.s;
-          const atRedLight = shouldStopAhead(me.spec.pathIdx, sigS2, !me.spec.flip, nowSeconds());
-          const effFloor = atRedLight ? 0 : me.baseSpeed * MIN_SPEED_RATIO;
-          if (target < effFloor) target = effFloor;
-          const diff = target - me.speed;
-          const rate = diff < 0 ? BRAKE * (target === 0 ? 2.5 : 1) : ACCEL;
-          const maxStep = rate * me.baseSpeed * dt;
-          me.speed += Math.max(-maxStep, Math.min(maxStep, diff));
-          if (target > 0) {
-            if (me.speed < effFloor) me.speed = effFloor;
-          } else if (me.speed < 0) me.speed = 0;
-          // Anti-blocage : si une voiture reste sous le plancher > 3s sans feu rouge,
-          // on la déloque en lui imposant la vitesse de croisière.
-          const stMut = me as CarState & { stuckSince?: number };
-          if (!atRedLight && me.speed < me.baseSpeed * 0.08) {
-            if (stMut.stuckSince === undefined) stMut.stuckSince = now;
-            else if (now - stMut.stuckSince > 3000) {
-              me.speed = me.baseSpeed * 0.9;
-              stMut.stuckSince = undefined;
-            }
-          } else {
-            stMut.stuckSince = undefined;
-          }
-        }
-      }
-      // Cars hors-écran : roulent à vitesse de base (pas de calcul de gap, pas de raycast).
-      for (const st of states) {
-        if (st.mission || st.parking || st.visible) continue;
+        if (st.node) st.node.setAttribute("opacity", st.visible ? "1" : "0");
         st.speed = st.baseSpeed;
       }
-
-      // 1c) Stationnement supprimé : trafic continu — aucune voiture ne se gare.
-
-
-
 
       // 2) avancer et appliquer le transform
       let needsRebuild = false;
       for (const st of states) {
         const node = st.node;
         if (!node) continue;
-        if ((st as CarState & { dormant?: boolean }).dormant && !st.mission) continue;
-
-
-
-        // ===== Branche MISSION : la voiture quitte le path et fonce =====
-        if (st.mission) {
-          const m = st.mission;
-          let cx = m.toX, cy = m.toY, ang = 0;
-          if (now < m.arriveAt) {
-            const k = (now - m.startedAt) / m.travelMs;
-            cx = m.fromX + (m.toX - m.fromX) * k;
-            cy = m.fromY + (m.toY - m.fromY) * k;
-            ang = (Math.atan2(m.toY - m.fromY, m.toX - m.fromX) * 180) / Math.PI;
-          } else if (now < m.stayUntil) {
-            if (m.phase === "going") {
-              m.phase = "staying";
-              window.dispatchEvent(new CustomEvent("jce.intervention.resolved", { detail: { id: m.eventId } }));
-            }
-            cx = m.toX; cy = m.toY;
-            ang = (Math.atan2(m.toY - m.fromY, m.toX - m.fromX) * 180) / Math.PI;
-          } else if (now < m.returnUntil) {
-            if (m.phase !== "returning") {
-              m.phase = "returning";
-              m.returnFromX = m.toX; m.returnFromY = m.toY;
-            }
-            // Retour vers la position où elle était sur le path
-            const w = worldPos({ ...st, s: m.pausedS });
-            const tx = w?.x ?? m.fromX;
-            const ty = w?.y ?? m.fromY;
-            const k = (now - m.stayUntil) / (m.returnUntil - m.stayUntil);
-            cx = m.returnFromX + (tx - m.returnFromX) * k;
-            cy = m.returnFromY + (ty - m.returnFromY) * k;
-            ang = (Math.atan2(ty - m.returnFromY, tx - m.returnFromX) * 180) / Math.PI;
-          } else {
-            // Fin de mission : reprend sa boucle normale
-            st.s = m.pausedS;
-            st.speed = st.baseSpeed;
-            st.mission = undefined;
-          }
-          // Sprite top-down : nez ↑. On compense de +90° (cf. rendu image).
-          // Le rendu applique <g transform="rotate(90)"> donc le rotate externe = angle de marche.
-          node.setAttribute("transform", `translate(${cx.toFixed(2)},${cy.toFixed(2)}) rotate(${ang.toFixed(2)})`);
-          if (st.mission) continue; // reste en mission → skip path logic
-        }
-
-        // ===== Branche PARKING supprimée : aucune voiture ne se gare =====
-
-
         // ===== Trafic normal =====
         const prev = st.s;
         st.s += st.speed * dt;
         if (st.s >= st.pathLen) {
-          lapCount++;
           const newSpec = rerollSpec(st.spec);
           st.spec = newSpec;
           st.pathLen = lens[newSpec.pathIdx];
@@ -899,14 +593,13 @@ export default function CityTraffic() {
         node.setAttribute("transform", `translate(${(p.x + ox).toFixed(2)},${(p.y + oy).toFixed(2)}) rotate(${ang.toFixed(2)})`);
         checkRadars(st, prev);
       }
-      if (needsRebuild) lanes = rebuildLanes();
+      void needsRebuild;
 
       raf = requestAnimationFrame(step);
     };
     raf = requestAnimationFrame(step);
     return () => {
       cancelAnimationFrame(raf);
-      window.removeEventListener("jce.intervention.request", onIntervention as EventListener);
     };
   }, [activeCars.length]);
 
@@ -981,35 +674,6 @@ export default function CityTraffic() {
           </g>
         );
       })}
-
-
-
-      {/* Conducteurs sortis de leur voiture garée (cachés par défaut, opacity=0) */}
-      <g pointerEvents="none">
-        {activeCars.map((_, i) => {
-          const S = 22;
-          return (
-            <g
-              key={`pd-${i}`}
-              opacity="0"
-              ref={(el) => { parkPedNodes.current[i] = el; }}
-            >
-              <ellipse cx="0" cy={S * 0.2} rx={S * 0.35} ry={S * 0.18} fill="rgba(0,0,0,0.45)" />
-              <g transform="rotate(90)">
-                <image
-                  href={getPedPhotoImages()[0]}
-                  x={-S / 2}
-                  y={-S / 2}
-                  width={S}
-                  height={S}
-                  preserveAspectRatio="xMidYMid meet"
-                />
-              </g>
-            </g>
-          );
-        })}
-      </g>
-
       {/* Piétons photos qui marchent sur les trottoirs (markets/promeneurs) */}
       <PhotoPedestrians pathRefs={pathRefs} />
 
