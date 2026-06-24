@@ -127,7 +127,10 @@ export default function ArmoredTruck() {
   };
 
   const spawn = () => {
-    const idx = TRUCK_ROAD_IDX[Math.floor(Math.random() * TRUCK_ROAD_IDX.length)] ?? 0;
+    // Aucun circuit dessiné → pas de camion qui spawn.
+    if ((cfgRef.current.circuitPoints?.length ?? 0) < 2) return;
+    const idx = 0;
+
     const fl = Math.random() < 0.5;
     const amount = Math.round(500 + Math.random() * 1000);
     setPathIdx(idx);
