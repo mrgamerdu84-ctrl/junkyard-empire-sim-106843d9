@@ -791,68 +791,8 @@ export default function CityTraffic() {
           if (st.mission) continue; // reste en mission → skip path logic
         }
 
-        // ===== Branche PARKING : la voiture se gare sur le trottoir =====
-        if (st.parking) {
-          const pk = st.parking;
-          let cx = pk.px, cy = pk.py;
-          // Phase approaching : lerp depuis startX/Y vers px/py
-          if (pk.phase === "approaching") {
-            const k = Math.min(1, 1 - (pk.phaseEndsAt - now) / PARK_APPROACH_MS);
-            cx = pk.startX + (pk.px - pk.startX) * k;
-            cy = pk.startY + (pk.py - pk.startY) * k;
-            if (now >= pk.phaseEndsAt) {
-              pk.phase = "parked";
-            }
-          } else if (pk.phase === "parked") {
-            if (now >= pk.parkedUntil) {
-              pk.phase = "leaving";
-              pk.phaseEndsAt = now + PARK_LEAVE_MS;
-            }
-          } else if (pk.phase === "leaving") {
-            const k = Math.min(1, 1 - (pk.phaseEndsAt - now) / PARK_LEAVE_MS);
-            cx = pk.px + (pk.startX - pk.px) * k;
-            cy = pk.py + (pk.startY - pk.py) * k;
-            if (now >= pk.phaseEndsAt) {
-              // Fin : reprise du trafic
-              st.parking = undefined;
-              st.speed = st.baseSpeed * 0.4;
-              st.nextParkAttemptAt = now + PARK_COOLDOWN_MS;
-              if (st.pedNode) st.pedNode.setAttribute("opacity", "0");
-            }
-          }
-          node.setAttribute("transform", `translate(${cx.toFixed(2)},${cy.toFixed(2)}) rotate(${pk.angle.toFixed(2)})`);
+        // ===== Branche PARKING supprimée : aucune voiture ne se gare =====
 
-          // Animation du conducteur : sort, marche en avant, idle, revient
-          const ped = st.pedNode;
-          if (ped) {
-            if (pk.phase === "parked") {
-              // Base : position sur le trottoir, à côté de la voiture garée
-              // Base : position sur le trottoir, à côté de la voiture garée (zone fixe)
-              const baseX = pk.px + (-pk.tdy) * PARK_PED_OFFSET * pk.side;
-              const baseY = pk.py + ( pk.tdx) * PARK_PED_OFFSET * pk.side;
-              let walkK = 0;
-              let facingBack = false;
-              if (now < pk.pedReturnAt) {
-                // aller : 0 → 1 sur pedWalkMs
-                walkK = Math.max(0, Math.min(1, (now - (pk.pedReturnAt - pk.pedWalkMs)) / pk.pedWalkMs));
-              } else {
-                // retour : 1 → 0 sur ce qui reste avant parkedUntil
-                const back = Math.max(400, pk.parkedUntil - pk.pedReturnAt);
-                walkK = 1 - Math.max(0, Math.min(1, (now - pk.pedReturnAt) / back));
-                facingBack = true;
-              }
-              const off = walkK * PARK_PED_WALK_PX;
-              const px = baseX + pk.tdx * off;
-              const py = baseY + pk.tdy * off;
-              const pAng = (Math.atan2(pk.tdy, pk.tdx) * 180) / Math.PI + (facingBack ? 180 : 0);
-              ped.setAttribute("transform", `translate(${px.toFixed(2)},${py.toFixed(2)}) rotate(${pAng.toFixed(2)})`);
-              ped.setAttribute("opacity", "1");
-            } else {
-              ped.setAttribute("opacity", "0");
-            }
-          }
-          if (st.parking) continue;
-        }
 
         // ===== Trafic normal =====
         const prev = st.s;
