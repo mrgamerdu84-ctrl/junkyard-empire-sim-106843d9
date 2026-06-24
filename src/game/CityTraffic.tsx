@@ -944,7 +944,7 @@ export default function CityTraffic() {
       style={{ position: "absolute", inset: 0, width: "100%", height: "100%", pointerEvents: "none", zIndex: 3 }}
     >
       <defs>
-        {ROADS.map((d, i) => (
+        {dynamicPaths.map((d, i) => (
           <path
             key={i}
             id={`jce-road-${i}`}
@@ -959,18 +959,9 @@ export default function CityTraffic() {
         </filter>
       </defs>
 
-      <g opacity="0.12">
-        {ROADS.map((d, i) => (
-          VILLAGE_PATHS.has(i) ? null : (
-            <path key={i} d={d} stroke="#0b0d10" strokeWidth={i >= 4 ? 34 : 46} fill="none" strokeLinecap="round" />
-          )
-        ))}
-        {ROADS.slice(0, 4).map((d, i) => (
-          VILLAGE_PATHS.has(i) ? null : (
-            <path key={`dash-${i}`} d={d} stroke="#f6d56a" strokeWidth="2.4" strokeDasharray="18 18" fill="none" opacity="0.72" />
-          )
-        ))}
-      </g>
+      {/* Aucun overlay d'asphalte : le tracé du joueur reste invisible en jeu. */}
+
+
 
 
 
