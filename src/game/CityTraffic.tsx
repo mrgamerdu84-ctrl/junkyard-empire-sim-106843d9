@@ -775,6 +775,9 @@ export default function CityTraffic() {
       for (const st of states) {
         const node = st.node;
         if (!node) continue;
+        if ((st as CarState & { dormant?: boolean }).dormant && !st.mission) continue;
+
+
 
         // ===== Branche MISSION : la voiture quitte le path et fonce =====
         if (st.mission) {
