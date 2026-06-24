@@ -898,13 +898,32 @@ export default function CityTraffic() {
         const prev = st.s;
         st.s += st.speed * dt;
         if (st.s >= st.pathLen) {
-          const newSpec = rerollSpec(st.spec);
-          st.spec = newSpec;
-          st.pathLen = lens[newSpec.pathIdx];
-          st.baseSpeed = st.pathLen / newSpec.duration;
-          st.s = 0;
-          st.speed = st.baseSpeed;
-          const newKey = `${newSpec.pathIdx}:${newSpec.flip ? "r" : "f"}`;
+          // BOUNCE fluide : on inverse le sens à l'extrémité. La position
+          // monde reste identique (fwd = flip ? pathLen - 0 : 0 = même
+          // point) donc AUCUN téléport visible. 1 fois sur 4, on rerolle
+          // aussi le path pour faire tourner les voitures sur tout le réseau.
+          if (Math.random() < 0.25) {
+            const newSpec = rerollSpec(st.spec);
+            st.spec = newSpec;
+            st.pathLen = lens[newSpec.pathIdx];
+            st.baseSpeed = st.pathLen / newSpec.duration;
+            // On reste à une extrémité du nouveau path, sens entrant.
+            st.s = 0.01;
+          } else {
+            st.spec = { ...st.spec, flip: !st.spec.flip };
+            st.s = 0.01;
+          }
+          st.speed = Math.max(st.baseSpeed * MIN_SPEED_RATIO, st.speed);
+          const newKey = `${st.spec.pathIdx}:${st.spec.flip ? "r" : "f"}`;
+          if (newKey !== st.laneKey) {
+            st.laneKey = newKey;
+            needsRebuild = true;
+          }
+        } else if (st.s < 0) {
+          // Rebond à l'autre extrémité (sécurité, ne devrait pas se produire).
+          st.spec = { ...st.spec, flip: !st.spec.flip };
+          st.s = 0.01;
+          const newKey = `${st.spec.pathIdx}:${st.spec.flip ? "r" : "f"}`;
           if (newKey !== st.laneKey) {
             st.laneKey = newKey;
             needsRebuild = true;
