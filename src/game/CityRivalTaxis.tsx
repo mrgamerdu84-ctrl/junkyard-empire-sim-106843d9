@@ -33,22 +33,24 @@ type RivalSpec = {
 };
 
 const LANE_HALF = 9;
-const MAX_RIVALS = 10;
+const MAX_RIVALS = 16;
 
 function buildSpecs(comps: Competitor[]): RivalSpec[] {
   const alive = comps.filter((c) => !c.bankrupt);
   if (alive.length === 0) return [];
   const out: RivalSpec[] = [];
-  const perComp = Math.max(1, Math.min(2, Math.floor(MAX_RIVALS / Math.max(1, alive.length))));
+  // Au moins 2 taxis visibles par concurrent vivant (cap MAX_RIVALS).
+  const perComp = Math.max(2, Math.min(3, Math.floor(MAX_RIVALS / Math.max(1, alive.length))));
   let i = 0;
   for (const c of alive) {
     for (let k = 0; k < perComp && out.length < MAX_RIVALS; k++) {
       out.push({
         compId: c.id,
         color: c.color,
-        pathIdx: RIVAL_ROAD_IDX[i % RIVAL_ROAD_IDX.length] ?? 0,
-        flip: (i % 2) === 1,
-        duration: 16 + ((i * 3) % 7),
+        // Distribue les rivaux sur TOUTES les routes du réseau (round-robin).
+        pathIdx: RIVAL_ROAD_IDX[(i * 3 + k) % RIVAL_ROAD_IDX.length] ?? 0,
+        flip: ((i + k) % 2) === 1,
+        duration: 14 + ((i * 3 + k * 5) % 9),
         offset: ((i * 0.137) + k * 0.41) % 1,
         letter: (c.name?.[0] ?? "?").toUpperCase(),
         vehicleUrl: c.vehicleUrl,
@@ -58,6 +60,7 @@ function buildSpecs(comps: Competitor[]): RivalSpec[] {
   }
   return out;
 }
+
 
 export default function CityRivalTaxis() {
   const [comps, setComps] = useState<Competitor[]>(() => {
