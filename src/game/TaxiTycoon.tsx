@@ -1,4 +1,8 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from '@tanstack/react-router';
+import LeaderboardPanel from '@/components/LeaderboardPanel';
+import TutorialDialog from '@/components/TutorialDialog';
+import { resetTutorial } from '@/lib/leaderboard';
 import mapAsset from '@/assets/map_city.png.asset.json';
 import bureauAsset from '@/assets/bureau_patron.png.asset.json';
 
@@ -48,6 +52,9 @@ export const TaxiTycoon: React.FC = () => {
   const [ecranActuel, setEcranActuel] = useState<'bureau' | 'gps_zoom'>('bureau');
   const [ongletBeeper, setOngletBeeper] = useState<'missions' | 'messages' | 'radio'>('missions');
   const [pseudo, setPseudo] = useState('Mrgamerdu84');
+  const [showLeaderboard, setShowLeaderboard] = useState(false);
+  const [showTutorial, setShowTutorial] = useState(false);
+  const navigate = useNavigate();
   const [, setMissionActive] = useState<boolean>(false);
   const [timerBeeper, setTimerBeeper] = useState<number>(12);
 
@@ -127,12 +134,16 @@ export const TaxiTycoon: React.FC = () => {
             style={{ position: 'absolute', top: '20%', left: '32%', width: '36%', height: '32%', opacity: 0, cursor: 'pointer', zIndex: 10 }}
             title="Clique sur l'écran pour zoomer sur le GPS"
           />
+          {/* ARÈNE → route /arena */}
           <button
-            onClick={() => alert("Recherche d'un adversaire dans l'Arène...")}
+            onClick={() => navigate({ to: '/arena' })}
+            title="Arène Mondiale"
             style={{ position: 'absolute', top: '73%', left: '40%', width: '16%', height: '5%', opacity: 0, cursor: 'pointer', zIndex: 10 }}
           />
+          {/* CLASSEMENT → LeaderboardPanel */}
           <button
-            onClick={() => alert("Ouverture du Classement Mondial")}
+            onClick={() => setShowLeaderboard(true)}
+            title="Classement Mondial"
             style={{ position: 'absolute', top: '4%', right: '2%', width: '7%', height: '18%', opacity: 0, cursor: 'pointer', zIndex: 10 }}
           />
           <div style={{ position: 'absolute', bottom: '18%', left: '21%', zIndex: 10 }}>
@@ -143,12 +154,30 @@ export const TaxiTycoon: React.FC = () => {
               style={{ background: 'rgba(0,0,0,0.85)', border: '1px solid #ffcc00', color: '#ffcc00', padding: '5px 10px', borderRadius: '4px', fontWeight: 'bold', width: '120px', fontSize: '12px' }}
             />
           </div>
+          {/* TUTO → TutorialDialog */}
           <button
-            onClick={() => alert("Lancement du téléchargement de l'APK...")}
+            onClick={() => { resetTutorial(); setShowTutorial(true); }}
+            title="Tutoriel avec Léo"
+            style={{ position: 'absolute', bottom: '20%', right: '4%', width: '10%', height: '8%', opacity: 0, cursor: 'pointer', zIndex: 10 }}
+          />
+          {/* APK → route /download */}
+          <button
+            onClick={() => navigate({ to: '/download' })}
+            title="Télécharger l'APK"
             style={{ position: 'absolute', bottom: '1%', right: '10%', width: '10%', height: '10%', opacity: 0, cursor: 'pointer', zIndex: 10 }}
           />
+
+          {/* Étiquettes visibles pour repérer les zones cliquables */}
+          <div style={{ position: 'absolute', top: '74%', left: '40%', width: '16%', textAlign: 'center', color: '#00ffcc', fontSize: '11px', fontWeight: 'bold', pointerEvents: 'none', textShadow: '0 1px 2px #000', zIndex: 9 }}>⚔️ ARÈNE</div>
+          <div style={{ position: 'absolute', top: '21%', right: '2%', width: '7%', textAlign: 'center', color: '#ffcc00', fontSize: '10px', fontWeight: 'bold', pointerEvents: 'none', textShadow: '0 1px 2px #000', zIndex: 9 }}>🏆 CLASSEMENT</div>
+          <div style={{ position: 'absolute', bottom: '17%', right: '4%', width: '10%', textAlign: 'center', color: '#ffcc00', fontSize: '10px', fontWeight: 'bold', pointerEvents: 'none', textShadow: '0 1px 2px #000', zIndex: 9 }}>📖 TUTO</div>
+          <div style={{ position: 'absolute', bottom: '0%', right: '10%', width: '10%', textAlign: 'center', color: '#00ff66', fontSize: '10px', fontWeight: 'bold', pointerEvents: 'none', textShadow: '0 1px 2px #000', zIndex: 9 }}>📲 APK</div>
         </div>
       )}
+
+      {showLeaderboard && <LeaderboardPanel onClose={() => setShowLeaderboard(false)} />}
+      {showTutorial && <TutorialDialog onClose={() => setShowTutorial(false)} />}
+      <div style={{ display: 'none' }}>{/* anchor */}</div>
 
       {ecranActuel === 'gps_zoom' && (
         <div style={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'row', backgroundColor: '#111317' }}>
