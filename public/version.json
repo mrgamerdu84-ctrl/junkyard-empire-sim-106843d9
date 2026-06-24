@@ -1,6 +1,6 @@
 {
-  "version": "1.0.9",
-  "buildId": "2026-06-24T15:00:00.000Z",
-  "builtAt": 1782313200000,
-  "changelog": "Ajout de src/game/mapConfig.ts (source unique pour ronds-points, routes, spawns, parkings)"
+  "version": "1.0.10",
+  "buildId": "2026-06-24T15:05:00.000Z",
+  "builtAt": 1782313500000,
+  "changelog": "CityTraffic.ROADS reconstruit depuis mapConfig.ts (4 axes, anciens paths supprimés)"
 }
