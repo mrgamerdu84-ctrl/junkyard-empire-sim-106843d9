@@ -45,72 +45,8 @@ export function computeTrafficLights(
   // partout. Trafic fluide = aucun feu auto. Les véhicules respectent
   // seulement l'anti-collision (gap + cross-lane raycast) dans CityTraffic.
   return [];
-
-  // Échantillonne chaque path (~6px) → cherche les zones où 2+ paths se croisent
-  const SAMPLE = 8;
-  type Sample = { pathIdx: number; s: number; x: number; y: number };
-  const samples: Sample[] = [];
-  for (let i = 0; i < paths.length; i++) {
-    const p = paths[i];
-    const l = lens[i] ?? 0;
-    if (!p || l <= 0) continue;
-    if (i === 1) continue; // village skip
-    const n = Math.floor(l / SAMPLE);
-    for (let k = 0; k <= n; k++) {
-      const s = (k / n) * l;
-      const pt = p.getPointAtLength(s);
-      samples.push({ pathIdx: i, s, x: pt.x, y: pt.y });
-    }
-  }
-
-  // Grille spatiale pour grouper
-  const CELL = 28;
-  const buckets = new Map<string, Sample[]>();
-  for (const s of samples) {
-    const k = `${Math.floor(s.x / CELL)},${Math.floor(s.y / CELL)}`;
-    if (!buckets.has(k)) buckets.set(k, []);
-    buckets.get(k)!.push(s);
-  }
-
-  // Pour chaque cellule, garde les intersections (≥ 2 paths différents)
-  const lights: TrafficLight[] = [];
-  const taken: { x: number; y: number }[] = [];
-  let id = 0;
-  for (const arr of buckets.values()) {
-    const byPath = new Map<number, Sample[]>();
-    for (const a of arr) {
-      if (!byPath.has(a.pathIdx)) byPath.set(a.pathIdx, []);
-      byPath.get(a.pathIdx)!.push(a);
-    }
-    if (byPath.size < 2) continue;
-    // moyenne du centre
-    let cx = 0, cy = 0, n = 0;
-    for (const a of arr) { cx += a.x; cy += a.y; n++; }
-    cx /= n; cy /= n;
-    // évite les doublons proches
-    if (taken.some(t => (t.x - cx) ** 2 + (t.y - cy) ** 2 < 120 * 120)) continue;
-    taken.push({ x: cx, y: cy });
-
-    const stops: { pathIdx: number; s: number }[] = [];
-    for (const [pIdx, arr2] of byPath.entries()) {
-      // garde la position la + proche du centre
-      let bestS = arr2[0].s, bestD = Infinity;
-      for (const a of arr2) {
-        const d = (a.x - cx) ** 2 + (a.y - cy) ** 2;
-        if (d < bestD) { bestD = d; bestS = a.s; }
-      }
-      stops.push({ pathIdx: pIdx, s: bestS });
-    }
-    lights.push({
-      id: id++,
-      x: cx,
-      y: cy,
-      axis: (id % 2) as 0 | 1,
-      stops,
-    });
-  }
-  return lights;
 }
+
 
 export function initTrafficLights(paths: (SVGPathElement | null)[], lens: number[]) {
   const lights = computeTrafficLights(paths, lens);
