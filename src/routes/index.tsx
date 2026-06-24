@@ -177,6 +177,7 @@ function TaxiTycoonPage() {
         <EmergencyPatrols />
         <PlainclothesCops />
         <CrimeEvents />
+        <CrimeResponses />
         <InterventionDispatcher />
         <TaxiTycoon />
         <ArmoredTruck />

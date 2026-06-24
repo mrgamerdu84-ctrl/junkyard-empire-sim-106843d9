@@ -1,6 +1,6 @@
 {
-  "version": "1.0.3",
-  "buildId": "2026-06-24T14:30:00.000Z",
-  "builtAt": 1782312600000,
-  "changelog": "Étape 3 : patrouilles d'urgence depuis les QG + flics en civil sur les trottoirs"
+  "version": "1.0.4",
+  "buildId": "2026-06-24T15:00:00.000Z",
+  "builtAt": 1782314400000,
+  "changelog": "Étape 4 : cambriolages + réponses police/pompiers/ambulance depuis les QG avec zones de blocage"
 }
