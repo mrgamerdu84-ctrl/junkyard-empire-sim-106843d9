@@ -499,6 +499,15 @@ export default function TaxiTycoon() {
   const [pathsReady, setPathsReady] = useState(false);
   const admin = useAdminConfig(); // re-render quand l'admin change
 
+  // === Réseau routier dynamique ===
+  // Toutes les voitures (joueur, rivaux, police, etc.) suivent UNIQUEMENT le
+  // circuit dessiné par le joueur dans le panel admin. ROADS reste vide.
+  const playerRoads = useMemo<string[]>(() => {
+    const pts = admin.circuitPoints;
+    if (!pts || pts.length < 2) return [];
+    return [circuitToSvgPath(pts)];
+  }, [admin.circuitPoints]);
+
   // === Persistent state ===
   const [save, setSave] = useState<SaveData>(DEFAULT_SAVE);
   const [hydrated, setHydrated] = useState(false);
