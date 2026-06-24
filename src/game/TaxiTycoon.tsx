@@ -3,21 +3,25 @@ import mapAsset from '@/assets/map_city.png.asset.json';
 import bureauAsset from '@/assets/bureau_patron.png.asset.json';
 
 // --- Customisation taxi (utilisée par ProfileCard) ---
-export interface TaxiPaint { id: string; name: string; color: string; }
-export interface TaxiLivery { id: string; name: string; }
+export interface TaxiPaint { id: string; name: string; color: string; filter?: string; }
+export interface TaxiLivery { id: string; name: string; image: string; faceRight?: boolean; city?: string; }
 
 export const TAXI_PAINTS: TaxiPaint[] = [
-  { id: 'yellow', name: 'Jaune Classique', color: '#ffcc00' },
-  { id: 'black', name: 'Noir Limousine', color: '#1a1a1a' },
-  { id: 'white', name: 'Blanc Pur', color: '#f5f5f5' },
-  { id: 'red', name: 'Rouge Sport', color: '#cc2222' },
-  { id: 'blue', name: 'Bleu Nuit', color: '#1e3a8a' },
+  { id: 'yellow', name: 'Jaune Classique', color: '#ffcc00', filter: 'none' },
+  { id: 'black',  name: 'Noir Limousine',  color: '#1a1a1a', filter: 'brightness(0.4)' },
+  { id: 'white',  name: 'Blanc Pur',       color: '#f5f5f5', filter: 'brightness(1.3) saturate(0.2)' },
+  { id: 'red',    name: 'Rouge Sport',     color: '#cc2222', filter: 'hue-rotate(-40deg) saturate(1.4)' },
+  { id: 'blue',   name: 'Bleu Nuit',       color: '#1e3a8a', filter: 'hue-rotate(180deg) saturate(1.2)' },
 ];
 
+const TAXI_SPRITE = "data:image/svg+xml;utf8," + encodeURIComponent(
+  `<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 32'><rect x='4' y='10' width='56' height='14' rx='4' fill='%23ffcc00' stroke='%23000' stroke-width='2'/><rect x='16' y='4' width='32' height='10' rx='2' fill='%23ffd84d' stroke='%23000' stroke-width='2'/><circle cx='16' cy='26' r='4' fill='%23222'/><circle cx='48' cy='26' r='4' fill='%23222'/></svg>`
+);
+
 const LIVERIES: TaxiLivery[] = [
-  { id: 'none', name: 'Sans livrée' },
-  { id: 'stripes', name: 'Rayures Course' },
-  { id: 'checker', name: 'Damier NYC' },
+  { id: 'none',    name: 'Sans livrée',    image: TAXI_SPRITE, faceRight: true,  city: 'Standard' },
+  { id: 'stripes', name: 'Rayures Course', image: TAXI_SPRITE, faceRight: true,  city: 'Monaco' },
+  { id: 'checker', name: 'Damier NYC',     image: TAXI_SPRITE, faceRight: false, city: 'New York' },
 ];
 
 export const getAllLiveries = (): TaxiLivery[] => LIVERIES;
