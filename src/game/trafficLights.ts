@@ -48,7 +48,7 @@ export function computeTrafficLights(
     const p = paths[i];
     const l = lens[i] ?? 0;
     if (!p || l <= 0) continue;
-    if (i === 1) continue; // village skip
+    // (toutes les routes participent aux feux désormais)
     const n = Math.floor(l / SAMPLE);
     for (let k = 0; k <= n; k++) {
       const s = (k / n) * l;

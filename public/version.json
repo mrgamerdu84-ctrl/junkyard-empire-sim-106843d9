@@ -1,6 +1,6 @@
 {
-  "version": "1.0.4",
-  "buildId": "2026-06-24T15:00:00.000Z",
-  "builtAt": 1782314400000,
-  "changelog": "Étape 4 : cambriolages + réponses police/pompiers/ambulance depuis les QG avec zones de blocage"
+  "version": "1.0.5",
+  "buildId": "2026-06-24T15:30:00.000Z",
+  "builtAt": 1782316200000,
+  "changelog": "Nouvelle carte de ville (4 ronds-points) — routes, QG d'urgence et hotspots recalibrés"
 }

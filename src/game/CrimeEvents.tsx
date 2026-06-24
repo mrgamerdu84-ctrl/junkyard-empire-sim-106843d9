@@ -44,16 +44,17 @@ const KIND_META: Record<CrimeKind, { icon: string; color: string; label: string;
   fire:     { icon: "🔥", color: "#dc2626", label: "Incendie",       category: "firetruck" },
 };
 
-// Zones plausibles pour faire apparaître des incidents (évite l'eau / vide).
+// Zones plausibles pour faire apparaître des incidents — calées sur le
+// nouveau réseau (4 ronds-points + boulevards horizontaux).
 const HOTSPOTS: { x: number; y: number; isolated?: boolean }[] = [
-  { x: 420,  y: 340 },
-  { x: 780,  y: 520, isolated: true },
-  { x: 1140, y: 280 },
-  { x: 1520, y: 620 },
-  { x: 940,  y: 760, isolated: true },
-  { x: 620,  y: 880 },
-  { x: 1350, y: 880 },
-  { x: 320,  y: 700, isolated: true },
+  { x: 445,  y: 280 },              // RP haut-gauche
+  { x: 1330, y: 280 },              // RP haut-droit
+  { x: 1410, y: 870 },              // RP bas-droit
+  { x: 370,  y: 880 },              // RP bas-gauche
+  { x: 880,  y: 270, isolated: true }, // milieu avenue nord
+  { x: 880,  y: 770 },              // boulevard central devant dépôt
+  { x: 1380, y: 580, isolated: true }, // avenue est
+  { x: 400,  y: 580, isolated: true }, // avenue ouest
 ];
 
 let nextId = 1;

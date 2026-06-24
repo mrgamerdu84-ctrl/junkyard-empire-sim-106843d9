@@ -27,9 +27,9 @@ type Station = {
 };
 
 const STATIONS: Station[] = [
-  { id: "patrol-police",    category: "police",    x: 360,  y: 760, sprite: GAME_ASSETS["police.car"],          minGap: 45000, maxGap: 90000 },
-  { id: "patrol-firetruck", category: "firetruck", x: 1460, y: 220, sprite: GAME_ASSETS["emergency.firetruck"], minGap: 60000, maxGap: 120000 },
-  { id: "patrol-ambulance", category: "ambulance", x: 1100, y: 880, sprite: GAME_ASSETS["emergency.ambulance"], minGap: 55000, maxGap: 110000 },
+  { id: "patrol-police",    category: "police",    x: 250,  y: 950, sprite: GAME_ASSETS["police.car"],          minGap: 45000, maxGap: 90000 },
+  { id: "patrol-firetruck", category: "firetruck", x: 1500, y: 180, sprite: GAME_ASSETS["emergency.firetruck"], minGap: 60000, maxGap: 120000 },
+  { id: "patrol-ambulance", category: "ambulance", x: 1670, y: 950, sprite: GAME_ASSETS["emergency.ambulance"], minGap: 55000, maxGap: 110000 },
 ];
 
 type Patrol = {
