@@ -19,9 +19,9 @@ type Category = "police" | "firetruck" | "ambulance";
 type HQ = { category: Category; x: number; y: number; sprite: string };
 
 const HQS: HQ[] = [
-  { category: "police",    x: 360,  y: 760, sprite: GAME_ASSETS["police.car"] },
-  { category: "firetruck", x: 1460, y: 220, sprite: GAME_ASSETS["emergency.firetruck"] },
-  { category: "ambulance", x: 1100, y: 880, sprite: GAME_ASSETS["emergency.ambulance"] },
+  { category: "police",    x: 250,  y: 950, sprite: GAME_ASSETS["police.car"] },
+  { category: "firetruck", x: 1500, y: 180, sprite: GAME_ASSETS["emergency.firetruck"] },
+  { category: "ambulance", x: 1670, y: 950, sprite: GAME_ASSETS["emergency.ambulance"] },
 ];
 
 type Response = {

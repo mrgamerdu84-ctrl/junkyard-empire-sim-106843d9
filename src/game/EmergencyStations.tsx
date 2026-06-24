@@ -20,7 +20,7 @@ const STATIONS = [
     icon: "🚓",
     color: "#3b82f6",
     category: "police" as const,
-    x: 360, y: 760,
+    x: 250, y: 950,
     sprite: GAME_ASSETS["police.car"],
   },
   {
@@ -29,7 +29,7 @@ const STATIONS = [
     icon: "🚒",
     color: "#ef4444",
     category: "firetruck" as const,
-    x: 1460, y: 220,
+    x: 1500, y: 180,
     sprite: GAME_ASSETS["emergency.firetruck"],
   },
   {
@@ -38,7 +38,7 @@ const STATIONS = [
     icon: "🚑",
     color: "#22c55e",
     category: "ambulance" as const,
-    x: 1100, y: 880,
+    x: 1670, y: 950,
     sprite: GAME_ASSETS["emergency.ambulance"],
   },
 ];
