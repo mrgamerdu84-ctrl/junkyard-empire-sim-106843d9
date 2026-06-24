@@ -374,11 +374,12 @@ const TRAFFIC_CATEGORIES: CustomVehicleCategory[] = [
   "civil", "service",
 ];
 
-function buildCarsFromCustom(count?: number): CarSpec[] {
+function buildCarsFromCustom(pathCount: number, count?: number): CarSpec[] {
+  if (pathCount <= 0) return [];
   const customs = listCustomVehicles().filter(v => TRAFFIC_CATEGORIES.includes(v.category));
-  // Paths autorisés : tout sauf "village".
+  // Tous les paths disponibles sont autorisés (le réseau = le circuit du joueur).
   const allowedPaths: number[] = [];
-  for (let i = 0; i < ROADS.length; i++) if (!VILLAGE_PATHS.has(i)) allowedPaths.push(i);
+  for (let i = 0; i < pathCount; i++) allowedPaths.push(i);
 
   // Pool d'URLs disponibles : assets civils par défaut + customs roulants.
   // Permet d'avoir du trafic même sans uploads, et boucle modulo si N > pool.length.
@@ -415,6 +416,7 @@ function buildCarsFromCustom(count?: number): CarSpec[] {
   }
   return out;
 }
+
 
 
 export default function CityTraffic() {
