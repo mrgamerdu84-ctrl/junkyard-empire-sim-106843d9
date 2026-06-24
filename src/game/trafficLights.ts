@@ -37,9 +37,15 @@ function stateFor(l: TrafficLight, t: number): LightState {
 }
 
 export function computeTrafficLights(
-  paths: (SVGPathElement | null)[],
-  lens: number[],
+  _paths: (SVGPathElement | null)[],
+  _lens: number[],
 ): TrafficLight[] {
+  // Désactivé : avec la nouvelle grille de routes, les intersections sont
+  // trop nombreuses pour des feux automatiques et stoppaient les voitures
+  // partout. Trafic fluide = aucun feu auto. Les véhicules respectent
+  // seulement l'anti-collision (gap + cross-lane raycast) dans CityTraffic.
+  return [];
+
   // Échantillonne chaque path (~6px) → cherche les zones où 2+ paths se croisent
   const SAMPLE = 8;
   type Sample = { pathIdx: number; s: number; x: number; y: number };
