@@ -11,6 +11,7 @@ import {
   type TrafficLight,
 } from "./trafficLights";
 import { PARKING_ZONES, pickFreeZone } from "./parkingZones";
+import { ROADS as ROAD_WAYPOINTS, type Point } from "./mapConfig";
 
 // Dynamique : inclut les piétons custom uploadés via le panel admin.
 // Recalculé à chaque appel — les composants qui en dépendent écoutent
@@ -44,26 +45,23 @@ const LANE_HALF = 11;
  * calées sur les routes même en mobile recadré.
  * ============================================================ */
 
-// Trajectoires recalibrées sur citymap-v3.jpg (1920×1071) :
-// 4 ronds-points aux coins + 2 axes traversants devant le dépôt central.
-// Coordonnées dans le viewBox 1920×1080 (preserveAspectRatio="xMidYMid meet").
-//   - RP haut-gauche  ≈ (445, 280)
-//   - RP haut-droit   ≈ (1330, 280)
-//   - RP bas-droit    ≈ (1410, 870)
-//   - RP bas-gauche   ≈ (370, 880)
-export const ROADS = [
-  // 0 — Avenue NORD : bord gauche → RP HG → RP HD → bord droit
-  "M 20 268 L 200 270 L 445 278 L 880 268 L 1330 278 L 1620 272 L 1900 280",
-  // 1 — Avenue EST : RP HD ↓ RP BD
-  "M 1330 278 L 1352 460 L 1378 660 L 1410 870",
-  // 2 — Avenue SUD : bord droit → RP BD → RP BG → bord gauche
-  "M 1900 892 L 1620 886 L 1410 870 L 880 884 L 370 880 L 180 890 L 20 900",
-  // 3 — Avenue OUEST : RP BG ↑ RP HG
-  "M 370 880 L 388 680 L 415 460 L 445 278",
-  // 4 — Boulevard CENTRAL (devant le dépôt) : bord gauche → bord droit
-  "M 20 770 L 280 768 L 700 772 L 1180 770 L 1500 768 L 1900 774",
-  // 5 — Rocade SUD-INTERNE (entre dépôt et RP bas) : élargit le réseau
-  "M 60 950 L 320 952 L 700 948 L 1100 950 L 1480 946 L 1860 944",
+// Trajectoires construites depuis src/game/mapConfig.ts (source unique de
+// vérité, calibrée sur citymap-v3.jpg via la grille de debug). Chaque path
+// SVG est généré à partir des waypoints { x, y } ; l'ordre est figé pour
+// préserver les index utilisés ailleurs (pathIdx).
+const toSvgPath = (pts: Point[]): string =>
+  pts.map((p, i) => `${i === 0 ? "M" : "L"} ${p.x} ${p.y}`).join(" ");
+
+// Ordre stable :
+//   0 — diagonalLeft    (bord HG → RP HG → RP BG → bord BG)
+//   1 — diagonalRight   (bord HD → RP HD → RP BD → bord BD)
+//   2 — horizontalBas   (RP BG → centre-bas → RP BD)
+//   3 — horizontalHaut  (RP HG → centre-haut → RP HD)
+export const ROADS: string[] = [
+  toSvgPath(ROAD_WAYPOINTS.diagonalLeft),
+  toSvgPath(ROAD_WAYPOINTS.diagonalRight),
+  toSvgPath(ROAD_WAYPOINTS.horizontalBas),
+  toSvgPath(ROAD_WAYPOINTS.horizontalHaut),
 ];
 
 type VehicleKind = VehicleSvgKind;
