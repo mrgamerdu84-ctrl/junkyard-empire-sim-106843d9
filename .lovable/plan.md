@@ -1,60 +1,51 @@
-# Refonte visuelle du QG — 3 paliers stylés, zéro carré moche
+## Refonte complète de la map et du QG
 
-## Objectif
-Remplacer le rendu actuel du QG (`Depot` dans `src/game/TaxiTycoon.tsx`, lignes ~319-405) qui affiche une dalle béton rectangulaire grise très visible, par un vrai bâtiment 2D vue de dessus/3/4 qui évolue en 3 paliers selon le niveau total des upgrades (`capLvl + revLvl + prodLvl`).
+### 1. Grande map 2D avec caméra zoomable
+- Remplacer le fond SVG actuel de `TaxiTycoon.tsx` par une vraie grande carte (4000×4000) avec texture bitume (pattern SVG hachuré gris foncé + grain), bandes blanches centrales, passages piétons, trottoirs en béton clair, espaces verts (parcs arborés).
+- Quartiers définis par zones :
+  - **Centre (toujours débloqué)** : QG + rues principales
+  - **Quartier Est (niveau 2+)** : pompe à essence stylée
+  - **Quartier Ouest (niveau 3+)** : radars + commissariat
+  - **Quartier Nord (niveau 4+)** : zone fourgons blindés
+- Zones verrouillées : overlay sombre + cadenas + texte "Niveau X requis", non franchissables par le taxi joueur.
+- **Caméra avec zoom** : hook `useMapCamera` gérant `scale` (0.5 → 2.5) et `translate`. Support :
+  - Molette souris (`wheel` → zoom centré sur curseur)
+  - Pinch tactile (2 doigts, distance entre touches)
+  - Pan via drag (souris/1 doigt)
+  - Suivi automatique du taxi joueur (recadrage doux quand le taxi sort d'une marge)
+- Application via `transform: translate() scale()` sur le conteneur SVG.
 
-Aucune dalle rectangulaire pleine en fond. Le bâtiment et son parvis s'intègrent au bitume/herbe de la map via des bords irréguliers (asphalte avec coins coupés, micro-texture) et une ombre douce elliptique — pas de `rect` plein qui découpe le décor.
+### 2. IA des rivaux (taxis Verts & Rouges)
+- Nouveau fichier `src/game/RivalAI.ts` :
+  - 2 compagnies : `GREEN_CO` (apparaît niveau 2), `RED_CO` (niveau 3)
+  - Chaque rival : `{ id, color, x, y, targetClientId, speed, capturedToday }`
+  - Boucle IA dans `gameLoop` : à chaque tick, chaque rival cherche le client libre le plus proche, fonce dessus en ligne droite (pathing simple évitant les zones vertes), et le "vole" s'il l'atteint avant le joueur.
+  - Réduction de gains du joueur : un client volé n'apparaît plus dans sa file.
+- Rendu : SVG `<g>` distinct par rival avec carrosserie verte (#10b981) ou rouge (#dc2626), gyrophare animé, plaque "GREEN" / "RED".
+- Spawn : 1 rival vert au niveau 2, +1 vert au niveau 4 ; 1 rouge au niveau 3, +1 rouge au niveau 5.
 
-## Les 3 paliers
+### 3. Évolution visuelle du QG (3 paliers réels)
+Le composant `Depot` actuel n'a pas les 3 tiers détaillés demandés. Le réécrire intégralement avec :
+- **Tier 1 (Hangar abandonné, `upgradeTotal < 3`)** : silhouette de hangar industriel à toit en bac acier rouillé, mur de tôle ondulée délavée (pattern SVG), porte de garage enroulable cabossée mi-baissée, tags graffitis (3 splashs colorés), enseigne néon "TA_I" qui clignote (lettre éteinte), gouttière cassée, herbes folles à la base.
+- **Tier 2 (Garage rénové, `3 ≤ upgradeTotal < 8`)** : façade beige propre repeinte, porte sectionnelle blanche neuve, enseigne lumineuse stable "MY TAXI WORLD" avec halo doré, barrières chromées délimitant 4 places de parking marquées au sol nettes, panneaux solaires sur le toit, lampadaires.
+- **Tier 3 (Empire moderne, `upgradeTotal ≥ 8`)** : bâtiment plus grand avec façade anthracite, grandes baies vitrées teintées (dégradé bleu nuit reflets), auvent moderne en porte-à-faux au-dessus de l'entrée taxis avec spots LED, logo "MY TAXI WORLD" rétroéclairé sur l'auvent, grand parvis goudronné avec marquages au sol blancs nets (6+ places), bandes LED architecturales bleues, totem vertical "TAXI" lumineux.
+- **Intégration map** : suppression de tout `rect` plein-écran derrière le QG. Le bâtiment se pose sur un parvis octogonal en asphalte qui se fond dans la texture de route — aucun cadre carré visible. Ombre portée elliptique douce sous le bâtiment.
 
-**Palier 1 — QG Abandonné** (`total < 3`)
-- Hangar industriel vieux : murs en bardage métallique délavé (gris-beige) avec traînées de rouille
-- Porte de garage enroulable visible avec rainures horizontales, peinture écaillée
-- Petite enseigne lumineuse rectangulaire au-dessus de la porte « TAXI » à moitié éteinte (lettres `TA_I` clignotantes la nuit, tube néon cassé)
-- 2-3 tags graffitis discrets (formes SVG stylisées, pas du texte lisible) sur le mur latéral
-- Toit plat en tôle ondulée avec une cheminée d'aération rouillée
-- Quelques places de parking au sol mais marquages effacés (peinture jaune fanée, traits brisés)
-- Halo lumineux nocturne faible et vacillant
+### 4. Conservation gameplay (inchangé)
+- Tutoriel vétéran : intact
+- Police circulante : intacte
+- Radars : intacts (déplacés dans le quartier Ouest)
+- Braquages fourgons blindés : intacts (déplacés dans le quartier Nord)
 
-**Palier 2 — QG Rénové** (`total 3-7`)
-- Mêmes proportions de bâtiment mais murs repeints en beige propre + bandeau jaune taxi
-- Nouvelle porte de garage sectionnelle nette (panneaux gris anthracite avec hublots)
-- Grande enseigne lumineuse « MY TAXI WORLD » bien éclairée au-dessus de la porte (fond noir, lettres jaune vif avec halo)
-- Barrières de sécurité chromées autour du parvis (petits poteaux + chaînes ou tubes)
-- Marquages parking nets (lignes jaunes pleines, numéros lisibles)
-- Toit avec petits panneaux solaires ou skylights propres
-- Néons bord de toit allumés régulièrement la nuit
+### Fichiers modifiés / créés
+- `src/game/TaxiTycoon.tsx` — refonte map, intégration caméra, spawn rivaux, conservation gameplay
+- `src/game/Depot.tsx` (nouveau, extrait) — composant QG 3 tiers
+- `src/game/MapBackground.tsx` (nouveau) — grande carte 2D + textures + zones verrouillées
+- `src/game/RivalAI.ts` (nouveau) — logique IA rivaux
+- `src/game/useMapCamera.ts` (nouveau) — hook zoom/pan/pinch
+- `src/game/gameAssets.ts` — patterns SVG bitume/herbe/tôle
 
-**Palier 3+ — Empire du Taxi** (`total ≥ 8`)
-- Bâtiment agrandi visuellement (~+25% largeur) avec une aile vitrée moderne
-- Grandes baies vitrées teintées (dégradés bleu-noir avec reflets) sur la façade
-- Grand parking goudronné devant : asphalte noir lisse, marquages blancs/jaunes ultra-nets, places numérotées, allées de circulation marquées
-- Auvent design au-dessus de l'entrée taxis : structure en porte-à-faux jaune avec spots LED en dessous
-- Logo lumineux « MY TAXI WORLD » sur l'auvent + drapeau ou totem vertical
-- Éclairage architectural (bandes LED le long des arêtes, halos colorés au sol la nuit)
-
-## Intégration map (anti-carré)
-- Supprimer la grosse `rect` de dalle béton plein écran (ligne 335 actuelle)
-- Remplacer par un parvis d'asphalte à forme **octogonale ou avec coins arrondis variables** (un seul `path` avec coins biseautés) limité au strict nécessaire autour du bâtiment
-- Ajouter une ombre portée douce (`ellipse` floutée) au lieu d'une bordure dure
-- Bords du parvis fondus avec micro-bandes herbe/gravier autour
-- Aucun `stroke` noir épais sur le rectangle de fond
-
-## Détails techniques
-
-**Fichier modifié** : `src/game/TaxiTycoon.tsx` — fonction `Depot` uniquement (lignes 319-405). API/props inchangées (`tier, x, y, scale, rotation, capLvl, revLvl, prodLvl, night`), donc l'appel ligne 2341 reste identique.
-
-**Calcul du palier visuel** :
-```ts
-const upgradeTotal = capLvl + revLvl + prodLvl;
-const visualTier = upgradeTotal >= 8 ? 3 : upgradeTotal >= 3 ? 2 : 1;
-```
-
-**Structure SVG** par palier : un sous-composant ou un `switch (visualTier)` interne rendant 3 sous-arbres SVG distincts partageant un même footprint d'asphalte. Le nombre de places de parking visibles continue d'évoluer avec `capLvl` (4..9), l'intensité des néons avec `revLvl`, et l'éclairage entrée avec `prodLvl` — mais cette fois en s'appliquant aux éléments cohérents avec le palier (enseigne cassée P1, enseigne nette P2, auvent LED P3).
-
-**Aucun changement gameplay** : on touche uniquement au rendu SVG. Les coûts d'upgrade, capacités, multiplicateurs, logique de spawn/dépôt restent identiques.
-
-## Hors scope
-- Pas de remplacement par une image PNG (rester en SVG vectoriel pur, cohérent avec le reste du jeu)
-- Pas de modification du `RivalDepot` concurrent
-- Pas de changement de la boutique QG ni des libellés d'upgrade
+### Hors scope
+- Pas de changement DB / multiplayer
+- Pas de changement radios / pellicules
+- Pas de nouveau système d'upgrade (les niveaux QG existants pilotent le tier visuel)
