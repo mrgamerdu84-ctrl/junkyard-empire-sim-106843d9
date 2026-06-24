@@ -15,7 +15,7 @@ import RadarFlash from "@/game/RadarFlash";
 import AdminPanel from "@/game/AdminPanel";
 import RulesPanel from "@/game/RulesPanel";
 import VersionBanner from "@/game/VersionBanner";
-import HomeScreen from "@/game/HomeScreen";
+import HomeScreen from "@/game/OfficeScreen";
 import SplashScreen from "@/game/SplashScreen";
 import GameMenu from "@/game/GameMenu";
 import RadioPlayer from "@/game/RadioPlayer";
