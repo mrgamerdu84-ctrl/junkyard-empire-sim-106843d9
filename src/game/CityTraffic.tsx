@@ -661,6 +661,9 @@ export default function CityTraffic() {
     // partie des voitures pour simuler un trafic clairsemé (comme dans la vraie vie).
     let lastDensityCheck = 0;
     let activeCount = states.length;
+    // Stats debug : rotations de path par seconde (proxy du "spawn rate").
+    let lapCount = 0;
+    let lapWindowStart = performance.now();
     const step = (now: number) => {
       const dt = Math.min(0.05, (now - last) / 1000); // clamp à 50ms (onglet inactif)
       last = now;
@@ -682,7 +685,23 @@ export default function CityTraffic() {
           }
           (st as CarState & { dormant?: boolean }).dormant = dormant && !st.mission;
         }
+        // Publication des stats debug (lap rate fenêtre glissante).
+        const windowSec = Math.max(0.5, (now - lapWindowStart) / 1000);
+        const lapsPerMin = (lapCount / windowSec) * 60;
+        lapCount = 0;
+        lapWindowStart = now;
+        (window as unknown as { __jceTrafficStats?: unknown }).__jceTrafficStats = {
+          density: gt.density,
+          period: gt.period,
+          hour: gt.hour,
+          total: states.length,
+          active: activeCount,
+          ratio,
+          lapsPerMin,
+        };
       }
+
+
 
 
 
@@ -827,6 +846,7 @@ export default function CityTraffic() {
         const prev = st.s;
         st.s += st.speed * dt;
         if (st.s >= st.pathLen) {
+          lapCount++;
           const newSpec = rerollSpec(st.spec);
           st.spec = newSpec;
           st.pathLen = lens[newSpec.pathIdx];
