@@ -1,6 +1,6 @@
 {
-  "version": "1.0.7",
-  "buildId": "2026-06-24T16:15:00.000Z",
-  "builtAt": 1782318900000,
-  "changelog": "Flics en civil : contrôles parkings espacés (3-6 min entre vérifs), pauses d'observation 14-26 s + micro-pauses naturelles."
+  "version": "1.0.8",
+  "buildId": "2026-06-24T16:30:00.000Z",
+  "builtAt": 1782319800000,
+  "changelog": "Cadrage carte corrigé : image entière visible (object-fit: contain), calques véhicules/piétons alignés en xMidYMid meet — plus de voitures qui roulent sur les bâtiments."
 }
