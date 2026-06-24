@@ -1,6 +1,6 @@
 {
-  "version": "1.0.5",
-  "buildId": "2026-06-24T15:30:00.000Z",
-  "builtAt": 1782316200000,
-  "changelog": "Nouvelle carte de ville (4 ronds-points) — routes, QG d'urgence et hotspots recalibrés"
+  "version": "1.0.6",
+  "buildId": "2026-06-24T16:00:00.000Z",
+  "builtAt": 1782318000000,
+  "changelog": "Ambiance consolidée : circuits fluides sur tout le réseau (taxis + rivaux), piétons feu rouge/vert, patrouilles d'urgence rares, flics en civil espacés, braquages/cambriolages actifs — modèles de véhicules inchangés."
 }
