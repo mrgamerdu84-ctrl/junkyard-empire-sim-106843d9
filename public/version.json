@@ -1,6 +1,6 @@
 {
-  "version": "1.0.1",
-  "buildId": "2026-06-24T15:30:00.000Z",
-  "builtAt": 1782322200000,
-  "changelog": "Trafic fluide : fin des téléports en bout de route (rebond progressif)"
+  "version": "1.0.2",
+  "buildId": "2026-06-24T15:45:00.000Z",
+  "builtAt": 1782323100000,
+  "changelog": "Piétons : arrêt aux feux et traversée uniquement quand les voitures sont au rouge"
 }

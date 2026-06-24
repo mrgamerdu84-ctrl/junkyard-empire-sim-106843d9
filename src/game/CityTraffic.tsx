@@ -177,15 +177,44 @@ function PhotoPedestrians({ pathRefs }: { pathRefs: React.MutableRefObject<(SVGP
     }));
     let last = performance.now();
     let raf = 0;
+    // Distance d'anticipation : le piéton s'arrête à ~22 px du centre du
+    // carrefour, soit pile en bord de chaussée, devant le passage clouté.
+    const PED_WAIT_DIST = 22;
     const step = (now: number) => {
       const dt = Math.min(0.05, (now - last) / 1000);
       last = now;
+      const lights = getTrafficLights();
+      const t = nowSeconds();
       for (let i = 0; i < states.length; i++) {
         const st = states[i];
         const node = nodes.current[i];
         const path = pathRefs.current[st.spec.pathIdx];
         if (!path || !node) continue;
-        st.s = (st.s + st.spec.speed * dt) % st.pathLen;
+
+        // === Code de la route piéton ===
+        // Avant d'avancer, on vérifie s'il y a un feu (intersection) à
+        // moins de PED_WAIT_DIST devant nous sur ce path. Si les voitures
+        // ont vert / orange → on attend sur le trottoir ; rouge voiture
+        // → on traverse (en suivant le passage clouté = la continuité du
+        // path).
+        let mustWait = false;
+        for (const lt of lights) {
+          for (const stop of lt.stops) {
+            if (stop.pathIdx !== st.spec.pathIdx) continue;
+            let ahead = stop.s - st.s;
+            if (ahead < -10) ahead += st.pathLen;
+            if (ahead > 0 && ahead < PED_WAIT_DIST) {
+              const state = getLightState(lt, t);
+              if (state === "green" || state === "orange") mustWait = true;
+              break;
+            }
+          }
+          if (mustWait) break;
+        }
+
+        if (!mustWait) {
+          st.s = (st.s + st.spec.speed * dt) % st.pathLen;
+        }
         const p = path.getPointAtLength(st.s);
         // CULLING : hors viewport SVG (avec marge) → skip getPointAtLength d'appoint + DOM write.
         if (p.x < -200 || p.x > 2120 || p.y < -200 || p.y > 1280) continue;
