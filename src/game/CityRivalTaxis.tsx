@@ -152,7 +152,7 @@ export default function CityRivalTaxis() {
       style={{ position: "absolute", inset: 0, width: "100%", height: "100%", pointerEvents: "none", zIndex: 4 }}
     >
       <defs>
-        {ROADS.map((d, i) => (
+        {dynamicPaths.map((d, i) => (
           <path
             key={i}
             id={`jce-rival-road-${i}`}
