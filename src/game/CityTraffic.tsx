@@ -846,6 +846,7 @@ export default function CityTraffic() {
         const prev = st.s;
         st.s += st.speed * dt;
         if (st.s >= st.pathLen) {
+          lapCount++;
           const newSpec = rerollSpec(st.spec);
           st.spec = newSpec;
           st.pathLen = lens[newSpec.pathIdx];
