@@ -108,7 +108,7 @@ export function useCloudCustomizations() {
       if (snap === lastSaved.current) return;
       lastSaved.current = snap;
       try {
-        await saveCustom({ data: local });
+        await saveCustom({ data: local as never });
       } catch (e) {
         console.warn("[customizations] cloud push failed", e);
       }
