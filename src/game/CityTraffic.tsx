@@ -761,21 +761,39 @@ export default function CityTraffic() {
               if (dist > CROSS_LANE_RADIUS || dist < 1) continue;
               const dot = (rx / dist) * myWp.dx + (ry / dist) * myWp.dy;
               if (dot < CROSS_LANE_FORWARD_DOT) continue; // pas devant moi
-              // proximité : plus c'est proche, plus on freine ; en dessous de 25 px → stop
-              const stopAt = 25;
+              // proximité : plus c'est proche, plus on freine. Plancher anti-blocage
+              // pour éviter les deadlocks "après vous / non après vous" aux ronds-points.
+              const stopAt = 18;
               const k = Math.max(0, Math.min(1, (dist - stopAt) / (CROSS_LANE_RADIUS - stopAt)));
-              const ct = me.baseSpeed * k * 0.6;
+              const minCrawl = me.baseSpeed * 0.20; // toujours nudger : jamais à l'arrêt complet
+              const ct = Math.max(minCrawl, me.baseSpeed * k * 0.6);
               if (ct < target) target = ct;
             }
           }
+          // Stops réels = uniquement feux rouges (shouldStopAhead). Sinon, plancher.
+          const sigS2 = me.spec.flip ? me.pathLen - me.s : me.s;
+          const atRedLight = shouldStopAhead(me.spec.pathIdx, sigS2, !me.spec.flip, nowSeconds());
+          const effFloor = atRedLight ? 0 : me.baseSpeed * MIN_SPEED_RATIO;
+          if (target < effFloor) target = effFloor;
           const diff = target - me.speed;
           const rate = diff < 0 ? BRAKE * (target === 0 ? 2.5 : 1) : ACCEL;
           const maxStep = rate * me.baseSpeed * dt;
           me.speed += Math.max(-maxStep, Math.min(maxStep, diff));
           if (target > 0) {
-            const floor = me.baseSpeed * MIN_SPEED_RATIO;
-            if (me.speed < floor) me.speed = floor;
+            if (me.speed < effFloor) me.speed = effFloor;
           } else if (me.speed < 0) me.speed = 0;
+          // Anti-blocage : si une voiture reste sous le plancher > 3s sans feu rouge,
+          // on la déloque en lui imposant la vitesse de croisière.
+          const stMut = me as CarState & { stuckSince?: number };
+          if (!atRedLight && me.speed < me.baseSpeed * 0.08) {
+            if (stMut.stuckSince === undefined) stMut.stuckSince = now;
+            else if (now - stMut.stuckSince > 3000) {
+              me.speed = me.baseSpeed * 0.9;
+              stMut.stuckSince = undefined;
+            }
+          } else {
+            stMut.stuckSince = undefined;
+          }
         }
       }
       // Cars hors-écran : roulent à vitesse de base (pas de calcul de gap, pas de raycast).
