@@ -183,7 +183,7 @@ export default function OfficeScreen({ onPlay }: Props) {
       {panel === "profile" && (
         <div className="os-modal" onClick={() => setPanel(null)}>
           <div className="os-card" onClick={(e) => e.stopPropagation()}>
-            <ProfileCard />
+            <ProfileCard onClose={() => setPanel(null)} />
             <div className="os-row" style={{marginTop:12}}>
               <button onClick={() => setPanel(null)}>Fermer</button>
             </div>
