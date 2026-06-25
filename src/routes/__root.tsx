@@ -11,7 +11,7 @@ import { useEffect, type ReactNode } from "react";
 
 import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
-// TaxiRadio retiré du root sur demande du joueur (plus de bande radio flottante).
+import TaxiRadio from "../components/TaxiRadio";
 
 
 function NotFoundComponent() {
@@ -158,7 +158,7 @@ function RootComponent() {
     <QueryClientProvider client={queryClient}>
       {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
       <Outlet />
+      <TaxiRadio />
     </QueryClientProvider>
-
   );
 }

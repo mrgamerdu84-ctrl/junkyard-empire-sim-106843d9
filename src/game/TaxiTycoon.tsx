@@ -2665,21 +2665,12 @@ export default function TaxiTycoon() {
         </div>
 
         <div className="tt-logo-mark" aria-hidden="true">
-          <svg width="64" height="30" viewBox="0 0 64 30">
-            <defs>
-              <linearGradient id="ttCrown" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stopColor="#ffd07a" />
-                <stop offset="100%" stopColor="#e0651a" />
-              </linearGradient>
-            </defs>
-            <path d="M4 26 L12 6 L22 18 L32 3 L42 18 L52 6 L60 26 Z" fill="url(#ttCrown)" stroke="#7a2f06" strokeWidth="1.6" strokeLinejoin="round" />
-            <circle cx="12" cy="6" r="2.4" fill="#ffe7b8" stroke="#7a2f06" strokeWidth="1" />
-            <circle cx="32" cy="3" r="2.8" fill="#ff9d7a" stroke="#7a2f06" strokeWidth="1" />
-            <circle cx="52" cy="6" r="2.4" fill="#ffe7b8" stroke="#7a2f06" strokeWidth="1" />
+          <svg width="54" height="34" viewBox="0 0 54 34">
+            <path d="M4 29 L10 10 L20 19 L27 6 L34 19 L44 10 L50 29 Z" fill="none" stroke="#ffd07a" strokeWidth="2.6" strokeLinejoin="round" />
+            <circle cx="10" cy="10" r="2.2" fill="#ffd07a" /><circle cx="27" cy="6" r="2.6" fill="#ffb1a6" /><circle cx="44" cy="10" r="2.2" fill="#ffd07a" />
           </svg>
           <span>MY TAXI<br />WORLD</span>
         </div>
-
 
         {(() => {
           const offeredCount = jobs.filter((j) => j.status === "offered").length;
@@ -2796,55 +2787,32 @@ export default function TaxiTycoon() {
         <div className="tt-console">
           <div className="tt-console-actions">
             <button className="tt-wood-btn" onClick={buyTaxi} disabled={save.money < taxiBuyCost || taxiCount >= effectiveMaxTaxis}>
-              <span className="tt-wood-icon">🚕</span><b>GÉRER<br />FLOTTE</b>
+              <span className="tt-wood-icon">🚕</span><b>GÉRER<br />FLOTTE</b><small>{fmt(taxiBuyCost)}$</small>
             </button>
             <button className="tt-wood-btn" onClick={() => setShopOpen(true)}>
-              <span className="tt-wood-icon">🔧</span><b>AMÉLIORATIONS<br />QG</b>
+              <span className="tt-wood-icon">🔧</span><b>AMÉLIORATIONS<br />QG</b><small>Niv. {save.hqCapacityLvl + save.hqProductionLvl + save.hqRevenueLvl}</small>
             </button>
             <button className="tt-wood-btn" onClick={() => setMissionsOpen(true)}>
-              <span className="tt-wood-icon">📻</span><b>RADIO &<br />MISSIONS</b>
+              <span className="tt-wood-icon">📻</span><b>RADIO &<br />MISSIONS</b><small>{jobs.length} appel(s)</small>
             </button>
             <button className="tt-wood-btn" onClick={() => setShowLeaderboard(true)}>
-              <span className="tt-wood-icon">⚔️</span><b>RIVALITÉ</b>
+              <span className="tt-wood-icon">⚔️</span><b>RIVALITÉ</b><small>{rivalStolen} vol.</small>
             </button>
           </div>
           <div className="tt-director-band">
             <button className="tt-director-profile" onClick={() => setGarageOpen(true)} title="Profil directeur et livrées">
               <span className="tt-avatar-anon">?</span>
-              <span className="tt-director-info">
-                <b>[NOM DU DIRECTEUR]</b>
-                <span className="tt-progress"><span className="tt-progress-fill" style={{ width: `${Math.min(100, (taxiCount / Math.max(1, effectiveMaxTaxis)) * 100)}%` }} /></span>
-                <i>QG NIVEAU {save.depotTier + 1} ({effectiveMaxTaxis} Capacité)</i>
-              </span>
+              <span><b>[NOM DU DIRECTEUR]</b><i>QG NIVEAU {save.depotTier + 1} ({effectiveMaxTaxis} Capacité)</i></span>
             </button>
-            <button className="tt-trophy" onClick={() => setShowLeaderboard(true)} title="Classement mondial">
-              <span className="tt-trophy-ico">🏆</span>
-              <small>CLASSEMENT<br />MONDIAL</small>
-            </button>
-            <button className="tt-book" onClick={() => setShowTutorial(true)} title="Contrats et manuels">
-              <span className="tt-book-label">TUTO</span>
-              <small>CONTRATS<br />& MANUELS</small>
-            </button>
-          </div>
-          <div className="tt-director-foot">
-            <span className="tt-foot-left">PROFIL<br/>DIRECTEUR</span>
-            <span className="tt-foot-center">PSEUDO ──── <span className="tt-pen-ico">✒</span></span>
-            <span className="tt-foot-right">CONTRATS<br/>&amp; MANUELS</span>
+            <button className="tt-trophy" onClick={() => setShowLeaderboard(true)} title="Classement mondial">🏆<small>CLASSEMENT<br />MONDIAL</small></button>
+            <button className="tt-book" onClick={() => setShowTutorial(true)} title="Contrats et manuels">TUTO<small>CONTRATS<br />& MANUELS</small></button>
           </div>
           <div className="tt-lower-tools">
-            <button className="tt-apk" onClick={() => navigate({ to: "/download" })}>
-              <span className="tt-apk-ico">🤖</span>
-              <span>TÉLÉCHARGER<br />L'APK</span>
-            </button>
-            <button className="tt-slot" onClick={repairTaxis} disabled={wearNow <= 0 || save.money < maintenanceCost} title="Entretien flotte">
-              <span className="tt-slot-spark">✦</span>
-            </button>
-            <button className="tt-diamond" onClick={triggerSpecialMission} disabled={nowTick < specialCooldownUntil} title="Mission spéciale">
-              <span>✦</span>
-            </button>
+            <button className="tt-apk" onClick={() => navigate({ to: "/download" })}>🤖 TÉLÉCHARGER<br />L'APK</button>
+            <button className="tt-pen" onClick={repairTaxis} disabled={wearNow <= 0 || save.money < maintenanceCost}>✒️</button>
+            <button className="tt-special-inline" onClick={triggerSpecialMission} disabled={nowTick < specialCooldownUntil}>👑 MISSION</button>
           </div>
         </div>
-
 
 
         {/* === Modal Boutique QG === */}
@@ -2944,11 +2912,10 @@ export default function TaxiTycoon() {
       <style>{`
         .tt-hud {
           position: fixed; inset: 0; z-index: 9000;
-          font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", "Twemoji Mozilla", sans-serif;
+          font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
           color: #fff; pointer-events: none;
         }
         .tt-hud button { font-family: inherit; pointer-events: auto; touch-action: manipulation; -webkit-tap-highlight-color: transparent; }
-
         .tt-topbar {
           position: absolute; top: max(8px, env(safe-area-inset-top)); left: 8px; right: 8px; height: 44px;
           display: grid; grid-template-columns: 48px 1fr minmax(118px, 156px) 48px; gap: 8px; align-items: center;
@@ -2986,87 +2953,40 @@ export default function TaxiTycoon() {
         .tt-info-card i { width: 10px; height: 10px; border-radius: 50%; background: #2ed47a; box-shadow: 0 0 10px #2ed47a; display: inline-block; }
         .tt-info-card small { font-size: 13px; color: #aeb4bd; font-weight: 800; }
         .tt-logo-mark {
-          position: absolute; top: max(70px, calc(env(safe-area-inset-top) + 70px)); left: 50%; transform: translateX(-50%);
-          text-align: center; color: #fff; text-shadow: 0 2px 4px rgba(0,0,0,0.9), 0 0 6px rgba(255,150,60,0.4);
-          font-weight: 900; font-size: 13px; line-height: 1; letter-spacing: 1.2px; pointer-events: none;
-          font-family: "Impact", "Arial Narrow", sans-serif;
+          position: absolute; top: max(84px, calc(env(safe-area-inset-top) + 84px)); left: 50%; transform: translateX(-50%);
+          text-align: center; color: #9fe6ff; text-shadow: 0 0 8px rgba(56,189,248,0.75), 0 2px 4px rgba(0,0,0,0.9);
+          font-weight: 300; font-size: 20px; line-height: 0.9; letter-spacing: 1px; pointer-events: none;
         }
-        .tt-logo-mark svg { display: block; margin: 0 auto 2px; filter: drop-shadow(0 2px 3px rgba(0,0,0,0.7)); }
+        .tt-logo-mark svg { display: block; margin: 0 auto -1px; filter: drop-shadow(0 0 5px rgba(255,177,118,0.65)); }
         .tt-mission-wood {
-          position: absolute; top: max(76px, calc(env(safe-area-inset-top) + 76px)); right: 10px; height: 50px; min-width: 150px;
-          border-radius: 26px; color: #f7d7aa; display: flex; align-items: center; justify-content: center; gap: 10px;
-          font-weight: 900; font-size: 18px; text-shadow: 0 2px 1px rgba(0,0,0,0.7);
+          position: absolute; top: max(76px, calc(env(safe-area-inset-top) + 76px)); right: 10px; height: 54px; min-width: 150px;
+          border-radius: 28px; color: #f7d7aa; display: flex; align-items: center; justify-content: center; gap: 10px;
+          font-weight: 950; font-size: 20px; text-shadow: 0 2px 1px rgba(0,0,0,0.7);
         }
-        .tt-mission-wood .tt-clip { font-size: 18px; }
         .tt-mission-wood b { min-width: 24px; height: 24px; border-radius: 50%; background: #d8463c; color: #ffd7d1; display: grid; place-items: center; font-size: 14px; box-shadow: inset 0 1px 0 rgba(255,255,255,0.25); }
         .tt-console {
-          position: absolute; left: 0; right: 0; bottom: 0; padding: 10px 12px max(10px, env(safe-area-inset-bottom));
-          background: linear-gradient(180deg, #5a4030 0%, #3a2418 100%);
-          border-top: 3px solid #1a0c08; pointer-events: auto; box-shadow: 0 -10px 24px rgba(0,0,0,0.6);
+          position: absolute; left: 0; right: 0; bottom: 0; padding: 8px 10px max(8px, env(safe-area-inset-bottom));
+          background: linear-gradient(180deg, rgba(63,68,76,0.96), rgba(34,35,38,0.98) 12%, #3b2115 13%, #2b150c 72%, #343941 73%, #1d2026 100%);
+          border-top: 3px solid rgba(22,12,8,0.9); pointer-events: auto; box-shadow: 0 -8px 20px rgba(0,0,0,0.55);
         }
-        .tt-console-actions { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; margin-bottom: 8px; }
-        .tt-wood-btn { min-height: 86px; border-radius: 10px; color: #fff; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; padding: 6px 2px; text-align: center; }
+        .tt-console-actions { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; margin-bottom: 10px; }
+        .tt-wood-btn { min-height: 80px; border-radius: 8px; color: #f6d4aa; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; padding: 4px; text-align: center; }
         .tt-wood-btn:disabled { opacity: 0.55; filter: grayscale(0.4); }
-        .tt-wood-icon { font-size: 30px; line-height: 1; filter: drop-shadow(0 2px 2px rgba(0,0,0,0.8)); }
-        .tt-wood-btn b { font-size: 11px; line-height: 1.1; letter-spacing: 0.3px; text-shadow: 0 2px 1px rgba(0,0,0,0.9); font-weight: 900; }
-        .tt-director-band {
-          border-radius: 10px; padding: 8px; display: grid; grid-template-columns: minmax(0, 1fr) 80px 84px; gap: 10px; align-items: stretch;
-          background: linear-gradient(180deg, #8a4d2f, #5b2d1c);
-          border: 2px solid #2a140b; box-shadow: inset 0 2px 0 rgba(255,220,170,0.2);
-        }
-        .tt-director-profile {
-          background: linear-gradient(180deg, #d8a974, #a87344);
-          border: 2px solid #2a140b; border-radius: 10px; min-height: 70px;
-          color: #2a140b; display: flex; gap: 10px; align-items: center; padding: 6px 8px; text-align: left;
-          box-shadow: inset 0 2px 0 rgba(255,240,210,0.5);
-        }
-        .tt-avatar-anon { width: 44px; height: 44px; border-radius: 50%; background: linear-gradient(180deg,#e8d7bd,#8b7867); color: #3a2a1a; display: grid; place-items: center; font-size: 24px; font-weight: 900; border: 3px solid #2a140b; flex: 0 0 auto; }
-        .tt-director-info { display: flex; flex-direction: column; gap: 3px; min-width: 0; flex: 1; }
-        .tt-director-info b { display: block; font-size: 12px; line-height: 1; color: #2a140b; font-weight: 900; letter-spacing: 0.2px; }
-        .tt-director-info i { display: block; font-size: 10px; color: #2a140b; font-style: normal; font-weight: 700; }
-        .tt-progress { display: block; height: 8px; background: rgba(0,0,0,0.45); border-radius: 5px; border: 1px solid #2a140b; overflow: hidden; }
-        .tt-progress-fill { display: block; height: 100%; background: linear-gradient(180deg, #6ee7a8, #16a34a); box-shadow: 0 0 6px rgba(52,211,153,0.6); }
-        .tt-trophy { background: transparent; border: 0; color: #f1c996; font-weight: 900; text-align: center; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; text-shadow: 0 2px 2px #000; padding: 0; }
-        .tt-trophy-ico { font-size: 40px; line-height: 1; filter: drop-shadow(0 2px 3px rgba(0,0,0,0.7)); }
-        .tt-trophy small { font-size: 10px; line-height: 1.1; color: #ffe2b8; font-weight: 800; }
-        .tt-book {
-          background: linear-gradient(135deg, #b87340 0%, #8b4a25 50%, #6b3418 100%);
-          border: 2px solid #2a140b; border-radius: 8px; color: #fff8e8; font-weight: 900;
-          display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px;
-          min-height: 70px; padding: 4px; box-shadow: inset 0 2px 0 rgba(255,220,170,0.3), inset -3px 0 0 rgba(0,0,0,0.25);
-        }
-        .tt-book-label { font-size: 18px; letter-spacing: 1px; text-shadow: 0 2px 1px rgba(0,0,0,0.6); }
-        .tt-book small { font-size: 10px; line-height: 1.1; color: #ffe2b8; font-weight: 800; }
-        .tt-director-foot { display: grid; grid-template-columns: 1fr auto 1fr; gap: 8px; align-items: center; margin-top: 6px; padding: 0 6px; color: #d8a55c; font-size: 9px; font-weight: 800; letter-spacing: 0.5px; }
-        .tt-director-foot .tt-foot-left { text-align: left; }
-        .tt-director-foot .tt-foot-right { text-align: right; }
-        .tt-director-foot .tt-foot-center { color: #e6c39b; font-size: 10px; display: inline-flex; align-items: center; gap: 6px; }
-        .tt-pen-ico { color: #ffd28a; font-size: 18px; transform: rotate(-15deg); display: inline-block; }
-        .tt-lower-tools { display: grid; grid-template-columns: 1.4fr 1fr 50px; gap: 10px; align-items: center; margin-top: 10px; }
-        .tt-apk {
-          border-radius: 26px; min-height: 48px; color: #fff; font-size: 13px; line-height: 1.05; font-weight: 900;
-          background: linear-gradient(180deg, #2a2a2a, #0d0d0d); border: 2px solid #000;
-          display: flex; align-items: center; justify-content: center; gap: 8px;
-          box-shadow: inset 0 1px 0 rgba(255,255,255,0.1), 0 4px 0 #000;
-        }
-        .tt-apk-ico { font-size: 22px; color: #a4c639; }
-        .tt-slot {
-          border-radius: 26px; min-height: 48px;
-          background: linear-gradient(180deg, #1a1a1a, #050505); border: 2px solid #000;
-          display: flex; align-items: center; justify-content: center;
-          box-shadow: inset 0 1px 0 rgba(255,255,255,0.08);
-        }
-        .tt-slot-spark { color: #888; font-size: 16px; opacity: 0.5; }
-        .tt-diamond {
-          width: 48px; height: 48px; border-radius: 12px; transform: rotate(45deg);
-          background: linear-gradient(135deg, #fef3c7, #f5c542 50%, #b8860b);
-          border: 2px solid #6e5108; color: #5a3a00; font-size: 22px; font-weight: 900;
-          display: flex; align-items: center; justify-content: center;
-          box-shadow: 0 4px 10px rgba(245,197,66,0.4);
-        }
-        .tt-diamond > span { transform: rotate(-45deg); display: block; }
-        .tt-diamond:disabled { opacity: 0.55; }
-
+        .tt-wood-icon { font-size: 26px; filter: drop-shadow(0 2px 2px rgba(0,0,0,0.7)); }
+        .tt-wood-btn b { font-size: 12px; line-height: 1.0; text-shadow: 0 2px 1px rgba(0,0,0,0.8); }
+        .tt-wood-btn small { font-size: 9px; color: #ffe4b7; opacity: 0.85; }
+        .tt-director-band { border-radius: 8px; padding: 8px; display: grid; grid-template-columns: minmax(0, 1fr) 86px 86px; gap: 9px; align-items: center; }
+        .tt-director-profile { background: rgba(12,8,6,0.55); border: 1px solid #9f7d53; border-radius: 8px; min-height: 62px; color: #e7c59b; display: flex; gap: 10px; align-items: center; padding: 6px; text-align: left; }
+        .tt-avatar-anon { width: 48px; height: 48px; border-radius: 50%; background: linear-gradient(180deg,#d8c6ae,#807164); color: #5b554f; display: grid; place-items: center; font-size: 28px; font-weight: 900; border: 3px solid #20150f; flex: 0 0 auto; }
+        .tt-director-profile b { display: block; font-size: 13px; line-height: 1; }
+        .tt-director-profile i { display: block; margin-top: 7px; font-size: 11px; color: #c7b398; font-style: normal; }
+        .tt-trophy, .tt-book { background: transparent; border: 0; color: #f1c996; font-weight: 950; text-align: center; font-size: 36px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; text-shadow: 0 2px 2px #000; }
+        .tt-trophy small, .tt-book small { font-size: 11px; line-height: 1.0; color: #e6c39b; }
+        .tt-book { background: linear-gradient(90deg,#5c2718,#b76a43); border: 2px solid #3c1c12; border-radius: 8px; font-size: 18px; min-height: 66px; }
+        .tt-lower-tools { display: grid; grid-template-columns: 1fr 64px 1.1fr; gap: 12px; align-items: center; margin-top: 10px; }
+        .tt-apk, .tt-special-inline { border-radius: 26px; min-height: 50px; color: #f3d2a7; font-size: 14px; line-height: 1.05; font-weight: 950; }
+        .tt-pen { border-radius: 22px; min-height: 44px; font-size: 28px; color: #e3be80; }
+        .tt-special-inline:disabled, .tt-pen:disabled { opacity: 0.55; }
 
         .tt-depot-card {
           position: absolute; top: 56px; left: 50%; transform: translateX(-50%);
