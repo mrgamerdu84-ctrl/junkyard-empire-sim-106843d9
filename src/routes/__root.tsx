@@ -11,7 +11,7 @@ import { useEffect, type ReactNode } from "react";
 
 import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
-import TaxiRadio from "../components/TaxiRadio";
+// TaxiRadio retiré du root sur demande du joueur (plus de bande radio flottante).
 
 
 function NotFoundComponent() {
