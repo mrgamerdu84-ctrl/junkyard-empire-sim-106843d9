@@ -2665,12 +2665,21 @@ export default function TaxiTycoon() {
         </div>
 
         <div className="tt-logo-mark" aria-hidden="true">
-          <svg width="54" height="34" viewBox="0 0 54 34">
-            <path d="M4 29 L10 10 L20 19 L27 6 L34 19 L44 10 L50 29 Z" fill="none" stroke="#ffd07a" strokeWidth="2.6" strokeLinejoin="round" />
-            <circle cx="10" cy="10" r="2.2" fill="#ffd07a" /><circle cx="27" cy="6" r="2.6" fill="#ffb1a6" /><circle cx="44" cy="10" r="2.2" fill="#ffd07a" />
+          <svg width="64" height="30" viewBox="0 0 64 30">
+            <defs>
+              <linearGradient id="ttCrown" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stopColor="#ffd07a" />
+                <stop offset="100%" stopColor="#e0651a" />
+              </linearGradient>
+            </defs>
+            <path d="M4 26 L12 6 L22 18 L32 3 L42 18 L52 6 L60 26 Z" fill="url(#ttCrown)" stroke="#7a2f06" strokeWidth="1.6" strokeLinejoin="round" />
+            <circle cx="12" cy="6" r="2.4" fill="#ffe7b8" stroke="#7a2f06" strokeWidth="1" />
+            <circle cx="32" cy="3" r="2.8" fill="#ff9d7a" stroke="#7a2f06" strokeWidth="1" />
+            <circle cx="52" cy="6" r="2.4" fill="#ffe7b8" stroke="#7a2f06" strokeWidth="1" />
           </svg>
           <span>MY TAXI<br />WORLD</span>
         </div>
+
 
         {(() => {
           const offeredCount = jobs.filter((j) => j.status === "offered").length;
