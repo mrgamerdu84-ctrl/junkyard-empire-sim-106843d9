@@ -2944,10 +2944,11 @@ export default function TaxiTycoon() {
       <style>{`
         .tt-hud {
           position: fixed; inset: 0; z-index: 9000;
-          font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+          font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", "Twemoji Mozilla", sans-serif;
           color: #fff; pointer-events: none;
         }
         .tt-hud button { font-family: inherit; pointer-events: auto; touch-action: manipulation; -webkit-tap-highlight-color: transparent; }
+
         .tt-topbar {
           position: absolute; top: max(8px, env(safe-area-inset-top)); left: 8px; right: 8px; height: 44px;
           display: grid; grid-template-columns: 48px 1fr minmax(118px, 156px) 48px; gap: 8px; align-items: center;
