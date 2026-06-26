@@ -1882,6 +1882,8 @@ export default function TaxiTycoon() {
   const [pseudoOpen, setPseudoOpen] = useState(false);
   const [cityInfoOpen, setCityInfoOpen] = useState(false);
   const [personnelOpen, setPersonnelOpen] = useState(false);
+  const [companyOpen, setCompanyOpen] = useState(false);
+
 
   const auth = useAuth();
   const [pseudoDraft, setPseudoDraft] = useState("");
