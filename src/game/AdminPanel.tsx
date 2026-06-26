@@ -429,10 +429,10 @@ export default function AdminPanel() {
                   format={(v) => v.toFixed(1) + " s"} onChange={(v) => setAdmin({ rivalReactionTime: v })} />
                 <Slider label="Vitesse IA" value={cfg.rivalSpeedMult} min={0.5} max={2.5} step={0.05}
                   format={(v) => "×" + v.toFixed(2)} onChange={(v) => setAdmin({ rivalSpeedMult: v })} />
-                <Slider label="QG Rival — X" value={cfg.rivalHQX} min={0} max={1920} step={1}
-                  format={(v) => v.toFixed(0)} onChange={(v) => setAdmin({ rivalHQX: v })} />
-                <Slider label="QG Rival — Y" value={cfg.rivalHQY} min={0} max={1080} step={1}
-                  format={(v) => v.toFixed(0)} onChange={(v) => setAdmin({ rivalHQY: v })} />
+                <div className="adm-hint" style={{ marginTop: 6, color: "#cbd5e1" }}>
+                  🔒 QG rival verrouillé sur la carte.
+                </div>
+
               </>
             )}
             {tab === "concurrents" && (
