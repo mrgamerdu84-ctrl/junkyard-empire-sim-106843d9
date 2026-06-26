@@ -3292,7 +3292,7 @@ export default function TaxiTycoon() {
           display: flex; flex-direction: column; gap: 6px;
         }
         .tt-console-lcd .tt-dashboard-lcd { margin: 0; }
-        .tt-lcd-row2 { grid-template-columns: repeat(4, 1fr) !important; }
+        .tt-lcd-row2 { grid-template-columns: repeat(5, 1fr) !important; }
         .tt-lcd-mini {
           background: rgba(0,0,0,0.35); border: 1px solid rgba(255,180,60,0.18);
           border-radius: 6px; box-shadow: inset 0 0 8px rgba(0,0,0,0.6);
