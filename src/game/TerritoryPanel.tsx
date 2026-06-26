@@ -161,8 +161,71 @@ export default function TerritoryPanel() {
               marginBottom: 10, borderRadius: 12, overflow: "hidden",
               border: "1.5px solid #5a5240",
               background: "linear-gradient(180deg,#0e1118,#070910)",
+              position: "relative",
             }}>
-              <svg viewBox="0 0 1920 1080" style={{ display: "block", width: "100%", height: "auto" }}>
+              <svg
+                ref={svgRef}
+                viewBox={`${view.x} ${view.y} ${view.w} ${view.h}`}
+                style={{
+                  display: "block", width: "100%", height: "auto",
+                  touchAction: "none",
+                  cursor: pointers.current.size === 1 ? "grabbing" : "grab",
+                }}
+                onWheel={(e) => {
+                  e.preventDefault();
+                  const p = clientToSvg(e.clientX, e.clientY);
+                  zoomAt(e.deltaY < 0 ? 1.2 : 1 / 1.2, p.x, p.y);
+                }}
+                onPointerDown={(e) => {
+                  (e.target as Element).setPointerCapture?.(e.pointerId);
+                  pointers.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
+                  dragMoved.current = 0;
+                  if (pointers.current.size === 2) {
+                    const pts = Array.from(pointers.current.values());
+                    const dx = pts[0].x - pts[1].x;
+                    const dy = pts[0].y - pts[1].y;
+                    pinchStart.current = { dist: Math.hypot(dx, dy), view };
+                  }
+                }}
+                onPointerMove={(e) => {
+                  const prev = pointers.current.get(e.pointerId);
+                  if (!prev) return;
+                  pointers.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
+                  if (pointers.current.size === 1) {
+                    const svg = svgRef.current;
+                    if (!svg) return;
+                    const r = svg.getBoundingClientRect();
+                    const dx = ((e.clientX - prev.x) / r.width) * view.w;
+                    const dy = ((e.clientY - prev.y) / r.height) * view.h;
+                    dragMoved.current += Math.abs(dx) + Math.abs(dy);
+                    setView((v) => clampView({ ...v, x: v.x - dx, y: v.y - dy }));
+                  } else if (pointers.current.size === 2 && pinchStart.current) {
+                    const pts = Array.from(pointers.current.values());
+                    const dist = Math.hypot(pts[0].x - pts[1].x, pts[0].y - pts[1].y);
+                    const factor = dist / pinchStart.current.dist;
+                    const cx = (pts[0].x + pts[1].x) / 2;
+                    const cy = (pts[0].y + pts[1].y) / 2;
+                    const p = clientToSvg(cx, cy);
+                    setView(() => {
+                      const start = pinchStart.current!.view;
+                      const nw = start.w / factor;
+                      const nh = start.h / factor;
+                      const nx = p.x - (p.x - start.x) * (nw / start.w);
+                      const ny = p.y - (p.y - start.y) * (nh / start.h);
+                      return clampView({ x: nx, y: ny, w: nw, h: nh });
+                    });
+                    dragMoved.current += 999;
+                  }
+                }}
+                onPointerUp={(e) => {
+                  pointers.current.delete(e.pointerId);
+                  if (pointers.current.size < 2) pinchStart.current = null;
+                }}
+                onPointerCancel={(e) => {
+                  pointers.current.delete(e.pointerId);
+                  pinchStart.current = null;
+                }}
+              >
                 {/* trame routes */}
                 <rect x="0" y="0" width="1920" height="1080" fill="#0b0d12" />
                 {Array.from({ length: 6 }).map((_, i) => (
@@ -179,7 +242,7 @@ export default function TerritoryPanel() {
                   const stroke = isSel ? "#ffffff" : d.owned ? "#fff7a0" : "#4a5160";
                   return (
                     <g key={d.id} style={{ cursor: "pointer" }}
-                      onClick={() => focusDistrict(d.id)}>
+                      onClick={() => { if (dragMoved.current < 12) focusDistrict(d.id); }}>
                       <rect x={d.x + 10} y={d.y + 10} width={d.w - 20} height={d.h - 20}
                         rx="22" fill={fill} fillOpacity={d.owned ? 0.85 : 0.45}
                         stroke={stroke} strokeWidth={isSel ? 8 : 4} />
@@ -199,6 +262,27 @@ export default function TerritoryPanel() {
                   );
                 })}
               </svg>
+
+              {/* Boutons zoom +/− / reset */}
+              <div style={{
+                position: "absolute", top: 8, right: 8, display: "flex",
+                flexDirection: "column", gap: 4,
+              }}>
+                {[
+                  { l: "+", a: () => zoomAt(1.4, view.x + view.w / 2, view.y + view.h / 2) },
+                  { l: "−", a: () => zoomAt(1 / 1.4, view.x + view.w / 2, view.y + view.h / 2) },
+                  { l: "⟲", a: () => setView({ x: 0, y: 0, w: MAP_W, h: MAP_H }) },
+                ].map((b) => (
+                  <button key={b.l} type="button" onClick={b.a}
+                    style={{
+                      width: 30, height: 30, borderRadius: 6,
+                      border: "1.5px solid #fde047", background: "rgba(12,14,22,0.85)",
+                      color: "#fde047", fontWeight: 900, fontSize: 16, cursor: "pointer",
+                      lineHeight: 1, padding: 0,
+                    }}>{b.l}</button>
+                ))}
+              </div>
+
               <div style={{
                 display: "flex", justifyContent: "center", gap: 14, padding: "6px 0",
                 fontSize: 10, background: "rgba(0,0,0,0.5)", borderTop: "1px solid #2a2f3d",
