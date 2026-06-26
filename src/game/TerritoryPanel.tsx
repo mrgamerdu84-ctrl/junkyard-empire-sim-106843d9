@@ -129,7 +129,7 @@ export default function TerritoryPanel() {
                         {d.owned ? "★ " : ""}{d.name.toUpperCase()}
                       </div>
                       <div style={{ fontSize: 11, fontWeight: 700, color: d.owned ? "#fde047" : "#cbb98a" }}>
-                        {d.owned ? `+${BONUS_PER_DISTRICT} $/min` : `${d.count}/${THRESHOLD}`}
+                        {d.owned ? `+${fmtMoney(BONUS_PER_DISTRICT)}$/min` : `${d.count}/${THRESHOLD}`}
                       </div>
                     </div>
                     <div style={{ height: 6, borderRadius: 3, background: "rgba(255,255,255,0.12)", overflow: "hidden" }}>
