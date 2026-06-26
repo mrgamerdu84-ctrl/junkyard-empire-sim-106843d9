@@ -2445,7 +2445,7 @@ export default function TaxiTycoon() {
         {circuitInfo.pts.length >= 2 && circuitTaxisRef.current.map((ct) => {
           const p = circuitAt(ct.pos);
           return (
-            <g key={ct.id} transform={`translate(${p.x},${p.y}) rotate(${p.angle})`} filter="url(#taxi-shadow)">
+            <g key={ct.id} transform={`translate(${p.x},${p.y}) rotate(${p.angle}) scale(${vehicleScale})`} filter="url(#taxi-shadow)">
               <TaxiSprite image={currentLivery.image} faceRight={currentLivery.faceRight} paintFilter={currentPaint.filter} markerColor={currentPaint.color} withClient={false} moving={true} />
             </g>
           );
