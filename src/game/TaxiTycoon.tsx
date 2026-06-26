@@ -2292,31 +2292,41 @@ export default function TaxiTycoon() {
         })}
 
 
-        {/* Dépôt principal — grand bâtiment cingé dans le décor (cliquable pour personnaliser) */}
+        {/* Dépôt principal — bâtiment réel incrusté dans la ville (cliquable pour la boutique) */}
         {pathsReady && (() => {
-          const t = (performance.now() % 300000) / 300000;
-          const daylight = Math.max(0, Math.sin(t * Math.PI * 2 + Math.PI / 2));
-          const night = 0.1 + (1 - daylight) * 0.6;
+          const baseW = 320; // largeur visuelle au scale 1 (ratio carré image)
+          const w = baseW * admin.hqScale;
+          const h = w; // image 1024x1024
+          const cx = depotXY.x;
+          const cy = depotXY.y - 18;
           return (
             <g
               style={{ cursor: "pointer", pointerEvents: "auto" }}
               onClick={() => setShopOpen(true)}
+              transform={admin.hqRotation ? `rotate(${admin.hqRotation} ${cx} ${cy})` : undefined}
             >
-              <title>QG — Parking taxis (cliquer pour la boutique)</title>
-              <Depot
-                tier={tier}
-                x={depotXY.x}
-                y={depotXY.y - 18}
-                scale={admin.hqScale}
-                rotation={admin.hqRotation}
-                capLvl={save.hqCapacityLvl ?? 0}
-                revLvl={save.hqRevenueLvl ?? 0}
-                prodLvl={save.hqProductionLvl ?? 0}
-                night={night}
+              <title>QG — My Taxi HQ (cliquer pour la boutique)</title>
+              {/* ombre douce sous le bâtiment pour l'ancrer au sol */}
+              <ellipse cx={cx} cy={cy + h * 0.42} rx={w * 0.42} ry={h * 0.08} fill="rgba(0,0,0,0.45)" />
+              <image
+                href={PLAYER_HQ_IMG}
+                x={cx - w / 2}
+                y={cy - h / 2}
+                width={w}
+                height={h}
+                preserveAspectRatio="xMidYMid meet"
+                style={{ filter: "drop-shadow(0 6px 10px rgba(0,0,0,0.55))" }}
               />
+              {/* badge tier discret en bas */}
+              <text x={cx} y={cy + h * 0.48} textAnchor="middle" fontSize="11" fontWeight="900"
+                    fill="#fde047" stroke="#000" strokeWidth="3" paintOrder="stroke"
+                    style={{ letterSpacing: 1.5 }}>
+                {tier.name.toUpperCase()}
+              </text>
             </g>
           );
         })()}
+
 
 
 
