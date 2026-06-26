@@ -2873,9 +2873,6 @@ export default function TaxiTycoon() {
             <button className="tt-nextday-btn" onClick={() => setDayOffset((d) => d + 1)} title="Passer au lendemain">
               <span>⏭</span>
             </button>
-            <button className="tt-admin-btn" onClick={() => setShopOpen(true)} title="Admin / Réglages QG">
-              <span>⚙</span>
-            </button>
           </div>
         </div>
         )}
