@@ -849,6 +849,30 @@ export default function TaxiTycoon() {
     const baseFare = Math.round((25 + distNorm * 220) * t.fareMult * adm.clientFareMult * revBonus * tMult * districtMult);
 
     const duration = (22 + Math.min(20, baseFare / 30)) * 1000;
+
+    // 🎨 Couleur du client = couleur de la compagnie qui possède le quartier
+    // de pickup. Si neutre → couleur joueur par défaut.
+    let claimedBy: string | undefined;
+    let claimedColor: string | undefined;
+    try {
+      const pPath2 = pathRefs.current[pickupPath];
+      if (pPath2) {
+        const pt2 = pPath2.getPointAtLength(pickup);
+        const terr = (window as unknown as { __mtwTerritory?: { id: string; x: number; y: number; w: number; h: number; owner: string | null }[] }).__mtwTerritory ?? [];
+        const d = terr.find((dd) => pt2.x >= dd.x && pt2.x < dd.x + dd.w && pt2.y >= dd.y && pt2.y < dd.y + dd.h);
+        if (d && d.owner) {
+          claimedBy = d.owner;
+          if (d.owner === "player") {
+            claimedColor = currentPaint.color;
+          } else {
+            const comps = (window as unknown as { __jceCompetitors?: { id: string; color: string }[] }).__jceCompetitors ?? [];
+            const hit = comps.find((c) => c.id === d.owner);
+            claimedColor = hit?.color;
+          }
+        }
+      }
+    } catch {}
+
     return {
       id, pickupPath, pickup, dropoffPath, dropoff, fare: baseFare,
       deadline: now + duration, duration,
@@ -856,8 +880,11 @@ export default function TaxiTycoon() {
       sidePickup,
       sideDrop: Math.random() < 0.5 ? 1 : -1,
       tier,
+      claimedBy,
+      claimedColor,
     };
   };
+
 
 
   // Mesure des longueurs réelles de chaque path au montage.
@@ -1931,43 +1958,31 @@ export default function TaxiTycoon() {
         let changed = false;
         const next = js.map((j) => {
           if (j.status !== "offered") return j;
-          // Init : par défaut joueur si rien n'est revendiqué
+          // Init défaut joueur si aucun quartier ne l'a déjà revendiqué.
           if (!j.claimedBy) {
             changed = true;
             return { ...j, claimedBy: "player", claimedColor: currentPaint.color };
           }
-          // Si actuellement au joueur : 18% de chance qu'un rival vole la couleur
+          // Si revendiqué par le joueur : garde sa couleur à jour si elle change.
           if (j.claimedBy === "player") {
-            if (rivals.length && Math.random() < 0.18) {
-              const r = rivals[Math.floor(Math.random() * rivals.length)];
-              changed = true;
-              return { ...j, claimedBy: r.id, claimedColor: r.color };
-            }
-            // Garder la couleur joueur à jour si elle a changé
             if (j.claimedColor !== currentPaint.color) {
               changed = true;
               return { ...j, claimedColor: currentPaint.color };
             }
             return j;
           }
-          // Si à un rival : 22% que le joueur la reprenne, 8% qu'un autre rival la vole
-          const roll = Math.random();
-          if (roll < 0.22) {
+          // Revendiqué par un rival (= quartier rival) : la couleur reste fixe.
+          // Le joueur peut quand même cliquer pour "voler" le client.
+          const rival = rivals.find((r) => r.id === j.claimedBy);
+          if (rival && j.claimedColor !== rival.color) {
             changed = true;
-            return { ...j, claimedBy: "player", claimedColor: currentPaint.color };
-          }
-          if (roll < 0.30 && rivals.length > 1) {
-            const others = rivals.filter((r) => r.id !== j.claimedBy);
-            if (others.length) {
-              const r = others[Math.floor(Math.random() * others.length)];
-              changed = true;
-              return { ...j, claimedBy: r.id, claimedColor: r.color };
-            }
+            return { ...j, claimedColor: rival.color };
           }
           return j;
         });
         return changed ? next : js;
       });
+
     }, 4000);
     return () => window.clearInterval(t);
   }, [currentPaint.color]);
@@ -2055,8 +2070,42 @@ export default function TaxiTycoon() {
     free.transitionFromX = here.x;
     free.transitionFromY = here.y;
     free.transitionUntil = performance.now() + TRANSITION_MS;
-    setJobs((js) => js.map((j) => j.id === id ? { ...j, status: "accepted", acceptedAt: Date.now() } : j));
+    setJobs((js) => js.map((j) => j.id === id ? { ...j, status: "accepted", acceptedAt: Date.now(), claimedBy: "player", claimedColor: currentPaint.color } : j));
+
+    // 🥷 Vol en territoire adverse : si la course appartenait à un rival,
+    // on prévient ses taxis EXISTANTS qui vont tenter de rafler le client
+    // au pickup (réutilise le canal d'intervention déjà géré par CityRivalTaxis).
+    if (job.claimedBy && job.claimedBy !== "player") {
+      const pk = getSidewalk(job.pickupPath, job.pickup, job.sidePickup);
+      window.dispatchEvent(new CustomEvent("jce.intervention.request", {
+        detail: { id: job.id, x: pk.x, y: pk.y, ownerId: job.claimedBy },
+      }));
+      showToast("🥷 Tu voles un client en territoire adverse !");
+    }
   };
+
+  // 🚨 Client volé par un rival : si nos taxis n'ont pas encore pickup,
+  // on libère le taxi et on annule la course (le rival a gagné le sprint).
+  useEffect(() => {
+    const onTaken = (e: Event) => {
+      const d = (e as CustomEvent<{ missionId?: number; compId?: string }>).detail;
+      if (!d || typeof d.missionId !== "number") return;
+      const jid = d.missionId;
+      const job = jobsRef.current.find((j) => j.id === jid);
+      if (!job || job.status !== "accepted") return;
+      const taxi = taxisRef.current.find((t) => t.jobId === jid);
+      // Si le taxi a déjà pickup le client, trop tard pour les rivaux.
+      if (!taxi || taxi.mode !== "to_pickup") return;
+      taxi.jobId = null;
+      taxi.mode = "roaming";
+      setJobs((js) => js.filter((j) => j.id !== jid));
+      showToast("💢 Client volé par un rival !");
+    };
+    window.addEventListener("jce:mission-taken", onTaken as EventListener);
+    return () => window.removeEventListener("jce:mission-taken", onTaken as EventListener);
+  }, []);
+
+
 
   // === Mission spéciale joueur ===
   // Déclenchée par le bouton HUD. Injecte un client doré dans la file avec
