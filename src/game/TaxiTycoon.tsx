@@ -3294,6 +3294,49 @@ export default function TaxiTycoon() {
         .tt-lcd-tools {
           display: grid; grid-template-columns: repeat(4, 1fr); gap: 5px;
         }
+        .tt-lcd-tools-5 { grid-template-columns: 1.3fr 1fr 1fr 1fr 1fr; }
+        .tt-lcd-tool-missions { position: relative; }
+        .tt-lcd-tool-missions b { color: #ffe7a8; }
+        .tt-lcd-tool-badge {
+          position: absolute; top: 2px; right: 2px; min-width: 16px; height: 16px; padding: 0 4px;
+          border-radius: 8px; background: #dc2626; color: #fff; font-size: 9px; font-weight: 900;
+          display: grid; place-items: center; font-style: normal;
+          box-shadow: 0 0 6px rgba(220,38,38,0.7), inset 0 1px 0 rgba(255,255,255,0.3);
+        }
+
+        /* Écran radio tactile (rangée 4, sur 2 slots) */
+        .tt-lcd-keys-radio { grid-template-columns: 2fr 1fr 1fr 1fr 1fr; }
+        .tt-lcd-radio {
+          appearance: none; cursor: pointer; text-align: left;
+          background: linear-gradient(180deg, #1a1208 0%, #050302 100%);
+          border: 2px solid #4a2e08; border-radius: 8px;
+          box-shadow: inset 0 1px 0 rgba(255,180,60,0.18), inset 0 0 12px rgba(0,0,0,0.7), 0 2px 0 #000, 0 0 8px rgba(245,197,66,0.25);
+          padding: 5px 8px; min-height: 44px;
+          display: flex; flex-direction: column; justify-content: space-between; gap: 3px;
+          font-family: "Orbitron","Courier New",monospace; overflow: hidden;
+        }
+        .tt-lcd-radio-head { display: flex; align-items: center; gap: 5px; }
+        .tt-lcd-radio-dot { width: 6px; height: 6px; border-radius: 50%; background: #4b1e1e; }
+        .tt-lcd-radio-dot[data-on="1"] { background: #ff4040; box-shadow: 0 0 6px rgba(255,80,80,0.9); animation: ttRadioBlink 1.2s infinite; }
+        @keyframes ttRadioBlink { 0%,100%{opacity:1} 50%{opacity:0.4} }
+        .tt-lcd-radio-station { font-size: 9px; font-weight: 900; letter-spacing: 0.6px; color: #ffd070; text-shadow: 0 0 4px rgba(255,180,60,0.6); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .tt-lcd-radio-marquee { overflow: hidden; height: 12px; mask-image: linear-gradient(90deg, transparent 0, #000 8px, #000 calc(100% - 8px), transparent 100%); }
+        .tt-lcd-radio-track {
+          display: inline-block; white-space: nowrap; font-size: 10px; font-weight: 700;
+          color: #ffb14a; text-shadow: 0 0 3px rgba(255,140,40,0.5);
+          animation: ttRadioMarquee 14s linear infinite; padding-left: 100%;
+        }
+        @keyframes ttRadioMarquee { from { transform: translateX(0); } to { transform: translateX(-100%); } }
+        .tt-lcd-radio-controls { display: flex; align-items: center; justify-content: space-around; gap: 2px; }
+        .tt-lcd-radio-btn {
+          display: inline-grid; place-items: center; width: 22px; height: 18px; border-radius: 4px;
+          background: rgba(255,180,60,0.08); border: 1px solid #3a2208;
+          color: #ffb14a; font-size: 11px; line-height: 1; cursor: pointer; user-select: none;
+        }
+        .tt-lcd-radio-btn:active { transform: translateY(1px); background: rgba(255,180,60,0.18); }
+        .tt-lcd-radio-play { color: #ffd700; font-size: 13px; width: 26px; }
+
+
         .tt-lcd-tool {
           background: linear-gradient(180deg, #1a1410 0%, #050505 100%);
           border: 2px solid #2a1810; border-radius: 8px;
