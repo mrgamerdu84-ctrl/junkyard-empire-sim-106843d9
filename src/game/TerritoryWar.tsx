@@ -63,22 +63,23 @@ const COMPANY_COLORS: Record<string, string> = {
   red: "#ef4444", green: "#10b981", orange: "#f97316", pink: "#ec4899",
   aqua: "#0ea5e9", lime: "#84cc16",
 };
-function colorFor(owner: string | null): string {
+// Couleur live : on lit __jceCompetitors d'abord (admin peut éditer la couleur),
+// puis on retombe sur la palette statique COMPANY_COLORS.
+function colorFor(owner: string | null, live: LiveComp[]): string {
   if (!owner) return "#2a2f3d";
+  if (owner !== "player") {
+    const hit = live.find((c) => c.id === owner);
+    if (hit?.color) return hit.color;
+  }
   return COMPANY_COLORS[owner] ?? "#cbb98a";
 }
-function labelFor(owner: string | null): string {
+function labelFor(owner: string | null, live: LiveComp[]): string {
   if (!owner) return "Neutre";
   if (owner === "player") return "Toi";
+  const hit = live.find((c) => c.id === owner);
+  if (hit?.name) return hit.name.split(" ")[0];
   return owner.charAt(0).toUpperCase() + owner.slice(1);
 }
-
-function isoWeekKey(d: Date = new Date()): string {
-  const t = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
-  const dayNum = t.getUTCDay() || 7;
-  t.setUTCDate(t.getUTCDate() + 4 - dayNum);
-  const yearStart = new Date(Date.UTC(t.getUTCFullYear(), 0, 1));
-  const week = Math.ceil(((t.getTime() - yearStart.getTime()) / 86400000 + 1) / 7);
   return `${t.getUTCFullYear()}-W${String(week).padStart(2, "0")}`;
 }
 
