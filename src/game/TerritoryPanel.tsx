@@ -19,7 +19,7 @@ function read(): District[] {
   const w = window as unknown as { __mtwTerritory?: District[] };
   if (w.__mtwTerritory) return w.__mtwTerritory;
   try {
-    const raw = localStorage.getItem("mtw-territory-v1");
+    const raw = localStorage.getItem("mtw-territory-v2") || localStorage.getItem("mtw-territory-v1");
     if (raw) return JSON.parse(raw) as District[];
   } catch {}
   return [];
