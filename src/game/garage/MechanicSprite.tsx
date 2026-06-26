@@ -4,20 +4,27 @@ import { useEffect, useState } from "react";
 
 type Mode = "idle" | "wrench" | "paint" | "tires" | "weld";
 
-export default function MechanicSprite({ mode = "idle" }: { mode?: Mode }) {
+export default function MechanicSprite({
+  mode = "idle",
+  cx = 400,
+  cy = 300,
+  radius = 110,
+}: { mode?: Mode; cx?: number; cy?: number; radius?: number }) {
   const [tick, setTick] = useState(0);
   useEffect(() => {
     const id = setInterval(() => setTick(t => (t + 1) % 4), 220);
     return () => clearInterval(id);
   }, []);
 
-  // Positions autour d'un taxi centré en (200, 160)
-  const orbit = [
-    { x: 110, y: 180 },
-    { x: 290, y: 170 },
-    { x: 270, y: 110 },
-    { x: 130, y: 120 },
-  ][tick];
+  // Marche iso autour du taxi (4 positions cardinales projetées)
+  const offsets = [
+    { dx: -radius, dy: 30 },
+    { dx: radius, dy: 30 },
+    { dx: radius * 0.6, dy: -40 },
+    { dx: -radius * 0.6, dy: -40 },
+  ];
+  const o = offsets[tick];
+  const orbit = { x: cx + o.dx, y: cy + o.dy };
 
   const tool =
     mode === "paint"  ? "🎨" :
