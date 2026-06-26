@@ -4,7 +4,7 @@
 // Lit l'état exposé par TerritoryWar via window.__mtwTerritory et
 // se rafraîchit quand une course se termine ou périodiquement.
 // =============================================================
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 type District = {
   id: string; name: string;
@@ -28,6 +28,8 @@ function read(): District[] {
 export default function TerritoryPanel() {
   const [open, setOpen] = useState(false);
   const [districts, setDistricts] = useState<District[]>(read);
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const cardRefs = useRef<Record<string, HTMLDivElement | null>>({});
 
   useEffect(() => {
     const refresh = () => setDistricts(read());
@@ -42,9 +44,19 @@ export default function TerritoryPanel() {
     };
   }, []);
 
+  const focusDistrict = (id: string) => {
+    setOpen(true);
+    setSelectedId(id);
+    requestAnimationFrame(() => {
+      cardRefs.current[id]?.scrollIntoView({ behavior: "smooth", block: "center" });
+    });
+    window.setTimeout(() => setSelectedId((cur) => (cur === id ? null : cur)), 2200);
+  };
+
   const owned = districts.filter((d) => d.owned).length;
   const passive = owned * BONUS_PER_DISTRICT;
   const fmtMoney = (n: number) => n.toLocaleString("fr-FR");
+
 
 
   return (
@@ -122,21 +134,24 @@ export default function TerritoryPanel() {
                 ))}
                 {districts.map((d) => {
                   const fill = d.owned ? "#fde047" : "#2a2f3d";
-                  const stroke = d.owned ? "#fff7a0" : "#4a5160";
+                  const isSel = selectedId === d.id;
+                  const stroke = isSel ? "#ffffff" : d.owned ? "#fff7a0" : "#4a5160";
                   return (
-                    <g key={d.id}>
+                    <g key={d.id} style={{ cursor: "pointer" }}
+                      onClick={() => focusDistrict(d.id)}>
                       <rect x={d.x + 10} y={d.y + 10} width={d.w - 20} height={d.h - 20}
                         rx="22" fill={fill} fillOpacity={d.owned ? 0.85 : 0.45}
-                        stroke={stroke} strokeWidth="4" />
+                        stroke={stroke} strokeWidth={isSel ? 8 : 4} />
                       {d.owned && (
                         <text x={d.x + d.w / 2} y={d.y + d.h / 2 + 8} textAnchor="middle"
                           fontSize="40" fontWeight="900" fill="#1a1306"
-                          fontFamily="system-ui, sans-serif">🚕</text>
+                          fontFamily="system-ui, sans-serif" pointerEvents="none">🚕</text>
                       )}
                       <text x={d.x + d.w / 2} y={d.y + d.h - 30} textAnchor="middle"
                         fontSize="34" fontWeight="900"
                         fill={d.owned ? "#1a1306" : "#cbb98a"}
-                        fontFamily="system-ui, sans-serif" letterSpacing="2">
+                        fontFamily="system-ui, sans-serif" letterSpacing="2"
+                        pointerEvents="none">
                         {d.name.toUpperCase()}
                       </text>
                     </g>
@@ -167,11 +182,16 @@ export default function TerritoryPanel() {
               )}
               {districts.map((d) => {
                 const pct = d.owned ? 100 : Math.min(100, (d.count / THRESHOLD) * 100);
+                const isSel = selectedId === d.id;
                 return (
-                  <div key={d.id} style={{
-                    border: `1.5px solid ${d.owned ? "#fde047" : "#7c7361"}`,
-                    background: d.owned ? "rgba(245,197,66,0.10)" : "rgba(255,255,255,0.03)",
-                    borderRadius: 10, padding: "8px 10px",
+                  <div key={d.id}
+                    ref={(el) => { cardRefs.current[d.id] = el; }}
+                    style={{
+                      border: `${isSel ? 2.5 : 1.5}px solid ${isSel ? "#ffffff" : d.owned ? "#fde047" : "#7c7361"}`,
+                      background: d.owned ? "rgba(245,197,66,0.10)" : "rgba(255,255,255,0.03)",
+                      borderRadius: 10, padding: "8px 10px",
+                      boxShadow: isSel ? "0 0 0 3px rgba(255,255,255,0.18)" : "none",
+                      transition: "border-color 0.2s, box-shadow 0.2s",
                   }}>
                     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 4 }}>
                       <div style={{ fontWeight: 900, fontSize: 12, color: d.owned ? "#fde047" : "#fff7d6" }}>

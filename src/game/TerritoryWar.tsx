@@ -115,9 +115,8 @@ export default function TerritoryWar() {
                 x={d.x + 4} y={d.y + 4}
                 width={d.w - 8} height={d.h - 8}
                 fill={d.owned ? "rgba(245,197,66,0.16)" : "rgba(0,0,0,0)"}
-                stroke={d.owned ? "#fde047" : "rgba(253,224,71,0.25)"}
-                strokeWidth={d.owned ? 3 : 1.5}
-                strokeDasharray={d.owned ? "none" : "10 6"}
+                stroke={d.owned ? "#fde047" : "rgba(0,0,0,0)"}
+                strokeWidth={d.owned ? 3 : 0}
                 rx="14"
               />
               {/* Badge nom + progression */}
