@@ -3109,10 +3109,34 @@ export default function TaxiTycoon() {
         }
         .tt-hud button { font-family: inherit; pointer-events: auto; touch-action: manipulation; -webkit-tap-highlight-color: transparent; }
 
+        /* Cadre type téléphone autour de la zone de jeu */
+        .tt-hud { box-shadow: inset 0 0 0 6px #0a0a0c, inset 0 0 0 9px #2a2a30, inset 0 0 26px rgba(0,0,0,0.55); border-radius: 22px; }
+        .tt-hud-fs { box-shadow: none; }
+
+        /* Bandeau titre lumineux */
         .tt-topbar {
-          position: absolute; top: max(8px, env(safe-area-inset-top)); left: 8px; right: 8px; height: 44px;
-          display: grid; grid-template-columns: 44px 1fr 44px; gap: 8px; align-items: center;
+          position: absolute; top: max(8px, env(safe-area-inset-top)); left: 8px; right: 8px; height: 56px;
+          display: flex; align-items: center; justify-content: center; pointer-events: none;
         }
+        .tt-title-banner {
+          pointer-events: auto;
+          display: flex; flex-direction: column; align-items: center; justify-content: center;
+          padding: 6px 22px; border-radius: 14px;
+          background: linear-gradient(180deg, #1a1208 0%, #0a0604 100%);
+          border: 2px solid #6b4a14;
+          box-shadow: inset 0 1px 0 rgba(255,200,90,0.25), inset 0 -10px 18px rgba(0,0,0,0.55), 0 4px 12px rgba(0,0,0,0.6), 0 0 18px rgba(245,197,66,0.25);
+          font-family: "Orbitron", system-ui, sans-serif; line-height: 1;
+        }
+        .tt-title-glow {
+          font-size: 16px; font-weight: 900; letter-spacing: 2.5px;
+          color: #ffd070;
+          text-shadow: 0 0 6px rgba(255,180,60,0.85), 0 0 14px rgba(245,140,40,0.55), 0 1px 0 #2a1604;
+        }
+        .tt-title-sub {
+          margin-top: 3px; font-size: 10px; font-weight: 800; letter-spacing: 5px;
+          color: #f5c542; text-shadow: 0 0 4px rgba(245,197,66,0.7);
+        }
+
         .tt-round {
           width: 44px; height: 44px; border-radius: 50%; border: 2px solid #8f7653;
           background: radial-gradient(circle at 35% 25%, #8b5131, #3a1b12 70%); color: #f8d9a7;
