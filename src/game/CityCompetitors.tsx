@@ -93,6 +93,13 @@ export default function CityCompetitors() {
   const [playerMoney, setPlayerMoney] = useState<number>(0);
   const [bankruptToast, setBankruptToast] = useState<string | null>(null);
   const [taunt, setTaunt] = useState<{ id: number; from: string; color: string; text: string } | null>(null);
+  const fit = useMapFit();
+
+  // Position de QG fixe pour chaque concurrent (slot stable basé sur l'index)
+  const compsWithFixedHq = useMemo(() => comps.map((c, i) => {
+    const slot = FIXED_HQ_SLOTS[i % FIXED_HQ_SLOTS.length];
+    return { ...c, x: slot.x, y: slot.y };
+  }), [comps]);
 
   // Publie la liste pour les taxis rivaux qui circulent sur la map.
   useEffect(() => {
