@@ -283,7 +283,7 @@ export default function ArmoredTruck() {
       const oy = (tdx / L) * 10 * laneSign;
       const tx = p.x + ox, ty = p.y + oy;
       truckPosRef.current = { x: tx, y: ty };
-      truckRef.current?.setAttribute("transform", `translate(${tx.toFixed(2)},${ty.toFixed(2)}) rotate(${ang.toFixed(2)})`);
+      truckRef.current?.setAttribute("transform", `translate(${tx.toFixed(2)},${ty.toFixed(2)}) rotate(${ang.toFixed(2)}) scale(${getVehicleScale().toFixed(2)})`);
 
       // NB : plus aucun véhicule dessiné en dur (braqueur / flics).
       // Le visuel de poursuite est porté par les taxis du joueur et des rivaux
