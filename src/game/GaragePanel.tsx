@@ -213,8 +213,58 @@ export default function GaragePanel({ onClose }: Props) {
                 <text x="22" y="9">🎨</text>
               </g>
             </g>
+
+            {/* === Équipement acheté (rendu dans la scène) === */}
+            {eq.tireRack && (
+              <g transform="translate(20,140)">
+                <rect width="40" height="55" fill="#374151" stroke="#0b0d10" strokeWidth="1.5" rx="2" />
+                {[0, 12, 24, 36].map(y => (
+                  <g key={y} transform={`translate(6,${4 + y})`}>
+                    <circle cx="6"  cy="4" r="3.5" fill="#0b0d10" />
+                    <circle cx="16" cy="4" r="3.5" fill="#0b0d10" />
+                    <circle cx="26" cy="4" r="3.5" fill="#0b0d10" />
+                  </g>
+                ))}
+                <text x="20" y="68" textAnchor="middle" fontSize="6" fill="#fde047" fontWeight="700">PNEUS</text>
+              </g>
+            )}
+            {eq.workbench && (
+              <g transform="translate(330,160)">
+                <rect width="55" height="20" y="20" fill="#92400e" stroke="#0b0d10" strokeWidth="1.5" />
+                <rect x="2"  y="38" width="4" height="20" fill="#451a03" />
+                <rect x="49" y="38" width="4" height="20" fill="#451a03" />
+                <rect x="6"  y="14" width="10" height="6" fill="#9ca3af" />
+                <rect x="20" y="10" width="6"  height="10" fill="#9ca3af" />
+                <circle cx="40" cy="16" r="4" fill="#dc2626" />
+                <text x="27" y="68" textAnchor="middle" fontSize="6" fill="#fde047" fontWeight="700">ÉTABLI</text>
+              </g>
+            )}
+            {eq.paintBooth && (
+              <g transform="translate(110,100)">
+                <rect width="70" height="80" fill="#1e293b" stroke="#fde047" strokeWidth="1.5" rx="3" opacity="0.85" />
+                <rect x="6"  y="6"  width="58" height="40" fill="#7dd3fc" opacity="0.4" stroke="#0b0d10" strokeWidth="0.6" />
+                <text x="35" y="62" textAnchor="middle" fontSize="7" fill="#fde047" fontWeight="700">CABINE</text>
+                <text x="35" y="72" textAnchor="middle" fontSize="6" fill="#fde047">PEINTURE</text>
+              </g>
+            )}
+            {/* ponts élévateurs additionnels (1er rendu par défaut, 2e/3e via achat) */}
+            {eq.lifts >= 2 && (
+              <g transform="translate(60,265)">
+                <rect width="60" height="6" fill="#facc15" stroke="#0b0d10" strokeWidth="1" rx="1" />
+                <rect x="27" y="6" width="6" height="20" fill="#1a1d22" />
+              </g>
+            )}
+            {eq.lifts >= 3 && (
+              <g transform="translate(290,265)">
+                <rect width="60" height="6" fill="#facc15" stroke="#0b0d10" strokeWidth="1" rx="1" />
+                <rect x="27" y="6" width="6" height="20" fill="#1a1d22" />
+              </g>
+            )}
+
             {/* sol */}
             <rect x="0" y="90" width="400" height="230" fill="url(#floor)" />
+            <g visibility="hidden">{/* spacer pour rester compatible */}</g>
+            <g visibility="hidden">
             {/* pont élévateur */}
             <ellipse cx="200" cy="240" rx="120" ry="14" fill="#0b0d10" opacity="0.5" />
             <rect x="90"  y="210" width="220" height="14" rx="2" fill="#facc15" stroke="#0b0d10" strokeWidth="1.5" />
