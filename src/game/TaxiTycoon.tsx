@@ -1880,6 +1880,7 @@ export default function TaxiTycoon() {
 
   const [garageOpen, setGarageOpen] = useState(false);
   const [shopOpen, setShopOpen] = useState(false);
+  const [workshopOpen, setWorkshopOpen] = useState(false);
   const [musicOn, setMusicOn] = useState(false);
   const [missionsOpen, setMissionsOpen] = useState(false);
   const [missionsTab, setMissionsTab] = useState<"contracts" | "depot">("contracts");
