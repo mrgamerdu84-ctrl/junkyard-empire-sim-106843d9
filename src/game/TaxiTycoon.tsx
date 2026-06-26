@@ -1903,6 +1903,28 @@ export default function TaxiTycoon() {
     (window as unknown as { __jcePlayerColor?: string }).__jcePlayerColor = currentPaint.color;
   }, [currentPaint.color]);
 
+  // Publie en continu la position des taxis joueur (cible des attaques mafia).
+  useEffect(() => {
+    const w = window as unknown as {
+      __jcePlayerTaxis?: { id: number; x: number; y: number; onMission: boolean }[];
+    };
+    const iv = window.setInterval(() => {
+      const arr: { id: number; x: number; y: number; onMission: boolean }[] = [];
+      for (const t of taxisRef.current) {
+        const lane = t.lane ?? getLaneXY(t.pathIdx, t.pos, t.target >= t.pos);
+        arr.push({
+          id: t.id,
+          x: lane.x,
+          y: lane.y,
+          onMission: t.mode === "to_pickup" || t.mode === "to_dest",
+        });
+      }
+      w.__jcePlayerTaxis = arr;
+    }, 220);
+    return () => window.clearInterval(iv);
+  }, []);
+
+
   // === Vol & reprise de missions par couleur de compagnie ===
   // Chaque mission "offered" porte une couleur de compagnie ; toutes les ~4 s,
   // un rival peut "voler" la pastille d'une mission (sa couleur la remplace),
