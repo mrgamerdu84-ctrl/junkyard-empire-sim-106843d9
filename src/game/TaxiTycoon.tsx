@@ -3323,7 +3323,7 @@ export default function TaxiTycoon() {
         }
 
         /* Écran radio tactile (rangée 4, sur 2 slots) */
-        .tt-lcd-keys-radio { grid-template-columns: 2fr 1fr 1fr 1fr 1fr; }
+        .tt-lcd-keys-radio { grid-template-columns: 1.6fr 1fr 1fr 1fr 1fr 1fr; }
         .tt-lcd-radio {
           appearance: none; cursor: pointer; text-align: left;
           background: linear-gradient(180deg, #1a1208 0%, #050302 100%);
