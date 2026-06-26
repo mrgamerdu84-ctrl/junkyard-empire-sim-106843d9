@@ -177,7 +177,7 @@ function TaxiTycoonPage() {
 
       {/* HUD et panneaux hors zoom (toujours nets) */}
       <RadarFlash />
-      <TerritoryPanel />
+      
       {/* <AmbientSirens /> — désactivé sur demande joueur */}
       <AdminPanel />
       <VersionBanner />
