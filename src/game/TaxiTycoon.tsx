@@ -2813,8 +2813,8 @@ export default function TaxiTycoon() {
           </div>
         )}
         {!mapFullscreen && (
-        <div className="tt-console">
-          {/* LCD tableau de bord — style voiture */}
+        <div className="tt-console tt-console-lcd">
+          {/* Rangée 1 — JOUR · HORLOGE · TRAFIC */}
           <div className="tt-dashboard-lcd" onClick={() => setCityInfoOpen(true)} title="Ouvrir Infos Ville">
             <div className="tt-lcd-seg tt-lcd-day">
               <span className="tt-lcd-lbl">JOUR</span>
@@ -2837,68 +2837,83 @@ export default function TaxiTycoon() {
               </span>
             </div>
           </div>
-          <div className="tt-console-actions">
 
-            <button className="tt-wood-btn" onClick={() => setGarageOpen(true)}>
-              <span className="tt-wood-icon">🚕</span><b>GÉRER<br />FLOTTE</b>
+          {/* Rangée 2 — STATUS LCD */}
+          <div className="tt-dashboard-lcd tt-lcd-row2">
+            <button className="tt-lcd-seg tt-lcd-mini" onClick={() => setCityInfoOpen(true)} title="Météo">
+              <span className="tt-lcd-lbl">MÉTÉO</span>
+              <span className="tt-lcd-mini-val">{realEnv ? weatherLabelFr(realEnv.weather) : "…"}</span>
             </button>
-            <button className="tt-wood-btn" onClick={() => setShopOpen(true)}>
-              <span className="tt-wood-icon">🔧</span><b>AMÉLIORATIONS<br />QG</b>
+            <button className="tt-lcd-seg tt-lcd-mini" onClick={() => { setMissionsOpen(true); setMissionsTab("depot"); }} title="Trésorerie">
+              <span className="tt-lcd-lbl">ARGENT</span>
+              <span className="tt-lcd-mini-val tt-lcd-money">{fmt(save.money)}$</span>
             </button>
-            <button className="tt-wood-btn" onClick={() => setRadioOpen(true)}>
-              <span className="tt-wood-icon">📻</span><b>RADIO</b>
+            <button className="tt-lcd-seg tt-lcd-mini" onClick={() => setGarageOpen(true)} title="Flotte">
+              <span className="tt-lcd-lbl">FLOTTE</span>
+              <span className="tt-lcd-mini-val">{taxiCount}/{effectiveMaxTaxis}</span>
             </button>
-            <button className="tt-wood-btn" onClick={() => setShowLeaderboard(true)}>
-              <span className="tt-wood-icon">⚔️</span><b>RIVALITÉ</b>
-            </button>
-            <button className="tt-wood-btn" onClick={() => setCityInfoOpen(true)}>
-              <span className="tt-wood-icon">🌆</span><b>INFOS<br />VILLE</b>
+            <button className="tt-lcd-seg tt-lcd-mini" onClick={() => { setMissionsOpen(true); setMissionsTab("contracts"); }} title="Courses">
+              <span className="tt-lcd-lbl">COURSES</span>
+              <span className="tt-lcd-mini-val">{taxisRef.current.filter((t) => t.mode !== "idle").length}</span>
             </button>
           </div>
-          <div className="tt-director-band">
-            <button className="tt-director-profile" onClick={() => setGarageOpen(true)} title="Profil directeur et livrées">
+
+          {/* Rangée 3 — PILOTE */}
+          <div className="tt-lcd-pilot">
+            <button className="tt-pilot-photo" onClick={() => setGarageOpen(true)} title="Profil directeur">
               {(() => {
                 const src = resolveAvatarSrc(auth.avatarKind, auth.avatarUrl);
                 return src
                   ? <img className="tt-avatar-photo" src={src} alt="Chauffeur" />
                   : <span className="tt-avatar-anon">{(auth.pseudo || "?").charAt(0).toUpperCase()}</span>;
               })()}
-              <span className="tt-director-info">
-                <b>{auth.pseudo || "DIRECTEUR"}</b>
-                <span className="tt-progress"><span className="tt-progress-fill" style={{ width: `${Math.min(100, (taxiCount / Math.max(1, effectiveMaxTaxis)) * 100)}%` }} /></span>
-                <i>QG NIVEAU {save.depotTier + 1} ({effectiveMaxTaxis} Capacité)</i>
-              </span>
             </button>
-            <button className="tt-trophy" onClick={() => setShowLeaderboard(true)} title="Classement mondial">
-              <span className="tt-trophy-ico">🏆</span>
-              <small>CLASSEMENT<br />MONDIAL</small>
-            </button>
-            <button className="tt-book" onClick={() => setShowTutorial(true)} title="Contrats et manuels">
-              <span className="tt-book-label">TUTO</span>
-              <small>CONTRATS<br />& MANUELS</small>
-            </button>
-          </div>
-          <div className="tt-director-foot">
-            <button className="tt-foot-left tt-foot-btn" onClick={() => setGarageOpen(true)}>PROFIL<br/>DIRECTEUR</button>
-            <button className="tt-foot-center tt-foot-btn" onClick={() => setPseudoOpen(true)}>{auth.pseudo || "PSEUDO"} <span className="tt-pen-ico">✒</span></button>
-            <button className="tt-foot-right tt-foot-btn" onClick={() => setShowTutorial(true)}>CONTRATS<br/>&amp; MANUELS</button>
-          </div>
-          <div className="tt-lower-tools">
-            <button className="tt-apk" onClick={() => navigate({ to: "/download" })}>
-              <span className="tt-apk-ico">🤖</span>
-              <span>TÉLÉCHARGER<br />L'APK</span>
-            </button>
-            <div className="tt-slot-wrap">
-              <button className="tt-slot" onClick={repairTaxis} disabled={wearNow <= 0 || save.money < maintenanceCost} title="Entretien flotte">
-                <span className="tt-slot-spark">✦</span>
-              </button>
-              <button className="tt-admin-badge" onClick={() => window.dispatchEvent(new CustomEvent("mtw:open-admin"))} title="Admin" aria-label="Admin">⚙</button>
+            <div className="tt-pilot-info">
+              <div className="tt-pilot-name-row">
+                <b className="tt-pilot-name">{auth.pseudo || "DIRECTEUR"}</b>
+                <button className="tt-pilot-pen" onClick={() => setPseudoOpen(true)} title="Changer le pseudo">✒</button>
+              </div>
+              <span className="tt-progress"><span className="tt-progress-fill" style={{ width: `${Math.min(100, (taxiCount / Math.max(1, effectiveMaxTaxis)) * 100)}%` }} /></span>
+              <i className="tt-pilot-sub">QG NIVEAU {save.depotTier + 1} · {effectiveMaxTaxis} CAPACITÉ</i>
             </div>
-            <button className="tt-diamond" onClick={triggerSpecialMission} disabled={nowTick < specialCooldownUntil} title="Mission spéciale">
-              <span>✦</span>
-            </button>
-            {/* Admin button moved to topbar */}
+          </div>
 
+          {/* Rangée 4 — TOUCHES PRINCIPALES */}
+          <div className="tt-lcd-keys">
+            <button className="tt-lcd-key" onClick={() => setGarageOpen(true)}>
+              <span className="tt-lcd-key-ico">🚕</span><b>FLOTTE</b>
+            </button>
+            <button className="tt-lcd-key" onClick={() => setShopOpen(true)}>
+              <span className="tt-lcd-key-ico">🔧</span><b>QG</b>
+            </button>
+            <button className="tt-lcd-key" onClick={() => setRadioOpen(true)}>
+              <span className="tt-lcd-key-ico">📻</span><b>RADIO</b>
+            </button>
+            <button className="tt-lcd-key" onClick={() => setShowLeaderboard(true)}>
+              <span className="tt-lcd-key-ico">⚔️</span><b>RIVALITÉ</b>
+            </button>
+            <button className="tt-lcd-key" onClick={() => setShowLeaderboard(true)}>
+              <span className="tt-lcd-key-ico">🏆</span><b>CLASS.</b>
+            </button>
+            <button className="tt-lcd-key" onClick={() => setShowTutorial(true)}>
+              <span className="tt-lcd-key-ico">📖</span><b>TUTO</b>
+            </button>
+          </div>
+
+          {/* Rangée 5 — OUTILS */}
+          <div className="tt-lcd-tools">
+            <button className="tt-lcd-tool" onClick={repairTaxis} disabled={wearNow <= 0 || save.money < maintenanceCost} title="Entretien flotte">
+              <span className="tt-lcd-tool-ico">✦</span><b>ENTRETIEN</b>
+            </button>
+            <button className="tt-lcd-tool tt-lcd-tool-gold" onClick={triggerSpecialMission} disabled={nowTick < specialCooldownUntil} title="Mission spéciale">
+              <span className="tt-lcd-tool-ico">✦</span><b>SPÉCIAL</b>
+            </button>
+            <button className="tt-lcd-tool" onClick={() => navigate({ to: "/download" })} title="APK Android">
+              <span className="tt-lcd-tool-ico" style={{ color: "#a4c639" }}>🤖</span><b>APK</b>
+            </button>
+            <button className="tt-lcd-tool" onClick={() => window.dispatchEvent(new CustomEvent("mtw:open-admin"))} title="Admin">
+              <span className="tt-lcd-tool-ico">⚙</span><b>ADMIN</b>
+            </button>
           </div>
         </div>
         )}
@@ -3153,6 +3168,95 @@ export default function TaxiTycoon() {
           font-size: 9px; letter-spacing: 1px; font-weight: 800;
           color: rgba(255,180,60,0.6); margin-top: 2px;
         }
+
+        /* === Console unifiée style LCD === */
+        .tt-console-lcd {
+          background: linear-gradient(180deg, #1a1410 0%, #0a0605 100%);
+          border-top: 3px solid #000;
+          padding: 8px 10px max(10px, env(safe-area-inset-bottom));
+          display: flex; flex-direction: column; gap: 6px;
+        }
+        .tt-console-lcd .tt-dashboard-lcd { margin: 0; }
+        .tt-lcd-row2 { grid-template-columns: repeat(4, 1fr) !important; }
+        .tt-lcd-mini {
+          background: rgba(0,0,0,0.35); border: 1px solid rgba(255,180,60,0.18);
+          border-radius: 6px; box-shadow: inset 0 0 8px rgba(0,0,0,0.6);
+          padding: 4px 4px; cursor: pointer; font-family: "Orbitron","Courier New",monospace;
+          display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px;
+        }
+        .tt-lcd-mini:active { transform: translateY(1px); }
+        .tt-lcd-mini-val {
+          font-size: 13px; font-weight: 900; letter-spacing: 1px; line-height: 1;
+          color: #ffb14a; text-shadow: 0 0 6px rgba(255,140,40,0.7);
+          max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+        }
+        .tt-lcd-mini-val.tt-lcd-money { color: #6ee7a8; text-shadow: 0 0 6px rgba(52,211,153,0.6); }
+
+        .tt-lcd-pilot {
+          display: grid; grid-template-columns: 56px 1fr; gap: 10px; align-items: center;
+          padding: 8px 10px; border-radius: 10px;
+          background: linear-gradient(180deg, #0b1410 0%, #04090a 100%);
+          border: 2px solid #1a0c08;
+          box-shadow: inset 0 2px 6px rgba(0,0,0,0.8);
+        }
+        .tt-pilot-photo {
+          width: 56px; height: 56px; border-radius: 50%; padding: 0;
+          background: radial-gradient(circle, #2a1d14, #050505);
+          border: 3px solid #ffb14a;
+          box-shadow: 0 0 10px rgba(255,140,40,0.5), inset 0 0 6px rgba(0,0,0,0.8);
+          display: grid; place-items: center; overflow: hidden;
+        }
+        .tt-pilot-photo .tt-avatar-photo, .tt-pilot-photo .tt-avatar-anon { width: 46px; height: 46px; border: 0; }
+        .tt-pilot-info { display: flex; flex-direction: column; gap: 4px; min-width: 0; font-family: "Orbitron","Courier New",monospace; }
+        .tt-pilot-name-row { display: flex; align-items: center; gap: 8px; }
+        .tt-pilot-name {
+          font-size: 14px; font-weight: 900; letter-spacing: 1px;
+          color: #ffd07a; text-shadow: 0 0 6px rgba(255,160,50,0.7);
+          flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+        }
+        .tt-pilot-pen {
+          width: 26px; height: 26px; border-radius: 6px; padding: 0;
+          background: rgba(255,180,60,0.12); border: 1px solid rgba(255,180,60,0.4);
+          color: #ffd07a; font-size: 14px; cursor: pointer;
+        }
+        .tt-pilot-sub { font-size: 9px; letter-spacing: 1px; font-weight: 800; color: rgba(255,180,60,0.6); font-style: normal; }
+
+        .tt-lcd-keys {
+          display: grid; grid-template-columns: repeat(6, 1fr); gap: 5px;
+        }
+        .tt-lcd-key {
+          background: linear-gradient(180deg, #1a1410 0%, #050505 100%);
+          border: 2px solid #2a1810; border-radius: 8px;
+          box-shadow: inset 0 1px 0 rgba(255,180,60,0.15), 0 2px 0 #000, inset 0 0 8px rgba(0,0,0,0.6);
+          padding: 6px 2px; min-height: 58px; cursor: pointer;
+          display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px;
+          font-family: "Orbitron","Courier New",monospace;
+        }
+        .tt-lcd-key:active { transform: translateY(1px); box-shadow: inset 0 1px 0 rgba(255,180,60,0.15), 0 0 0 #000; }
+        .tt-lcd-key-ico { font-size: 20px; line-height: 1; filter: drop-shadow(0 0 3px rgba(255,140,40,0.5)); }
+        .tt-lcd-key b {
+          font-size: 9px; letter-spacing: 0.5px; font-weight: 900;
+          color: #ffb14a; text-shadow: 0 0 4px rgba(255,140,40,0.6);
+        }
+
+        .tt-lcd-tools {
+          display: grid; grid-template-columns: repeat(4, 1fr); gap: 5px;
+        }
+        .tt-lcd-tool {
+          background: linear-gradient(180deg, #1a1410 0%, #050505 100%);
+          border: 2px solid #2a1810; border-radius: 8px;
+          box-shadow: inset 0 1px 0 rgba(255,180,60,0.1), 0 2px 0 #000;
+          padding: 5px 2px; min-height: 44px; cursor: pointer;
+          display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px;
+          font-family: "Orbitron","Courier New",monospace;
+        }
+        .tt-lcd-tool:disabled { opacity: 0.4; cursor: not-allowed; }
+        .tt-lcd-tool:active:not(:disabled) { transform: translateY(1px); }
+        .tt-lcd-tool-ico { font-size: 16px; line-height: 1; color: #ffb14a; filter: drop-shadow(0 0 3px rgba(255,140,40,0.5)); }
+        .tt-lcd-tool b { font-size: 8px; letter-spacing: 0.5px; font-weight: 900; color: #ffb14a; }
+        .tt-lcd-tool-gold { border-color: #6e5108; box-shadow: inset 0 1px 0 rgba(255,220,120,0.3), 0 2px 0 #000, 0 0 8px rgba(245,197,66,0.3); }
+        .tt-lcd-tool-gold .tt-lcd-tool-ico, .tt-lcd-tool-gold b { color: #ffd700; text-shadow: 0 0 6px rgba(255,200,40,0.7); }
+
         .tt-lcd-bars { display: inline-flex; align-items: flex-end; gap: 2px; height: 18px; margin-top: 2px; }
         .tt-lcd-bar {
           display: block; width: 5px; background: rgba(255,180,60,0.12);

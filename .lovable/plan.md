@@ -1,16 +1,25 @@
-## Déplacer le bouton Admin (⚙) dans la barre d'outils du bas
+## Objectif
+Unifier tout le tableau de bord du bas dans le même style LCD ambré que la rangée JOUR/HEURE/TRAFIC, regrouper tous les boutons dedans, et nettoyer les doublons du bandeau supérieur.
 
-### Contexte
-Le bouton Admin (⚙) est actuellement dans la barre du haut (`tt-topbar-slim`). L'utilisateur le veut à côté du bouton **Mission spéciale** (`.tt-diamond`) dans la zone du bas (`tt-lower-tools`), là où se trouvent aussi le bouton noir **Entretien flotte** (`.tt-slot`).
+## Refonte console basse (`.tt-console`)
+5 rangées LCD cohérentes, fond noir mat + glow ambre + Orbitron :
 
-### Changements
-1. **Supprimer** le `<button className="tt-round tt-settings">⚙</button>` de la barre du haut.
-2. **Ajouter** un nouveau bouton Admin (⚙) dans la `<div className="tt-lower-tools">`, à côté du bouton `.tt-diamond`.
-3. **Ajuster** le CSS `grid-template-columns` de `.tt-lower-tools` pour accueillir le 4e bouton (passer de 3 à 4 colonnes).
-4. **Styliser** le nouveau bouton Admin pour qu'il soit cohérent visuellement avec les autres boutons de cette zone (format carré arrondi, fond sombre, icône blanche).
+1. **JOUR · HORLOGE · TRAFIC** — inchangée (déjà au bon style).
+2. **STATUS LCD** (nouveau) — petits écrans : MÉTÉO · ARGENT · FLOTTE x/max · COURSES EN COURS. Clic = Infos Ville / Dépôt.
+3. **PILOTE** — photo chauffeur ronde cadran chromé + pseudo + barre progression QG + niveau. Bouton ✒ change pseudo.
+4. **TOUCHES PRINCIPALES** (6 boutons style dashboard) : FLOTTE · QG · RADIO · RIVALITÉ · CLASSEMENT · TUTO.
+5. **OUTILS** (4 boutons compacts) : ENTRETIEN ✦ · MISSION SPÉCIALE ✦ · APK · ADMIN ⚙.
 
-### Fichier modifié
-- `src/game/TaxiTycoon.tsx` (JSX + CSS inline dans le fichier)
+## Nettoyage bandeau haut (`.tt-topbar`)
+Garder : `?` aide, pastille Heure·Météo·Argent, bouton Missions bois.
+Retirer : bouton Admin transparent (descend en rangée 5).
 
-### Résultat attendu
-Le bouton ⚙ n'apparaît plus en haut ; il est visible en bas, à côté du bouton Mission spéciale (✦), permettant l'accès aux réglages/QG depuis la console du bas.
+## Suppressions de doublons (bas actuel)
+- `.tt-director-band` (TUTO + CLASSEMENT) → fusionné rangées 3 et 4.
+- `.tt-director-foot` (PROFIL / PSEUDO / CONTRATS) → redondant, supprimé.
+- Badge `.tt-admin-badge` superposé sur ✦ → remplacé par vrai bouton ADMIN en rangée 5.
+
+## Fichier
+- `src/game/TaxiTycoon.tsx` : JSX de `.tt-topbar` + `.tt-console`, et bloc `<style>` correspondant (classes `.tt-lcd-*`, nouvelles `.tt-lcd-row2`, `.tt-lcd-pilot`, `.tt-lcd-key`, `.tt-lcd-tool`).
+
+Aucune logique métier modifiée — uniquement présentation et câblage des handlers existants (`setGarageOpen`, `setShopOpen`, `setRadioOpen`, `setShowLeaderboard`, `setCityInfoOpen`, `setPseudoOpen`, `setShowTutorial`, `repairTaxis`, `triggerSpecialMission`, événement admin).
