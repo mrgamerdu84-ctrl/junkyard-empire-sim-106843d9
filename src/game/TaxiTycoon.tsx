@@ -510,13 +510,14 @@ export default function TaxiTycoon() {
   const realEnv = useRealWorldEnv();
   const [showLeaderboard, setShowLeaderboard] = useState(false);
   const [showTutorial, setShowTutorial] = useState(false);
-  const [clock, setClock] = useState(() => getGameTime(undefined, realEnv?.population ?? null));
+  const [dayOffset, setDayOffset] = useState(0);
+  const [clock, setClock] = useState(() => getGameTime(undefined, realEnv?.population ?? null, 0));
   useEffect(() => {
     const pop = realEnv?.population ?? null;
-    setClock(getGameTime(undefined, pop));
-    const id = window.setInterval(() => setClock(getGameTime(undefined, pop)), 30_000);
+    setClock(getGameTime(undefined, pop, dayOffset));
+    const id = window.setInterval(() => setClock(getGameTime(undefined, pop, dayOffset)), 30_000);
     return () => window.clearInterval(id);
-  }, [realEnv?.population]);
+  }, [realEnv?.population, dayOffset]);
 
   // === Persistent state ===
   const [save, setSave] = useState<SaveData>(DEFAULT_SAVE);
@@ -2869,6 +2870,9 @@ export default function TaxiTycoon() {
             <button className="tt-diamond" onClick={triggerSpecialMission} disabled={nowTick < specialCooldownUntil} title="Mission spéciale">
               <span>✦</span>
             </button>
+            <button className="tt-nextday-btn" onClick={() => setDayOffset((d) => d + 1)} title="Passer au lendemain">
+              <span>⏭</span>
+            </button>
             <button className="tt-admin-btn" onClick={() => setShopOpen(true)} title="Admin / Réglages QG">
               <span>⚙</span>
             </button>
@@ -3157,7 +3161,7 @@ export default function TaxiTycoon() {
         .tt-pseudo-actions button { padding: 8px 14px; border-radius: 8px; border: 2px solid #374151; background: #1f2937; color: #d1d5db; font-weight: 800; cursor: pointer; }
         .tt-pseudo-actions button.primary { background: linear-gradient(180deg, #f5c542, #e0a92a); color: #1a1208; border-color: #fde047; }
         .tt-pseudo-actions button:disabled { opacity: 0.5; cursor: not-allowed; }
-        .tt-lower-tools { display: grid; grid-template-columns: 1.4fr 1fr 50px 50px; gap: 10px; align-items: center; margin-top: 10px; }
+        .tt-lower-tools { display: grid; grid-template-columns: 1.4fr 1fr 50px 50px 50px; gap: 10px; align-items: center; margin-top: 10px; }
         .tt-admin-btn {
           width: 50px; height: 48px; border-radius: 12px;
           background: linear-gradient(180deg, #1a1a1a, #050505); border: 2px solid #000;
@@ -3167,6 +3171,15 @@ export default function TaxiTycoon() {
           cursor: pointer;
         }
         .tt-admin-btn:active { transform: translateY(1px); }
+        .tt-nextday-btn {
+          width: 50px; height: 48px; border-radius: 12px;
+          background: linear-gradient(180deg, #1a1a1a, #050505); border: 2px solid #000;
+          color: #60a5fa; font-size: 22px; font-weight: 900;
+          display: flex; align-items: center; justify-content: center;
+          box-shadow: inset 0 1px 0 rgba(255,255,255,0.08), 0 2px 6px rgba(0,0,0,0.4);
+          cursor: pointer;
+        }
+        .tt-nextday-btn:active { transform: translateY(1px); }
         .tt-apk {
           border-radius: 26px; min-height: 48px; color: #fff; font-size: 13px; line-height: 1.05; font-weight: 900;
           background: linear-gradient(180deg, #2a2a2a, #0d0d0d); border: 2px solid #000;

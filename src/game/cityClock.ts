@@ -115,9 +115,10 @@ function isFrenchHoliday(d: Date): boolean {
   return false;
 }
 
-export function getGameTime(_legacyNow?: number, cityPopulation?: number | null): GameTime {
+export function getGameTime(_legacyNow?: number, cityPopulation?: number | null, dayOffset = 0): GameTime {
   // _legacyNow est ignoré (anciennement performance.now()) — on utilise l'heure réelle.
   const now = new Date();
+  now.setDate(now.getDate() + dayOffset);
   const hour = now.getHours();
   const minute = now.getMinutes();
   const hourF = hour + minute / 60;
