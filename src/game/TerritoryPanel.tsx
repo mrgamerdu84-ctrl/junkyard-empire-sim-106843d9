@@ -221,3 +221,15 @@ function Stat({ label, value, highlight }: { label: string; value: string; highl
     </div>
   );
 }
+
+function LegendDot({ color, label, border }: { color: string; label: string; border?: string }) {
+  return (
+    <div style={{ display: "flex", alignItems: "center", gap: 5, color: "#cbb98a", fontWeight: 700 }}>
+      <span style={{
+        width: 12, height: 12, borderRadius: 3, background: color,
+        border: `1px solid ${border ?? color}`,
+      }} />
+      {label}
+    </div>
+  );
+}
