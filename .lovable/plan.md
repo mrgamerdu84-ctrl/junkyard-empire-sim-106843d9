@@ -1,46 +1,35 @@
-# Refonte HUD pixel-perfect (image de référence)
+## 1. Mode plein écran de la carte
 
-Objectif: rendre le HUD strictement identique à la maquette envoyée. Aucune logique de jeu touchée — uniquement le visuel et le placement.
+Ajouter un bouton flottant ⛶ (en haut à droite, à côté de l'engrenage) qui bascule un état `mapFullscreen`.
 
-## Zones à refaire dans `src/game/TaxiTycoon.tsx` (markup + bloc `<style>`)
+Quand actif :
+- Le top bar, le logo central, le bouton missions, la console bois, la bande directeur et les outils bas (APK / ✦) sont masqués.
+- La carte/canvas occupe 100% du viewport (portrait ET paysage).
+- Un petit bouton ✕ en surimpression permet de revenir au HUD complet.
+- L'état se conserve quand on tourne l'écran, ce qui règle le problème de la carte écrasée en haut en paysage.
 
-### 1. Barre haute (top bar)
-- Pilule gauche: rond avatar bois "?" + zone vide (pseudo) — fond noir/cuir, contour cuivré.
-- Pilule centrale: ⏰ "météo…" • pièce dorée "0$" — pilule sombre, bord cuivré.
-- Bouton cog: bouton bois rond seul à droite.
-- Bloc info (sous pilule gauche): carte noire arrondie — `Mercredi 24 juin · 16:16`, point vert "Journée", `Pertuis · Densité ×0.72`.
-- Logo central "MY TAXI WORLD" avec couronne orange dégradée — colonne centrée, deux lignes blanches, police condensée.
-- Bouton "Missions [2]": pilule bois large à droite avec icône presse-papier et badge rouge.
+## 2. Boutons qui ne correspondent pas à leur label
 
-### 2. Console basse (4 boutons bois)
-Mêmes 4 boutons, mêmes labels, mais visuel renforcé:
-- Cadres bois texturés (gradient brun + lisérés cuivrés + ombre interne).
-- Icônes plus grandes (emoji centré, ~34px), texte blanc condensé centré, sans `<small>` (retirer les compteurs sous le label pour matcher l'image).
-- Ordre: GÉRER FLOTTE 🚕 / AMÉLIORATIONS QG 🔧 / RADIO & MISSIONS 📻 / RIVALITÉ ⚔️.
+Recâblage de la console et de la bande directeur pour que chaque libellé ouvre ce qu'il annonce :
 
-### 3. Bandeau Profil Directeur
-- Carte bois claire arrondie à gauche: rond "?" + `[NOM DU DIRECTEUR]` + barre verte de progression + `QG NIVEAU X (Y Capacité)`. Sous-label `PROFIL DIRECTEUR` en cuivré.
-- Au centre: gros trophée doré 🏆 + label `CLASSEMENT MONDIAL` (bouton).
-- À droite: portefeuille cuir marron "TUTO" + label `CONTRATS & MANUELS`.
-- Sous le bandeau, ligne libellée `PSEUDO ───` pointant vers un stylo doré (icône décorative au centre-bas).
+| Bouton (label visible) | Action actuelle (incorrecte) | Nouvelle action |
+|---|---|---|
+| 🚕 GÉRER FLOTTE | `buyTaxi()` (achat direct) | Ouvre le garage (gestion + achat des taxis) |
+| 🔧 AMÉLIORATIONS QG | Shop QG | Inchangé |
+| 📻 RADIO & MISSIONS | Ouvre seulement les missions | Ouvre un panneau à 2 onglets : **Radio** (stations Célébrer / Droit Libre, lecture, volume) et **Missions** (liste actuelle) |
+| ⚔️ RIVALITÉ | Classement | Inchangé |
+| Bande "PROFIL DIRECTEUR" (en bas, libellé seul) | Décoratif | Ouvre le garage / profil directeur |
+| Bande "PSEUDO ──── ✒" | Décoratif | Ouvre une mini-dialog pour éditer le pseudo (sauvegardé dans le profil cloud) |
+| Bande "CONTRATS & MANUELS" (en bas, libellé seul) | Décoratif | Ouvre le tutoriel / contrats |
+| 🏆 CLASSEMENT MONDIAL | Classement | Inchangé |
+| 📖 CONTRATS & MANUELS (livre) | Tutoriel | Inchangé |
 
-### 4. Barre outils inférieure
-- Bouton vert/noir pilule à gauche: 🤖 `TÉLÉCHARGER L'APK`.
-- Pilule sombre centrale (vide, futur slot).
-- Petit losange brillant ✦ à droite (bouton mission spéciale réduit, sans label texte).
+## 3. Détails techniques
 
-## CSS — refonte ciblée
-Réécrire les blocs suivants dans le `<style>` du composant:
-- `.tt-top-bar`, `.tt-top-pill`, `.tt-cog`, `.tt-info-card`, `.tt-logo`, `.tt-mission-wood`, `.tt-mission-badge`.
-- `.tt-console`, `.tt-wood-btn` (retirer `small`), `.tt-director-band`, `.tt-director-profile`, `.tt-trophy`, `.tt-book`.
-- `.tt-lower-tools`, `.tt-apk`, `.tt-pen`, `.tt-special-inline` (devient losange ✦ compact).
-Tokens: bois `linear-gradient(#7a4a2b → #4a2b18)`, cuivré `#d8a55c`, vert progression `#34d399`, fond carte info `rgba(15,15,20,0.92)`.
-
-## Ce qui reste inchangé
-- Tous les handlers (`buyTaxi`, `setShopOpen`, `setMissionsOpen`, `setShowLeaderboard`, `setShowTutorial`, `repairTaxis`, `triggerSpecialMission`, navigation APK).
-- Logique trafic / rivaux / missions / portail / map.
-- Pas de nouveau fichier, pas de dépendance.
-
-## Vérification
-- Comparer visuellement avec la maquette (392×713) via Playwright screenshot après build.
-- Confirmer que chaque bouton ouvre toujours son panneau (Flotte→achat, QG→shop, Radio→missionsOpen, Rivalité→leaderboard, Tuto→tutorial, APK→/download, ✒️→repair, ✦→special).
+- Fichier principal modifié : `src/game/TaxiTycoon.tsx`
+  - `useState` pour `mapFullscreen` et `pseudoDialogOpen`.
+  - Bloc HUD enveloppé dans `{!mapFullscreen && (...)}` pour le top bar, le logo, la console et la bande directeur.
+  - Bouton ⛶ ajouté à côté de `.tt-round.tt-settings`.
+  - Nouveau composant interne `RadioMissionsPanel` (onglets) qui réutilise les contrôles existants de `RadioPlayer` (stations / volume / play / piste actuelle) et le contenu actuel de `setMissionsOpen`.
+  - Dialog pseudo : input contrôlé, sauvegarde via le hook profil existant (`useCloudCustomizations` / save state).
+- Pas de changement de logique de jeu, pas de modification du moteur de trafic ni des missions — uniquement présentation et câblage d'événements.
