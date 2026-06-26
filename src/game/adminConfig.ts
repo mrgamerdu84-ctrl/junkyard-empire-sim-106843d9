@@ -113,6 +113,8 @@ function load(): AdminConfig {
       parsed.hqX = DEFAULT_ADMIN.hqX;
       parsed.hqY = DEFAULT_ADMIN.hqY;
     }
+    // Migration : on retire définitivement la concurrence IA (gameplay Mafia uniquement)
+    parsed.rivalEnabled = false;
     return { ...DEFAULT_ADMIN, ...parsed };
   } catch {
     return DEFAULT_ADMIN;
