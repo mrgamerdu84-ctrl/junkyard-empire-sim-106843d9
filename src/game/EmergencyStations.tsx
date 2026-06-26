@@ -40,6 +40,11 @@ const STATIONS = [
 
 type Active = Record<string, number>; // category -> expiresAt
 
+// Les sprites police / ambulance / pompiers sont dessinés en vue du dessus,
+// nez vers le haut. La route calcule 0° vers la droite, donc +90° aligne
+// toujours l'avant du véhicule sur le sens de circulation.
+const ROAD_SPRITE_FORWARD_OFFSET = 90;
+
 type Responder = {
   id: number;
   eventId: number;
@@ -246,7 +251,7 @@ export default function EmergencyStations() {
           return (
             <g key={r.id} transform={`translate(${x} ${y}) rotate(${angle})`}>
               <circle r="25" fill={flash ? "#3b82f6" : "#ef4444"} opacity="0.24" />
-              <g transform="rotate(-90)">
+              <g transform={`rotate(${ROAD_SPRITE_FORWARD_OFFSET})`}>
                 <image href={r.sprite} x={-22} y={-17} width={44} height={34} preserveAspectRatio="xMidYMid meet" />
               </g>
               <rect x="-8" y="-4" width="16" height="5" rx="2" fill="#0b0d10" />
