@@ -90,7 +90,57 @@ export default function RadioPlayer(props: { open?: boolean; onOpenChange?: (o: 
 
   useEffect(() => {
     saveRadioState({ stationId, trackIndex, volume, playing });
-  }, [stationId, trackIndex, volume, playing]);
+    try {
+      window.dispatchEvent(new CustomEvent("mtw:radio-state", {
+        detail: {
+          stationId,
+          stationName: station.name,
+          stationEmoji: station.emoji,
+          trackTitle: track?.title ?? "",
+          trackArtist: track?.artist ?? "",
+          playing,
+        },
+      }));
+    } catch {}
+  }, [stationId, trackIndex, volume, playing, station.name, station.emoji, track?.title, track?.artist]);
+
+  // API événements pour pilotage externe (mini-écran du tableau de bord)
+  useEffect(() => {
+    const onNext = () => nextTrack();
+    const onPrev = () => prevTrack();
+    const onToggle = () => togglePlay();
+    const onStation = (e: Event) => {
+      const id = (e as CustomEvent).detail?.id;
+      if (typeof id === "string") switchStation(id);
+    };
+    const onRequest = () => {
+      try {
+        window.dispatchEvent(new CustomEvent("mtw:radio-state", {
+          detail: {
+            stationId,
+            stationName: station.name,
+            stationEmoji: station.emoji,
+            trackTitle: track?.title ?? "",
+            trackArtist: track?.artist ?? "",
+            playing,
+          },
+        }));
+      } catch {}
+    };
+    window.addEventListener("mtw:radio-next", onNext);
+    window.addEventListener("mtw:radio-prev", onPrev);
+    window.addEventListener("mtw:radio-toggle", onToggle);
+    window.addEventListener("mtw:radio-station", onStation as EventListener);
+    window.addEventListener("mtw:radio-request", onRequest);
+    return () => {
+      window.removeEventListener("mtw:radio-next", onNext);
+      window.removeEventListener("mtw:radio-prev", onPrev);
+      window.removeEventListener("mtw:radio-toggle", onToggle);
+      window.removeEventListener("mtw:radio-station", onStation as EventListener);
+      window.removeEventListener("mtw:radio-request", onRequest);
+    };
+  }, [nextTrack, prevTrack, togglePlay, switchStation, stationId, station.name, station.emoji, track?.title, track?.artist, playing]);
+
 
   useEffect(() => {
     const audio = audioRef.current;
