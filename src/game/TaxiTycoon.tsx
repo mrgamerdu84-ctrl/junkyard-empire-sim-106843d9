@@ -2867,8 +2867,41 @@ export default function TaxiTycoon() {
         </div>
         )}
 
+        {/* Panneau Infos Ville */}
+        {cityInfoOpen && (
+          <div className="tt-city-overlay" onClick={() => setCityInfoOpen(false)}>
+            <div className="tt-city-panel" onClick={(e) => e.stopPropagation()}>
+              <div className="tt-city-head">
+                <h3>🌆 Infos Ville</h3>
+                <button className="tt-city-x" onClick={() => setCityInfoOpen(false)}>×</button>
+              </div>
+              <div className="tt-city-body">
+                <div className="tt-city-logo">
+                  <svg width="80" height="38" viewBox="0 0 64 30" aria-hidden="true">
+                    <defs>
+                      <linearGradient id="ttCrown2" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stopColor="#ffd07a" />
+                        <stop offset="100%" stopColor="#e0651a" />
+                      </linearGradient>
+                    </defs>
+                    <path d="M4 26 L12 6 L22 18 L32 3 L42 18 L52 6 L60 26 Z" fill="url(#ttCrown2)" stroke="#7a2f06" strokeWidth="1.6" strokeLinejoin="round" />
+                  </svg>
+                  <span>MY TAXI WORLD</span>
+                </div>
+                <div className="tt-city-row"><span>🗓️ Jour</span><b>{clock.label}</b></div>
+                <div className="tt-city-row"><span>🕒 Période</span><b>{periodLabel(clock.period)}</b></div>
+                <div className="tt-city-row"><span>📍 Ville</span><b>{realEnv?.city ?? "Détection…"}</b></div>
+                <div className="tt-city-row"><span>☁️ Météo</span><b>{realEnv ? weatherLabelFr(realEnv.weather) : "…"}</b></div>
+                <div className="tt-city-row"><span>🚦 Densité trafic</span><b>×{clock.density.toFixed(2)}</b></div>
+                <div className="tt-city-row"><span>💵 Trésorerie</span><b style={{ color: "#34d399" }}>{fmt(save.money)}$</b></div>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Radio (mode contrôlé : pas de bouton flottant, ouverte via console) */}
         <RadioPlayer open={radioOpen} onOpenChange={setRadioOpen} hideToggle />
+
 
         {/* Dialog Pseudo */}
         {pseudoOpen && (
