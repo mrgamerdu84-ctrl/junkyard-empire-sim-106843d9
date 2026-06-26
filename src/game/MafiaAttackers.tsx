@@ -198,7 +198,9 @@ export default function MafiaAttackers() {
             </g>
           );
         }
-        const W = 70, H = 38;
+        // Les sprites civils sont top-down "tête au nord" : on compense par
+        // un rotate(90) interne pour que l'avant suive le sens de marche.
+        const W = 56, H = 92;
         return (
           <g
             key={c.id}
@@ -208,22 +210,24 @@ export default function MafiaAttackers() {
             onTouchStart={(e) => { e.preventDefault(); explode(c.id); }}
           >
             {/* zone de tap large */}
-            <rect x={-W / 2 - 6} y={-H / 2 - 6} width={W + 12} height={H + 12} fill="transparent" />
+            <rect x={-40} y={-30} width={80} height={60} fill="transparent" />
             {/* ombre */}
-            <ellipse cx={0} cy={H / 2 - 2} rx={W / 2 - 4} ry={5} fill="rgba(0,0,0,0.55)" />
-            {/* sprite voiture (asset réel) teinté en noir */}
-            <image
-              href={c.sprite}
-              x={-W / 2}
-              y={-H / 2}
-              width={W}
-              height={H}
-              preserveAspectRatio="xMidYMid meet"
-              filter="url(#mafia-black)"
-            />
-            {/* lueur sinistre rouge avant */}
-            <circle cx={W / 2 - 4} cy={-6} r={2} fill="#ff2a2a" />
-            <circle cx={W / 2 - 4} cy={6} r={2} fill="#ff2a2a" />
+            <ellipse cx={0} cy={6} rx={26} ry={6} fill="rgba(0,0,0,0.55)" />
+            <g transform="rotate(90)">
+              {/* sprite voiture (asset réel) teinté en noir */}
+              <image
+                href={c.sprite}
+                x={-W / 2}
+                y={-H / 2}
+                width={W}
+                height={H}
+                preserveAspectRatio="xMidYMid meet"
+                filter="url(#mafia-black)"
+              />
+            </g>
+            {/* phares rouges à l'avant */}
+            <circle cx={22} cy={-5} r={2} fill="#ff2a2a" />
+            <circle cx={22} cy={5} r={2} fill="#ff2a2a" />
             {/* marqueur M discret */}
             <circle r={6} fill="rgba(0,0,0,0.7)" />
             <text y={2} textAnchor="middle" fontSize={8} fontWeight={900} fill="#b91c1c">M</text>
