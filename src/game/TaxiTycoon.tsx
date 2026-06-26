@@ -1059,22 +1059,8 @@ export default function TaxiTycoon() {
   // Démarre le tick salaires/revenus du personnel (une seule fois).
   useEffect(() => { startPersonnelTick(); }, []);
 
-  // Passif des quartiers contrôlés (lecture temps réel).
-  const [territoryPassive, setTerritoryPassive] = useState(0);
-  useEffect(() => {
-    const refresh = () => {
-      const arr = (window as unknown as { __mtwTerritory?: Array<{ owned: boolean }> }).__mtwTerritory;
-      const owned = arr ? arr.filter((d) => d.owned).length : 0;
-      setTerritoryPassive(owned * 60);
-    };
-    refresh();
-    const t = window.setInterval(refresh, 1500);
-    window.addEventListener("mtw:course-completed", refresh as EventListener);
-    return () => {
-      window.clearInterval(t);
-      window.removeEventListener("mtw:course-completed", refresh as EventListener);
-    };
-  }, []);
+
+
 
 
 
@@ -2926,10 +2912,6 @@ export default function TaxiTycoon() {
             <button className="tt-lcd-seg tt-lcd-mini" onClick={() => { setMissionsOpen(true); setMissionsTab("contracts"); }} title="Courses">
               <span className="tt-lcd-lbl">COURSES</span>
               <span className="tt-lcd-mini-val">{taxisRef.current.filter((t) => t.mode !== "idle").length}</span>
-            </button>
-            <button className="tt-lcd-seg tt-lcd-mini" onClick={() => window.dispatchEvent(new CustomEvent("mtw:open-territory"))} title="Passif quartiers contrôlés">
-              <span className="tt-lcd-lbl">PASSIF</span>
-              <span className="tt-lcd-mini-val tt-lcd-money">+{fmt(territoryPassive)}$/min</span>
             </button>
           </div>
 
