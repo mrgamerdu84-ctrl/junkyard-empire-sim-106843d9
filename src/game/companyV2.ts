@@ -429,8 +429,13 @@ function simTick() {
       }
       let fare = s.baseFare * mult * (0.85 + Math.random() * 0.5);
       if (isNight) fare *= 1 + s.nightSurcharge / 100;
-      // pourboire selon service
-      const tip = fare * (drv.stats.service / 500);
+      // bonus prestige (qualité moyenne flotte) → clients VIP
+      const prestige = getFleetPrestige();
+      fare *= 1 + prestige * 0.15;
+      // bonus moteur taxi
+      fare *= 1 + 0.1 * taxi.upgrades.engine;
+      // pourboire selon service + bonus prestige
+      const tip = fare * (drv.stats.service / 500) * (1 + prestige * 0.3);
       fare += tip;
       const earned = Math.round(fare);
       taxi.earnedToday += earned;
