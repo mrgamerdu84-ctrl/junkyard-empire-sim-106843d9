@@ -20,6 +20,7 @@ import RadioPlayer from "./RadioPlayer";
 import PersonnelPanel from "./PersonnelPanel";
 import { getMaintenanceDiscount, getTipsBonus, startPersonnelTick } from "./personnel";
 import CompanyPanel from "./CompanyPanel";
+import GaragePanel from "./GaragePanel";
 import { startCompanySim } from "./companyV2";
 
 import { useAuth } from "@/lib/useAuth";
@@ -1880,6 +1881,7 @@ export default function TaxiTycoon() {
 
   const [garageOpen, setGarageOpen] = useState(false);
   const [shopOpen, setShopOpen] = useState(false);
+  const [workshopOpen, setWorkshopOpen] = useState(false);
   const [musicOn, setMusicOn] = useState(false);
   const [missionsOpen, setMissionsOpen] = useState(false);
   const [missionsTab, setMissionsTab] = useState<"contracts" | "depot">("contracts");
@@ -2429,10 +2431,10 @@ export default function TaxiTycoon() {
           return (
             <g
               style={{ cursor: "pointer", pointerEvents: "auto" }}
-              onClick={() => setShopOpen(true)}
+              onClick={() => setWorkshopOpen(true)}
               transform={admin.hqRotation ? `rotate(${admin.hqRotation} ${cx} ${cy})` : undefined}
             >
-              <title>QG — My Taxi HQ (cliquer pour la boutique)</title>
+              <title>🏭 Atelier — cliquer pour entrer dans le garage</title>
               {/* ombre douce sous le bâtiment pour l'ancrer au sol */}
               <ellipse cx={cx} cy={cy + h * 0.42} rx={w * 0.42} ry={h * 0.08} fill="rgba(0,0,0,0.45)" />
               <image
@@ -3082,6 +3084,9 @@ export default function TaxiTycoon() {
               <span className="tt-lcd-key-ico">🏢</span><b>COMPAGNIE</b>
             </button>
 
+            <button className="tt-lcd-key" onClick={() => setWorkshopOpen(true)}>
+              <span className="tt-lcd-key-ico">🏭</span><b>ATELIER</b>
+            </button>
             <button className="tt-lcd-key" onClick={() => setShowTutorial(true)}>
               <span className="tt-lcd-key-ico">📖</span><b>TUTO</b>
             </button>
@@ -3157,6 +3162,7 @@ export default function TaxiTycoon() {
           onHireCharge={(cost) => setSave((s) => ({ ...s, money: Math.max(0, s.money - cost) }))}
         />
         {companyOpen && <CompanyPanel onClose={() => setCompanyOpen(false)} />}
+        {workshopOpen && <GaragePanel onClose={() => setWorkshopOpen(false)} />}
 
 
 
