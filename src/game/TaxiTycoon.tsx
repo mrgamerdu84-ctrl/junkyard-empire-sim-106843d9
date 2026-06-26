@@ -3755,16 +3755,20 @@ export default function TaxiTycoon() {
         .tt-livery-name { font-size: 12px; font-weight: 800; margin-top: 4px; }
         .tt-livery-city { font-size: 10px; color: #8a8e94; }
 
-        /* Mobile paysage : compresse le HUD verticalement */
-        @media (max-height: 500px) and (orientation: landscape) {
-          .tt-actions { bottom: 8px; gap: 6px; }
-          .tt-btn { padding: 5px 10px; min-width: 80px; }
-          .tt-btn-ico { font-size: 16px; }
-          .tt-btn-lbl { font-size: 10px; }
-          .tt-btn-cost { font-size: 10px; }
+        /* Mobile paysage : libère un maximum de hauteur pour la carte */
+        @media (orientation: landscape) and (max-height: 500px) {
+          .tt-hud { box-shadow: none !important; border-radius: 0; }
+          .tt-topbar, .tt-title-banner { display: none !important; }
+          .tt-actions { bottom: 4px; gap: 6px; transform: scale(0.85); transform-origin: bottom center; }
+          .tt-btn { padding: 4px 8px; min-width: 70px; }
+          .tt-btn-ico { font-size: 14px; }
+          .tt-btn-lbl { font-size: 9px; }
+          .tt-btn-cost { font-size: 9px; }
           .tt-garage-fab { bottom: 6px; width: 36px; height: 36px; font-size: 16px; }
-          .tt-missions-fab { top: 48px; padding: 4px 8px; font-size: 10px; }
+          .tt-missions-fab { top: 6px; padding: 4px 8px; font-size: 10px; }
+          .tt-fs-toggle { top: 6px !important; right: 6px !important; }
         }
+
 
 
         .tt-toast {
