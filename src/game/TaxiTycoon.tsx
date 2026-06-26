@@ -1763,6 +1763,24 @@ export default function TaxiTycoon() {
   const [musicOn, setMusicOn] = useState(false);
   const [missionsOpen, setMissionsOpen] = useState(false);
   const [missionsTab, setMissionsTab] = useState<"contracts" | "depot">("contracts");
+  const [mapFullscreen, setMapFullscreen] = useState(false);
+  const [radioOpen, setRadioOpen] = useState(false);
+  const [pseudoOpen, setPseudoOpen] = useState(false);
+  const auth = useAuth();
+  const [pseudoDraft, setPseudoDraft] = useState("");
+  const [pseudoSaving, setPseudoSaving] = useState(false);
+  useEffect(() => { setPseudoDraft(auth.pseudo || ""); }, [auth.pseudo]);
+  const savePseudo = async () => {
+    const v = pseudoDraft.trim();
+    if (!v || !auth.user) { setPseudoOpen(false); return; }
+    setPseudoSaving(true);
+    try {
+      await supabase.from("profiles").update({ pseudo: v }).eq("id", auth.user.id);
+      await auth.refresh();
+    } catch (e) { console.warn("pseudo save", e); }
+    setPseudoSaving(false);
+    setPseudoOpen(false);
+  };
   const [actionsOpen, setActionsOpen] = useState<boolean>(() => {
     try { return localStorage.getItem("tt-actions-open") === "1"; } catch { return false; }
   });
