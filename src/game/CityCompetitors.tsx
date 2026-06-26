@@ -9,24 +9,26 @@
 import { useEffect, useMemo, useState } from "react";
 import { preserveAspectFor, useMapFit } from "./mapView";
 import playerHqAsset from "@/assets/player-hq.png.asset.json";
+import { DEFAULT_DISTRICTS } from "./TerritoryWar";
 
 const PLAYER_HQ_IMG = playerHqAsset.url;
 const SAVE_KEY = "taxi-tycoon-v4";
 
 // Emplacements fixes des QG concurrents (viewBox 1920x1080).
-// On évite la zone du QG joueur (autour de 1030, 360).
-const FIXED_HQ_SLOTS: { x: number; y: number }[] = [
-  { x:  280, y:  220 },
-  { x: 1620, y:  240 },
-  { x:  480, y:  860 },
-  { x: 1500, y:  860 },
-  { x:  900, y:  150 },
-  { x: 1300, y:  980 },
-  { x:  180, y:  560 },
-  { x: 1780, y:  560 },
-  { x:  760, y: 1000 },
-  { x: 1180, y:  600 },
+// Strictement HORS routes : on réutilise les positions des QG de quartier
+// définies dans TerritoryWar (déjà placées dans les zones libres de la carte),
+// puis 2 spots additionnels en zone bâtie pour les concurrents niv. 9 et 10.
+const DISTRICT_HQ_SLOTS = DEFAULT_DISTRICTS.map((d) => ({
+  x: d.hqX,
+  y: d.hqY,
+  districtId: d.id,
+  color: d.color,
+}));
+const EXTRA_OFFROAD_SLOTS = [
+  { x:  340, y:  120, districtId: "riverside", color: "#0ea5e9" },
+  { x: 1620, y:  120, districtId: "marina",    color: "#06b6d4" },
 ];
+const FIXED_HQ_SLOTS = [...DISTRICT_HQ_SLOTS, ...EXTRA_OFFROAD_SLOTS];
 
 // Hex (#rrggbb) -> [r,g,b] 0..1 pour feFlood en filtre SVG
 function hexToRgb01(hex: string): [number, number, number] {
@@ -95,10 +97,12 @@ export default function CityCompetitors() {
   const [taunt, setTaunt] = useState<{ id: number; from: string; color: string; text: string } | null>(null);
   const fit = useMapFit();
 
-  // Position de QG fixe pour chaque concurrent (slot stable basé sur l'index)
+  // Position de QG fixe pour chaque concurrent (slot stable basé sur l'index).
+  // La COULEUR du concurrent est verrouillée sur celle du territoire qu'il habite,
+  // afin que ses taxis (qui héritent de comp.color) portent la teinte du quartier.
   const compsWithFixedHq = useMemo(() => comps.map((c, i) => {
     const slot = FIXED_HQ_SLOTS[i % FIXED_HQ_SLOTS.length];
-    return { ...c, x: slot.x, y: slot.y };
+    return { ...c, x: slot.x, y: slot.y, color: slot.color };
   }), [comps]);
 
   // Publie la liste (avec positions fixes) pour les taxis rivaux.
