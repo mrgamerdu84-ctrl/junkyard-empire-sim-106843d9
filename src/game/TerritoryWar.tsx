@@ -14,13 +14,6 @@
 //     Continuer la conquête ».
 // =============================================================
 import { useEffect, useRef, useState } from "react";
-import { preserveAspectFor, useMapFit } from "./mapView";
-
-type LiveComp = { id: string; color: string; name?: string };
-function readLiveComps(): LiveComp[] {
-  const w = window as unknown as { __jceCompetitors?: LiveComp[] };
-  return Array.isArray(w.__jceCompetitors) ? w.__jceCompetitors : [];
-}
 
 export type District = {
   id: string;
@@ -63,21 +56,13 @@ const COMPANY_COLORS: Record<string, string> = {
   red: "#ef4444", green: "#10b981", orange: "#f97316", pink: "#ec4899",
   aqua: "#0ea5e9", lime: "#84cc16",
 };
-// Couleur live : on lit __jceCompetitors d'abord (admin peut éditer la couleur),
-// puis on retombe sur la palette statique COMPANY_COLORS.
-function colorFor(owner: string | null, live: LiveComp[]): string {
+function colorFor(owner: string | null): string {
   if (!owner) return "#2a2f3d";
-  if (owner !== "player") {
-    const hit = live.find((c) => c.id === owner);
-    if (hit?.color) return hit.color;
-  }
   return COMPANY_COLORS[owner] ?? "#cbb98a";
 }
-function labelFor(owner: string | null, live: LiveComp[]): string {
+function labelFor(owner: string | null): string {
   if (!owner) return "Neutre";
   if (owner === "player") return "Toi";
-  const hit = live.find((c) => c.id === owner);
-  if (hit?.name) return hit.name.split(" ")[0];
   return owner.charAt(0).toUpperCase() + owner.slice(1);
 }
 
@@ -122,21 +107,8 @@ export default function TerritoryWar() {
   const [toast, setToast] = useState<string | null>(null);
   const [flashIds, setFlashIds] = useState<Record<string, number>>({});
   const [resetDialog, setResetDialog] = useState<{ lost: string[]; gained: string[] } | null>(null);
-  const [live, setLive] = useState<LiveComp[]>(() => readLiveComps());
-  const fit = useMapFit();
   const ownedCountRef = useRef(0);
   const prevOwnerRef = useRef<Record<string, string | null> | null>(null);
-
-  // Re-render quand les concurrents (couleurs/noms) changent côté admin
-  useEffect(() => {
-    const onChange = () => setLive(readLiveComps());
-    window.addEventListener("jce:competitors-changed", onChange);
-    window.addEventListener("jce:competitors-set", onChange);
-    return () => {
-      window.removeEventListener("jce:competitors-changed", onChange);
-      window.removeEventListener("jce:competitors-set", onChange);
-    };
-  }, []);
 
   // --- Persistance + détection de changement d'owner -> event + flash
   useEffect(() => {
@@ -255,12 +227,12 @@ export default function TerritoryWar() {
     <>
       <svg
         viewBox="0 0 1920 1080"
-        preserveAspectRatio={preserveAspectFor(fit)}
+        preserveAspectRatio="xMidYMid slice"
         style={{ position: "absolute", inset: 0, width: "100%", height: "100%", pointerEvents: "none", zIndex: 5 }}
       >
         {districts.map((d) => {
           const cx = d.x + d.w / 2;
-          const ownerColor = colorFor(d.owner, live);
+          const ownerColor = colorFor(d.owner);
           const total = Object.values(d.weekCounts).reduce((a, b) => a + b, 0);
           const playerScore = d.weekCounts.player ?? 0;
           const leadOwner = Object.entries(d.weekCounts).sort((a, b) => b[1] - a[1])[0];
@@ -290,9 +262,9 @@ export default function TerritoryWar() {
                   {d.owner === "player"
                     ? `+${BONUS_PER_DISTRICT}$/min`
                     : d.owner
-                      ? `Tenu par ${labelFor(d.owner, live)} · ${playerScore}/${total || 1} hebdo`
+                      ? `Tenu par ${labelFor(d.owner)} · ${playerScore}/${total || 1} hebdo`
                       : leadOwner
-                        ? `Leader ${labelFor(leadOwner[0], live)} (${leadOwner[1]})`
+                        ? `Leader ${labelFor(leadOwner[0])} (${leadOwner[1]})`
                         : "Aucun leader"}
                 </text>
               </g>

@@ -6,36 +6,9 @@
 // Dès que le joueur les dépasse largement (×3), elles font faillite :
 // le QG vire au gris, un crâne apparaît, et la compagnie est éliminée.
 // =============================================================
-import { useEffect, useMemo, useState } from "react";
-import { preserveAspectFor, useMapFit } from "./mapView";
-import playerHqAsset from "@/assets/player-hq.png.asset.json";
-import { DEFAULT_DISTRICTS } from "./TerritoryWar";
+import { useEffect, useState } from "react";
 
-const PLAYER_HQ_IMG = playerHqAsset.url;
 const SAVE_KEY = "taxi-tycoon-v4";
-
-// Emplacements fixes des QG concurrents (viewBox 1920x1080).
-// Strictement HORS routes : on réutilise les positions des QG de quartier
-// définies dans TerritoryWar (déjà placées dans les zones libres de la carte),
-// puis 2 spots additionnels en zone bâtie pour les concurrents niv. 9 et 10.
-const DISTRICT_HQ_SLOTS = DEFAULT_DISTRICTS.map((d) => ({
-  x: d.hqX,
-  y: d.hqY,
-  districtId: d.id,
-  color: d.color,
-}));
-const EXTRA_OFFROAD_SLOTS = [
-  { x:  340, y:  120, districtId: "riverside", color: "#0ea5e9" },
-  { x: 1620, y:  120, districtId: "marina",    color: "#06b6d4" },
-];
-const FIXED_HQ_SLOTS = [...DISTRICT_HQ_SLOTS, ...EXTRA_OFFROAD_SLOTS];
-
-// Hex (#rrggbb) -> [r,g,b] 0..1 pour feFlood en filtre SVG
-function hexToRgb01(hex: string): [number, number, number] {
-  const m = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
-  if (!m) return [1, 1, 1];
-  return [parseInt(m[1], 16) / 255, parseInt(m[2], 16) / 255, parseInt(m[3], 16) / 255];
-}
 
 type Competitor = {
   id: string;
@@ -95,21 +68,12 @@ export default function CityCompetitors() {
   const [playerMoney, setPlayerMoney] = useState<number>(0);
   const [bankruptToast, setBankruptToast] = useState<string | null>(null);
   const [taunt, setTaunt] = useState<{ id: number; from: string; color: string; text: string } | null>(null);
-  const fit = useMapFit();
 
-  // Position de QG fixe pour chaque concurrent (slot stable basé sur l'index).
-  // La COULEUR du concurrent est verrouillée sur celle du territoire qu'il habite,
-  // afin que ses taxis (qui héritent de comp.color) portent la teinte du quartier.
-  const compsWithFixedHq = useMemo(() => comps.map((c, i) => {
-    const slot = FIXED_HQ_SLOTS[i % FIXED_HQ_SLOTS.length];
-    return { ...c, x: slot.x, y: slot.y, color: slot.color };
-  }), [comps]);
-
-  // Publie la liste (avec positions fixes) pour les taxis rivaux.
+  // Publie la liste pour les taxis rivaux qui circulent sur la map.
   useEffect(() => {
-    (window as unknown as { __jceCompetitors?: Competitor[] }).__jceCompetitors = compsWithFixedHq;
-    window.dispatchEvent(new CustomEvent("jce:competitors-changed", { detail: compsWithFixedHq }));
-  }, [compsWithFixedHq]);
+    (window as unknown as { __jceCompetitors?: Competitor[] }).__jceCompetitors = comps;
+    window.dispatchEvent(new CustomEvent("jce:competitors-changed", { detail: comps }));
+  }, [comps]);
 
   // Hydratation depuis le cloud (admin sync) OU depuis le panel admin (ajout/suppression).
   useEffect(() => {
@@ -253,84 +217,53 @@ export default function CityCompetitors() {
     <>
       <svg
         viewBox="0 0 1920 1080"
-        preserveAspectRatio={preserveAspectFor(fit)}
+        preserveAspectRatio="xMidYMid slice"
         style={{ position: "absolute", inset: 0, width: "100%", height: "100%", pointerEvents: "none", zIndex: 6 }}
       >
-        <defs>
-          {compsWithFixedHq.map((c) => {
-            const [r, g, b] = hexToRgb01(c.bankrupt ? "#4b5563" : c.color);
-            return (
-              <filter
-                key={`tint-${c.id}`}
-                id={`mtw-tint-${c.id}`}
-                x="0%" y="0%" width="100%" height="100%"
-                colorInterpolationFilters="sRGB"
-              >
-                {/* Flood = couleur compagnie, masquée par l'alpha de l'image,
-                    puis multipliée avec l'image originale pour préserver le shading. */}
-                <feFlood floodColor={`rgb(${Math.round(r*255)},${Math.round(g*255)},${Math.round(b*255)})`} result="flood" />
-                <feComposite in="flood" in2="SourceGraphic" operator="in" result="masked" />
-                <feBlend in="masked" in2="SourceGraphic" mode="multiply" />
-              </filter>
-            );
-          })}
-        </defs>
-
-        {compsWithFixedHq.map((c) => {
+        {comps.map((c) => {
+          const fillBody = c.bankrupt ? "#4b5563" : c.color;
           const opacity = c.bankrupt ? 0.55 : 1;
-          const HQ_W = 200;
-          const HQ_H = 200;
           return (
             <g key={c.id} transform={`translate(${c.x},${c.y})`} opacity={opacity}>
-              {/* ombre sous le bâtiment */}
-              <ellipse cx="0" cy={HQ_H * 0.42} rx={HQ_W * 0.42} ry={HQ_H * 0.08} fill="rgba(0,0,0,0.5)" />
-              {/* QG (image du joueur, teintée à la couleur de la compagnie) */}
-              <image
-                href={PLAYER_HQ_IMG}
-                x={-HQ_W / 2}
-                y={-HQ_H / 2}
-                width={HQ_W}
-                height={HQ_H}
-                preserveAspectRatio="xMidYMid meet"
-                filter={`url(#mtw-tint-${c.id})`}
-                style={{ filter: "drop-shadow(0 4px 8px rgba(0,0,0,0.55))" }}
-              />
-              {/* enseigne / nom compagnie */}
-              <g transform={`translate(0,${HQ_H * 0.5 + 6})`}>
-                <rect x="-60" y="-9" width="120" height="16" rx="8"
-                  fill="rgba(12,14,22,0.88)" stroke={c.color} strokeWidth="1.5" />
-                <text x="0" y="2" textAnchor="middle" fontSize="9" fontWeight="900"
-                  fill={c.bankrupt ? "#9ca3af" : c.color}
-                  fontFamily="system-ui, sans-serif" letterSpacing="0.5">
-                  {c.name.split(" ")[0].toUpperCase()}
-                </text>
-              </g>
-              {/* badge trésorerie au-dessus */}
-              <g transform={`translate(0,${-HQ_H * 0.5 - 14})`}>
-                <rect x="-44" y="-10" width="88" height="18" rx="9"
-                  fill="rgba(15,23,42,0.88)" stroke={c.color} strokeWidth="1.2" />
-                <text x="0" y="3" textAnchor="middle" fontSize="10" fontWeight="900"
+              {/* ombre */}
+              <ellipse cx="0" cy="34" rx="34" ry="8" fill="rgba(0,0,0,0.45)" />
+              {/* bâtiment QG */}
+              <rect x="-30" y="-44" width="60" height="78" rx="4" fill={fillBody} stroke="#0b0d10" strokeWidth="2" />
+              <rect x="-26" y="-40" width="52" height="14" fill="rgba(0,0,0,0.35)" />
+              {/* fenêtres */}
+              {[-20, -6, 8].map((wx, i) => (
+                <rect key={i} x={wx} y={-22 + (i % 2) * 10} width="10" height="6" fill={c.bankrupt ? "#1f2937" : "#fde68a"} opacity="0.85" />
+              ))}
+              {/* toit / enseigne */}
+              <rect x="-32" y="-50" width="64" height="8" rx="2" fill="#0b0d10" />
+              <text x="0" y="-44" textAnchor="middle" fontSize="6.5" fontWeight="900"
+                fill={c.bankrupt ? "#9ca3af" : "#fde047"}
+                fontFamily="system-ui, sans-serif">
+                {c.name.split(" ")[0].toUpperCase()}
+              </text>
+              {/* badge trésorerie */}
+              <g transform="translate(0,-60)">
+                <rect x="-30" y="-9" width="60" height="14" rx="7" fill="rgba(15,23,42,0.85)" stroke={c.color} strokeWidth="1" />
+                <text x="0" y="1" textAnchor="middle" fontSize="9" fontWeight="900"
                   fill="#fff7d6" fontFamily="system-ui, sans-serif">
                   {c.bankrupt ? "FAILLITE" : `💰 ${fmt(c.treasury)}$`}
                 </text>
               </g>
               {/* taxis */}
               {!c.bankrupt && (
-                <text x="0" y={HQ_H * 0.5 + 24} textAnchor="middle" fontSize="10" fontWeight="800"
-                  fill="#fff7d6" stroke="#000" strokeWidth="2.5" paintOrder="stroke"
-                  fontFamily="system-ui, sans-serif">
+                <text x="0" y="50" textAnchor="middle" fontSize="9" fontWeight="800"
+                  fill="#fff7d6" fontFamily="system-ui, sans-serif">
                   🚕 ×{c.taxiCount}
                 </text>
               )}
               {/* crâne faillite */}
               {c.bankrupt && (
-                <text x="0" y="6" textAnchor="middle" fontSize="42" opacity="0.85">💀</text>
+                <text x="0" y="6" textAnchor="middle" fontSize="32" opacity="0.85">💀</text>
               )}
             </g>
           );
         })}
       </svg>
-
 
       {bankruptToast && (
         <div

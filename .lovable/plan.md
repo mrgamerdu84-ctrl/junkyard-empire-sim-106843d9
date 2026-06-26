@@ -1,88 +1,27 @@
-# Refonte carte — My Taxi World Rivalité
+## Réassignation automatique des taxis lors d'un changement de propriétaire de quartier
 
-## Objectif
-Repartir sur une **nouvelle carte propre top-down (style GTA 1/2)** avec un réseau routier strict, 12 quartiers fixes, et un comportement véhicules/piétons cohérent. On conserve uniquement la **progression joueur** (argent, niveau, flotte) — le reste du gameplay (concurrents, conquêtes) repart à zéro sur la nouvelle grille.
+### Objectif
+Quand un quartier (district) change de propriétaire — conquis par le joueur, perdu, ou repris par un rival — les taxis rivaux dont le QG se trouve dans ce quartier doivent immédiatement basculer leur secteur d'opération vers le nouveau propriétaire, sans attendre un rechargement de page.
 
-## Nouvelle carte — design
+### Comportement
 
-```text
-+----+----+----+----+
-| Q1 | Q2 | Q3 | Q4 |
-+----+----+----+----+
-| Q5 | Q6 | Q7 | Q8 |   <-- centre = downtown
-+----+----+----+----+
-| Q9 | Q10| Q11| Q12|
-+----+----+----+----+
-```
+- **Quartier conquis par le joueur** : les rivaux affiliés à l'opérateur qui possédait ce quartier perdent leur droit d'y patrouiller. Ils sont réassignés à un autre quartier encore détenu par leur opérateur (le plus proche de leur position actuelle). Si leur opérateur n'a plus aucun quartier, ils se replient vers leur QG d'origine puis sortent en mode "itinérant" (pas de biais sectoriel).
+- **Quartier perdu par le joueur** (repris par un rival) : les taxis du joueur ne changent pas de comportement (le joueur conduit manuellement), mais les rivaux du nouveau propriétaire ajoutent ce quartier à leur pool de patrouille.
+- **Course en cours** : un rival qui transporte déjà un client termine sa course avant d'appliquer la nouvelle assignation (pas de demi-tour brutal).
+- **Effet visuel** : un court flash sur le marqueur QG du quartier qui vient de changer de mains, pour signaler l'événement.
 
-- Grille **4×3 = 12 quartiers** fixes, chacun avec un **QG fixe** (slot prédéfini, ne bouge jamais).
-- Style **top-down GTA1/2** : vue stricte du dessus, couleurs plates par quartier (résidentiel vert pâle, commerce orange, industriel gris, downtown bleu, parc vert foncé), routes noires avec marquage blanc.
-- Couleurs dynamiques : seul **le fond du quartier**, **le QG** et **les taxis de la compagnie** prennent la couleur de la compagnie qui contrôle. Le reste (routes, bâtiments, trottoirs) reste fixe.
-- Carte rendue en **SVG** (vectoriel, zoom net) — fini les sprites isométriques qui se chevauchent.
+### Détails techniques
 
-## Réseau routier "réaliste léger"
+1. **Événement central** : ajouter un événement `mtw:district-owner-changed` émis par `TerritoryWar.tsx` dès qu'un district passe de `owned:false` → `true` ou inversement. Payload : `{ districtId, previousOwner, newOwner }`.
+2. **CityRivalTaxis.tsx** :
+   - Écouter l'événement et recalculer `homeDistrictId` pour chaque rival concerné via la nouvelle fonction `reassignSector(rival, ownedDistrictsByOperator)`.
+   - Sélection du nouveau secteur : plus proche district encore détenu par l'opérateur → sinon fallback `null` (mode itinérant, `SECTOR_BIAS` ignoré).
+   - Si le rival est `state === "with-client"`, marquer `pendingReassign = true` et appliquer après dépose.
+3. **Mapping opérateur → quartiers possédés** : maintenu côté `TerritoryWar` (déjà présent dans `mtw-territory-v2`) et exposé via le payload de l'événement ou lu directement depuis localStorage.
+4. **Flash QG** : dans le SVG overlay de `TerritoryWar.tsx`, ajouter une classe d'animation 1,2 s (pulse doré ou rouge selon gain/perte) déclenchée sur le `hqX/hqY` du district modifié.
 
-- **Graphe de routes explicite** : chaque route = liste de segments (nodes + edges). Les voitures suivent strictement les arêtes, pas de trajectoires libres.
-- **Intersections** : à chaque carrefour, les véhicules choisissent une sortie aléatoire (priorité droite simple, pas de feux).
-- **Trottoirs** : bande dédiée le long de chaque route, les piétons y marchent.
-- **Passages piétons** aux intersections : seuls endroits où un piéton traverse. Les voitures ralentissent si un piéton est sur le passage.
-- **Sens unique** sur certaines avenues pour éviter les face-à-face actuels.
+### Fichiers touchés
+- `src/game/TerritoryWar.tsx` — émission de l'événement + animation QG.
+- `src/game/CityRivalTaxis.tsx` — écoute, réassignation, gestion `pendingReassign`.
 
-## Migration
-
-| Garde-t-on ? | Détail |
-|---|---|
-| ✅ Argent, niveau, XP joueur | Lu depuis `localStorage` actuel |
-| ✅ Flotte de taxis du joueur (skins) | Catalogue `gameAssets` conservé |
-| ✅ Pseudo, photo de profil | Inchangé |
-| ❌ Quartiers conquis | Reset (nouvelle grille) |
-| ❌ Concurrents et leurs HQ | Re-spawnés sur les 12 nouveaux slots |
-| ❌ Compétition hebdo en cours | Reset au lundi prochain |
-| ❌ Anciennes coordonnées de missions | Régénérées sur la nouvelle grille |
-
-Un flag `mapVersion: 2` dans `localStorage` déclenche le reset automatique au premier chargement.
-
-## Fichiers impactés
-
-**Nouveaux**
-- `src/game/cityMap.ts` — définition de la grille 4×3, quartiers, QG slots, palette par type de zone.
-- `src/game/roadGraph.ts` — graphe de routes (nodes, edges, sens, passages piétons), helpers `nextEdge()`, `pointAlong()`, `nearestNode()`.
-- `src/game/Pedestrians.tsx` — piétons sur trottoirs + traversées aux passages.
-- `src/game/CityMapRender.tsx` — rendu SVG top-down (fond quartiers + routes + marquages + passages + QGs).
-
-**Réécrits**
-- `src/game/TerritoryWar.tsx` — passe à 12 quartiers fixes lus depuis `cityMap.ts`, supprime les `hqX/hqY` calculés, lit `slot.color` du propriétaire.
-- `src/game/CityTraffic.tsx` — suit le `roadGraph`, plus de paths SVG libres, taille uniforme déjà OK.
-- `src/game/CityRivalTaxis.tsx` — pareil, navigation via `roadGraph`, assignation au district basé sur `cityMap`.
-- `src/game/CityCompetitors.tsx` — slots fixes lus depuis `cityMap`, couleur = couleur de la compagnie propriétaire.
-
-**Allégés / supprimés**
-- `src/game/City3D.tsx` — remplacé par `CityMapRender.tsx` (on garde le fichier comme wrapper pendant la transition puis on le supprime).
-- Anciennes constantes de `ROADS` éparpillées dans `CityTraffic` / `CityRivalTaxis` → centralisées dans `roadGraph.ts`.
-
-**Inchangés**
-- `TaxiTycoon.tsx` (HUD, dashboard, banner), `RadioPlayer`, `PersonnelPanel`, `AdminPanel`, `gameAssets`, `cityClock`, missions/braquage/camion blindé.
-
-## Palette top-down
-
-- Bitume route : `#2a2a2e`
-- Marquage : `#f5f5f0`
-- Trottoir : `#9a9a9a`
-- Passage piéton : bandes blanches
-- Quartier résidentiel : `#cde8c5`
-- Quartier commercial : `#f4d8a8`
-- Quartier industriel : `#bcbcc4`
-- Quartier downtown : `#a8c8e8`
-- Parc : `#7fb877`
-- Eau (bord de carte) : `#6fa8c8`
-
-## Découpage en étapes (1 chat = 1 étape, on valide visuellement à chaque fois)
-
-1. **Étape 1 (cette session)** : `cityMap.ts` + `roadGraph.ts` + `CityMapRender.tsx` + intégration dans `TaxiTycoon` à la place de `City3D`. Carte statique visible, sans véhicules.
-2. **Étape 2** : portage `CityTraffic` sur le `roadGraph` (voitures qui suivent vraiment les routes).
-3. **Étape 3** : `Pedestrians.tsx` + logique traversées.
-4. **Étape 4** : portage `CityRivalTaxis` + `CityCompetitors` + `TerritoryWar` sur les 12 nouveaux slots.
-5. **Étape 5** : nettoyage de l'ancien code (City3D, vieux ROADS) + migration `mapVersion: 2`.
-
-Je propose qu'on commence **Étape 1** dès que tu valides ce plan — tu auras une carte propre visible avant qu'on bouge le moindre véhicule.
-
+Aucun changement de schéma de données ni de stockage.

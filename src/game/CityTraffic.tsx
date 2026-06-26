@@ -365,9 +365,7 @@ function buildCarsFromCustom(count?: number): CarSpec[] {
       delay: -i * 4,
       pathIdx,
       flip,
-      // Échelle UNIFORME pour toutes les voitures civiles : même hauteur,
-      // même gabarit, peu importe l'asset uploadé. ⇒ aucun véhicule "minuscule".
-      scale: 0.75,
+      scale: 0.6,
       imageUrl: entry.url,
       category: entry.category,
     });
@@ -648,9 +646,9 @@ export default function CityTraffic() {
 
       {activeCars.map((car, i) => {
         // Sprite uploadé : image vue du ciel, nez vers ↑.
-        // SPRITE_SIZE est verrouillé sur la même valeur pour TOUS les véhicules
-        // (on ignore les variations de scale par-spec côté image pour rester uniforme).
-        const SPRITE_SIZE = 48 * 0.75 * CIVIL_SCALE; // = 54 px en viewBox 1920×1080
+        // Le moteur calcule rotate(angle) à partir de la tangente (atan2 → 0° = est).
+        // On compense avec un rotate(90) interne pour que "haut de l'image" = sens de marche.
+        const SPRITE_SIZE = 48 * (car.scale ?? 0.6) * CIVIL_SCALE;
         return (
           <g
             key={i}
@@ -660,6 +658,7 @@ export default function CityTraffic() {
           >
             {car.imageUrl ? (
               <g transform="rotate(90)">
+                
                 <image
                   href={car.imageUrl}
                   x={-SPRITE_SIZE / 2}

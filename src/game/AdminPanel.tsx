@@ -461,22 +461,13 @@ export default function AdminPanel() {
                   )}
                   {comps.map((c) => (
                     <div key={c.id} style={{ display: "flex", alignItems: "center", gap: 8, padding: "6px 8px", background: "#1f242b", borderRadius: 6, border: "1px solid #2a2f38" }}>
-                      <input
-                        type="color"
-                        value={c.color}
-                        onChange={(e) => {
-                          const next = comps.map((x) => x.id === c.id ? { ...x, color: e.target.value } : x);
-                          setCompetitorsFromCloud(next);
-                        }}
-                        title="Modifier la couleur de la compagnie"
-                        style={{ width: 28, height: 28, border: "1px solid #0b0d10", borderRadius: 6, background: "transparent", cursor: "pointer", padding: 0, flexShrink: 0 }}
-                      />
+                      <span style={{ width: 14, height: 14, borderRadius: "50%", background: c.color, border: "1px solid #0b0d10", flexShrink: 0 }} />
                       {c.vehicleUrl && (
                         <img src={c.vehicleUrl} alt="" style={{ width: 24, height: 24, objectFit: "contain", background: "#0b0d10", borderRadius: 4, flexShrink: 0 }} />
                       )}
                       <div style={{ flex: 1, minWidth: 0 }}>
                         <div style={{ fontSize: 12, fontWeight: 700, color: "#e8edf2", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{c.name}</div>
-                        <div style={{ fontSize: 10, color: "#8a8e94" }}>💰 {Math.round(c.treasury).toLocaleString()}$ · QG fixe{c.bankrupt ? " · 💀 faillite" : ""}</div>
+                        <div style={{ fontSize: 10, color: "#8a8e94" }}>💰 {Math.round(c.treasury).toLocaleString()}$ · ({Math.round(c.x)},{Math.round(c.y)}){c.bankrupt ? " · 💀 faillite" : ""}</div>
                       </div>
                       <button onClick={() => removeCompetitor(c.id)} aria-label="Supprimer"
                         style={{ background: "transparent", border: "1px solid #7f1d1d", color: "#fca5a5", borderRadius: 6, padding: "4px 8px", fontSize: 12, cursor: "pointer" }}>🗑</button>

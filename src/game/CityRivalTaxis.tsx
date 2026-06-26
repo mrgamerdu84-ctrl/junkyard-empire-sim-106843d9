@@ -57,7 +57,7 @@ type RivalState = {
   lastX: number; lastY: number;
 };
 
-type IncomingMission = { id: number; x: number; y: number; ownerId?: string };
+type IncomingMission = { id: number; x: number; y: number };
 
 function buildSpecs(comps: Competitor[]): RivalSpec[] {
   const alive = comps.filter((c) => !c.bankrupt);
@@ -127,9 +127,9 @@ export default function CityRivalTaxis() {
   // Écoute des missions/incidents publiés par CrimeEvents → un rival va "rafler"
   useEffect(() => {
     const onReq = (e: Event) => {
-      const d = (e as CustomEvent<{ id: number; x: number; y: number; ownerId?: string }>).detail;
+      const d = (e as CustomEvent<{ id: number; x: number; y: number }>).detail;
       if (!d || typeof d.x !== "number" || typeof d.y !== "number") return;
-      missionsRef.current.push({ id: d.id, x: d.x, y: d.y, ownerId: d.ownerId });
+      missionsRef.current.push({ id: d.id, x: d.x, y: d.y });
       // Cap pour éviter l'accumulation
       if (missionsRef.current.length > 8) missionsRef.current.shift();
     };
@@ -259,12 +259,10 @@ export default function CityRivalTaxis() {
         if (st.mode === "roam") {
           // Si une mission est dispo et que ce rival est le plus proche libre → switch.
           if (missionsRef.current.length > 0) {
-            // Trouver mission la plus proche — mais SEULEMENT celles ciblant
-            // notre compagnie (le rival qui possède le territoire envoie SES taxis).
+            // Trouver mission la plus proche
             let best = -1, bestD = Infinity;
             for (let m = 0; m < missionsRef.current.length; m++) {
               const M = missionsRef.current[m];
-              if (M.ownerId && M.ownerId !== sp.compId) continue;
               const d = Math.hypot(M.x - st.x, M.y - st.y);
               if (d < bestD) { bestD = d; best = m; }
             }
