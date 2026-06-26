@@ -718,3 +718,30 @@ export function applyMafiaHit(taxiId?: string): { taxiId: string; damage: number
   });
   return { taxiId: t.id, damage: dmg, broken: t.condition - dmg <= 0 };
 }
+
+// ----------- Équipement atelier -----------
+export function getGarageEquipment(): GarageEquipment {
+  return state.garageEquipment ?? { lifts: 0, tireRack: false, workbench: false, paintBooth: false };
+}
+
+export function buyGarageEquipment(key: "lift" | "tireRack" | "workbench" | "paintBooth"): { ok: boolean; msg: string } {
+  const def = GARAGE_EQUIPMENT_CATALOG.find(e => e.key === key);
+  if (!def) return { ok: false, msg: "Inconnu" };
+  const eq = getGarageEquipment();
+  if (key === "lift" && eq.lifts >= 3) return { ok: false, msg: "Max ponts atteints" };
+  if (key !== "lift" && (eq as any)[key]) return { ok: false, msg: "Déjà installé" };
+  pushCashToPlayer(-def.cost, `Atelier — ${def.label}`);
+  mutate(s => {
+    if (!s.garageEquipment) s.garageEquipment = { lifts: 0, tireRack: false, workbench: false, paintBooth: false };
+    if (key === "lift") s.garageEquipment.lifts++;
+    else (s.garageEquipment as any)[key] = true;
+  });
+  if (typeof window !== "undefined") window.dispatchEvent(new CustomEvent("mtw:garage-equipment"));
+  return { ok: true, msg: `${def.label} installé !` };
+}
+
+// Coefficient de durée réparation (1 → 0.4 selon ponts).
+export function getRepairSpeedMul(): number {
+  const lifts = getGarageEquipment().lifts;
+  return Math.max(0.4, 1 - lifts * 0.2);
+}
