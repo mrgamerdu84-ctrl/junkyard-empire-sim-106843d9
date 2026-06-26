@@ -120,6 +120,9 @@ export default function CityRivalTaxis() {
   const carRefs = useRef<(SVGGElement | null)[]>([]);
   const stateRef = useRef<RivalState[]>([]);
   const missionsRef = useRef<IncomingMission[]>([]);
+  const homeIdsRef = useRef<string[]>([]);
+  const pendingHomeRef = useRef<(string | null)[]>([]);
+  const roadsByDistrictRef = useRef<Record<string, number[]>>({});
 
   // Écoute des missions/incidents publiés par CrimeEvents → un rival va "rafler"
   useEffect(() => {
