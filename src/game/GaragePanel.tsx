@@ -184,150 +184,273 @@ export default function GaragePanel({ onClose }: Props) {
 
         {/* === Scène atelier === */}
         <section className="garage-stage">
-          <svg viewBox="0 0 400 320" className="garage-scene" preserveAspectRatio="xMidYMid meet">
-            {/* sol béton */}
+          <svg viewBox="0 0 800 520" className="garage-scene" preserveAspectRatio="xMidYMid meet">
             <defs>
-              <pattern id="floor" x="0" y="0" width="40" height="40" patternUnits="userSpaceOnUse">
-                <rect width="40" height="40" fill="#3a3f48" />
-                <path d="M0 0H40M0 40H40M0 0V40M40 0V40" stroke="#2a2f37" strokeWidth="1" />
-              </pattern>
-              <linearGradient id="wall" x1="0" x2="0" y1="0" y2="1">
-                <stop offset="0" stopColor="#566273" />
-                <stop offset="1" stopColor="#2d3540" />
+              {/* damier iso */}
+              <linearGradient id="floorA" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0" stopColor="#4b5563" /><stop offset="1" stopColor="#374151" />
               </linearGradient>
+              <linearGradient id="floorB" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0" stopColor="#374151" /><stop offset="1" stopColor="#1f2937" />
+              </linearGradient>
+              <linearGradient id="wallL" x1="0" y1="0" x2="1" y2="0">
+                <stop offset="0" stopColor="#1f2937" /><stop offset="1" stopColor="#374151" />
+              </linearGradient>
+              <linearGradient id="wallR" x1="0" y1="0" x2="1" y2="0">
+                <stop offset="0" stopColor="#475569" /><stop offset="1" stopColor="#1f2937" />
+              </linearGradient>
+              <linearGradient id="carBodyGrad" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0" stopColor={selected?.paint.color || "#facc15"} stopOpacity="1" />
+                <stop offset="1" stopColor={selected?.paint.accent || "#a16207"} stopOpacity="1" />
+              </linearGradient>
+              <radialGradient id="spot" cx="0.5" cy="0.4" r="0.6">
+                <stop offset="0" stopColor="#fde047" stopOpacity="0.35" />
+                <stop offset="1" stopColor="#fde047" stopOpacity="0" />
+              </radialGradient>
             </defs>
-            {/* mur fond */}
-            <rect x="0" y="0" width="400" height="90" fill="url(#wall)" />
-            {/* baies vitrées */}
-            <rect x="20"  y="14" width="80" height="50" fill="#7dd3fc" opacity="0.55" stroke="#0b0d10" strokeWidth="2" />
-            <rect x="120" y="14" width="80" height="50" fill="#7dd3fc" opacity="0.55" stroke="#0b0d10" strokeWidth="2" />
-            <rect x="220" y="14" width="80" height="50" fill="#7dd3fc" opacity="0.55" stroke="#0b0d10" strokeWidth="2" />
-            <rect x="320" y="14" width="60" height="50" fill="#7dd3fc" opacity="0.55" stroke="#0b0d10" strokeWidth="2" />
-            {/* panneau d'outils */}
-            <g transform="translate(310,72)">
-              <rect width="80" height="14" fill="#1a1d22" rx="2" />
-              <text x="4" y="11" fontSize="9" fill="#fde047" fontWeight="700">OUTILS</text>
-              <g transform="translate(46,3)" fontSize="9">
-                <text x="0"  y="9">🔧</text>
-                <text x="11" y="9">🛞</text>
-                <text x="22" y="9">🎨</text>
-              </g>
-            </g>
 
-            {/* sol béton (rendu avant l'équipement pour qu'il apparaisse au sol) */}
-            <rect x="0" y="90" width="400" height="230" fill="url(#floor)" />
+            {/* === MURS ISO (perspective avion) === */}
+            {/* Mur gauche : trapèze qui plonge vers l'arrière */}
+            <polygon points="60,90 400,260 400,500 60,330" fill="url(#wallL)" stroke="#0b0d10" strokeWidth="2" />
+            {/* Mur droite */}
+            <polygon points="740,90 400,260 400,500 740,330" fill="url(#wallR)" stroke="#0b0d10" strokeWidth="2" />
+            {/* Fenêtres mur gauche */}
+            {[0, 1, 2].map(i => {
+              const t = 0.18 + i * 0.22;
+              const x1 = 60 + (400 - 60) * t, y1 = 90 + (260 - 90) * t;
+              const x2 = x1 + 70, y2 = y1 + 35;
+              return (
+                <polygon key={`wl${i}`}
+                  points={`${x1},${y1} ${x2},${y1 + 18} ${x2},${y2 + 18} ${x1},${y2}`}
+                  fill="#7dd3fc" opacity="0.55" stroke="#0b0d10" strokeWidth="1.5" />
+              );
+            })}
+            {/* Fenêtres mur droite */}
+            {[0, 1, 2].map(i => {
+              const t = 0.18 + i * 0.22;
+              const x1 = 740 - (740 - 400) * t, y1 = 90 + (260 - 90) * t;
+              const x2 = x1 - 70, y2 = y1 + 35;
+              return (
+                <polygon key={`wr${i}`}
+                  points={`${x1},${y1} ${x2},${y1 + 18} ${x2},${y2 + 18} ${x1},${y2}`}
+                  fill="#7dd3fc" opacity="0.55" stroke="#0b0d10" strokeWidth="1.5" />
+              );
+            })}
+            {/* Bandeau enseigne suspendu */}
+            <polygon points="280,70 520,70 520,100 280,100" fill="#0b0d10" stroke="#fde047" strokeWidth="2" />
+            <text x="400" y="92" textAnchor="middle" fontSize="16" fontWeight="900" fill="#fde047" letterSpacing="2">
+              MY TAXI WORLD · ATELIER
+            </text>
 
-            {/* === Équipement acheté (rendu dans la scène) === */}
+            {/* === SOL ISO en damier === */}
+            {(() => {
+              const tiles: JSX.Element[] = [];
+              // Origin centrale (400, 260). Iso : x' = (i-j)*tw, y' = (i+j)*th
+              const tw = 40, th = 20;
+              const cx0 = 400, cy0 = 260;
+              for (let i = -4; i <= 4; i++) {
+                for (let j = -4; j <= 4; j++) {
+                  const x = cx0 + (i - j) * tw;
+                  const y = cy0 + (i + j) * th;
+                  if (y < 250 || y > 510) continue;
+                  const fill = (i + j) % 2 === 0 ? "url(#floorA)" : "url(#floorB)";
+                  tiles.push(
+                    <polygon key={`t${i}_${j}`}
+                      points={`${x},${y} ${x + tw},${y + th} ${x},${y + 2 * th} ${x - tw},${y + th}`}
+                      fill={fill} stroke="#0b0d10" strokeWidth="0.6" opacity="0.95" />
+                  );
+                }
+              }
+              return tiles;
+            })()}
+
+            {/* Halo spot sur la zone de travail */}
+            <ellipse cx="400" cy="340" rx="220" ry="80" fill="url(#spot)" />
+
+            {/* === ÉQUIPEMENT iso === */}
             {eq.tireRack && (
-              <g transform="translate(20,140)">
-                <rect width="40" height="55" fill="#374151" stroke="#0b0d10" strokeWidth="1.5" rx="2" />
-                {[0, 12, 24, 36].map(y => (
-                  <g key={y} transform={`translate(6,${4 + y})`}>
-                    <circle cx="6"  cy="4" r="3.5" fill="#0b0d10" />
-                    <circle cx="16" cy="4" r="3.5" fill="#0b0d10" />
-                    <circle cx="26" cy="4" r="3.5" fill="#0b0d10" />
+              <g transform="translate(140,330)">
+                <polygon points="0,0 60,30 60,90 0,60" fill="#374151" stroke="#0b0d10" strokeWidth="1.5" />
+                <polygon points="0,0 -50,30 -50,90 0,60" fill="#1f2937" stroke="#0b0d10" strokeWidth="1.5" />
+                <polygon points="0,0 60,30 10,60 -50,30" fill="#4b5563" stroke="#0b0d10" strokeWidth="1.5" />
+                {[0, 1, 2].map(r => (
+                  <g key={r} transform={`translate(0,${15 + r * 18})`}>
+                    <ellipse cx="5" cy="22" rx="22" ry="6" fill="#0b0d10" />
+                    <ellipse cx="5" cy="20" rx="22" ry="6" fill="#1f2937" stroke="#0b0d10" />
                   </g>
                 ))}
-                <text x="20" y="68" textAnchor="middle" fontSize="6" fill="#fde047" fontWeight="700">PNEUS</text>
+                <text x="5" y="105" textAnchor="middle" fontSize="9" fill="#fde047" fontWeight="800">RACK PNEUS</text>
               </g>
             )}
+
             {eq.workbench && (
-              <g transform="translate(330,160)">
-                <rect width="55" height="20" y="20" fill="#92400e" stroke="#0b0d10" strokeWidth="1.5" />
-                <rect x="2"  y="38" width="4" height="20" fill="#451a03" />
-                <rect x="49" y="38" width="4" height="20" fill="#451a03" />
-                <rect x="6"  y="14" width="10" height="6" fill="#9ca3af" />
-                <rect x="20" y="10" width="6"  height="10" fill="#9ca3af" />
-                <circle cx="40" cy="16" r="4" fill="#dc2626" />
-                <text x="27" y="68" textAnchor="middle" fontSize="6" fill="#fde047" fontWeight="700">ÉTABLI</text>
+              <g transform="translate(620,310)">
+                {/* plateau iso */}
+                <polygon points="0,20 90,65 90,80 0,35" fill="#92400e" stroke="#0b0d10" strokeWidth="1.5" />
+                <polygon points="0,20 -60,50 -60,65 0,35" fill="#78350f" stroke="#0b0d10" strokeWidth="1.5" />
+                <polygon points="0,20 90,65 30,95 -60,50" fill="#b45309" stroke="#0b0d10" strokeWidth="1.5" />
+                {/* outils dessus */}
+                <rect x="10" y="8" width="18" height="6" fill="#9ca3af" stroke="#0b0d10" />
+                <circle cx="45" cy="10" r="5" fill="#dc2626" stroke="#0b0d10" />
+                <rect x="55" y="6" width="4" height="12" fill="#475569" stroke="#0b0d10" />
+                {/* pieds */}
+                <rect x="-55" y="60" width="3" height="22" fill="#1a1d22" />
+                <rect x="85"  y="78" width="3" height="22" fill="#1a1d22" />
+                <text x="15" y="110" textAnchor="middle" fontSize="9" fill="#fde047" fontWeight="800">ÉTABLI</text>
               </g>
             )}
+
             {eq.paintBooth && (
-              <g transform="translate(110,100)">
-                <rect width="70" height="80" fill="#1e293b" stroke="#fde047" strokeWidth="1.5" rx="3" opacity="0.85" />
-                <rect x="6"  y="6"  width="58" height="40" fill="#7dd3fc" opacity="0.4" stroke="#0b0d10" strokeWidth="0.6" />
-                <text x="35" y="62" textAnchor="middle" fontSize="7" fill="#fde047" fontWeight="700">CABINE</text>
-                <text x="35" y="72" textAnchor="middle" fontSize="6" fill="#fde047">PEINTURE</text>
+              <g transform="translate(560,150)">
+                <polygon points="0,0 120,60 120,180 0,120" fill="#1e293b" stroke="#fde047" strokeWidth="2" />
+                <polygon points="0,0 -90,45 -90,165 0,120" fill="#0f172a" stroke="#fde047" strokeWidth="2" />
+                <polygon points="0,0 120,60 30,105 -90,45" fill="#334155" stroke="#fde047" strokeWidth="2" />
+                {/* vitre iso */}
+                <polygon points="15,20 100,62 100,95 15,55" fill="#7dd3fc" opacity="0.45" stroke="#0b0d10" />
+                <text x="20" y="170" fontSize="10" fill="#fde047" fontWeight="800">CABINE PEINTURE</text>
               </g>
             )}
-            {/* ponts élévateurs additionnels (1er rendu par défaut, 2e/3e via achat) */}
+
+            {/* === PONT ÉLÉVATEUR iso (zone de travail principale) === */}
+            <g>
+              {/* ombre au sol */}
+              <ellipse cx="400" cy="380" rx="170" ry="40" fill="rgba(0,0,0,0.5)" />
+              {/* plateau supérieur jaune iso */}
+              <polygon points="400,290 580,360 400,430 220,360" fill="#facc15" stroke="#0b0d10" strokeWidth="2" />
+              <polygon points="400,295 575,362 400,425 225,362" fill="#fde047" stroke="#0b0d10" strokeWidth="0.8" opacity="0.6" />
+              {/* colonne hydraulique */}
+              <rect x="392" y="360" width="16" height="60" fill="#1a1d22" stroke="#0b0d10" />
+              <rect x="388" y="416" width="24" height="10" fill="#374151" stroke="#0b0d10" />
+            </g>
+
+            {/* === TAXI iso 3D sur le pont === */}
+            {selected && (() => {
+              const cx0 = 400, cy0 = 320;
+              const body = selected.paint.color;
+              const dark = selected.paint.accent;
+              return (
+                <g transform={`translate(${cx0},${cy0})`}>
+                  {/* ombre dynamique */}
+                  <ellipse cx="0" cy="50" rx="120" ry="22" fill="rgba(0,0,0,0.45)" />
+
+                  {/* ROUES iso (4 ellipses) */}
+                  {(() => {
+                    const tireR = 9 + selected.upgrades.tires * 2;
+                    const wheels = [
+                      { x: -80, y: 20 }, { x: 80, y: 20 },
+                      { x: -55, y: 50 }, { x: 55, y: 50 },
+                    ];
+                    return wheels.map((w, i) => (
+                      <g key={i}>
+                        <ellipse cx={w.x} cy={w.y} rx={tireR} ry={tireR * 0.45} fill="#0b0d10" stroke="#4b5563" strokeWidth="1.5" />
+                        <ellipse cx={w.x} cy={w.y - 1} rx={tireR * 0.5} ry={tireR * 0.22} fill="#9ca3af" />
+                      </g>
+                    ));
+                  })()}
+
+                  {/* CHÂSSIS bas iso */}
+                  <polygon points="-110,0 0,40 110,0 0,-40" fill={dark} stroke="#0b0d10" strokeWidth="2" />
+
+                  {/* FACE LATÉRALE droite (profondeur) */}
+                  <polygon points="110,0 110,-25 0,-65 0,-40" fill={dark} stroke="#0b0d10" strokeWidth="1.5" />
+                  {/* FACE LATÉRALE gauche */}
+                  <polygon points="-110,0 -110,-25 0,-65 0,-40" fill={body} stroke="#0b0d10" strokeWidth="1.5" opacity="0.92" />
+
+                  {/* TOIT iso losange */}
+                  <polygon points="-95,-22 0,-58 95,-22 0,15" fill="url(#carBodyGrad)" stroke="#0b0d10" strokeWidth="2" />
+
+                  {/* PARE-BRISE avant (face nord-est) */}
+                  <polygon points="0,-58 60,-38 60,-22 0,-42" fill="#0b1626" opacity="0.92" stroke="#0b0d10" strokeWidth="1" />
+                  {/* PARE-BRISE arrière */}
+                  <polygon points="0,-58 -60,-38 -60,-22 0,-42" fill="#0b1626" opacity="0.75" stroke="#0b0d10" strokeWidth="1" />
+
+                  {/* portière */}
+                  <polygon points="20,-50 50,-40 50,-12 20,-22" fill={dark} stroke="rgba(0,0,0,0.6)" strokeWidth="1" />
+                  <circle cx="42" cy="-26" r="1.4" fill="#fde047" />
+
+                  {/* Phares */}
+                  <ellipse cx="92" cy="-12" rx="6" ry="3" fill="#fef9c3" stroke="#0b0d10" />
+                  <ellipse cx="-92" cy="-12" rx="6" ry="3" fill="#7f1d1d" stroke="#0b0d10" />
+
+                  {/* PANNEAU TAXI sur le toit */}
+                  <g transform="translate(0,-50)">
+                    <polygon points="-16,-6 0,-12 16,-6 0,0" fill="#fde047" stroke="#0b0d10" strokeWidth="1" />
+                    <text x="0" y="-4" fontSize="6" fontWeight="900" fill="#0b0d10" textAnchor="middle">TAXI</text>
+                  </g>
+
+                  {/* RAMPE LUMINEUSE si upgrade */}
+                  {selected.upgrades.sticker === "roof" && (
+                    <polygon points="-20,-52 0,-60 20,-52 0,-44" fill="#fde047" stroke="#0b0d10" strokeWidth="1">
+                      <animate attributeName="opacity" values="1;0.4;1" dur="0.9s" repeatCount="indefinite" />
+                    </polygon>
+                  )}
+
+                  {/* BLINDAGE — bandes latérales iso */}
+                  {selected.upgrades.armor >= 1 && (
+                    <polygon points="-105,-5 0,-43 105,-5 0,33" fill="#52525b" opacity="0.55" stroke="#0b0d10" strokeWidth="1" />
+                  )}
+                  {selected.upgrades.armor >= 2 && (
+                    <>
+                      <rect x="-100" y="-30" width="20" height="14" fill="#71717a" stroke="#0b0d10" transform="skewY(-18)" />
+                      <rect x="80"   y="-30" width="20" height="14" fill="#71717a" stroke="#0b0d10" transform="skewY(18)" />
+                    </>
+                  )}
+
+                  {/* Barre de vie au-dessus */}
+                  <g transform="translate(-40,-90)">
+                    <rect width="80" height="7" fill="#1a1d22" rx="2" stroke="#0b0d10" />
+                    <rect width={80 * (selected.condition / 100)} height="7" rx="2"
+                      fill={selected.condition < 30 ? "#ef4444" : selected.condition < 70 ? "#f97316" : "#22c55e"} />
+                    <text x="40" y="-2" textAnchor="middle" fontSize="8" fontWeight="800" fill="#fde047">
+                      {Math.round(selected.condition)}%
+                    </text>
+                  </g>
+                </g>
+              );
+            })()}
+
+            {/* === Ponts supplémentaires (vides) === */}
             {eq.lifts >= 2 && (
-              <g transform="translate(60,265)">
-                <rect width="60" height="6" fill="#facc15" stroke="#0b0d10" strokeWidth="1" rx="1" />
-                <rect x="27" y="6" width="6" height="20" fill="#1a1d22" />
+              <g transform="translate(180,440)">
+                <ellipse cx="0" cy="20" rx="70" ry="14" fill="rgba(0,0,0,0.45)" />
+                <polygon points="0,-10 70,25 0,60 -70,25" fill="#a16207" stroke="#0b0d10" strokeWidth="1.5" />
+                <rect x="-6" y="25" width="12" height="30" fill="#1a1d22" />
               </g>
             )}
             {eq.lifts >= 3 && (
-              <g transform="translate(290,265)">
-                <rect width="60" height="6" fill="#facc15" stroke="#0b0d10" strokeWidth="1" rx="1" />
-                <rect x="27" y="6" width="6" height="20" fill="#1a1d22" />
+              <g transform="translate(620,460)">
+                <ellipse cx="0" cy="20" rx="70" ry="14" fill="rgba(0,0,0,0.45)" />
+                <polygon points="0,-10 70,25 0,60 -70,25" fill="#a16207" stroke="#0b0d10" strokeWidth="1.5" />
+                <rect x="-6" y="25" width="12" height="30" fill="#1a1d22" />
               </g>
             )}
 
-            {/* (sol déjà rendu ci-dessus) */}
-            {/* pont élévateur */}
-            <ellipse cx="200" cy="240" rx="120" ry="14" fill="#0b0d10" opacity="0.5" />
-            <rect x="90"  y="210" width="220" height="14" rx="2" fill="#facc15" stroke="#0b0d10" strokeWidth="1.5" />
-            <rect x="100" y="224" width="200" height="6" fill="#a16207" />
-            <rect x="195" y="230" width="10" height="50" fill="#1a1d22" />
-
-            {/* Le taxi */}
-            {selected && (
-              <g transform="translate(200,180)">
-                <ellipse cx="0" cy="22" rx="60" ry="8" fill="rgba(0,0,0,0.4)" />
-                {/* carrosserie */}
-                <rect x="-58" y="-22" width="116" height="44" rx="10" fill={selected.paint.accent} />
-                <rect x="-54" y="-18" width="108" height="36" rx="8" fill={selected.paint.color} />
-                {/* pare-brise */}
-                <path d="M -20 -16 L 30 -14 L 30 14 L -20 16 Z" fill="#0b1626" opacity="0.92" />
-                <path d="M -50 -14 L -22 -12 L -22 12 L -50 14 Z" fill="#0b1626" opacity="0.7" />
-                {/* portière */}
-                <rect x="-22" y="-16" width="14" height="32" rx="1.5" fill={selected.paint.color} stroke="rgba(0,0,0,0.4)" />
-                {/* signe TAXI */}
-                <rect x="-6" y="-26" width="12" height="5" rx="1" fill="#fde047" stroke="#0b0d10" strokeWidth="0.6" />
-                <text x="0" y="-22" fontSize="3.6" fontWeight="900" fill="#0b0d10" textAnchor="middle">TAXI</text>
-                {/* rampe lumineuse */}
-                {selected.upgrades.sticker === "roof" && (
-                  <rect x="-18" y="-28" width="36" height="3.5" rx="1.5" fill="#fde047" stroke="#0b0d10" strokeWidth="0.5">
-                    <animate attributeName="opacity" values="1;0.4;1" dur="1s" repeatCount="indefinite" />
-                  </rect>
-                )}
-                {/* roues (épaisseur selon pneus) */}
-                {[ -38, 38 ].map((x, i) => {
-                  const r = 8 + selected.upgrades.tires * 1.5;
-                  return <circle key={i} cx={x} cy={20} r={r} fill="#0b0d10" stroke="#444" strokeWidth="1.5" />;
-                })}
-                {/* plaque de blindage */}
-                {selected.upgrades.armor >= 1 && (
-                  <rect x="-56" y="-4" width="112" height="6" fill="#52525b" stroke="#0b0d10" strokeWidth="0.6" opacity="0.85" />
-                )}
-                {selected.upgrades.armor >= 2 && (
-                  <rect x="-56" y="10" width="112" height="6" fill="#71717a" stroke="#0b0d10" strokeWidth="0.6" opacity="0.85" />
-                )}
-                {/* PV bar */}
-                <g transform="translate(-30,-38)">
-                  <rect width="60" height="5" fill="#1a1d22" rx="1" />
-                  <rect width={60 * (selected.condition / 100)} height="5" rx="1"
-                    fill={selected.condition < 30 ? "#ef4444" : selected.condition < 70 ? "#f97316" : "#22c55e"} />
-                </g>
-              </g>
+            {/* MÉCANO animé qui tourne autour du taxi */}
+            {selected && working && (
+              <MechanicSprite mode={working.mode} cx={400} cy={340} radius={130} />
             )}
 
-            {/* Mécano animé */}
-            {selected && working && <MechanicSprite mode={working.mode} />}
-
-            {/* étincelles ambiantes au sol */}
+            {/* Étincelles soudure */}
             {working && working.mode === "weld" && (
               <g>
-                <circle cx="210" cy="220" r="1.5" fill="#fde047">
-                  <animate attributeName="opacity" values="0;1;0" dur="0.6s" repeatCount="indefinite" />
-                </circle>
-                <circle cx="195" cy="225" r="1.2" fill="#f97316">
-                  <animate attributeName="opacity" values="0;1;0" dur="0.5s" repeatCount="indefinite" />
-                </circle>
+                {[0,1,2,3,4].map(i => (
+                  <circle key={i} cx={380 + i * 12} cy={330 + (i % 2) * 6} r={1.4} fill={i % 2 ? "#fde047" : "#f97316"}>
+                    <animate attributeName="opacity" values="0;1;0" dur={`${0.4 + i * 0.1}s`} repeatCount="indefinite" />
+                  </circle>
+                ))}
+              </g>
+            )}
+
+            {/* Brume peinture */}
+            {working && working.mode === "paint" && (
+              <g opacity="0.6">
+                <ellipse cx="400" cy="320" rx="120" ry="40" fill={pendingPaint?.color || "#7dd3fc"} opacity="0.25">
+                  <animate attributeName="opacity" values="0.1;0.4;0.1" dur="1.2s" repeatCount="indefinite" />
+                </ellipse>
               </g>
             )}
           </svg>
+
 
           {/* Barre progression */}
           {working && (
