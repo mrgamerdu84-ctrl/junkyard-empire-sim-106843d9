@@ -1766,6 +1766,7 @@ export default function TaxiTycoon() {
   const [mapFullscreen, setMapFullscreen] = useState(false);
   const [radioOpen, setRadioOpen] = useState(false);
   const [pseudoOpen, setPseudoOpen] = useState(false);
+  const [cityInfoOpen, setCityInfoOpen] = useState(false);
   const auth = useAuth();
   const [pseudoDraft, setPseudoDraft] = useState("");
   const [pseudoSaving, setPseudoSaving] = useState(false);
