@@ -17,7 +17,7 @@ import {
 
 type Tab = "fleet" | "hr" | "contracts" | "finance" | "expansion" | "events";
 
-export default function CompanyPanel({ onClose }: { onClose: () => void }) {
+export default function CompanyPanel({ onClose, onOpenGarage }: { onClose: () => void; onOpenGarage?: () => void }) {
   const [s, setS] = useState<CompanyState>(getCompany());
   const [tab, setTab] = useState<Tab>("fleet");
   const [report, setReport] = useState<DailyReport | null>(null);
