@@ -3158,20 +3158,11 @@ export default function TaxiTycoon() {
         .tt-pseudo-actions button { padding: 8px 14px; border-radius: 8px; border: 2px solid #374151; background: #1f2937; color: #d1d5db; font-weight: 800; cursor: pointer; }
         .tt-pseudo-actions button.primary { background: linear-gradient(180deg, #f5c542, #e0a92a); color: #1a1208; border-color: #fde047; }
         .tt-pseudo-actions button:disabled { opacity: 0.5; cursor: not-allowed; }
-        .tt-lower-tools { display: grid; grid-template-columns: 1.4fr 1fr 50px 50px 50px; gap: 10px; align-items: center; margin-top: 10px; }
-        .tt-admin-btn {
-          width: 50px; height: 48px; border-radius: 12px;
-          background: linear-gradient(180deg, #1a1a1a, #050505); border: 2px solid #000;
-          color: #fef3c7; font-size: 22px; font-weight: 900;
-          display: flex; align-items: center; justify-content: center;
-          box-shadow: inset 0 1px 0 rgba(255,255,255,0.08), 0 2px 6px rgba(0,0,0,0.4);
-          cursor: pointer;
-        }
-        .tt-admin-btn:active { transform: translateY(1px); }
+        .tt-lower-tools { display: grid; grid-template-columns: 1.4fr 1fr 50px 50px; gap: 10px; align-items: center; margin-top: 10px; }
         .tt-nextday-btn {
           width: 50px; height: 48px; border-radius: 12px;
           background: linear-gradient(180deg, #1a1a1a, #050505); border: 2px solid #000;
-          color: #60a5fa; font-size: 22px; font-weight: 900;
+          color: #fef3c7; font-size: 22px; font-weight: 900;
           display: flex; align-items: center; justify-content: center;
           box-shadow: inset 0 1px 0 rgba(255,255,255,0.08), 0 2px 6px rgba(0,0,0,0.4);
           cursor: pointer;
