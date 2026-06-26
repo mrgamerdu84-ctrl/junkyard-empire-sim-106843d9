@@ -31,16 +31,21 @@ export default function TerritoryPanel() {
 
   useEffect(() => {
     const refresh = () => setDistricts(read());
+    const openEvt = () => { refresh(); setOpen(true); };
     const t = window.setInterval(refresh, 1500);
     window.addEventListener("mtw:course-completed", refresh as EventListener);
+    window.addEventListener("mtw:open-territory", openEvt as EventListener);
     return () => {
       window.clearInterval(t);
       window.removeEventListener("mtw:course-completed", refresh as EventListener);
+      window.removeEventListener("mtw:open-territory", openEvt as EventListener);
     };
   }, []);
 
   const owned = districts.filter((d) => d.owned).length;
   const passive = owned * BONUS_PER_DISTRICT;
+  const fmtMoney = (n: number) => n.toLocaleString("fr-FR");
+
 
   return (
     <>
