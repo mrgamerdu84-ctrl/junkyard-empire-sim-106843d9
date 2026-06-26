@@ -3510,6 +3510,9 @@ export default function TaxiTycoon() {
         .tt-fs-toggle:active { transform: translateY(1px); }
         .tt-hud-fs { pointer-events: none; }
         .tt-hud-fs .tt-fs-toggle { pointer-events: auto; }
+        .tt-fit-toggle { position: fixed; top: max(8px, env(safe-area-inset-top)); right: calc(max(8px, env(safe-area-inset-right)) + 48px); z-index: 9000; min-width: 48px; height: 40px; padding: 0 8px; border-radius: 10px; border: 2px solid #38bdf8; background: rgba(15,23,42,0.85); color: #38bdf8; font-size: 13px; font-weight: 900; cursor: pointer; box-shadow: 0 4px 12px rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; letter-spacing: 0.5px; }
+        .tt-fit-toggle:active { transform: translateY(1px); }
+        .tt-hud-fs .tt-fit-toggle { pointer-events: auto; }
         .tt-pseudo-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.7); z-index: 10000; display: flex; align-items: center; justify-content: center; padding: 20px; }
         .tt-pseudo-dialog { background: linear-gradient(180deg, #1f2937, #111827); border: 2px solid #f5c542; border-radius: 14px; padding: 18px; width: min(360px, 100%); display: flex; flex-direction: column; gap: 12px; }
         .tt-pseudo-dialog h3 { color: #f5c542; margin: 0; font-size: 16px; }
