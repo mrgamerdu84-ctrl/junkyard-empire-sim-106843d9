@@ -290,9 +290,9 @@ export default function TerritoryWar() {
                   {d.owner === "player"
                     ? `+${BONUS_PER_DISTRICT}$/min`
                     : d.owner
-                      ? `Tenu par ${labelFor(d.owner)} · ${playerScore}/${total || 1} hebdo`
+                      ? `Tenu par ${labelFor(d.owner, live)} · ${playerScore}/${total || 1} hebdo`
                       : leadOwner
-                        ? `Leader ${labelFor(leadOwner[0])} (${leadOwner[1]})`
+                        ? `Leader ${labelFor(leadOwner[0], live)} (${leadOwner[1]})`
                         : "Aucun leader"}
                 </text>
               </g>
