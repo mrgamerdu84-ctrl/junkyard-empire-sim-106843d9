@@ -4,7 +4,7 @@
 // Lit l'état exposé par TerritoryWar via window.__mtwTerritory et
 // se rafraîchit quand une course se termine ou périodiquement.
 // =============================================================
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 type District = {
   id: string; name: string;
