@@ -2813,8 +2813,8 @@ export default function TaxiTycoon() {
           </div>
         )}
         {!mapFullscreen && (
-        <div className="tt-console">
-          {/* LCD tableau de bord — style voiture */}
+        <div className="tt-console tt-console-lcd">
+          {/* Rangée 1 — JOUR · HORLOGE · TRAFIC */}
           <div className="tt-dashboard-lcd" onClick={() => setCityInfoOpen(true)} title="Ouvrir Infos Ville">
             <div className="tt-lcd-seg tt-lcd-day">
               <span className="tt-lcd-lbl">JOUR</span>
@@ -2837,68 +2837,83 @@ export default function TaxiTycoon() {
               </span>
             </div>
           </div>
-          <div className="tt-console-actions">
 
-            <button className="tt-wood-btn" onClick={() => setGarageOpen(true)}>
-              <span className="tt-wood-icon">🚕</span><b>GÉRER<br />FLOTTE</b>
+          {/* Rangée 2 — STATUS LCD */}
+          <div className="tt-dashboard-lcd tt-lcd-row2">
+            <button className="tt-lcd-seg tt-lcd-mini" onClick={() => setCityInfoOpen(true)} title="Météo">
+              <span className="tt-lcd-lbl">MÉTÉO</span>
+              <span className="tt-lcd-mini-val">{realEnv ? weatherLabelFr(realEnv.weather) : "…"}</span>
             </button>
-            <button className="tt-wood-btn" onClick={() => setShopOpen(true)}>
-              <span className="tt-wood-icon">🔧</span><b>AMÉLIORATIONS<br />QG</b>
+            <button className="tt-lcd-seg tt-lcd-mini" onClick={() => { setMissionsOpen(true); setMissionsTab("depot"); }} title="Trésorerie">
+              <span className="tt-lcd-lbl">ARGENT</span>
+              <span className="tt-lcd-mini-val tt-lcd-money">{fmt(save.money)}$</span>
             </button>
-            <button className="tt-wood-btn" onClick={() => setRadioOpen(true)}>
-              <span className="tt-wood-icon">📻</span><b>RADIO</b>
+            <button className="tt-lcd-seg tt-lcd-mini" onClick={() => setGarageOpen(true)} title="Flotte">
+              <span className="tt-lcd-lbl">FLOTTE</span>
+              <span className="tt-lcd-mini-val">{taxiCount}/{effectiveMaxTaxis}</span>
             </button>
-            <button className="tt-wood-btn" onClick={() => setShowLeaderboard(true)}>
-              <span className="tt-wood-icon">⚔️</span><b>RIVALITÉ</b>
-            </button>
-            <button className="tt-wood-btn" onClick={() => setCityInfoOpen(true)}>
-              <span className="tt-wood-icon">🌆</span><b>INFOS<br />VILLE</b>
+            <button className="tt-lcd-seg tt-lcd-mini" onClick={() => { setMissionsOpen(true); setMissionsTab("contracts"); }} title="Courses">
+              <span className="tt-lcd-lbl">COURSES</span>
+              <span className="tt-lcd-mini-val">{taxisRef.current.filter((t) => t.mode !== "idle").length}</span>
             </button>
           </div>
-          <div className="tt-director-band">
-            <button className="tt-director-profile" onClick={() => setGarageOpen(true)} title="Profil directeur et livrées">
+
+          {/* Rangée 3 — PILOTE */}
+          <div className="tt-lcd-pilot">
+            <button className="tt-pilot-photo" onClick={() => setGarageOpen(true)} title="Profil directeur">
               {(() => {
                 const src = resolveAvatarSrc(auth.avatarKind, auth.avatarUrl);
                 return src
                   ? <img className="tt-avatar-photo" src={src} alt="Chauffeur" />
                   : <span className="tt-avatar-anon">{(auth.pseudo || "?").charAt(0).toUpperCase()}</span>;
               })()}
-              <span className="tt-director-info">
-                <b>{auth.pseudo || "DIRECTEUR"}</b>
-                <span className="tt-progress"><span className="tt-progress-fill" style={{ width: `${Math.min(100, (taxiCount / Math.max(1, effectiveMaxTaxis)) * 100)}%` }} /></span>
-                <i>QG NIVEAU {save.depotTier + 1} ({effectiveMaxTaxis} Capacité)</i>
-              </span>
             </button>
-            <button className="tt-trophy" onClick={() => setShowLeaderboard(true)} title="Classement mondial">
-              <span className="tt-trophy-ico">🏆</span>
-              <small>CLASSEMENT<br />MONDIAL</small>
-            </button>
-            <button className="tt-book" onClick={() => setShowTutorial(true)} title="Contrats et manuels">
-              <span className="tt-book-label">TUTO</span>
-              <small>CONTRATS<br />& MANUELS</small>
-            </button>
-          </div>
-          <div className="tt-director-foot">
-            <button className="tt-foot-left tt-foot-btn" onClick={() => setGarageOpen(true)}>PROFIL<br/>DIRECTEUR</button>
-            <button className="tt-foot-center tt-foot-btn" onClick={() => setPseudoOpen(true)}>{auth.pseudo || "PSEUDO"} <span className="tt-pen-ico">✒</span></button>
-            <button className="tt-foot-right tt-foot-btn" onClick={() => setShowTutorial(true)}>CONTRATS<br/>&amp; MANUELS</button>
-          </div>
-          <div className="tt-lower-tools">
-            <button className="tt-apk" onClick={() => navigate({ to: "/download" })}>
-              <span className="tt-apk-ico">🤖</span>
-              <span>TÉLÉCHARGER<br />L'APK</span>
-            </button>
-            <div className="tt-slot-wrap">
-              <button className="tt-slot" onClick={repairTaxis} disabled={wearNow <= 0 || save.money < maintenanceCost} title="Entretien flotte">
-                <span className="tt-slot-spark">✦</span>
-              </button>
-              <button className="tt-admin-badge" onClick={() => window.dispatchEvent(new CustomEvent("mtw:open-admin"))} title="Admin" aria-label="Admin">⚙</button>
+            <div className="tt-pilot-info">
+              <div className="tt-pilot-name-row">
+                <b className="tt-pilot-name">{auth.pseudo || "DIRECTEUR"}</b>
+                <button className="tt-pilot-pen" onClick={() => setPseudoOpen(true)} title="Changer le pseudo">✒</button>
+              </div>
+              <span className="tt-progress"><span className="tt-progress-fill" style={{ width: `${Math.min(100, (taxiCount / Math.max(1, effectiveMaxTaxis)) * 100)}%` }} /></span>
+              <i className="tt-pilot-sub">QG NIVEAU {save.depotTier + 1} · {effectiveMaxTaxis} CAPACITÉ</i>
             </div>
-            <button className="tt-diamond" onClick={triggerSpecialMission} disabled={nowTick < specialCooldownUntil} title="Mission spéciale">
-              <span>✦</span>
-            </button>
-            {/* Admin button moved to topbar */}
+          </div>
 
+          {/* Rangée 4 — TOUCHES PRINCIPALES */}
+          <div className="tt-lcd-keys">
+            <button className="tt-lcd-key" onClick={() => setGarageOpen(true)}>
+              <span className="tt-lcd-key-ico">🚕</span><b>FLOTTE</b>
+            </button>
+            <button className="tt-lcd-key" onClick={() => setShopOpen(true)}>
+              <span className="tt-lcd-key-ico">🔧</span><b>QG</b>
+            </button>
+            <button className="tt-lcd-key" onClick={() => setRadioOpen(true)}>
+              <span className="tt-lcd-key-ico">📻</span><b>RADIO</b>
+            </button>
+            <button className="tt-lcd-key" onClick={() => setShowLeaderboard(true)}>
+              <span className="tt-lcd-key-ico">⚔️</span><b>RIVALITÉ</b>
+            </button>
+            <button className="tt-lcd-key" onClick={() => setShowLeaderboard(true)}>
+              <span className="tt-lcd-key-ico">🏆</span><b>CLASS.</b>
+            </button>
+            <button className="tt-lcd-key" onClick={() => setShowTutorial(true)}>
+              <span className="tt-lcd-key-ico">📖</span><b>TUTO</b>
+            </button>
+          </div>
+
+          {/* Rangée 5 — OUTILS */}
+          <div className="tt-lcd-tools">
+            <button className="tt-lcd-tool" onClick={repairTaxis} disabled={wearNow <= 0 || save.money < maintenanceCost} title="Entretien flotte">
+              <span className="tt-lcd-tool-ico">✦</span><b>ENTRETIEN</b>
+            </button>
+            <button className="tt-lcd-tool tt-lcd-tool-gold" onClick={triggerSpecialMission} disabled={nowTick < specialCooldownUntil} title="Mission spéciale">
+              <span className="tt-lcd-tool-ico">✦</span><b>SPÉCIAL</b>
+            </button>
+            <button className="tt-lcd-tool" onClick={() => navigate({ to: "/download" })} title="APK Android">
+              <span className="tt-lcd-tool-ico" style={{ color: "#a4c639" }}>🤖</span><b>APK</b>
+            </button>
+            <button className="tt-lcd-tool" onClick={() => window.dispatchEvent(new CustomEvent("mtw:open-admin"))} title="Admin">
+              <span className="tt-lcd-tool-ico">⚙</span><b>ADMIN</b>
+            </button>
           </div>
         </div>
         )}
