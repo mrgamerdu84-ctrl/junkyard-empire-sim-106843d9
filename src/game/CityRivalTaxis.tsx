@@ -149,10 +149,25 @@ export default function CityRivalTaxis() {
     // Mesure des paths : retry tant que pas prêt (évite le freeze "tout disparaît")
     let raf = 0;
     let lens: number[] = [];
+    let roadsByDistrict: Record<string, number[]> = {};
 
     const ensureLens = () => {
       lens = pathRefs.current.map((p) => (p ? p.getTotalLength() : 0));
-      return lens.every((l) => l > 1);
+      if (!lens.every((l) => l > 1)) return false;
+      // Une fois les paths mesurés, on classe chaque route dans son quartier
+      // d'origine (selon le point milieu de la route).
+      const by: Record<string, number[]> = {};
+      for (const idx of RIVAL_ROAD_IDX) {
+        const p = pathRefs.current[idx];
+        const len = lens[idx];
+        if (!p || !len) continue;
+        const mid = p.getPointAtLength(len / 2);
+        const d = findDistrictAt(DEFAULT_DISTRICTS, mid.x, mid.y);
+        if (!d) continue;
+        (by[d.id] ||= []).push(idx);
+      }
+      roadsByDistrict = by;
+      return true;
     };
 
     // Init states
