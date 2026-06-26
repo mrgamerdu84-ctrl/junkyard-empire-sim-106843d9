@@ -1059,22 +1059,8 @@ export default function TaxiTycoon() {
   // Démarre le tick salaires/revenus du personnel (une seule fois).
   useEffect(() => { startPersonnelTick(); }, []);
 
-  // Passif des quartiers contrôlés (lecture temps réel).
-  const [territoryPassive, setTerritoryPassive] = useState(0);
-  useEffect(() => {
-    const refresh = () => {
-      const arr = (window as unknown as { __mtwTerritory?: Array<{ owned: boolean }> }).__mtwTerritory;
-      const owned = arr ? arr.filter((d) => d.owned).length : 0;
-      setTerritoryPassive(owned * 60);
-    };
-    refresh();
-    const t = window.setInterval(refresh, 1500);
-    window.addEventListener("mtw:course-completed", refresh as EventListener);
-    return () => {
-      window.clearInterval(t);
-      window.removeEventListener("mtw:course-completed", refresh as EventListener);
-    };
-  }, []);
+
+
 
 
 
