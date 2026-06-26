@@ -1958,43 +1958,31 @@ export default function TaxiTycoon() {
         let changed = false;
         const next = js.map((j) => {
           if (j.status !== "offered") return j;
-          // Init : par défaut joueur si rien n'est revendiqué
+          // Init défaut joueur si aucun quartier ne l'a déjà revendiqué.
           if (!j.claimedBy) {
             changed = true;
             return { ...j, claimedBy: "player", claimedColor: currentPaint.color };
           }
-          // Si actuellement au joueur : 18% de chance qu'un rival vole la couleur
+          // Si revendiqué par le joueur : garde sa couleur à jour si elle change.
           if (j.claimedBy === "player") {
-            if (rivals.length && Math.random() < 0.18) {
-              const r = rivals[Math.floor(Math.random() * rivals.length)];
-              changed = true;
-              return { ...j, claimedBy: r.id, claimedColor: r.color };
-            }
-            // Garder la couleur joueur à jour si elle a changé
             if (j.claimedColor !== currentPaint.color) {
               changed = true;
               return { ...j, claimedColor: currentPaint.color };
             }
             return j;
           }
-          // Si à un rival : 22% que le joueur la reprenne, 8% qu'un autre rival la vole
-          const roll = Math.random();
-          if (roll < 0.22) {
+          // Revendiqué par un rival (= quartier rival) : la couleur reste fixe.
+          // Le joueur peut quand même cliquer pour "voler" le client.
+          const rival = rivals.find((r) => r.id === j.claimedBy);
+          if (rival && j.claimedColor !== rival.color) {
             changed = true;
-            return { ...j, claimedBy: "player", claimedColor: currentPaint.color };
-          }
-          if (roll < 0.30 && rivals.length > 1) {
-            const others = rivals.filter((r) => r.id !== j.claimedBy);
-            if (others.length) {
-              const r = others[Math.floor(Math.random() * others.length)];
-              changed = true;
-              return { ...j, claimedBy: r.id, claimedColor: r.color };
-            }
+            return { ...j, claimedColor: rival.color };
           }
           return j;
         });
         return changed ? next : js;
       });
+
     }, 4000);
     return () => window.clearInterval(t);
   }, [currentPaint.color]);
