@@ -75,7 +75,7 @@ export default function MafiaAttacks() {
   function neutralize(id: number, x: number, y: number) {
     setAttacks(prev => prev.filter(a => a.id !== id));
     setFlash({ x, y, t: performance.now() });
-    rewardMafiaTakedown(180);
+    rewardMafiaTakedown(100);
     setTimeout(() => setFlash(null), 600);
   }
 
