@@ -2869,6 +2869,9 @@ export default function TaxiTycoon() {
             </text>
           </g>
         ))}
+
+        {/* === Mafia (dépôt + voitures noires cliquables) === */}
+        <MafiaAttacks />
       </svg>
 
         {/* === HUD HTML incrusté — rendu hors carte pour rester fixe === */}
