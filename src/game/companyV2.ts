@@ -167,7 +167,18 @@ function makeTaxi(livery = "Standard"): Taxi {
     id: `txi-${Date.now()}-${Math.floor(Math.random()*9999)}`,
     livery, km: 0, condition: 100, fuel: 100,
     status: "garage", driverId: null, ridesToday: 0, earnedToday: 0,
+    upgrades: { tires: 0, engine: 0, armor: 0, sticker: null },
+    paint: { color: "#fde047", accent: "#a16207" },
+    mafiaShieldUsed: false,
   };
+}
+
+// Migration des taxis chargés avant l'ajout des upgrades.
+function ensureTaxiShape(t: Taxi): Taxi {
+  if (!t.upgrades) t.upgrades = { tires: 0, engine: 0, armor: 0, sticker: null };
+  if (!t.paint)    t.paint    = { color: "#fde047", accent: "#a16207" };
+  if (t.mafiaShieldUsed === undefined) t.mafiaShieldUsed = false;
+  return t;
 }
 
 function defaultState(): CompanyState {
