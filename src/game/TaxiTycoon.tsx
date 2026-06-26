@@ -1193,6 +1193,7 @@ export default function TaxiTycoon() {
                   : tipMult > 1 ? `💵 +${fmt(finalFare)}$ (pourboire)`
                   : `+${fmt(finalFare)}$`;
                 popFloat(tag, pt.x, pt.y);
+                window.dispatchEvent(new CustomEvent("mtw:course-completed", { detail: { x: pt.x, y: pt.y, fare: finalFare } }));
               }
               recordEarning(finalFare);
               // XP permis : 10 normal, 20 VIP, 30 STAR, ou XP custom mission spéciale
