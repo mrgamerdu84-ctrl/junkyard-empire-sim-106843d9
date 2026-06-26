@@ -289,7 +289,7 @@ export default function TerritoryPanel() {
                 {[
                   { l: "+", a: () => zoomAt(1.4, view.x + view.w / 2, view.y + view.h / 2) },
                   { l: "−", a: () => zoomAt(1 / 1.4, view.x + view.w / 2, view.y + view.h / 2) },
-                  { l: "🎯", a: () => { if (selectedId) centerOnDistrict(selectedId, 2.5); } },
+                  { l: "🎯", a: () => { if (selectedId) centerOnDistrict(selectedId); } },
                   { l: "⟲", a: () => setView({ x: 0, y: 0, w: MAP_W, h: MAP_H }) },
                 ].map((b) => (
                   <button key={b.l} type="button" onClick={b.a}
