@@ -1766,6 +1766,7 @@ export default function TaxiTycoon() {
   const [mapFullscreen, setMapFullscreen] = useState(false);
   const [radioOpen, setRadioOpen] = useState(false);
   const [pseudoOpen, setPseudoOpen] = useState(false);
+  const [cityInfoOpen, setCityInfoOpen] = useState(false);
   const auth = useAuth();
   const [pseudoDraft, setPseudoDraft] = useState("");
   const [pseudoSaving, setPseudoSaving] = useState(false);
@@ -2677,40 +2678,23 @@ export default function TaxiTycoon() {
         </button>
 
         {!mapFullscreen && (<>
-        <div className="tt-topbar">
+        <div className="tt-topbar tt-topbar-slim">
           <button className="tt-round tt-help" onClick={() => setShowTutorial(true)} title="Tutoriel">?</button>
-          <div className="tt-wood-name" />
-          <div className="tt-weather-pill">
-            <span>◷</span>
-            <span>{realEnv ? weatherLabelFr(realEnv.weather) : "météo..."}</span>
-            <span>•</span>
+          <button
+            className="tt-status-pill"
+            onClick={() => setCityInfoOpen(true)}
+            title="Infos ville (heure, météo, trafic)"
+          >
+            <span className="tt-sp-time">{clock.label}</span>
+            <span className="tt-sp-sep">·</span>
+            <span className="tt-sp-weather">{realEnv ? weatherLabelFr(realEnv.weather) : "…"}</span>
+            <span className="tt-sp-sep">·</span>
             <span className="tt-coin">●</span>
             <b>{fmt(save.money)}$</b>
-          </div>
+          </button>
           <button className="tt-round tt-settings" onClick={() => setShopOpen(true)} title="Réglages QG">⚙</button>
         </div>
 
-        <div className="tt-info-card">
-          <b>{clock.label}</b>
-          <span><i /> {periodLabel(clock.period)}</span>
-          <small>{realEnv?.city ?? "Ville"} · Densité ×{clock.density.toFixed(2)}</small>
-        </div>
-
-        <div className="tt-logo-mark" aria-hidden="true">
-          <svg width="64" height="30" viewBox="0 0 64 30">
-            <defs>
-              <linearGradient id="ttCrown" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stopColor="#ffd07a" />
-                <stop offset="100%" stopColor="#e0651a" />
-              </linearGradient>
-            </defs>
-            <path d="M4 26 L12 6 L22 18 L32 3 L42 18 L52 6 L60 26 Z" fill="url(#ttCrown)" stroke="#7a2f06" strokeWidth="1.6" strokeLinejoin="round" />
-            <circle cx="12" cy="6" r="2.4" fill="#ffe7b8" stroke="#7a2f06" strokeWidth="1" />
-            <circle cx="32" cy="3" r="2.8" fill="#ff9d7a" stroke="#7a2f06" strokeWidth="1" />
-            <circle cx="52" cy="6" r="2.4" fill="#ffe7b8" stroke="#7a2f06" strokeWidth="1" />
-          </svg>
-          <span>MY TAXI<br />WORLD</span>
-        </div>
 
 
         {(() => {
@@ -2841,6 +2825,9 @@ export default function TaxiTycoon() {
             <button className="tt-wood-btn" onClick={() => setShowLeaderboard(true)}>
               <span className="tt-wood-icon">⚔️</span><b>RIVALITÉ</b>
             </button>
+            <button className="tt-wood-btn" onClick={() => setCityInfoOpen(true)}>
+              <span className="tt-wood-icon">🌆</span><b>INFOS<br />VILLE</b>
+            </button>
           </div>
           <div className="tt-director-band">
             <button className="tt-director-profile" onClick={() => setGarageOpen(true)} title="Profil directeur et livrées">
@@ -2880,8 +2867,41 @@ export default function TaxiTycoon() {
         </div>
         )}
 
+        {/* Panneau Infos Ville */}
+        {cityInfoOpen && (
+          <div className="tt-city-overlay" onClick={() => setCityInfoOpen(false)}>
+            <div className="tt-city-panel" onClick={(e) => e.stopPropagation()}>
+              <div className="tt-city-head">
+                <h3>🌆 Infos Ville</h3>
+                <button className="tt-city-x" onClick={() => setCityInfoOpen(false)}>×</button>
+              </div>
+              <div className="tt-city-body">
+                <div className="tt-city-logo">
+                  <svg width="80" height="38" viewBox="0 0 64 30" aria-hidden="true">
+                    <defs>
+                      <linearGradient id="ttCrown2" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stopColor="#ffd07a" />
+                        <stop offset="100%" stopColor="#e0651a" />
+                      </linearGradient>
+                    </defs>
+                    <path d="M4 26 L12 6 L22 18 L32 3 L42 18 L52 6 L60 26 Z" fill="url(#ttCrown2)" stroke="#7a2f06" strokeWidth="1.6" strokeLinejoin="round" />
+                  </svg>
+                  <span>MY TAXI WORLD</span>
+                </div>
+                <div className="tt-city-row"><span>🗓️ Jour</span><b>{clock.label}</b></div>
+                <div className="tt-city-row"><span>🕒 Période</span><b>{periodLabel(clock.period)}</b></div>
+                <div className="tt-city-row"><span>📍 Ville</span><b>{realEnv?.city ?? "Détection…"}</b></div>
+                <div className="tt-city-row"><span>☁️ Météo</span><b>{realEnv ? weatherLabelFr(realEnv.weather) : "…"}</b></div>
+                <div className="tt-city-row"><span>🚦 Densité trafic</span><b>×{clock.density.toFixed(2)}</b></div>
+                <div className="tt-city-row"><span>💵 Trésorerie</span><b style={{ color: "#34d399" }}>{fmt(save.money)}$</b></div>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Radio (mode contrôlé : pas de bouton flottant, ouverte via console) */}
         <RadioPlayer open={radioOpen} onOpenChange={setRadioOpen} hideToggle />
+
 
         {/* Dialog Pseudo */}
         {pseudoOpen && (
@@ -3012,7 +3032,7 @@ export default function TaxiTycoon() {
 
         .tt-topbar {
           position: absolute; top: max(8px, env(safe-area-inset-top)); left: 8px; right: 8px; height: 44px;
-          display: grid; grid-template-columns: 48px 1fr minmax(118px, 156px) 48px; gap: 8px; align-items: center;
+          display: grid; grid-template-columns: 44px 1fr 44px; gap: 8px; align-items: center;
         }
         .tt-round {
           width: 44px; height: 44px; border-radius: 50%; border: 2px solid #8f7653;
@@ -3026,37 +3046,23 @@ export default function TaxiTycoon() {
           box-shadow: inset 0 2px 0 rgba(255,220,170,0.25), inset 0 -10px 18px rgba(20,8,3,0.45), 0 4px 0 #1a0c08, 0 8px 16px rgba(0,0,0,0.55);
         }
         .tt-wood-name { height: 36px; border-radius: 22px; opacity: 0.95; }
-        .tt-weather-pill {
+        .tt-status-pill {
           height: 38px; border-radius: 20px; padding: 0 12px; min-width: 0;
-          display: flex; align-items: center; justify-content: center; gap: 7px;
-          background: linear-gradient(180deg, #2a2e37, #0f1117); border: 2px solid #11141b;
-          box-shadow: inset 0 1px 0 rgba(255,255,255,0.14), 0 4px 12px rgba(0,0,0,0.55);
-          color: #d7d2cc; font-weight: 900; font-size: 13px; white-space: nowrap; overflow: hidden;
+          display: flex; align-items: center; justify-content: center; gap: 6px;
+          background: linear-gradient(180deg, rgba(42,46,55,0.85), rgba(15,17,23,0.85));
+          border: 1px solid rgba(255,255,255,0.08);
+          box-shadow: inset 0 1px 0 rgba(255,255,255,0.12), 0 4px 12px rgba(0,0,0,0.5);
+          color: #e6e0d8; font-weight: 800; font-size: 12px; white-space: nowrap; overflow: hidden;
+          backdrop-filter: blur(6px);
         }
-        .tt-weather-pill span:nth-child(2) { overflow: hidden; text-overflow: ellipsis; }
+        .tt-status-pill b { color: #ffe7a8; font-size: 13px; font-weight: 900; }
+        .tt-status-pill .tt-sp-sep { opacity: 0.45; }
+        .tt-status-pill .tt-sp-weather { overflow: hidden; text-overflow: ellipsis; max-width: 90px; }
         .tt-coin { color: #e0b63d; text-shadow: 0 1px 0 #4b3008; }
-        .tt-info-card {
-          position: absolute; top: max(58px, calc(env(safe-area-inset-top) + 58px)); left: 12px; z-index: 2;
-          min-width: 174px; padding: 10px 12px; border-radius: 9px;
-          background: linear-gradient(180deg, rgba(24,28,38,0.94), rgba(10,12,18,0.94));
-          border: 1px solid rgba(255,255,255,0.08); box-shadow: 0 7px 18px rgba(0,0,0,0.58);
-          display: flex; flex-direction: column; gap: 4px; pointer-events: none;
-        }
-        .tt-info-card b { font-size: 18px; line-height: 1.05; color: #e8dfd4; text-shadow: 0 2px 2px rgba(0,0,0,0.6); }
-        .tt-info-card span { display: flex; align-items: center; gap: 7px; font-size: 16px; color: #d7d0c8; font-weight: 800; }
-        .tt-info-card i { width: 10px; height: 10px; border-radius: 50%; background: #2ed47a; box-shadow: 0 0 10px #2ed47a; display: inline-block; }
-        .tt-info-card small { font-size: 13px; color: #aeb4bd; font-weight: 800; }
-        .tt-logo-mark {
-          position: absolute; top: max(70px, calc(env(safe-area-inset-top) + 70px)); left: 50%; transform: translateX(-50%);
-          text-align: center; color: #fff; text-shadow: 0 2px 4px rgba(0,0,0,0.9), 0 0 6px rgba(255,150,60,0.4);
-          font-weight: 900; font-size: 13px; line-height: 1; letter-spacing: 1.2px; pointer-events: none;
-          font-family: "Impact", "Arial Narrow", sans-serif;
-        }
-        .tt-logo-mark svg { display: block; margin: 0 auto 2px; filter: drop-shadow(0 2px 3px rgba(0,0,0,0.7)); }
         .tt-mission-wood {
-          position: absolute; top: max(76px, calc(env(safe-area-inset-top) + 76px)); right: 10px; height: 50px; min-width: 150px;
-          border-radius: 26px; color: #f7d7aa; display: flex; align-items: center; justify-content: center; gap: 10px;
-          font-weight: 900; font-size: 18px; text-shadow: 0 2px 1px rgba(0,0,0,0.7);
+          position: absolute; top: max(60px, calc(env(safe-area-inset-top) + 60px)); right: 10px; height: 46px; min-width: 140px;
+          border-radius: 24px; color: #f7d7aa; display: flex; align-items: center; justify-content: center; gap: 10px;
+          font-weight: 900; font-size: 16px; text-shadow: 0 2px 1px rgba(0,0,0,0.7);
         }
         .tt-mission-wood .tt-clip { font-size: 18px; }
         .tt-mission-wood b { min-width: 24px; height: 24px; border-radius: 50%; background: #d8463c; color: #ffd7d1; display: grid; place-items: center; font-size: 14px; box-shadow: inset 0 1px 0 rgba(255,255,255,0.25); }
@@ -3065,7 +3071,31 @@ export default function TaxiTycoon() {
           background: linear-gradient(180deg, #5a4030 0%, #3a2418 100%);
           border-top: 3px solid #1a0c08; pointer-events: auto; box-shadow: 0 -10px 24px rgba(0,0,0,0.6);
         }
-        .tt-console-actions { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; margin-bottom: 8px; }
+        .tt-console-actions { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 6px; margin-bottom: 8px; }
+
+        /* Panneau Infos Ville */
+        .tt-city-overlay {
+          position: fixed; inset: 0; background: rgba(0,0,0,0.55); z-index: 50;
+          display: flex; align-items: flex-end; justify-content: center; padding: 16px;
+          animation: ttFadeIn 0.18s ease-out;
+        }
+        .tt-city-panel {
+          width: 100%; max-width: 460px; border-radius: 16px;
+          background: linear-gradient(180deg, #2a1d14, #14090a);
+          border: 2px solid #4a2b1d; box-shadow: 0 20px 40px rgba(0,0,0,0.7);
+          color: #f1e0c8; overflow: hidden;
+        }
+        .tt-city-head { display: flex; align-items: center; justify-content: space-between; padding: 12px 16px; border-bottom: 1px solid rgba(255,255,255,0.08); background: linear-gradient(180deg, #8a4d2f, #5b2d1c); }
+        .tt-city-head h3 { margin: 0; font-size: 16px; font-weight: 900; color: #fff5e0; letter-spacing: 0.5px; }
+        .tt-city-x { background: transparent; border: 0; color: #fff5e0; font-size: 26px; line-height: 1; cursor: pointer; padding: 0 4px; }
+        .tt-city-body { padding: 14px 16px; display: flex; flex-direction: column; gap: 8px; }
+        .tt-city-logo { display: flex; align-items: center; gap: 10px; justify-content: center; padding: 4px 0 10px; border-bottom: 1px dashed rgba(255,255,255,0.1); margin-bottom: 4px; }
+        .tt-city-logo span { font-family: "Impact", "Arial Narrow", sans-serif; letter-spacing: 1.5px; font-size: 16px; color: #ffd9a8; text-shadow: 0 2px 4px #000; }
+        .tt-city-row { display: flex; align-items: center; justify-content: space-between; padding: 8px 10px; border-radius: 8px; background: rgba(255,255,255,0.04); font-size: 14px; }
+        .tt-city-row span { color: #c9b89b; font-weight: 700; }
+        .tt-city-row b { color: #fff5e0; font-weight: 900; }
+        @keyframes ttFadeIn { from { opacity: 0; } to { opacity: 1; } }
+
         .tt-wood-btn { min-height: 86px; border-radius: 10px; color: #fff; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; padding: 6px 2px; text-align: center; }
         .tt-wood-btn:disabled { opacity: 0.55; filter: grayscale(0.4); }
         .tt-wood-icon { font-size: 30px; line-height: 1; filter: drop-shadow(0 2px 2px rgba(0,0,0,0.8)); }

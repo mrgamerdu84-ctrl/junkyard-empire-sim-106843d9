@@ -1,35 +1,33 @@
-## 1. Mode plein écran de la carte
+# Ranger la barre du haut
 
-Ajouter un bouton flottant ⛶ (en haut à droite, à côté de l'engrenage) qui bascule un état `mapFullscreen`.
+## Problème
+La zone tout en haut empile actuellement : bouton Aide, plaque nom, pastille météo+argent, bouton Réglages, puis une carte info (heure/jour/ville/densité) + le logo. Sur mobile c'est tassé, ça déborde et ça cache une partie du jeu.
 
-Quand actif :
-- Le top bar, le logo central, le bouton missions, la console bois, la bande directeur et les outils bas (APK / ✦) sont masqués.
-- La carte/canvas occupe 100% du viewport (portrait ET paysage).
-- Un petit bouton ✕ en surimpression permet de revenir au HUD complet.
-- L'état se conserve quand on tourne l'écran, ce qui règle le problème de la carte écrasée en haut en paysage.
+## Solution
+Garder en haut **uniquement l'essentiel toujours visible**, et déplacer le reste dans un **panneau déroulant** accessible depuis le tableau de bord en bas.
 
-## 2. Boutons qui ne correspondent pas à leur label
+### 1. Barre du haut (minimaliste, transparente)
+Une seule pastille compacte centrée + 2 petits boutons ronds aux coins :
+- Gauche : `?` (tutoriel)
+- Centre : pastille fine avec **heure réelle** · **icône météo** · **argent**
+- Droite : `⚙` (réglages) et `⛶` (plein écran)
 
-Recâblage de la console et de la bande directeur pour que chaque libellé ouvre ce qu'il annonce :
+Plus de plaque bois "tt-wood-name", plus de carte info séparée, plus de gros logo en haut → la carte de jeu reprend l'espace.
 
-| Bouton (label visible) | Action actuelle (incorrecte) | Nouvelle action |
-|---|---|---|
-| 🚕 GÉRER FLOTTE | `buyTaxi()` (achat direct) | Ouvre le garage (gestion + achat des taxis) |
-| 🔧 AMÉLIORATIONS QG | Shop QG | Inchangé |
-| 📻 RADIO & MISSIONS | Ouvre seulement les missions | Ouvre un panneau à 2 onglets : **Radio** (stations Célébrer / Droit Libre, lecture, volume) et **Missions** (liste actuelle) |
-| ⚔️ RIVALITÉ | Classement | Inchangé |
-| Bande "PROFIL DIRECTEUR" (en bas, libellé seul) | Décoratif | Ouvre le garage / profil directeur |
-| Bande "PSEUDO ──── ✒" | Décoratif | Ouvre une mini-dialog pour éditer le pseudo (sauvegardé dans le profil cloud) |
-| Bande "CONTRATS & MANUELS" (en bas, libellé seul) | Décoratif | Ouvre le tutoriel / contrats |
-| 🏆 CLASSEMENT MONDIAL | Classement | Inchangé |
-| 📖 CONTRATS & MANUELS (livre) | Tutoriel | Inchangé |
+### 2. Panneau "Infos ville" dans le dashboard du bas
+Ajouter un bouton dans la console bois en bas (à côté de Radio/Flotte) intitulé **« INFOS VILLE »**. Au clic, ouverture d'un panneau (drawer en bas) qui affiche tout le détail aujourd'hui éparpillé :
+- Jour et date complète
+- Heure + période (matin/jour/soir/nuit)
+- Ville détectée + météo détaillée
+- Densité de trafic ×N
+- Logo couronne décoratif
 
-## 3. Détails techniques
+Fermeture par clic extérieur ou bouton ✕.
 
-- Fichier principal modifié : `src/game/TaxiTycoon.tsx`
-  - `useState` pour `mapFullscreen` et `pseudoDialogOpen`.
-  - Bloc HUD enveloppé dans `{!mapFullscreen && (...)}` pour le top bar, le logo, la console et la bande directeur.
-  - Bouton ⛶ ajouté à côté de `.tt-round.tt-settings`.
-  - Nouveau composant interne `RadioMissionsPanel` (onglets) qui réutilise les contrôles existants de `RadioPlayer` (stations / volume / play / piste actuelle) et le contenu actuel de `setMissionsOpen`.
-  - Dialog pseudo : input contrôlé, sauvegarde via le hook profil existant (`useCloudCustomizations` / save state).
-- Pas de changement de logique de jeu, pas de modification du moteur de trafic ni des missions — uniquement présentation et câblage d'événements.
+### 3. Comportement
+- En mode plein écran carte (⛶), la barre du haut disparaît déjà — inchangé.
+- La pastille du haut reste cliquable : un tap dessus ouvre aussi le panneau « Infos ville » (raccourci).
+- Aucun changement de logique de jeu, uniquement présentation HUD.
+
+## Fichiers touchés
+- `src/game/TaxiTycoon.tsx` : refonte du bloc `tt-topbar` + suppression de `tt-info-card`/`tt-logo-mark` du haut, ajout du drawer « Infos ville » et du bouton correspondant dans la console bois, ajustement CSS associé.
