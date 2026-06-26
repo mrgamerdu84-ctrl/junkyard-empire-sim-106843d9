@@ -14,10 +14,12 @@
 // =============================================================
 import { useEffect, useMemo, useRef, useState } from "react";
 import { ROADS, VILLAGE_PATHS } from "./CityTraffic";
+import { DEFAULT_DISTRICTS, findDistrictAt, type District } from "./TerritoryWar";
 
 const RIVAL_ROAD_IDX = ROADS.map((_, i) => i).filter((i) => !VILLAGE_PATHS.has(i));
 const LANE_HALF = 9;
 const MAX_RIVALS = 10;
+const SECTOR_BIAS = 0.82; // 82% des fois le rival choisit une route de son quartier
 
 type Competitor = {
   id: string;
@@ -35,43 +37,27 @@ type RivalSpec = {
   letter: string;
   vehicleUrl?: string;
   startPathIdx: number;
+  homeDistrictId: string;
 };
 
 type Mode = "roam" | "to_mission" | "on_mission" | "to_dropoff" | "return_hq";
 
 type RivalState = {
   mode: Mode;
-  // ROAM
   pathIdx: number;
   flip: boolean;
-  duration: number;     // s pour parcourir la route
-  startedAt: number;    // performance.now()
-  // Position courante (utile pour TO_MISSION/RETURN_HQ qui n'utilisent pas un path)
-  x: number;
-  y: number;
-  ang: number;
-  // Cible (lerp linéaire)
-  tgtX: number;
-  tgtY: number;
-  tgtSpeed: number;     // px/s
-  // Mission
+  duration: number;
+  startedAt: number;
+  x: number; y: number; ang: number;
+  tgtX: number; tgtY: number; tgtSpeed: number;
   missionId?: number;
-  dropX?: number;
-  dropY?: number;
-  // Parking
+  dropX?: number; dropY?: number;
   parkUntil?: number;
-  // Watchdog
   lastMoveAt: number;
-  lastX: number;
-  lastY: number;
+  lastX: number; lastY: number;
 };
 
-type IncomingMission = {
-  id: number;
-  x: number;
-  y: number;
-  // pas de dropoff dans l'event actuel → on en simule un aléatoire à proximité
-};
+type IncomingMission = { id: number; x: number; y: number };
 
 function buildSpecs(comps: Competitor[]): RivalSpec[] {
   const alive = comps.filter((c) => !c.bankrupt);
@@ -80,6 +66,7 @@ function buildSpecs(comps: Competitor[]): RivalSpec[] {
   const perComp = Math.max(1, Math.min(2, Math.floor(MAX_RIVALS / Math.max(1, alive.length))));
   let i = 0;
   for (const c of alive) {
+    const home = findDistrictAt(DEFAULT_DISTRICTS, c.x, c.y);
     for (let k = 0; k < perComp && out.length < MAX_RIVALS; k++) {
       out.push({
         compId: c.id,
@@ -87,6 +74,7 @@ function buildSpecs(comps: Competitor[]): RivalSpec[] {
         letter: (c.name?.[0] ?? "?").toUpperCase(),
         vehicleUrl: c.vehicleUrl,
         startPathIdx: RIVAL_ROAD_IDX[i % RIVAL_ROAD_IDX.length] ?? 0,
+        homeDistrictId: home?.id ?? DEFAULT_DISTRICTS[0].id,
       });
       i++;
     }
