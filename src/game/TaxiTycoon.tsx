@@ -1090,7 +1090,7 @@ export default function TaxiTycoon() {
   }, []);
 
   // Démarre le tick salaires/revenus du personnel (une seule fois).
-  useEffect(() => { startPersonnelTick(); }, []);
+  useEffect(() => { startPersonnelTick(); startCompanySim(); }, []);
 
   // Passif des quartiers contrôlés (lecture temps réel).
   const [territoryPassive, setTerritoryPassive] = useState(0);
