@@ -182,11 +182,16 @@ export default function TerritoryPanel() {
               )}
               {districts.map((d) => {
                 const pct = d.owned ? 100 : Math.min(100, (d.count / THRESHOLD) * 100);
+                const isSel = selectedId === d.id;
                 return (
-                  <div key={d.id} style={{
-                    border: `1.5px solid ${d.owned ? "#fde047" : "#7c7361"}`,
-                    background: d.owned ? "rgba(245,197,66,0.10)" : "rgba(255,255,255,0.03)",
-                    borderRadius: 10, padding: "8px 10px",
+                  <div key={d.id}
+                    ref={(el) => { cardRefs.current[d.id] = el; }}
+                    style={{
+                      border: `${isSel ? 2.5 : 1.5}px solid ${isSel ? "#ffffff" : d.owned ? "#fde047" : "#7c7361"}`,
+                      background: d.owned ? "rgba(245,197,66,0.10)" : "rgba(255,255,255,0.03)",
+                      borderRadius: 10, padding: "8px 10px",
+                      boxShadow: isSel ? "0 0 0 3px rgba(255,255,255,0.18)" : "none",
+                      transition: "border-color 0.2s, box-shadow 0.2s",
                   }}>
                     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 4 }}>
                       <div style={{ fontWeight: 900, fontSize: 12, color: d.owned ? "#fde047" : "#fff7d6" }}>
