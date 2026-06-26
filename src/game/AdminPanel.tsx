@@ -15,6 +15,11 @@ export default function AdminPanel() {
   const { syncing, lastError, pullNow, pushNow } = useCloudAdminSync(user);
 
   const [open, setOpen] = useState(false);
+  useEffect(() => {
+    const onOpen = () => setOpen(true);
+    window.addEventListener("mtw:open-admin", onOpen);
+    return () => window.removeEventListener("mtw:open-admin", onOpen);
+  }, []);
   const [tab, setTab] = useState<"trafic" | "hq" | "missions" | "spec" | "rival" | "concurrents" | "circuit" | "skins" | "export">("trafic");
   const [placeMode, setPlaceMode] = useState(false);
   const [drawMode, setDrawMode] = useState(false);
@@ -294,9 +299,7 @@ export default function AdminPanel() {
         </>
       )}
 
-      {!open && isAdmin && (
-        <button className="adm-btn" onClick={() => setOpen(true)} aria-label="Panneau admin" title="Panneau admin">⚙</button>
-      )}
+      {/* Bouton admin déplacé dans la topbar de TaxiTycoon */}
 
       {open && !isAdmin && (
         <>
