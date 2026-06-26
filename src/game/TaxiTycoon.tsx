@@ -14,6 +14,9 @@ import TutorialDialog from "@/components/TutorialDialog";
 import { getLicense, addLicenseXp, rollClientTier, tierFareMult, tierXp } from "@/lib/license";
 import { pickSpecialMission, SPECIAL_COOLDOWN_MS } from "@/lib/specialMissions";
 import { getGameTime, periodLabel } from "./cityClock";
+import RadioPlayer from "./RadioPlayer";
+import { useAuth } from "@/lib/useAuth";
+import { supabase } from "@/integrations/supabase/client";
 
 
 
@@ -1760,6 +1763,24 @@ export default function TaxiTycoon() {
   const [musicOn, setMusicOn] = useState(false);
   const [missionsOpen, setMissionsOpen] = useState(false);
   const [missionsTab, setMissionsTab] = useState<"contracts" | "depot">("contracts");
+  const [mapFullscreen, setMapFullscreen] = useState(false);
+  const [radioOpen, setRadioOpen] = useState(false);
+  const [pseudoOpen, setPseudoOpen] = useState(false);
+  const auth = useAuth();
+  const [pseudoDraft, setPseudoDraft] = useState("");
+  const [pseudoSaving, setPseudoSaving] = useState(false);
+  useEffect(() => { setPseudoDraft(auth.pseudo || ""); }, [auth.pseudo]);
+  const savePseudo = async () => {
+    const v = pseudoDraft.trim();
+    if (!v || !auth.user) { setPseudoOpen(false); return; }
+    setPseudoSaving(true);
+    try {
+      await supabase.from("profiles").update({ pseudo: v }).eq("id", auth.user.id);
+      await auth.refresh();
+    } catch (e) { console.warn("pseudo save", e); }
+    setPseudoSaving(false);
+    setPseudoOpen(false);
+  };
   const [actionsOpen, setActionsOpen] = useState<boolean>(() => {
     try { return localStorage.getItem("tt-actions-open") === "1"; } catch { return false; }
   });
@@ -2644,7 +2665,18 @@ export default function TaxiTycoon() {
 
         {/* === HUD HTML incrusté — rendu hors carte pour rester fixe === */}
       {typeof document !== "undefined" && createPortal((
-      <div className="tt-hud">
+      <div className={`tt-hud ${mapFullscreen ? "tt-hud-fs" : ""}`}>
+        {/* Bouton plein écran toujours visible */}
+        <button
+          className="tt-fs-toggle"
+          onClick={() => setMapFullscreen((v) => !v)}
+          title={mapFullscreen ? "Quitter le plein écran" : "Carte en plein écran"}
+          aria-label="Plein écran carte"
+        >
+          {mapFullscreen ? "✕" : "⛶"}
+        </button>
+
+        {!mapFullscreen && (<>
         <div className="tt-topbar">
           <button className="tt-round tt-help" onClick={() => setShowTutorial(true)} title="Tutoriel">?</button>
           <div className="tt-wood-name" />
@@ -2694,6 +2726,7 @@ export default function TaxiTycoon() {
         })()}
 
         {saveBlink && <div className="tt-save-blink">💾 Sauvegardé</div>}
+        </>)}
 
 
         {/* === Panneau Missions === */}
@@ -2793,16 +2826,17 @@ export default function TaxiTycoon() {
             </div>
           </div>
         )}
+        {!mapFullscreen && (
         <div className="tt-console">
           <div className="tt-console-actions">
-            <button className="tt-wood-btn" onClick={buyTaxi} disabled={save.money < taxiBuyCost || taxiCount >= effectiveMaxTaxis}>
+            <button className="tt-wood-btn" onClick={() => setGarageOpen(true)}>
               <span className="tt-wood-icon">🚕</span><b>GÉRER<br />FLOTTE</b>
             </button>
             <button className="tt-wood-btn" onClick={() => setShopOpen(true)}>
               <span className="tt-wood-icon">🔧</span><b>AMÉLIORATIONS<br />QG</b>
             </button>
-            <button className="tt-wood-btn" onClick={() => setMissionsOpen(true)}>
-              <span className="tt-wood-icon">📻</span><b>RADIO &<br />MISSIONS</b>
+            <button className="tt-wood-btn" onClick={() => setRadioOpen(true)}>
+              <span className="tt-wood-icon">📻</span><b>RADIO</b>
             </button>
             <button className="tt-wood-btn" onClick={() => setShowLeaderboard(true)}>
               <span className="tt-wood-icon">⚔️</span><b>RIVALITÉ</b>
@@ -2810,9 +2844,9 @@ export default function TaxiTycoon() {
           </div>
           <div className="tt-director-band">
             <button className="tt-director-profile" onClick={() => setGarageOpen(true)} title="Profil directeur et livrées">
-              <span className="tt-avatar-anon">?</span>
+              <span className="tt-avatar-anon">{(auth.pseudo || "?").charAt(0).toUpperCase()}</span>
               <span className="tt-director-info">
-                <b>[NOM DU DIRECTEUR]</b>
+                <b>{auth.pseudo || "DIRECTEUR"}</b>
                 <span className="tt-progress"><span className="tt-progress-fill" style={{ width: `${Math.min(100, (taxiCount / Math.max(1, effectiveMaxTaxis)) * 100)}%` }} /></span>
                 <i>QG NIVEAU {save.depotTier + 1} ({effectiveMaxTaxis} Capacité)</i>
               </span>
@@ -2827,9 +2861,9 @@ export default function TaxiTycoon() {
             </button>
           </div>
           <div className="tt-director-foot">
-            <span className="tt-foot-left">PROFIL<br/>DIRECTEUR</span>
-            <span className="tt-foot-center">PSEUDO ──── <span className="tt-pen-ico">✒</span></span>
-            <span className="tt-foot-right">CONTRATS<br/>&amp; MANUELS</span>
+            <button className="tt-foot-left tt-foot-btn" onClick={() => setGarageOpen(true)}>PROFIL<br/>DIRECTEUR</button>
+            <button className="tt-foot-center tt-foot-btn" onClick={() => setPseudoOpen(true)}>{auth.pseudo || "PSEUDO"} <span className="tt-pen-ico">✒</span></button>
+            <button className="tt-foot-right tt-foot-btn" onClick={() => setShowTutorial(true)}>CONTRATS<br/>&amp; MANUELS</button>
           </div>
           <div className="tt-lower-tools">
             <button className="tt-apk" onClick={() => navigate({ to: "/download" })}>
@@ -2844,6 +2878,33 @@ export default function TaxiTycoon() {
             </button>
           </div>
         </div>
+        )}
+
+        {/* Radio (mode contrôlé : pas de bouton flottant, ouverte via console) */}
+        <RadioPlayer open={radioOpen} onOpenChange={setRadioOpen} hideToggle />
+
+        {/* Dialog Pseudo */}
+        {pseudoOpen && (
+          <div className="tt-pseudo-overlay" onClick={() => setPseudoOpen(false)}>
+            <div className="tt-pseudo-dialog" onClick={(e) => e.stopPropagation()}>
+              <h3>✒ Modifier le pseudo</h3>
+              {!auth.user && <p style={{ color: "#fbbf24", fontSize: 12 }}>Connecte-toi pour sauvegarder ton pseudo.</p>}
+              <input
+                className="tt-pseudo-input"
+                value={pseudoDraft}
+                onChange={(e) => setPseudoDraft(e.target.value.slice(0, 24))}
+                placeholder="Ton pseudo"
+                autoFocus
+              />
+              <div className="tt-pseudo-actions">
+                <button onClick={() => setPseudoOpen(false)}>Annuler</button>
+                <button className="primary" onClick={savePseudo} disabled={pseudoSaving || !auth.user}>
+                  {pseudoSaving ? "..." : "Enregistrer"}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
 
 
 
@@ -3042,6 +3103,20 @@ export default function TaxiTycoon() {
         .tt-director-foot .tt-foot-right { text-align: right; }
         .tt-director-foot .tt-foot-center { color: #e6c39b; font-size: 10px; display: inline-flex; align-items: center; gap: 6px; }
         .tt-pen-ico { color: #ffd28a; font-size: 18px; transform: rotate(-15deg); display: inline-block; }
+        .tt-foot-btn { background: transparent; border: none; padding: 4px 6px; color: inherit; font: inherit; cursor: pointer; border-radius: 6px; }
+        .tt-foot-btn:hover { background: rgba(255,255,255,0.08); }
+        .tt-fs-toggle { position: fixed; top: max(8px, env(safe-area-inset-top)); right: max(8px, env(safe-area-inset-right)); z-index: 9000; width: 40px; height: 40px; border-radius: 10px; border: 2px solid #f5c542; background: rgba(15,23,42,0.85); color: #f5c542; font-size: 20px; font-weight: 900; cursor: pointer; box-shadow: 0 4px 12px rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; }
+        .tt-fs-toggle:active { transform: translateY(1px); }
+        .tt-hud-fs { pointer-events: none; }
+        .tt-hud-fs .tt-fs-toggle { pointer-events: auto; }
+        .tt-pseudo-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.7); z-index: 10000; display: flex; align-items: center; justify-content: center; padding: 20px; }
+        .tt-pseudo-dialog { background: linear-gradient(180deg, #1f2937, #111827); border: 2px solid #f5c542; border-radius: 14px; padding: 18px; width: min(360px, 100%); display: flex; flex-direction: column; gap: 12px; }
+        .tt-pseudo-dialog h3 { color: #f5c542; margin: 0; font-size: 16px; }
+        .tt-pseudo-input { padding: 10px 12px; border-radius: 8px; border: 2px solid #374151; background: #0a0c10; color: #fff; font-size: 14px; font-weight: 700; }
+        .tt-pseudo-actions { display: flex; gap: 8px; justify-content: flex-end; }
+        .tt-pseudo-actions button { padding: 8px 14px; border-radius: 8px; border: 2px solid #374151; background: #1f2937; color: #d1d5db; font-weight: 800; cursor: pointer; }
+        .tt-pseudo-actions button.primary { background: linear-gradient(180deg, #f5c542, #e0a92a); color: #1a1208; border-color: #fde047; }
+        .tt-pseudo-actions button:disabled { opacity: 0.5; cursor: not-allowed; }
         .tt-lower-tools { display: grid; grid-template-columns: 1.4fr 1fr 50px; gap: 10px; align-items: center; margin-top: 10px; }
         .tt-apk {
           border-radius: 26px; min-height: 48px; color: #fff; font-size: 13px; line-height: 1.05; font-weight: 900;

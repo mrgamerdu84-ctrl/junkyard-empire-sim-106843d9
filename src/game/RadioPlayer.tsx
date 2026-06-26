@@ -24,9 +24,16 @@ function saveRadioState(state: { stationId: string; trackIndex: number; volume: 
   } catch {}
 }
 
-export default function RadioPlayer() {
+export default function RadioPlayer(props: { open?: boolean; onOpenChange?: (o: boolean) => void; hideToggle?: boolean } = {}) {
   const saved = loadRadioState();
-  const [open, setOpen] = useState(false);
+  const [internalOpen, setInternalOpen] = useState(false);
+  const controlled = props.open !== undefined;
+  const open = controlled ? !!props.open : internalOpen;
+  const setOpen = (v: boolean | ((o: boolean) => boolean)) => {
+    const next = typeof v === "function" ? v(open) : v;
+    if (controlled) props.onOpenChange?.(next);
+    else setInternalOpen(next);
+  };
   const [stationId, setStationId] = useState(saved?.stationId ?? RADIO_STATIONS[0].id);
   const [trackIndex, setTrackIndex] = useState(saved?.trackIndex ?? 0);
   const [volume, setVolume] = useState(saved?.volume ?? 0.5);
@@ -252,14 +259,16 @@ export default function RadioPlayer() {
       `}</style>
 
       <div className="rp-root">
-        <button
-          className="rp-toggle"
-          onClick={() => setOpen((o) => !o)}
-          aria-label={open ? "Fermer la radio" : "Ouvrir la radio"}
-          title="Radio"
-        >
-          {playing ? "📻" : "🔇"}
-        </button>
+        {!props.hideToggle && (
+          <button
+            className="rp-toggle"
+            onClick={() => setOpen((o) => !o)}
+            aria-label={open ? "Fermer la radio" : "Ouvrir la radio"}
+            title="Radio"
+          >
+            {playing ? "📻" : "🔇"}
+          </button>
+        )}
 
         {open && (
           <div className="rp-panel">
