@@ -311,20 +311,31 @@ export default function GaragePanel({ onClose }: Props) {
               </g>
             )}
 
-            {/* === PONT ÉLÉVATEUR iso (zone de travail principale) === */}
-            <g>
-              {/* ombre au sol */}
-              <ellipse cx="400" cy="380" rx="170" ry="40" fill="rgba(0,0,0,0.5)" />
-              {/* plateau supérieur jaune iso */}
-              <polygon points="400,290 580,360 400,430 220,360" fill="#facc15" stroke="#0b0d10" strokeWidth="2" />
-              <polygon points="400,295 575,362 400,425 225,362" fill="#fde047" stroke="#0b0d10" strokeWidth="0.8" opacity="0.6" />
-              {/* colonne hydraulique */}
-              <rect x="392" y="360" width="16" height="60" fill="#1a1d22" stroke="#0b0d10" />
-              <rect x="388" y="416" width="24" height="10" fill="#374151" stroke="#0b0d10" />
-            </g>
+            {/* === PONT ÉLÉVATEUR iso — seulement si acheté === */}
+            {eq.lifts >= 1 && (
+              <g>
+                <ellipse cx="400" cy="380" rx="170" ry="40" fill="rgba(0,0,0,0.5)" />
+                <polygon points="400,290 580,360 400,430 220,360" fill="#facc15" stroke="#0b0d10" strokeWidth="2" />
+                <polygon points="400,295 575,362 400,425 225,362" fill="#fde047" stroke="#0b0d10" strokeWidth="0.8" opacity="0.6" />
+                <rect x="392" y="360" width="16" height="60" fill="#1a1d22" stroke="#0b0d10" />
+                <rect x="388" y="416" width="24" height="10" fill="#374151" stroke="#0b0d10" />
+              </g>
+            )}
 
-            {/* === TAXI iso 3D sur le pont === */}
-            {selected && (() => {
+            {/* Message atelier vide */}
+            {eq.lifts < 1 && (
+              <g>
+                <text x="400" y="340" textAnchor="middle" fontSize="18" fontWeight="800" fill="#fde047" opacity="0.85">
+                  ATELIER VIDE
+                </text>
+                <text x="400" y="362" textAnchor="middle" fontSize="11" fill="#9ca3af">
+                  Achète un pont élévateur pour commencer →
+                </text>
+              </g>
+            )}
+
+            {/* === TAXI iso — uniquement si pont disponible === */}
+            {selected && eq.lifts >= 1 && (() => {
               const cx0 = 400, cy0 = 320;
               const body = selected.paint.color;
               const dark = selected.paint.accent;
