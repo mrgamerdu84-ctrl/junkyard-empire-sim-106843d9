@@ -365,27 +365,12 @@ export default function AdminPanel() {
 
             {tab === "hq" && (
               <>
-                <button className={`adm-place ${placeMode ? "active" : ""}`} onClick={startPlacement}>
-                  📍 Placer le QG sur la carte
-                </button>
-                <div className="adm-hint" style={{ marginTop: 4 }}>
-                  Le panneau se ferme, cliquez où vous voulez placer le QG.
+                <div className="adm-hint" style={{ padding: "10px 12px", background: "rgba(245,197,66,0.08)", border: "1px solid #f5c542", borderRadius: 8, color: "#f5c542", fontWeight: 700 }}>
+                  🔒 QG verrouillé sur la carte — la position, la taille et la rotation ne sont plus modifiables. Le QG du joueur et celui des rivaux restent à leurs emplacements fixes.
                 </div>
-
-                <Slider label="QG — X" value={cfg.hqX} min={0} max={1920} step={1}
-                  format={(v) => v.toFixed(0)} onChange={(v) => setAdmin({ hqUseFreePos: true, hqX: v })} />
-                <Slider label="QG — Y" value={cfg.hqY} min={0} max={1080} step={1}
-                  format={(v) => v.toFixed(0)} onChange={(v) => setAdmin({ hqUseFreePos: true, hqY: v })} />
-
-                <Slider label="Taille du QG"
-                  value={cfg.hqScale} min={0.3} max={8} step={0.05}
-                  format={(v) => "×" + v.toFixed(2)} onChange={(v) => setAdmin({ hqScale: v })} />
-
-                <Slider label="Rotation"
-                  value={cfg.hqRotation} min={-180} max={180} step={5}
-                  format={(v) => v.toFixed(0) + "°"} onChange={(v) => setAdmin({ hqRotation: v })} />
               </>
             )}
+
 
             {tab === "missions" && (
               <>
@@ -444,10 +429,10 @@ export default function AdminPanel() {
                   format={(v) => v.toFixed(1) + " s"} onChange={(v) => setAdmin({ rivalReactionTime: v })} />
                 <Slider label="Vitesse IA" value={cfg.rivalSpeedMult} min={0.5} max={2.5} step={0.05}
                   format={(v) => "×" + v.toFixed(2)} onChange={(v) => setAdmin({ rivalSpeedMult: v })} />
-                <Slider label="QG Rival — X" value={cfg.rivalHQX} min={0} max={1920} step={1}
-                  format={(v) => v.toFixed(0)} onChange={(v) => setAdmin({ rivalHQX: v })} />
-                <Slider label="QG Rival — Y" value={cfg.rivalHQY} min={0} max={1080} step={1}
-                  format={(v) => v.toFixed(0)} onChange={(v) => setAdmin({ rivalHQY: v })} />
+                <div className="adm-hint" style={{ marginTop: 6, color: "#cbd5e1" }}>
+                  🔒 QG rival verrouillé sur la carte.
+                </div>
+
               </>
             )}
             {tab === "concurrents" && (

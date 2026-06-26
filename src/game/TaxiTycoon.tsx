@@ -5,6 +5,8 @@ import { ROADS, VILLAGE_PATHS, SIDEWALK_LOCK_OFFSET, lockToSidewalk } from "./Ci
 import { GAME_ASSETS, listCustomVehicles } from "./gameAssets";
 import { shouldStopAhead, nowSeconds, registerAccident, clearAccident, getAccidents, type AccidentZone } from "./trafficLights";
 import { getAdmin, useAdminConfig } from "./adminConfig";
+import { setVehicleScale as vScaleSet } from "./vehicleScale";
+
 import { recordEarning, isSpecialTaxiUnlocked } from "@/lib/leaderboard";
 import { pushNews } from "@/lib/radioNews";
 import { useRealWorldEnv, weatherLabelFr, weatherLabelEn, refreshRealWorldEnv } from "@/lib/realWorldEnv";
@@ -557,7 +559,35 @@ export default function TaxiTycoon() {
   const pathRefs = useRef<(SVGPathElement | null)[]>([]);
   const pathLensRef = useRef<number[]>([]);
   const containerRef = useRef<SVGSVGElement | null>(null);
+  // Échelle inverse appliquée aux véhicules pour qu'ils gardent une taille
+  // écran constante quel que soit le zoom / la taille du SVG rendu.
+  const [vehicleScale, setVehicleScale] = useState(1);
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
+    const compute = () => {
+      const r = el.getBoundingClientRect();
+      if (r.width <= 0 || r.height <= 0) return;
+      // Le SVG est rendu en "slice" : il remplit, donc l'échelle effective
+      // utilisée est le max entre w/1920 et h/1080.
+      const sx = r.width / 1920;
+      const sy = r.height / 1080;
+      const rendered = Math.max(sx, sy);
+      // Cible : voiture rendue ~comme si l'écran faisait au moins 900px de large.
+      const target = Math.max(rendered, 900 / 1920);
+      const s = Math.max(0.6, Math.min(3, target / rendered));
+      setVehicleScale((prev) => Math.abs(prev - s) > 0.02 ? s : prev);
+      vScaleSet(s);
+
+    };
+    compute();
+    const ro = new ResizeObserver(compute);
+    ro.observe(el);
+    window.addEventListener("orientationchange", compute);
+    return () => { ro.disconnect(); window.removeEventListener("orientationchange", compute); };
+  }, []);
   const [pathsReady, setPathsReady] = useState(false);
+
   const admin = useAdminConfig(); // re-render quand l'admin change
   const navigate = useNavigate();
   const realEnv = useRealWorldEnv();
@@ -2419,7 +2449,7 @@ export default function TaxiTycoon() {
         {circuitInfo.pts.length >= 2 && circuitTaxisRef.current.map((ct) => {
           const p = circuitAt(ct.pos);
           return (
-            <g key={ct.id} transform={`translate(${p.x},${p.y}) rotate(${p.angle})`} filter="url(#taxi-shadow)">
+            <g key={ct.id} transform={`translate(${p.x},${p.y}) rotate(${p.angle}) scale(${vehicleScale})`} filter="url(#taxi-shadow)">
               <TaxiSprite image={currentLivery.image} faceRight={currentLivery.faceRight} paintFilter={currentPaint.filter} markerColor={currentPaint.color} withClient={false} moving={true} />
             </g>
           );
@@ -2432,7 +2462,7 @@ export default function TaxiTycoon() {
           const angle = p.angle;
           return (
             <g key={r.id}>
-              <g transform={`translate(${p.x},${p.y}) rotate(${angle})`} filter="url(#taxi-shadow)">
+              <g transform={`translate(${p.x},${p.y}) rotate(${angle}) scale(${vehicleScale})`} filter="url(#taxi-shadow)">
                 <TaxiSprite image={TAXI_RED_URL} faceRight={true} withClient={r.mode === "to_dest"} moving={r.mode !== "idle"} />
               </g>
               
@@ -2508,7 +2538,7 @@ export default function TaxiTycoon() {
           void ledA; void ledB;
 
           return (
-            <g key={pc.id} transform={`translate(${p.x},${p.y}) rotate(${p.angle})`} filter="url(#taxi-shadow)">
+            <g key={pc.id} transform={`translate(${p.x},${p.y}) rotate(${p.angle}) scale(${vehicleScale})`} filter="url(#taxi-shadow)">
               {flashing && (
                 <circle r="24" fill={t === 0 ? "#3b82f6" : "#ef4444"} opacity="0.28">
                   <animate attributeName="r" values="20;28;20" dur="0.5s" repeatCount="indefinite" />
@@ -2626,7 +2656,7 @@ export default function TaxiTycoon() {
           const W = VEHICLE_SIZE; // même taille que tous les autres véhicules
           const blueOn = t === 0;
           return (
-            <g key={ev.id} transform={`translate(${p.x},${p.y}) rotate(${p.angle})`} filter="url(#taxi-shadow)">
+            <g key={ev.id} transform={`translate(${p.x},${p.y}) rotate(${p.angle}) scale(${vehicleScale})`} filter="url(#taxi-shadow)">
               <g>
                 <RoadAlignedVehicleSprite image={href} size={W}>
                 {alerting && (
@@ -2717,7 +2747,8 @@ export default function TaxiTycoon() {
             return (
               <g key={taxi.id}>
                 <g
-                  transform={`translate(${p.x},${p.y}) rotate(${angle})`}
+                  transform={`translate(${p.x},${p.y}) rotate(${angle}) scale(${vehicleScale})`}
+
                   filter="url(#taxi-shadow)"
                   style={{ cursor: "pointer", pointerEvents: "auto" }}
                   onClick={(e) => { e.stopPropagation(); honkTaxi(taxi.id); }}
@@ -3724,16 +3755,20 @@ export default function TaxiTycoon() {
         .tt-livery-name { font-size: 12px; font-weight: 800; margin-top: 4px; }
         .tt-livery-city { font-size: 10px; color: #8a8e94; }
 
-        /* Mobile paysage : compresse le HUD verticalement */
-        @media (max-height: 500px) and (orientation: landscape) {
-          .tt-actions { bottom: 8px; gap: 6px; }
-          .tt-btn { padding: 5px 10px; min-width: 80px; }
-          .tt-btn-ico { font-size: 16px; }
-          .tt-btn-lbl { font-size: 10px; }
-          .tt-btn-cost { font-size: 10px; }
+        /* Mobile paysage : libère un maximum de hauteur pour la carte */
+        @media (orientation: landscape) and (max-height: 500px) {
+          .tt-hud { box-shadow: none !important; border-radius: 0; }
+          .tt-topbar, .tt-title-banner { display: none !important; }
+          .tt-actions { bottom: 4px; gap: 6px; transform: scale(0.85); transform-origin: bottom center; }
+          .tt-btn { padding: 4px 8px; min-width: 70px; }
+          .tt-btn-ico { font-size: 14px; }
+          .tt-btn-lbl { font-size: 9px; }
+          .tt-btn-cost { font-size: 9px; }
           .tt-garage-fab { bottom: 6px; width: 36px; height: 36px; font-size: 16px; }
-          .tt-missions-fab { top: 48px; padding: 4px 8px; font-size: 10px; }
+          .tt-missions-fab { top: 6px; padding: 4px 8px; font-size: 10px; }
+          .tt-fs-toggle { top: 6px !important; right: 6px !important; }
         }
+
 
 
         .tt-toast {
