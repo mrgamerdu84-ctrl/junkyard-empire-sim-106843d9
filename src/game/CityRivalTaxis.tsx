@@ -299,8 +299,14 @@ export default function CityRivalTaxis() {
               st.tgtY = c?.y ?? 540;
               st.tgtSpeed = 200;
             } else if (st.mode === "return_hq") {
-              // Retour QG validé, puis reprise immédiate du trafic : les concurrents
-              // ne restent plus plantés/garés sur la carte.
+              // Retour QG validé. Si une réassignation de secteur était en
+              // attente (changement de propriétaire pendant la course), on
+              // l'applique maintenant.
+              const pend = pendingHomeRef.current[i];
+              if (pend !== null) {
+                homeIdsRef.current[i] = pend;
+                pendingHomeRef.current[i] = null;
+              }
               st.mode = "roam";
               st.pathIdx = pickSectorPath(homeIdsRef.current[i] ?? sp.homeDistrictId, roadsByDistrictRef.current);
               st.flip = Math.random() < 0.5;
