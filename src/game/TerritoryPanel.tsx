@@ -84,11 +84,18 @@ export default function TerritoryPanel() {
     };
   };
 
-  const centerOnDistrict = (id: string, zoom = 2.5) => {
+  const centerOnDistrict = (id: string, zoom?: number) => {
     const d = districts.find((x) => x.id === id);
     if (!d) return;
-    const nw = MAP_W / zoom;
-    const nh = MAP_H / zoom;
+    let targetZoom = zoom;
+    if (targetZoom === undefined) {
+      const pad = 1.35; // 35 % de marge autour du quartier
+      const zW = MAP_W / (d.w * pad);
+      const zH = MAP_H / (d.h * pad);
+      targetZoom = Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, Math.min(zW, zH)));
+    }
+    const nw = MAP_W / targetZoom;
+    const nh = MAP_H / targetZoom;
     const nx = d.x + d.w / 2 - nw / 2;
     const ny = d.y + d.h / 2 - nh / 2;
     setView(clampView({ x: nx, y: ny, w: nw, h: nh }));
@@ -282,7 +289,7 @@ export default function TerritoryPanel() {
                 {[
                   { l: "+", a: () => zoomAt(1.4, view.x + view.w / 2, view.y + view.h / 2) },
                   { l: "−", a: () => zoomAt(1 / 1.4, view.x + view.w / 2, view.y + view.h / 2) },
-                  { l: "🎯", a: () => { if (selectedId) centerOnDistrict(selectedId, 2.5); } },
+                  { l: "🎯", a: () => { if (selectedId) centerOnDistrict(selectedId); } },
                   { l: "⟲", a: () => setView({ x: 0, y: 0, w: MAP_W, h: MAP_H }) },
                 ].map((b) => (
                   <button key={b.l} type="button" onClick={b.a}
