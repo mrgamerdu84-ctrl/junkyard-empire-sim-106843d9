@@ -336,6 +336,10 @@ export default function CityRivalTaxis() {
               st.mode = "on_mission";
               st.parkUntil = now + 1500;
             } else if (st.mode === "to_dropoff") {
+              // Course rivale terminée → crédite la semaine du quartier de dépose
+              window.dispatchEvent(new CustomEvent("mtw:rival-course-completed", {
+                detail: { x: st.x, y: st.y, compId: sp.compId },
+              }));
               st.mode = "return_hq";
               const c = compsRef.current.find((c) => c.id === sp.compId);
               st.tgtX = c?.x ?? 960;
