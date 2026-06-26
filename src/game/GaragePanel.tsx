@@ -263,8 +263,6 @@ export default function GaragePanel({ onClose }: Props) {
 
             {/* sol */}
             <rect x="0" y="90" width="400" height="230" fill="url(#floor)" />
-            <g visibility="hidden">{/* spacer pour rester compatible */}</g>
-            <g visibility="hidden">
             {/* pont élévateur */}
             <ellipse cx="200" cy="240" rx="120" ry="14" fill="#0b0d10" opacity="0.5" />
             <rect x="90"  y="210" width="220" height="14" rx="2" fill="#facc15" stroke="#0b0d10" strokeWidth="1.5" />
