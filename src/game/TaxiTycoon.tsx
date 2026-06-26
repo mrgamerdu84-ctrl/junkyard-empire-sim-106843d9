@@ -2814,7 +2814,31 @@ export default function TaxiTycoon() {
         )}
         {!mapFullscreen && (
         <div className="tt-console">
+          {/* LCD tableau de bord — style voiture */}
+          <div className="tt-dashboard-lcd" onClick={() => setCityInfoOpen(true)} title="Ouvrir Infos Ville">
+            <div className="tt-lcd-seg tt-lcd-day">
+              <span className="tt-lcd-lbl">JOUR</span>
+              <span className="tt-lcd-val">{["DIM","LUN","MAR","MER","JEU","VEN","SAM"][clock.dayOfWeek]}</span>
+            </div>
+            <div className="tt-lcd-seg tt-lcd-clock">
+              <span className="tt-lcd-time">
+                {String(Math.floor(clock.hour)).padStart(2,"0")}
+                <span className="tt-lcd-colon">:</span>
+                {String(clock.minute).padStart(2,"0")}
+              </span>
+              <span className="tt-lcd-period">{periodLabel(clock.period).toUpperCase()}</span>
+            </div>
+            <div className="tt-lcd-seg tt-lcd-gauge">
+              <span className="tt-lcd-lbl">TRAFIC</span>
+              <span className="tt-lcd-bars" aria-hidden="true">
+                {[0,1,2,3,4].map(i => (
+                  <span key={i} className={`tt-lcd-bar ${clock.density >= (i+1)*0.35 ? "on" : ""}`} />
+                ))}
+              </span>
+            </div>
+          </div>
           <div className="tt-console-actions">
+
             <button className="tt-wood-btn" onClick={() => setGarageOpen(true)}>
               <span className="tt-wood-icon">🚕</span><b>GÉRER<br />FLOTTE</b>
             </button>
@@ -3081,6 +3105,67 @@ export default function TaxiTycoon() {
           border-top: 3px solid #1a0c08; pointer-events: auto; box-shadow: 0 -10px 24px rgba(0,0,0,0.6);
         }
         .tt-console-actions { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 6px; margin-bottom: 8px; }
+
+        /* === LCD tableau de bord style voiture === */
+        .tt-dashboard-lcd {
+          display: grid; grid-template-columns: 1fr 1.6fr 1fr; gap: 6px; align-items: stretch;
+          margin: -2px 0 8px;
+          padding: 8px 10px;
+          border-radius: 10px;
+          background: linear-gradient(180deg, #0b1410 0%, #04090a 100%);
+          border: 2px solid #1a0c08;
+          box-shadow: inset 0 2px 6px rgba(0,0,0,0.8), inset 0 0 18px rgba(255,180,60,0.05), 0 2px 0 rgba(255,220,170,0.08);
+          cursor: pointer;
+          font-family: "Orbitron","Courier New",monospace;
+        }
+        .tt-dashboard-lcd:active { transform: translateY(1px); }
+        .tt-lcd-seg {
+          display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px;
+          padding: 4px 6px;
+          background: rgba(0,0,0,0.35);
+          border: 1px solid rgba(255,180,60,0.18);
+          border-radius: 6px;
+          box-shadow: inset 0 0 8px rgba(0,0,0,0.6);
+        }
+        .tt-lcd-lbl {
+          font-size: 8px; letter-spacing: 1.5px; font-weight: 800;
+          color: rgba(255,180,60,0.55); text-shadow: 0 0 4px rgba(255,140,40,0.35);
+        }
+        .tt-lcd-val {
+          font-size: 18px; font-weight: 900; letter-spacing: 2px;
+          color: #ffb14a; text-shadow: 0 0 6px rgba(255,140,40,0.7), 0 0 12px rgba(255,100,20,0.35);
+          line-height: 1;
+        }
+        .tt-lcd-time {
+          font-size: 26px; font-weight: 900; letter-spacing: 2px;
+          color: #ffd07a; text-shadow: 0 0 8px rgba(255,160,50,0.8), 0 0 18px rgba(255,90,10,0.45);
+          line-height: 1; display: inline-flex; align-items: center;
+        }
+        .tt-lcd-colon {
+          display: inline-block; margin: 0 1px;
+          animation: ttLcdBlink 1s steps(2, end) infinite;
+        }
+        @keyframes ttLcdBlink { 50% { opacity: 0.15; } }
+        .tt-lcd-period {
+          font-size: 9px; letter-spacing: 1px; font-weight: 800;
+          color: rgba(255,180,60,0.6); margin-top: 2px;
+        }
+        .tt-lcd-bars { display: inline-flex; align-items: flex-end; gap: 2px; height: 18px; margin-top: 2px; }
+        .tt-lcd-bar {
+          display: block; width: 5px; background: rgba(255,180,60,0.12);
+          border: 1px solid rgba(255,180,60,0.15); border-radius: 1px;
+        }
+        .tt-lcd-bar:nth-child(1) { height: 30%; }
+        .tt-lcd-bar:nth-child(2) { height: 45%; }
+        .tt-lcd-bar:nth-child(3) { height: 60%; }
+        .tt-lcd-bar:nth-child(4) { height: 80%; }
+        .tt-lcd-bar:nth-child(5) { height: 100%; }
+        .tt-lcd-bar.on {
+          background: linear-gradient(180deg, #ffd07a, #ff6a1a);
+          border-color: #ff8a2a;
+          box-shadow: 0 0 6px rgba(255,140,40,0.7);
+        }
+
 
         /* Panneau Infos Ville */
         .tt-city-overlay {
