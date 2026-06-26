@@ -1051,6 +1051,10 @@ export default function TaxiTycoon() {
     return () => window.removeEventListener("jce.player.cashDelta", onCashDelta as EventListener);
   }, []);
 
+  // Démarre le tick salaires/revenus du personnel (une seule fois).
+  useEffect(() => { startPersonnelTick(); }, []);
+
+
   const popFloat = (text: string, x: number, y: number) => {
     const id = ++popIdRef.current;
     setPopups((p) => [...p, { id, text, x, y }]);
