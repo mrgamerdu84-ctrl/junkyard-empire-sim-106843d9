@@ -1,40 +1,27 @@
-## Cadre style "écran de téléphone"
+## Réassignation automatique des taxis lors d'un changement de propriétaire de quartier
 
-Ajouter un cadre noir tout autour de la zone de jeu (top, gauche, droite) avec coins arrondis, comme la bordure d'un smartphone. La carte du jeu vit à l'intérieur.
+### Objectif
+Quand un quartier (district) change de propriétaire — conquis par le joueur, perdu, ou repris par un rival — les taxis rivaux dont le QG se trouve dans ce quartier doivent immédiatement basculer leur secteur d'opération vers le nouveau propriétaire, sans attendre un rechargement de page.
 
-## Bandeau supérieur — uniquement le titre
+### Comportement
 
-Dans `.tt-topbar`, **supprimer** :
-- bouton `?` aide
-- pastille HEURE · MÉTÉO · ARGENT (info déjà dans le LCD du bas)
-- bouton Missions (descendu dans le tableau de bord)
+- **Quartier conquis par le joueur** : les rivaux affiliés à l'opérateur qui possédait ce quartier perdent leur droit d'y patrouiller. Ils sont réassignés à un autre quartier encore détenu par leur opérateur (le plus proche de leur position actuelle). Si leur opérateur n'a plus aucun quartier, ils se replient vers leur QG d'origine puis sortent en mode "itinérant" (pas de biais sectoriel).
+- **Quartier perdu par le joueur** (repris par un rival) : les taxis du joueur ne changent pas de comportement (le joueur conduit manuellement), mais les rivaux du nouveau propriétaire ajoutent ce quartier à leur pool de patrouille.
+- **Course en cours** : un rival qui transporte déjà un client termine sa course avant d'appliquer la nouvelle assignation (pas de demi-tour brutal).
+- **Effet visuel** : un court flash sur le marqueur QG du quartier qui vient de changer de mains, pour signaler l'événement.
 
-**Garder / ajouter** :
-- Gros titre centré **MY TAXI WORLD RIVALITÉ** (style enseigne lumineuse ambrée, Orbitron, glow doré)
-- Bouton ⛶ plein écran/zoom carte à droite (déjà existant `tt-fs-toggle` — repositionné sur le bandeau)
+### Détails techniques
 
-## Radio intégrée dans le tableau de bord
+1. **Événement central** : ajouter un événement `mtw:district-owner-changed` émis par `TerritoryWar.tsx` dès qu'un district passe de `owned:false` → `true` ou inversement. Payload : `{ districtId, previousOwner, newOwner }`.
+2. **CityRivalTaxis.tsx** :
+   - Écouter l'événement et recalculer `homeDistrictId` pour chaque rival concerné via la nouvelle fonction `reassignSector(rival, ownedDistrictsByOperator)`.
+   - Sélection du nouveau secteur : plus proche district encore détenu par l'opérateur → sinon fallback `null` (mode itinérant, `SECTOR_BIAS` ignoré).
+   - Si le rival est `state === "with-client"`, marquer `pendingReassign = true` et appliquer après dépose.
+3. **Mapping opérateur → quartiers possédés** : maintenu côté `TerritoryWar` (déjà présent dans `mtw-territory-v2`) et exposé via le payload de l'événement ou lu directement depuis localStorage.
+4. **Flash QG** : dans le SVG overlay de `TerritoryWar.tsx`, ajouter une classe d'animation 1,2 s (pulse doré ou rouge selon gain/perte) déclenchée sur le `hqX/hqY` du district modifié.
 
-Remplacer la touche `RADIO` (rangée 4) par un **mini écran tactile radio** intégré dans la même rangée mais sur 2 slots de large :
-- Écran LCD ambré avec nom de la station qui défile (marquee si tronqué)
-- Indicateur ▶ / ⏸
-- Boutons tactiles ⏮ ⏭ pour changer de station
-- Petit séparateur "CÉLÉBRER" / "DROIT LIBRE" (catégorie active)
-- Au tap sur l'écran : ouvre le panneau radio complet pour choisir la station/volume
+### Fichiers touchés
+- `src/game/TerritoryWar.tsx` — émission de l'événement + animation QG.
+- `src/game/CityRivalTaxis.tsx` — écoute, réassignation, gestion `pendingReassign`.
 
-Rangée 4 reconfigurée en 5 cellules (radio = 2) : `[RADIO écran ××][FLOTTE][QG][RIVALITÉ][TUTO]` — CLASSEMENT est déjà accessible via RIVALITÉ.
-
-## Bouton Missions
-
-Descendu dans la rangée 5 (outils) avec compteur rouge intégré :
-`[MISSIONS (n)][ENTRETIEN][SPÉCIAL][APK][ADMIN]` — rangée 5 passe à 5 colonnes.
-
-## Fichier modifié
-
-`src/game/TaxiTycoon.tsx` uniquement :
-- JSX `.tt-topbar` (réduit au titre + bouton zoom)
-- JSX `.tt-console-lcd` rangée 4 (radio intégrée) et rangée 5 (ajout Missions)
-- CSS : nouveau `.tt-phone-frame` (cadre), `.tt-title-banner` (enseigne lumineuse), `.tt-lcd-radio` (écran radio tactile avec animation marquee)
-- Logique radio : réutilise le store existant (RadioPlayer) ; expose `currentStation`, `next()`, `prev()`, `togglePlay()` via hook déjà en place ou via événements custom si besoin.
-
-Aucune logique de jeu modifiée — uniquement présentation et réorganisation des contrôles existants.
+Aucun changement de schéma de données ni de stockage.
