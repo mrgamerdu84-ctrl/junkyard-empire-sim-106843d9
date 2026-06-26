@@ -244,7 +244,7 @@ export default function GaragePanel({ onClose }: Props) {
 
             {/* === SOL ISO en damier === */}
             {(() => {
-              const tiles: JSX.Element[] = [];
+              const tiles: React.ReactElement[] = [];
               // Origin centrale (400, 260). Iso : x' = (i-j)*tw, y' = (i+j)*th
               const tw = 40, th = 20;
               const cx0 = 400, cy0 = 260;
