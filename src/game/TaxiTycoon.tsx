@@ -3118,6 +3118,7 @@ export default function TaxiTycoon() {
           box-shadow: inset 0 2px 0 rgba(255,240,210,0.5);
         }
         .tt-avatar-anon { width: 44px; height: 44px; border-radius: 50%; background: linear-gradient(180deg,#e8d7bd,#8b7867); color: #3a2a1a; display: grid; place-items: center; font-size: 24px; font-weight: 900; border: 3px solid #2a140b; flex: 0 0 auto; }
+        .tt-avatar-photo { width: 44px; height: 44px; border-radius: 50%; object-fit: cover; border: 3px solid #2a140b; flex: 0 0 auto; background: #2a140b; }
         .tt-director-info { display: flex; flex-direction: column; gap: 3px; min-width: 0; flex: 1; }
         .tt-director-info b { display: block; font-size: 12px; line-height: 1; color: #2a140b; font-weight: 900; letter-spacing: 0.2px; }
         .tt-director-info i { display: block; font-size: 10px; color: #2a140b; font-style: normal; font-weight: 700; }
