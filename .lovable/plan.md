@@ -1,25 +1,40 @@
-## Objectif
-Unifier tout le tableau de bord du bas dans le même style LCD ambré que la rangée JOUR/HEURE/TRAFIC, regrouper tous les boutons dedans, et nettoyer les doublons du bandeau supérieur.
+## Cadre style "écran de téléphone"
 
-## Refonte console basse (`.tt-console`)
-5 rangées LCD cohérentes, fond noir mat + glow ambre + Orbitron :
+Ajouter un cadre noir tout autour de la zone de jeu (top, gauche, droite) avec coins arrondis, comme la bordure d'un smartphone. La carte du jeu vit à l'intérieur.
 
-1. **JOUR · HORLOGE · TRAFIC** — inchangée (déjà au bon style).
-2. **STATUS LCD** (nouveau) — petits écrans : MÉTÉO · ARGENT · FLOTTE x/max · COURSES EN COURS. Clic = Infos Ville / Dépôt.
-3. **PILOTE** — photo chauffeur ronde cadran chromé + pseudo + barre progression QG + niveau. Bouton ✒ change pseudo.
-4. **TOUCHES PRINCIPALES** (6 boutons style dashboard) : FLOTTE · QG · RADIO · RIVALITÉ · CLASSEMENT · TUTO.
-5. **OUTILS** (4 boutons compacts) : ENTRETIEN ✦ · MISSION SPÉCIALE ✦ · APK · ADMIN ⚙.
+## Bandeau supérieur — uniquement le titre
 
-## Nettoyage bandeau haut (`.tt-topbar`)
-Garder : `?` aide, pastille Heure·Météo·Argent, bouton Missions bois.
-Retirer : bouton Admin transparent (descend en rangée 5).
+Dans `.tt-topbar`, **supprimer** :
+- bouton `?` aide
+- pastille HEURE · MÉTÉO · ARGENT (info déjà dans le LCD du bas)
+- bouton Missions (descendu dans le tableau de bord)
 
-## Suppressions de doublons (bas actuel)
-- `.tt-director-band` (TUTO + CLASSEMENT) → fusionné rangées 3 et 4.
-- `.tt-director-foot` (PROFIL / PSEUDO / CONTRATS) → redondant, supprimé.
-- Badge `.tt-admin-badge` superposé sur ✦ → remplacé par vrai bouton ADMIN en rangée 5.
+**Garder / ajouter** :
+- Gros titre centré **MY TAXI WORLD RIVALITÉ** (style enseigne lumineuse ambrée, Orbitron, glow doré)
+- Bouton ⛶ plein écran/zoom carte à droite (déjà existant `tt-fs-toggle` — repositionné sur le bandeau)
 
-## Fichier
-- `src/game/TaxiTycoon.tsx` : JSX de `.tt-topbar` + `.tt-console`, et bloc `<style>` correspondant (classes `.tt-lcd-*`, nouvelles `.tt-lcd-row2`, `.tt-lcd-pilot`, `.tt-lcd-key`, `.tt-lcd-tool`).
+## Radio intégrée dans le tableau de bord
 
-Aucune logique métier modifiée — uniquement présentation et câblage des handlers existants (`setGarageOpen`, `setShopOpen`, `setRadioOpen`, `setShowLeaderboard`, `setCityInfoOpen`, `setPseudoOpen`, `setShowTutorial`, `repairTaxis`, `triggerSpecialMission`, événement admin).
+Remplacer la touche `RADIO` (rangée 4) par un **mini écran tactile radio** intégré dans la même rangée mais sur 2 slots de large :
+- Écran LCD ambré avec nom de la station qui défile (marquee si tronqué)
+- Indicateur ▶ / ⏸
+- Boutons tactiles ⏮ ⏭ pour changer de station
+- Petit séparateur "CÉLÉBRER" / "DROIT LIBRE" (catégorie active)
+- Au tap sur l'écran : ouvre le panneau radio complet pour choisir la station/volume
+
+Rangée 4 reconfigurée en 5 cellules (radio = 2) : `[RADIO écran ××][FLOTTE][QG][RIVALITÉ][TUTO]` — CLASSEMENT est déjà accessible via RIVALITÉ.
+
+## Bouton Missions
+
+Descendu dans la rangée 5 (outils) avec compteur rouge intégré :
+`[MISSIONS (n)][ENTRETIEN][SPÉCIAL][APK][ADMIN]` — rangée 5 passe à 5 colonnes.
+
+## Fichier modifié
+
+`src/game/TaxiTycoon.tsx` uniquement :
+- JSX `.tt-topbar` (réduit au titre + bouton zoom)
+- JSX `.tt-console-lcd` rangée 4 (radio intégrée) et rangée 5 (ajout Missions)
+- CSS : nouveau `.tt-phone-frame` (cadre), `.tt-title-banner` (enseigne lumineuse), `.tt-lcd-radio` (écran radio tactile avec animation marquee)
+- Logique radio : réutilise le store existant (RadioPlayer) ; expose `currentStation`, `next()`, `prev()`, `togglePlay()` via hook déjà en place ou via événements custom si besoin.
+
+Aucune logique de jeu modifiée — uniquement présentation et réorganisation des contrôles existants.

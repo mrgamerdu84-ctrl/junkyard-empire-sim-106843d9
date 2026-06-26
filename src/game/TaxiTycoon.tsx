@@ -498,8 +498,54 @@ function RivalDepot({ x, y }: { x: number; y: number }) {
     </g>
   );
 }
+// ============================================================
+// Écran radio tactile intégré au tableau de bord (rangée 4)
+// ============================================================
+function RadioLcd({ onOpen }: { onOpen: () => void }) {
+  const [state, setState] = useState<{ stationName: string; stationEmoji: string; trackTitle: string; trackArtist: string; playing: boolean }>(
+    { stationName: "Radio", stationEmoji: "📻", trackTitle: "—", trackArtist: "", playing: false }
+  );
+  useEffect(() => {
+    const onState = (e: Event) => {
+      const d = (e as CustomEvent).detail;
+      if (d) setState({
+        stationName: d.stationName ?? "Radio",
+        stationEmoji: d.stationEmoji ?? "📻",
+        trackTitle: d.trackTitle ?? "—",
+        trackArtist: d.trackArtist ?? "",
+        playing: !!d.playing,
+      });
+    };
+    window.addEventListener("mtw:radio-state", onState as EventListener);
+    window.dispatchEvent(new CustomEvent("mtw:radio-request"));
+    return () => window.removeEventListener("mtw:radio-state", onState as EventListener);
+  }, []);
+  const stop = (e: React.MouseEvent) => e.stopPropagation();
+  return (
+    <button className="tt-lcd-radio" onClick={onOpen} title="Ouvrir la radio">
+      <div className="tt-lcd-radio-head">
+        <span className="tt-lcd-radio-dot" data-on={state.playing ? "1" : "0"} />
+        <span className="tt-lcd-radio-station">{state.stationEmoji} {state.stationName}</span>
+      </div>
+      <div className="tt-lcd-radio-marquee">
+        <span className="tt-lcd-radio-track">
+          {state.trackTitle}{state.trackArtist ? ` — ${state.trackArtist}` : ""}
+        </span>
+      </div>
+      <div className="tt-lcd-radio-controls" onClick={stop}>
+        <span className="tt-lcd-radio-btn" role="button" tabIndex={0}
+          onClick={(e) => { e.stopPropagation(); window.dispatchEvent(new CustomEvent("mtw:radio-prev")); }}>⏮</span>
+        <span className="tt-lcd-radio-btn tt-lcd-radio-play" role="button" tabIndex={0}
+          onClick={(e) => { e.stopPropagation(); window.dispatchEvent(new CustomEvent("mtw:radio-toggle")); }}>{state.playing ? "⏸" : "▶"}</span>
+        <span className="tt-lcd-radio-btn" role="button" tabIndex={0}
+          onClick={(e) => { e.stopPropagation(); window.dispatchEvent(new CustomEvent("mtw:radio-next")); }}>⏭</span>
+      </div>
+    </button>
+  );
+}
 
 export default function TaxiTycoon() {
+
   // Une ref par chemin disponible — permet de varier les trajets des taxis.
   const pathRefs = useRef<(SVGPathElement | null)[]>([]);
   const pathLensRef = useRef<number[]>([]);
@@ -2681,38 +2727,15 @@ export default function TaxiTycoon() {
 
         {!mapFullscreen && (<>
         <div className="tt-topbar tt-topbar-slim">
-          <button className="tt-round tt-help" onClick={() => setShowTutorial(true)} title="Tutoriel">?</button>
-          <button
-            className="tt-status-pill"
-            onClick={() => setCityInfoOpen(true)}
-            title="Infos ville (heure, météo, trafic)"
-          >
-            <span className="tt-sp-time">{clock.label}</span>
-            <span className="tt-sp-sep">·</span>
-            <span className="tt-sp-weather">{realEnv ? weatherLabelFr(realEnv.weather) : "…"}</span>
-            <span className="tt-sp-sep">·</span>
-            <span className="tt-coin">●</span>
-            <b>{fmt(save.money)}$</b>
-          </button>
-          
+          <div className="tt-title-banner" aria-label="My Taxi World Rivalité">
+            <span className="tt-title-glow">MY TAXI WORLD</span>
+            <span className="tt-title-sub">RIVALITÉ</span>
+          </div>
         </div>
-
-
-
-        {(() => {
-          const offeredCount = jobs.filter((j) => j.status === "offered").length;
-          const inProgressCount = jobs.filter((j) => j.status !== "offered").length;
-          return (
-            <button className="tt-mission-wood" onClick={() => setMissionsOpen(true)} title="Missions, contrats et dépôt">
-              <span className="tt-clip">▣</span>
-              <span>Missions</span>
-              {(offeredCount + inProgressCount) > 0 && <b>{offeredCount + inProgressCount}</b>}
-            </button>
-          );
-        })()}
 
         {saveBlink && <div className="tt-save-blink">💾 Sauvegardé</div>}
         </>)}
+
 
 
         {/* === Panneau Missions === */}
@@ -2878,22 +2901,17 @@ export default function TaxiTycoon() {
             </div>
           </div>
 
-          {/* Rangée 4 — TOUCHES PRINCIPALES */}
-          <div className="tt-lcd-keys">
+          {/* Rangée 4 — TOUCHES PRINCIPALES + ÉCRAN RADIO TACTILE */}
+          <div className="tt-lcd-keys tt-lcd-keys-radio">
+            <RadioLcd onOpen={() => setRadioOpen(true)} />
             <button className="tt-lcd-key" onClick={() => setGarageOpen(true)}>
               <span className="tt-lcd-key-ico">🚕</span><b>FLOTTE</b>
             </button>
             <button className="tt-lcd-key" onClick={() => setShopOpen(true)}>
               <span className="tt-lcd-key-ico">🔧</span><b>QG</b>
             </button>
-            <button className="tt-lcd-key" onClick={() => setRadioOpen(true)}>
-              <span className="tt-lcd-key-ico">📻</span><b>RADIO</b>
-            </button>
             <button className="tt-lcd-key" onClick={() => setShowLeaderboard(true)}>
               <span className="tt-lcd-key-ico">⚔️</span><b>RIVALITÉ</b>
-            </button>
-            <button className="tt-lcd-key" onClick={() => setShowLeaderboard(true)}>
-              <span className="tt-lcd-key-ico">🏆</span><b>CLASS.</b>
             </button>
             <button className="tt-lcd-key" onClick={() => setShowTutorial(true)}>
               <span className="tt-lcd-key-ico">📖</span><b>TUTO</b>
@@ -2901,7 +2919,16 @@ export default function TaxiTycoon() {
           </div>
 
           {/* Rangée 5 — OUTILS */}
-          <div className="tt-lcd-tools">
+          <div className="tt-lcd-tools tt-lcd-tools-5">
+            {(() => {
+              const missionsCount = jobs.filter((j) => j.status === "offered").length + jobs.filter((j) => j.status !== "offered").length;
+              return (
+                <button className="tt-lcd-tool tt-lcd-tool-missions" onClick={() => setMissionsOpen(true)} title="Missions & courses">
+                  <span className="tt-lcd-tool-ico">📋</span><b>MISSIONS</b>
+                  {missionsCount > 0 && <em className="tt-lcd-tool-badge">{missionsCount}</em>}
+                </button>
+              );
+            })()}
             <button className="tt-lcd-tool" onClick={repairTaxis} disabled={wearNow <= 0 || save.money < maintenanceCost} title="Entretien flotte">
               <span className="tt-lcd-tool-ico">✦</span><b>ENTRETIEN</b>
             </button>
@@ -2915,6 +2942,7 @@ export default function TaxiTycoon() {
               <span className="tt-lcd-tool-ico">⚙</span><b>ADMIN</b>
             </button>
           </div>
+
         </div>
         )}
 
@@ -3081,10 +3109,34 @@ export default function TaxiTycoon() {
         }
         .tt-hud button { font-family: inherit; pointer-events: auto; touch-action: manipulation; -webkit-tap-highlight-color: transparent; }
 
+        /* Cadre type téléphone autour de la zone de jeu */
+        .tt-hud { box-shadow: inset 0 0 0 6px #0a0a0c, inset 0 0 0 9px #2a2a30, inset 0 0 26px rgba(0,0,0,0.55); border-radius: 22px; }
+        .tt-hud-fs { box-shadow: none; }
+
+        /* Bandeau titre lumineux */
         .tt-topbar {
-          position: absolute; top: max(8px, env(safe-area-inset-top)); left: 8px; right: 8px; height: 44px;
-          display: grid; grid-template-columns: 44px 1fr 44px; gap: 8px; align-items: center;
+          position: absolute; top: max(8px, env(safe-area-inset-top)); left: 8px; right: 8px; height: 56px;
+          display: flex; align-items: center; justify-content: center; pointer-events: none;
         }
+        .tt-title-banner {
+          pointer-events: auto;
+          display: flex; flex-direction: column; align-items: center; justify-content: center;
+          padding: 6px 22px; border-radius: 14px;
+          background: linear-gradient(180deg, #1a1208 0%, #0a0604 100%);
+          border: 2px solid #6b4a14;
+          box-shadow: inset 0 1px 0 rgba(255,200,90,0.25), inset 0 -10px 18px rgba(0,0,0,0.55), 0 4px 12px rgba(0,0,0,0.6), 0 0 18px rgba(245,197,66,0.25);
+          font-family: "Orbitron", system-ui, sans-serif; line-height: 1;
+        }
+        .tt-title-glow {
+          font-size: 16px; font-weight: 900; letter-spacing: 2.5px;
+          color: #ffd070;
+          text-shadow: 0 0 6px rgba(255,180,60,0.85), 0 0 14px rgba(245,140,40,0.55), 0 1px 0 #2a1604;
+        }
+        .tt-title-sub {
+          margin-top: 3px; font-size: 10px; font-weight: 800; letter-spacing: 5px;
+          color: #f5c542; text-shadow: 0 0 4px rgba(245,197,66,0.7);
+        }
+
         .tt-round {
           width: 44px; height: 44px; border-radius: 50%; border: 2px solid #8f7653;
           background: radial-gradient(circle at 35% 25%, #8b5131, #3a1b12 70%); color: #f8d9a7;
@@ -3242,6 +3294,49 @@ export default function TaxiTycoon() {
         .tt-lcd-tools {
           display: grid; grid-template-columns: repeat(4, 1fr); gap: 5px;
         }
+        .tt-lcd-tools-5 { grid-template-columns: 1.3fr 1fr 1fr 1fr 1fr; }
+        .tt-lcd-tool-missions { position: relative; }
+        .tt-lcd-tool-missions b { color: #ffe7a8; }
+        .tt-lcd-tool-badge {
+          position: absolute; top: 2px; right: 2px; min-width: 16px; height: 16px; padding: 0 4px;
+          border-radius: 8px; background: #dc2626; color: #fff; font-size: 9px; font-weight: 900;
+          display: grid; place-items: center; font-style: normal;
+          box-shadow: 0 0 6px rgba(220,38,38,0.7), inset 0 1px 0 rgba(255,255,255,0.3);
+        }
+
+        /* Écran radio tactile (rangée 4, sur 2 slots) */
+        .tt-lcd-keys-radio { grid-template-columns: 2fr 1fr 1fr 1fr 1fr; }
+        .tt-lcd-radio {
+          appearance: none; cursor: pointer; text-align: left;
+          background: linear-gradient(180deg, #1a1208 0%, #050302 100%);
+          border: 2px solid #4a2e08; border-radius: 8px;
+          box-shadow: inset 0 1px 0 rgba(255,180,60,0.18), inset 0 0 12px rgba(0,0,0,0.7), 0 2px 0 #000, 0 0 8px rgba(245,197,66,0.25);
+          padding: 5px 8px; min-height: 44px;
+          display: flex; flex-direction: column; justify-content: space-between; gap: 3px;
+          font-family: "Orbitron","Courier New",monospace; overflow: hidden;
+        }
+        .tt-lcd-radio-head { display: flex; align-items: center; gap: 5px; }
+        .tt-lcd-radio-dot { width: 6px; height: 6px; border-radius: 50%; background: #4b1e1e; }
+        .tt-lcd-radio-dot[data-on="1"] { background: #ff4040; box-shadow: 0 0 6px rgba(255,80,80,0.9); animation: ttRadioBlink 1.2s infinite; }
+        @keyframes ttRadioBlink { 0%,100%{opacity:1} 50%{opacity:0.4} }
+        .tt-lcd-radio-station { font-size: 9px; font-weight: 900; letter-spacing: 0.6px; color: #ffd070; text-shadow: 0 0 4px rgba(255,180,60,0.6); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .tt-lcd-radio-marquee { overflow: hidden; height: 12px; mask-image: linear-gradient(90deg, transparent 0, #000 8px, #000 calc(100% - 8px), transparent 100%); }
+        .tt-lcd-radio-track {
+          display: inline-block; white-space: nowrap; font-size: 10px; font-weight: 700;
+          color: #ffb14a; text-shadow: 0 0 3px rgba(255,140,40,0.5);
+          animation: ttRadioMarquee 14s linear infinite; padding-left: 100%;
+        }
+        @keyframes ttRadioMarquee { from { transform: translateX(0); } to { transform: translateX(-100%); } }
+        .tt-lcd-radio-controls { display: flex; align-items: center; justify-content: space-around; gap: 2px; }
+        .tt-lcd-radio-btn {
+          display: inline-grid; place-items: center; width: 22px; height: 18px; border-radius: 4px;
+          background: rgba(255,180,60,0.08); border: 1px solid #3a2208;
+          color: #ffb14a; font-size: 11px; line-height: 1; cursor: pointer; user-select: none;
+        }
+        .tt-lcd-radio-btn:active { transform: translateY(1px); background: rgba(255,180,60,0.18); }
+        .tt-lcd-radio-play { color: #ffd700; font-size: 13px; width: 26px; }
+
+
         .tt-lcd-tool {
           background: linear-gradient(180deg, #1a1410 0%, #050505 100%);
           border: 2px solid #2a1810; border-radius: 8px;
