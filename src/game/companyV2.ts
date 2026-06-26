@@ -30,6 +30,14 @@ export type Driver = {
   fatigue: number;      // 0-100
 };
 
+export type TaxiUpgrades = {
+  tires: 0 | 1 | 2;
+  engine: 0 | 1 | 2;
+  armor: 0 | 1 | 2;
+  sticker: null | "roof";
+};
+export type TaxiPaint = { color: string; accent: string };
+
 export type Taxi = {
   id: string;
   livery: string;       // nom skin
@@ -40,6 +48,9 @@ export type Taxi = {
   driverId: string | null;
   ridesToday: number;
   earnedToday: number;
+  upgrades: TaxiUpgrades;
+  paint: TaxiPaint;
+  mafiaShieldUsed?: boolean; // remis à false chaque jour
 };
 
 export type ContractKey = "hotel" | "airport" | "nightclub" | "hospital";
