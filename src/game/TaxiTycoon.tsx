@@ -2534,7 +2534,7 @@ export default function TaxiTycoon() {
           void ledA; void ledB;
 
           return (
-            <g key={pc.id} transform={`translate(${p.x},${p.y}) rotate(${p.angle})`} filter="url(#taxi-shadow)">
+            <g key={pc.id} transform={`translate(${p.x},${p.y}) rotate(${p.angle}) scale(${vehicleScale})`} filter="url(#taxi-shadow)">
               {flashing && (
                 <circle r="24" fill={t === 0 ? "#3b82f6" : "#ef4444"} opacity="0.28">
                   <animate attributeName="r" values="20;28;20" dur="0.5s" repeatCount="indefinite" />
