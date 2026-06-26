@@ -103,6 +103,55 @@ export default function TerritoryPanel() {
               >✕</button>
             </div>
 
+            {/* Mini-carte des territoires (couleur taxi du joueur = jaune/or) */}
+            <div style={{
+              marginBottom: 10, borderRadius: 12, overflow: "hidden",
+              border: "1.5px solid #5a5240",
+              background: "linear-gradient(180deg,#0e1118,#070910)",
+            }}>
+              <svg viewBox="0 0 1920 1080" style={{ display: "block", width: "100%", height: "auto" }}>
+                {/* trame routes */}
+                <rect x="0" y="0" width="1920" height="1080" fill="#0b0d12" />
+                {Array.from({ length: 6 }).map((_, i) => (
+                  <line key={`h${i}`} x1="0" y1={180 * (i + 1)} x2="1920" y2={180 * (i + 1)}
+                    stroke="#1d2230" strokeWidth="2" />
+                ))}
+                {Array.from({ length: 10 }).map((_, i) => (
+                  <line key={`v${i}`} x1={192 * (i + 1)} y1="0" x2={192 * (i + 1)} y2="1080"
+                    stroke="#1d2230" strokeWidth="2" />
+                ))}
+                {districts.map((d) => {
+                  const fill = d.owned ? "#fde047" : "#2a2f3d";
+                  const stroke = d.owned ? "#fff7a0" : "#4a5160";
+                  return (
+                    <g key={d.id}>
+                      <rect x={d.x + 10} y={d.y + 10} width={d.w - 20} height={d.h - 20}
+                        rx="22" fill={fill} fillOpacity={d.owned ? 0.85 : 0.45}
+                        stroke={stroke} strokeWidth="4" />
+                      {d.owned && (
+                        <text x={d.x + d.w / 2} y={d.y + d.h / 2 + 8} textAnchor="middle"
+                          fontSize="40" fontWeight="900" fill="#1a1306"
+                          fontFamily="system-ui, sans-serif">🚕</text>
+                      )}
+                      <text x={d.x + d.w / 2} y={d.y + d.h - 30} textAnchor="middle"
+                        fontSize="34" fontWeight="900"
+                        fill={d.owned ? "#1a1306" : "#cbb98a"}
+                        fontFamily="system-ui, sans-serif" letterSpacing="2">
+                        {d.name.toUpperCase()}
+                      </text>
+                    </g>
+                  );
+                })}
+              </svg>
+              <div style={{
+                display: "flex", justifyContent: "center", gap: 14, padding: "6px 0",
+                fontSize: 10, background: "rgba(0,0,0,0.5)", borderTop: "1px solid #2a2f3d",
+              }}>
+                <LegendDot color="#fde047" label="Tes quartiers" />
+                <LegendDot color="#2a2f3d" label="Neutre" border="#4a5160" />
+              </div>
+            </div>
+
             <div style={{
               display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 12,
             }}>
