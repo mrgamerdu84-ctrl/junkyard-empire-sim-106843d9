@@ -2774,6 +2774,15 @@ export default function TaxiTycoon() {
         >
           {mapFullscreen ? "✕" : "⛶"}
         </button>
+        {/* Bouton dézoom : "fit" = toute la carte visible (letterbox) / "fill" = immersif */}
+        <button
+          className="tt-fit-toggle"
+          onClick={() => toggleMapFit()}
+          title={mapFit === "fit" ? "Vue immersive (zoom)" : "Voir toute la carte (dézoom)"}
+          aria-label="Dézoomer la carte"
+        >
+          {mapFit === "fit" ? "🔍+" : "🔍−"}
+        </button>
 
         {!mapFullscreen && (<>
         <div className="tt-topbar tt-topbar-slim">
