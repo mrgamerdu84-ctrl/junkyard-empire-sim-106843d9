@@ -2826,16 +2826,17 @@ export default function TaxiTycoon() {
             </div>
           </div>
         )}
+        {!mapFullscreen && (
         <div className="tt-console">
           <div className="tt-console-actions">
-            <button className="tt-wood-btn" onClick={buyTaxi} disabled={save.money < taxiBuyCost || taxiCount >= effectiveMaxTaxis}>
+            <button className="tt-wood-btn" onClick={() => setGarageOpen(true)}>
               <span className="tt-wood-icon">🚕</span><b>GÉRER<br />FLOTTE</b>
             </button>
             <button className="tt-wood-btn" onClick={() => setShopOpen(true)}>
               <span className="tt-wood-icon">🔧</span><b>AMÉLIORATIONS<br />QG</b>
             </button>
-            <button className="tt-wood-btn" onClick={() => setMissionsOpen(true)}>
-              <span className="tt-wood-icon">📻</span><b>RADIO &<br />MISSIONS</b>
+            <button className="tt-wood-btn" onClick={() => setRadioOpen(true)}>
+              <span className="tt-wood-icon">📻</span><b>RADIO</b>
             </button>
             <button className="tt-wood-btn" onClick={() => setShowLeaderboard(true)}>
               <span className="tt-wood-icon">⚔️</span><b>RIVALITÉ</b>
@@ -2843,9 +2844,9 @@ export default function TaxiTycoon() {
           </div>
           <div className="tt-director-band">
             <button className="tt-director-profile" onClick={() => setGarageOpen(true)} title="Profil directeur et livrées">
-              <span className="tt-avatar-anon">?</span>
+              <span className="tt-avatar-anon">{(auth.pseudo || "?").charAt(0).toUpperCase()}</span>
               <span className="tt-director-info">
-                <b>[NOM DU DIRECTEUR]</b>
+                <b>{auth.pseudo || "DIRECTEUR"}</b>
                 <span className="tt-progress"><span className="tt-progress-fill" style={{ width: `${Math.min(100, (taxiCount / Math.max(1, effectiveMaxTaxis)) * 100)}%` }} /></span>
                 <i>QG NIVEAU {save.depotTier + 1} ({effectiveMaxTaxis} Capacité)</i>
               </span>
@@ -2860,9 +2861,9 @@ export default function TaxiTycoon() {
             </button>
           </div>
           <div className="tt-director-foot">
-            <span className="tt-foot-left">PROFIL<br/>DIRECTEUR</span>
-            <span className="tt-foot-center">PSEUDO ──── <span className="tt-pen-ico">✒</span></span>
-            <span className="tt-foot-right">CONTRATS<br/>&amp; MANUELS</span>
+            <button className="tt-foot-left tt-foot-btn" onClick={() => setGarageOpen(true)}>PROFIL<br/>DIRECTEUR</button>
+            <button className="tt-foot-center tt-foot-btn" onClick={() => setPseudoOpen(true)}>{auth.pseudo || "PSEUDO"} <span className="tt-pen-ico">✒</span></button>
+            <button className="tt-foot-right tt-foot-btn" onClick={() => setShowTutorial(true)}>CONTRATS<br/>&amp; MANUELS</button>
           </div>
           <div className="tt-lower-tools">
             <button className="tt-apk" onClick={() => navigate({ to: "/download" })}>
@@ -2877,6 +2878,33 @@ export default function TaxiTycoon() {
             </button>
           </div>
         </div>
+        )}
+
+        {/* Radio (mode contrôlé : pas de bouton flottant, ouverte via console) */}
+        <RadioPlayer open={radioOpen} onOpenChange={setRadioOpen} hideToggle />
+
+        {/* Dialog Pseudo */}
+        {pseudoOpen && (
+          <div className="tt-pseudo-overlay" onClick={() => setPseudoOpen(false)}>
+            <div className="tt-pseudo-dialog" onClick={(e) => e.stopPropagation()}>
+              <h3>✒ Modifier le pseudo</h3>
+              {!auth.user && <p style={{ color: "#fbbf24", fontSize: 12 }}>Connecte-toi pour sauvegarder ton pseudo.</p>}
+              <input
+                className="tt-pseudo-input"
+                value={pseudoDraft}
+                onChange={(e) => setPseudoDraft(e.target.value.slice(0, 24))}
+                placeholder="Ton pseudo"
+                autoFocus
+              />
+              <div className="tt-pseudo-actions">
+                <button onClick={() => setPseudoOpen(false)}>Annuler</button>
+                <button className="primary" onClick={savePseudo} disabled={pseudoSaving || !auth.user}>
+                  {pseudoSaving ? "..." : "Enregistrer"}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
 
 
 
