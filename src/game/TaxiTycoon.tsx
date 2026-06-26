@@ -15,6 +15,8 @@ import { getLicense, addLicenseXp, rollClientTier, tierFareMult, tierXp } from "
 import { pickSpecialMission, SPECIAL_COOLDOWN_MS } from "@/lib/specialMissions";
 import { getGameTime, periodLabel } from "./cityClock";
 import RadioPlayer from "./RadioPlayer";
+import PersonnelPanel from "./PersonnelPanel";
+import { getMaintenanceDiscount, getTipsBonus, startPersonnelTick } from "./personnel";
 import { useAuth } from "@/lib/useAuth";
 import { resolveAvatarSrc } from "@/components/ProfileCard";
 import { supabase } from "@/integrations/supabase/client";
@@ -1049,6 +1051,10 @@ export default function TaxiTycoon() {
     return () => window.removeEventListener("jce.player.cashDelta", onCashDelta as EventListener);
   }, []);
 
+  // Démarre le tick salaires/revenus du personnel (une seule fois).
+  useEffect(() => { startPersonnelTick(); }, []);
+
+
   const popFloat = (text: string, x: number, y: number) => {
     const id = ++popIdRef.current;
     setPopups((p) => [...p, { id, text, x, y }]);
@@ -1171,7 +1177,8 @@ export default function TaxiTycoon() {
               // 💵 Pourboire : 30% de chance, +5 à +25%
               const tipRoll = Math.random();
               const tipMult = tipRoll < 0.30 ? 1 + (0.05 + Math.random() * 0.20) : 1;
-              const finalFare = Math.round(j.fare * bonus * specialMult * wearMult * tipMult);
+              const managerBonus = 1 + getTipsBonus();
+              const finalFare = Math.round(j.fare * bonus * specialMult * wearMult * tipMult * managerBonus);
               if (p) {
                 const pt = p.getPointAtLength(j.dropoff);
                 const tag = j.tier === "special"
@@ -1793,8 +1800,11 @@ export default function TaxiTycoon() {
   };
 
   // 🔧 Entretien : 8 $ par point d'usure, remet la flotte à neuf.
+  // Le mécano embauché réduit la facture (cf. src/game/personnel.ts).
   const wearNow = Math.round(save.taxiWear ?? 0);
-  const maintenanceCost = Math.max(0, wearNow * 8);
+  const maintenanceBase = Math.max(0, wearNow * 8);
+  const maintenanceDiscount = getMaintenanceDiscount();
+  const maintenanceCost = Math.round(maintenanceBase * (1 - maintenanceDiscount));
   const repairTaxis = () => {
     if (wearNow <= 0) { showToast("Flotte déjà en parfait état"); return; }
     if (save.money < maintenanceCost) {
@@ -1802,7 +1812,9 @@ export default function TaxiTycoon() {
       return;
     }
     setSave((s) => ({ ...s, money: s.money - maintenanceCost, taxiWear: 0 }));
-    showToast("🔧 Flotte entretenue, revenus restaurés !");
+    showToast(maintenanceDiscount > 0
+      ? `🔧 Flotte entretenue ! (−${Math.round(maintenanceDiscount * 100)}% mécano)`
+      : "🔧 Flotte entretenue, revenus restaurés !");
   };
 
 
@@ -1815,6 +1827,8 @@ export default function TaxiTycoon() {
   const [radioOpen, setRadioOpen] = useState(false);
   const [pseudoOpen, setPseudoOpen] = useState(false);
   const [cityInfoOpen, setCityInfoOpen] = useState(false);
+  const [personnelOpen, setPersonnelOpen] = useState(false);
+
   const auth = useAuth();
   const [pseudoDraft, setPseudoDraft] = useState("");
   const [pseudoSaving, setPseudoSaving] = useState(false);
@@ -2913,10 +2927,14 @@ export default function TaxiTycoon() {
             <button className="tt-lcd-key" onClick={() => setShowLeaderboard(true)}>
               <span className="tt-lcd-key-ico">⚔️</span><b>RIVALITÉ</b>
             </button>
+            <button className="tt-lcd-key" onClick={() => setPersonnelOpen(true)}>
+              <span className="tt-lcd-key-ico">👥</span><b>ÉQUIPE</b>
+            </button>
             <button className="tt-lcd-key" onClick={() => setShowTutorial(true)}>
               <span className="tt-lcd-key-ico">📖</span><b>TUTO</b>
             </button>
           </div>
+
 
           {/* Rangée 5 — OUTILS */}
           <div className="tt-lcd-tools tt-lcd-tools-5">
@@ -2980,6 +2998,12 @@ export default function TaxiTycoon() {
 
         {/* Radio (mode contrôlé : pas de bouton flottant, ouverte via console) */}
         <RadioPlayer open={radioOpen} onOpenChange={setRadioOpen} hideToggle />
+        <PersonnelPanel
+          open={personnelOpen}
+          onClose={() => setPersonnelOpen(false)}
+          money={save.money}
+          onHireCharge={(cost) => setSave((s) => ({ ...s, money: Math.max(0, s.money - cost) }))}
+        />
 
 
         {/* Dialog Pseudo */}
@@ -3305,7 +3329,7 @@ export default function TaxiTycoon() {
         }
 
         /* Écran radio tactile (rangée 4, sur 2 slots) */
-        .tt-lcd-keys-radio { grid-template-columns: 2fr 1fr 1fr 1fr 1fr; }
+        .tt-lcd-keys-radio { grid-template-columns: 1.6fr 1fr 1fr 1fr 1fr 1fr; }
         .tt-lcd-radio {
           appearance: none; cursor: pointer; text-align: left;
           background: linear-gradient(180deg, #1a1208 0%, #050302 100%);
