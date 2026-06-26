@@ -15,6 +15,8 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { ROADS, VILLAGE_PATHS } from "./CityTraffic";
 import { DEFAULT_DISTRICTS, findDistrictAt, type District } from "./TerritoryWar";
+import { getVehicleScale } from "./vehicleScale";
+
 
 const RIVAL_ROAD_IDX = ROADS.map((_, i) => i).filter((i) => !VILLAGE_PATHS.has(i));
 const LANE_HALF = 9;
