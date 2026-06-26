@@ -3162,6 +3162,7 @@ export default function TaxiTycoon() {
           onHireCharge={(cost) => setSave((s) => ({ ...s, money: Math.max(0, s.money - cost) }))}
         />
         {companyOpen && <CompanyPanel onClose={() => setCompanyOpen(false)} />}
+        {workshopOpen && <GaragePanel onClose={() => setWorkshopOpen(false)} />}
 
 
 
