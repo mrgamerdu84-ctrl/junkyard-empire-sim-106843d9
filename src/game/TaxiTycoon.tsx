@@ -1,12 +1,10 @@
-import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import { useNavigate } from "@tanstack/react-router";
 import { ROADS, VILLAGE_PATHS, SIDEWALK_LOCK_OFFSET, lockToSidewalk } from "./CityTraffic";
 import { GAME_ASSETS, listCustomVehicles } from "./gameAssets";
 import { shouldStopAhead, nowSeconds, registerAccident, clearAccident, getAccidents, type AccidentZone } from "./trafficLights";
 import { getAdmin, useAdminConfig } from "./adminConfig";
-import { setVehicleScale as vScaleSet } from "./vehicleScale";
-
 import { recordEarning, isSpecialTaxiUnlocked } from "@/lib/leaderboard";
 import { pushNews } from "@/lib/radioNews";
 import { useRealWorldEnv, weatherLabelFr, weatherLabelEn, refreshRealWorldEnv } from "@/lib/realWorldEnv";
@@ -19,11 +17,6 @@ import { getGameTime, periodLabel } from "./cityClock";
 import RadioPlayer from "./RadioPlayer";
 import PersonnelPanel from "./PersonnelPanel";
 import { getMaintenanceDiscount, getTipsBonus, startPersonnelTick } from "./personnel";
-import CompanyPanel from "./CompanyPanel";
-import GaragePanel from "./GaragePanel";
-import MafiaAttacks from "./MafiaAttacks";
-import { startCompanySim } from "./companyV2";
-
 import { useAuth } from "@/lib/useAuth";
 import { resolveAvatarSrc } from "@/components/ProfileCard";
 import { supabase } from "@/integrations/supabase/client";
@@ -564,38 +557,7 @@ export default function TaxiTycoon() {
   const pathRefs = useRef<(SVGPathElement | null)[]>([]);
   const pathLensRef = useRef<number[]>([]);
   const containerRef = useRef<SVGSVGElement | null>(null);
-  // Échelle inverse appliquée aux véhicules pour qu'ils gardent une taille
-  // écran constante quel que soit le zoom / la taille du SVG rendu.
-  const [vehicleScale, setVehicleScale] = useState(1);
-  // Caméra : zoom + centre (en coordonnées viewBox 1920x1080).
-  const [cam, setCam] = useState({ zoom: 1, cx: 960, cy: 540 });
-  const camRef = useRef(cam);
-  useEffect(() => { camRef.current = cam; }, [cam]);
-  useEffect(() => {
-    const el = containerRef.current;
-    if (!el) return;
-    const compute = () => {
-      const r = el.getBoundingClientRect();
-      if (r.width <= 0 || r.height <= 0) return;
-      const sx = r.width / 1920;
-      const sy = r.height / 1080;
-      const rendered = Math.max(sx, sy);
-      const target = Math.max(rendered, 900 / 1920);
-      const base = Math.max(0.6, Math.min(3, target / rendered));
-      // Compensation du zoom caméra : véhicules de taille écran constante.
-      const s = base / camRef.current.zoom;
-      setVehicleScale((prev) => Math.abs(prev - s) > 0.02 ? s : prev);
-      vScaleSet(s);
-    };
-    compute();
-    const ro = new ResizeObserver(compute);
-    ro.observe(el);
-    window.addEventListener("orientationchange", compute);
-    return () => { ro.disconnect(); window.removeEventListener("orientationchange", compute); };
-  }, [cam.zoom]);
-
   const [pathsReady, setPathsReady] = useState(false);
-
   const admin = useAdminConfig(); // re-render quand l'admin change
   const navigate = useNavigate();
   const realEnv = useRealWorldEnv();
@@ -873,8 +835,17 @@ export default function TaxiTycoon() {
     // tier client : forcé par circuit VIP, sinon roll selon permis
     const tier = forcedTier ?? rollClientTier(license.level);
     const tMult = tierFareMult(tier);
-    // Tarif uniforme sur toute la ville (système de quartiers retiré).
-    const baseFare = Math.round((25 + distNorm * 220) * t.fareMult * adm.clientFareMult * revBonus * tMult);
+    // 🏙️ Tarif dynamique par quartier : centre-ville paie plus, banlieue moins.
+    const pPath = pathRefs.current[pickupPath];
+    let districtMult = 1;
+    if (pPath) {
+      const pt = pPath.getPointAtLength(pickup);
+      const dx = pt.x - 960, dy = pt.y - 540;
+      const dist = Math.sqrt(dx * dx + dy * dy);
+      // 0 au centre → 1.30, ~1100 (coin) → 0.85
+      districtMult = Math.max(0.85, Math.min(1.30, 1.30 - (dist / 1100) * 0.45));
+    }
+    const baseFare = Math.round((25 + distNorm * 220) * t.fareMult * adm.clientFareMult * revBonus * tMult * districtMult);
 
     const duration = (22 + Math.min(20, baseFare / 30)) * 1000;
     return {
@@ -1086,7 +1057,7 @@ export default function TaxiTycoon() {
   }, []);
 
   // Démarre le tick salaires/revenus du personnel (une seule fois).
-  useEffect(() => { startPersonnelTick(); startCompanySim(); }, []);
+  useEffect(() => { startPersonnelTick(); }, []);
 
   // Passif des quartiers contrôlés (lecture temps réel).
   const [territoryPassive, setTerritoryPassive] = useState(0);
@@ -1873,7 +1844,6 @@ export default function TaxiTycoon() {
 
   const [garageOpen, setGarageOpen] = useState(false);
   const [shopOpen, setShopOpen] = useState(false);
-  const [workshopOpen, setWorkshopOpen] = useState(false);
   const [musicOn, setMusicOn] = useState(false);
   const [missionsOpen, setMissionsOpen] = useState(false);
   const [missionsTab, setMissionsTab] = useState<"contracts" | "depot">("contracts");
@@ -1882,8 +1852,6 @@ export default function TaxiTycoon() {
   const [pseudoOpen, setPseudoOpen] = useState(false);
   const [cityInfoOpen, setCityInfoOpen] = useState(false);
   const [personnelOpen, setPersonnelOpen] = useState(false);
-  const [companyOpen, setCompanyOpen] = useState(false);
-
 
   const auth = useAuth();
   const [pseudoDraft, setPseudoDraft] = useState("");
@@ -2150,87 +2118,17 @@ export default function TaxiTycoon() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [realEnv?.city, realEnv?.weather, realEnv?.isDay]);
 
-  // ===== Caméra : viewBox dynamique =====
-  const camVbW = 1920 / cam.zoom;
-  const camVbH = 1080 / cam.zoom;
-  const camVbX = Math.max(0, Math.min(1920 - camVbW, cam.cx - camVbW / 2));
-  const camVbY = Math.max(0, Math.min(1080 - camVbH, cam.cy - camVbH / 2));
-  const camViewBox = `${camVbX} ${camVbY} ${camVbW} ${camVbH}`;
-
-  // ===== Gestes : pinch / wheel / drag =====
-  const gestureRef = useRef<{ pointers: Map<number, { x: number; y: number }>; lastDist: number; lastMid: { x: number; y: number } | null; dragging: boolean }>({ pointers: new Map(), lastDist: 0, lastMid: null, dragging: false });
-  const screenDeltaToViewBox = useCallback((dx: number, dy: number) => {
-    const el = containerRef.current; if (!el) return { x: 0, y: 0 };
-    const r = el.getBoundingClientRect();
-    const sx = r.width / 1920, sy = r.height / 1080;
-    const rendered = Math.max(sx, sy);
-    const k = 1 / (rendered * cam.zoom);
-    return { x: dx * k, y: dy * k };
-  }, [cam.zoom]);
-  const onWheel = useCallback((e: React.WheelEvent) => {
-    e.preventDefault();
-    setCam((c) => {
-      const factor = Math.exp(-e.deltaY * 0.0015);
-      const z = Math.max(1, Math.min(4, c.zoom * factor));
-      return { ...c, zoom: z };
-    });
-  }, []);
-  const onPointerDown = useCallback((e: React.PointerEvent) => {
-    (e.target as Element).setPointerCapture?.(e.pointerId);
-    gestureRef.current.pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
-    gestureRef.current.dragging = gestureRef.current.pointers.size === 1;
-    if (gestureRef.current.pointers.size === 2) {
-      const [a, b] = Array.from(gestureRef.current.pointers.values());
-      gestureRef.current.lastDist = Math.hypot(a.x - b.x, a.y - b.y);
-      gestureRef.current.lastMid = { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 };
-    }
-  }, []);
-  const onPointerMove = useCallback((e: React.PointerEvent) => {
-    const g = gestureRef.current;
-    const prev = g.pointers.get(e.pointerId);
-    if (!prev) return;
-    g.pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
-    if (g.pointers.size === 1 && g.dragging) {
-      const d = screenDeltaToViewBox(prev.x - e.clientX, prev.y - e.clientY);
-      setCam((c) => ({ ...c, cx: Math.max(0, Math.min(1920, c.cx + d.x)), cy: Math.max(0, Math.min(1080, c.cy + d.y)) }));
-    } else if (g.pointers.size === 2) {
-      const [a, b] = Array.from(g.pointers.values());
-      const dist = Math.hypot(a.x - b.x, a.y - b.y);
-      if (g.lastDist > 0) {
-        const f = dist / g.lastDist;
-        setCam((c) => ({ ...c, zoom: Math.max(1, Math.min(4, c.zoom * f)) }));
-      }
-      g.lastDist = dist;
-    }
-  }, [screenDeltaToViewBox]);
-  const onPointerUp = useCallback((e: React.PointerEvent) => {
-    gestureRef.current.pointers.delete(e.pointerId);
-    if (gestureRef.current.pointers.size < 2) gestureRef.current.lastDist = 0;
-    if (gestureRef.current.pointers.size === 0) gestureRef.current.dragging = false;
-  }, []);
-
   return (
     <>
       <WeatherNightOverlay />
 
-      {/* === Couche de capture des gestes (pinch / drag / molette) === */}
-      <div
-        style={{ position: "absolute", inset: 0, zIndex: 3, touchAction: "none", background: "transparent" }}
-        onWheel={onWheel}
-        onPointerDown={onPointerDown}
-        onPointerMove={onPointerMove}
-        onPointerUp={onPointerUp}
-        onPointerCancel={onPointerUp}
-      />
-
       {/* === Calque SVG du jeu === */}
       <svg
         ref={containerRef}
-        viewBox={camViewBox}
+        viewBox="0 0 1920 1080"
         preserveAspectRatio="xMidYMid slice"
         style={{ position: "absolute", inset: 0, width: "100%", height: "100%", pointerEvents: "none", zIndex: 4 }}
       >
-
         <defs>
           {ROADS.map((d, i) => (
             <path
@@ -2244,36 +2142,6 @@ export default function TaxiTycoon() {
             <feDropShadow dx="0" dy="6" stdDeviation="5" floodColor="#000" floodOpacity="0.4" />
           </filter>
         </defs>
-
-        {/* === Overlay routes en pointillés (axe central propre, type plan tycoon) === */}
-        <g pointerEvents="none" className="mtw-roads-dashed">
-          {ROADS.map((d, i) => (
-            <path
-              key={`road-base-${i}`}
-              d={d}
-              stroke="#1f2329"
-              strokeWidth="14"
-              fill="none"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              opacity="0.55"
-            />
-          ))}
-          {ROADS.map((d, i) => (
-            <path
-              key={`road-dash-${i}`}
-              d={d}
-              stroke="#ffffff"
-              strokeWidth="2"
-              fill="none"
-              strokeDasharray="10 15"
-              strokeLinecap="butt"
-              opacity="0.9"
-            />
-          ))}
-        </g>
-
-
 
 
 
@@ -2453,10 +2321,10 @@ export default function TaxiTycoon() {
           return (
             <g
               style={{ cursor: "pointer", pointerEvents: "auto" }}
-              onClick={() => setWorkshopOpen(true)}
+              onClick={() => setShopOpen(true)}
               transform={admin.hqRotation ? `rotate(${admin.hqRotation} ${cx} ${cy})` : undefined}
             >
-              <title>🏭 Atelier — cliquer pour entrer dans le garage</title>
+              <title>QG — My Taxi HQ (cliquer pour la boutique)</title>
               {/* ombre douce sous le bâtiment pour l'ancrer au sol */}
               <ellipse cx={cx} cy={cy + h * 0.42} rx={w * 0.42} ry={h * 0.08} fill="rgba(0,0,0,0.45)" />
               <image
@@ -2551,7 +2419,7 @@ export default function TaxiTycoon() {
         {circuitInfo.pts.length >= 2 && circuitTaxisRef.current.map((ct) => {
           const p = circuitAt(ct.pos);
           return (
-            <g key={ct.id} transform={`translate(${p.x},${p.y}) rotate(${p.angle}) scale(${vehicleScale})`} filter="url(#taxi-shadow)">
+            <g key={ct.id} transform={`translate(${p.x},${p.y}) rotate(${p.angle})`} filter="url(#taxi-shadow)">
               <TaxiSprite image={currentLivery.image} faceRight={currentLivery.faceRight} paintFilter={currentPaint.filter} markerColor={currentPaint.color} withClient={false} moving={true} />
             </g>
           );
@@ -2564,7 +2432,7 @@ export default function TaxiTycoon() {
           const angle = p.angle;
           return (
             <g key={r.id}>
-              <g transform={`translate(${p.x},${p.y}) rotate(${angle}) scale(${vehicleScale})`} filter="url(#taxi-shadow)">
+              <g transform={`translate(${p.x},${p.y}) rotate(${angle})`} filter="url(#taxi-shadow)">
                 <TaxiSprite image={TAXI_RED_URL} faceRight={true} withClient={r.mode === "to_dest"} moving={r.mode !== "idle"} />
               </g>
               
@@ -2640,7 +2508,7 @@ export default function TaxiTycoon() {
           void ledA; void ledB;
 
           return (
-            <g key={pc.id} transform={`translate(${p.x},${p.y}) rotate(${p.angle}) scale(${vehicleScale})`} filter="url(#taxi-shadow)">
+            <g key={pc.id} transform={`translate(${p.x},${p.y}) rotate(${p.angle})`} filter="url(#taxi-shadow)">
               {flashing && (
                 <circle r="24" fill={t === 0 ? "#3b82f6" : "#ef4444"} opacity="0.28">
                   <animate attributeName="r" values="20;28;20" dur="0.5s" repeatCount="indefinite" />
@@ -2758,7 +2626,7 @@ export default function TaxiTycoon() {
           const W = VEHICLE_SIZE; // même taille que tous les autres véhicules
           const blueOn = t === 0;
           return (
-            <g key={ev.id} transform={`translate(${p.x},${p.y}) rotate(${p.angle}) scale(${vehicleScale})`} filter="url(#taxi-shadow)">
+            <g key={ev.id} transform={`translate(${p.x},${p.y}) rotate(${p.angle})`} filter="url(#taxi-shadow)">
               <g>
                 <RoadAlignedVehicleSprite image={href} size={W}>
                 {alerting && (
@@ -2849,8 +2717,7 @@ export default function TaxiTycoon() {
             return (
               <g key={taxi.id}>
                 <g
-                  transform={`translate(${p.x},${p.y}) rotate(${angle}) scale(${vehicleScale})`}
-
+                  transform={`translate(${p.x},${p.y}) rotate(${angle})`}
                   filter="url(#taxi-shadow)"
                   style={{ cursor: "pointer", pointerEvents: "auto" }}
                   onClick={(e) => { e.stopPropagation(); honkTaxi(taxi.id); }}
@@ -2891,9 +2758,6 @@ export default function TaxiTycoon() {
             </text>
           </g>
         ))}
-
-        {/* === Mafia (dépôt + voitures noires cliquables) === */}
-        <MafiaAttacks />
       </svg>
 
         {/* === HUD HTML incrusté — rendu hors carte pour rester fixe === */}
@@ -3105,13 +2969,6 @@ export default function TaxiTycoon() {
             <button className="tt-lcd-key" onClick={() => setPersonnelOpen(true)}>
               <span className="tt-lcd-key-ico">👥</span><b>ÉQUIPE</b>
             </button>
-            <button className="tt-lcd-key tt-lcd-key-company" onClick={() => setCompanyOpen(true)}>
-              <span className="tt-lcd-key-ico">🏢</span><b>COMPAGNIE</b>
-            </button>
-
-            <button className="tt-lcd-key" onClick={() => setWorkshopOpen(true)}>
-              <span className="tt-lcd-key-ico">🏭</span><b>ATELIER</b>
-            </button>
             <button className="tt-lcd-key" onClick={() => setShowTutorial(true)}>
               <span className="tt-lcd-key-ico">📖</span><b>TUTO</b>
             </button>
@@ -3186,9 +3043,6 @@ export default function TaxiTycoon() {
           money={save.money}
           onHireCharge={(cost) => setSave((s) => ({ ...s, money: Math.max(0, s.money - cost) }))}
         />
-        {companyOpen && <CompanyPanel onClose={() => setCompanyOpen(false)} onOpenGarage={() => { setCompanyOpen(false); setWorkshopOpen(true); }} />}
-        {workshopOpen && <GaragePanel onClose={() => setWorkshopOpen(false)} />}
-
 
 
         {/* Dialog Pseudo */}
@@ -3870,20 +3724,16 @@ export default function TaxiTycoon() {
         .tt-livery-name { font-size: 12px; font-weight: 800; margin-top: 4px; }
         .tt-livery-city { font-size: 10px; color: #8a8e94; }
 
-        /* Mobile paysage : libère un maximum de hauteur pour la carte */
-        @media (orientation: landscape) and (max-height: 500px) {
-          .tt-hud { box-shadow: none !important; border-radius: 0; }
-          .tt-topbar, .tt-title-banner { display: none !important; }
-          .tt-actions { bottom: 4px; gap: 6px; transform: scale(0.85); transform-origin: bottom center; }
-          .tt-btn { padding: 4px 8px; min-width: 70px; }
-          .tt-btn-ico { font-size: 14px; }
-          .tt-btn-lbl { font-size: 9px; }
-          .tt-btn-cost { font-size: 9px; }
+        /* Mobile paysage : compresse le HUD verticalement */
+        @media (max-height: 500px) and (orientation: landscape) {
+          .tt-actions { bottom: 8px; gap: 6px; }
+          .tt-btn { padding: 5px 10px; min-width: 80px; }
+          .tt-btn-ico { font-size: 16px; }
+          .tt-btn-lbl { font-size: 10px; }
+          .tt-btn-cost { font-size: 10px; }
           .tt-garage-fab { bottom: 6px; width: 36px; height: 36px; font-size: 16px; }
-          .tt-missions-fab { top: 6px; padding: 4px 8px; font-size: 10px; }
-          .tt-fs-toggle { top: 6px !important; right: 6px !important; }
+          .tt-missions-fab { top: 48px; padding: 4px 8px; font-size: 10px; }
         }
-
 
 
         .tt-toast {

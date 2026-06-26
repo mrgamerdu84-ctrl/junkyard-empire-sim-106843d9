@@ -19,7 +19,7 @@ function read(): District[] {
   const w = window as unknown as { __mtwTerritory?: District[] };
   if (w.__mtwTerritory) return w.__mtwTerritory;
   try {
-    const raw = localStorage.getItem("mtw-territory-v2") || localStorage.getItem("mtw-territory-v1");
+    const raw = localStorage.getItem("mtw-territory-v1");
     if (raw) return JSON.parse(raw) as District[];
   } catch {}
   return [];
@@ -84,27 +84,9 @@ export default function TerritoryPanel() {
     };
   };
 
-  const centerOnDistrict = (id: string, zoom?: number) => {
-    const d = districts.find((x) => x.id === id);
-    if (!d) return;
-    let targetZoom = zoom;
-    if (targetZoom === undefined) {
-      const pad = 1.35; // 35 % de marge autour du quartier
-      const zW = MAP_W / (d.w * pad);
-      const zH = MAP_H / (d.h * pad);
-      targetZoom = Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, Math.min(zW, zH)));
-    }
-    const nw = MAP_W / targetZoom;
-    const nh = MAP_H / targetZoom;
-    const nx = d.x + d.w / 2 - nw / 2;
-    const ny = d.y + d.h / 2 - nh / 2;
-    setView(clampView({ x: nx, y: ny, w: nw, h: nh }));
-  };
-
   const focusDistrict = (id: string) => {
     setOpen(true);
     setSelectedId(id);
-    centerOnDistrict(id, 2.5);
     requestAnimationFrame(() => {
       cardRefs.current[id]?.scrollIntoView({ behavior: "smooth", block: "center" });
     });
@@ -281,7 +263,7 @@ export default function TerritoryPanel() {
                 })}
               </svg>
 
-              {/* Boutons zoom +/− / centrer / reset */}
+              {/* Boutons zoom +/− / reset */}
               <div style={{
                 position: "absolute", top: 8, right: 8, display: "flex",
                 flexDirection: "column", gap: 4,
@@ -289,16 +271,14 @@ export default function TerritoryPanel() {
                 {[
                   { l: "+", a: () => zoomAt(1.4, view.x + view.w / 2, view.y + view.h / 2) },
                   { l: "−", a: () => zoomAt(1 / 1.4, view.x + view.w / 2, view.y + view.h / 2) },
-                  { l: "🎯", a: () => { if (selectedId) centerOnDistrict(selectedId); } },
                   { l: "⟲", a: () => setView({ x: 0, y: 0, w: MAP_W, h: MAP_H }) },
                 ].map((b) => (
                   <button key={b.l} type="button" onClick={b.a}
-                    title={b.l === "🎯" ? "Centrer sur le quartier sélectionné" : undefined}
                     style={{
                       width: 30, height: 30, borderRadius: 6,
                       border: "1.5px solid #fde047", background: "rgba(12,14,22,0.85)",
-                      color: "#fde047", fontWeight: 900, fontSize: b.l === "🎯" ? 14 : 16, cursor: "pointer",
-                      lineHeight: 1, padding: 0, opacity: b.l === "🎯" && !selectedId ? 0.4 : 1,
+                      color: "#fde047", fontWeight: 900, fontSize: 16, cursor: "pointer",
+                      lineHeight: 1, padding: 0,
                     }}>{b.l}</button>
                 ))}
               </div>

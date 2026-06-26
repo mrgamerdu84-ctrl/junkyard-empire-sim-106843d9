@@ -1,53 +1,40 @@
-# Refonte finale : Solo vs Mafia (clean slate)
+## Cadre style "écran de téléphone"
 
-Beaucoup d'éléments du cahier des charges sont déjà en place suite à nos passes précédentes (atelier vide jusqu'à l'achat du pont, routes en pointillés, récompense mafia +100 $, échelle inverse des véhicules sur le zoom caméra). Ce plan finit le ménage et corrige les vrais écarts restants.
+Ajouter un cadre noir tout autour de la zone de jeu (top, gauche, droite) avec coins arrondis, comme la bordure d'un smartphone. La carte du jeu vit à l'intérieur.
 
-## 1. Supprimer entièrement les "rivaux" et la "guerre de territoire"
+## Bandeau supérieur — uniquement le titre
 
-Tu as demandé : *"Il n'y a plus aucune entreprise rivale classique"* et *"supprime l'ancien système de guerre de territoire ou de quartiers"*.
+Dans `.tt-topbar`, **supprimer** :
+- bouton `?` aide
+- pastille HEURE · MÉTÉO · ARGENT (info déjà dans le LCD du bas)
+- bouton Missions (descendu dans le tableau de bord)
 
-À retirer du jeu :
-- `src/game/CityRivalTaxis.tsx` (taxis rouges rivaux qui roulent en ville) + son montage dans `src/routes/index.tsx`.
-- Le bâtiment **RIVAL CABS** (HQ rouge avec enseigne ⚔️) rendu dans `TaxiTycoon.tsx` (lignes ~470-513) et son rendu conditionnel à `admin.rivalEnabled` (ligne 2494).
-- Le bouton **TERRITOIRE** et l'ouverture de `TerritoryPanel` depuis le dashboard.
-- Les fichiers `src/game/TerritoryWar.tsx` et `src/game/TerritoryPanel.tsx` (orphelins après suppression).
-- Les événements `mtw:district-owner-changed` et le multiplicateur `districtMult` du calcul de tarif (ligne 878-886 de `TaxiTycoon.tsx`).
+**Garder / ajouter** :
+- Gros titre centré **MY TAXI WORLD RIVALITÉ** (style enseigne lumineuse ambrée, Orbitron, glow doré)
+- Bouton ⛶ plein écran/zoom carte à droite (déjà existant `tt-fs-toggle` — repositionné sur le bandeau)
 
-Effet visible : plus aucun rouge sur la carte, plus aucune référence à "quartiers conquis", plus de taxis ennemis.
+## Radio intégrée dans le tableau de bord
 
-## 2. Voitures mafia avec de VRAIS modèles du jeu, colorés en noir
+Remplacer la touche `RADIO` (rangée 4) par un **mini écran tactile radio** intégré dans la même rangée mais sur 2 slots de large :
+- Écran LCD ambré avec nom de la station qui défile (marquee si tronqué)
+- Indicateur ▶ / ⏸
+- Boutons tactiles ⏮ ⏭ pour changer de station
+- Petit séparateur "CÉLÉBRER" / "DROIT LIBRE" (catégorie active)
+- Au tap sur l'écran : ouvre le panneau radio complet pour choisir la station/volume
 
-Aujourd'hui `src/game/MafiaAttacks.tsx` dessine un simple rectangle. Le cahier dit : *"utilise des modèles de voitures déjà présents dans le jeu, mais colorés en noir"*.
+Rangée 4 reconfigurée en 5 cellules (radio = 2) : `[RADIO écran ××][FLOTTE][QG][RIVALITÉ][TUTO]` — CLASSEMENT est déjà accessible via RIVALITÉ.
 
-Action : remplacer le rectangle par le même composant SVG que la circulation civile (`VehicleSvgs` / asset de `gameAssets`) en forçant la peinture en noir mat (`#0b0d10`) avec liseré rouge sombre pour rester reconnaissable comme menace. Conserver le halo cliquable et l'animation explosion. La voiture garde l'échelle inverse via `vehicleScale` (déjà câblé pour le sélecteur `.mafia-vehicle` équivalent SVG).
+## Bouton Missions
 
-## 3. Difficulté évolutive de la Mafia
+Descendu dans la rangée 5 (outils) avec compteur rouge intégré :
+`[MISSIONS (n)][ENTRETIEN][SPÉCIAL][APK][ADMIN]` — rangée 5 passe à 5 colonnes.
 
-Le tick `companyV2` déclenche déjà `mtw:mafia-attack-spawn`. À ajuster pour matcher le cahier ("plus on grandit, plus la mafia s'énerve") :
-- Probabilité de spawn par tick = `base + k1 * (cash / 10 000) + k2 * fleetSize`.
-- Plafond de vagues simultanées passe de 6 à 10.
-- Vitesse des voitures noires : `durationMs` se raccourcit avec le niveau de colère mafia.
+## Fichier modifié
 
-## 4. Vérification du bug zoom (pointillés solidaires du décor)
+`src/game/TaxiTycoon.tsx` uniquement :
+- JSX `.tt-topbar` (réduit au titre + bouton zoom)
+- JSX `.tt-console-lcd` rangée 4 (radio intégrée) et rangée 5 (ajout Missions)
+- CSS : nouveau `.tt-phone-frame` (cadre), `.tt-title-banner` (enseigne lumineuse), `.tt-lcd-radio` (écran radio tactile avec animation marquee)
+- Logique radio : réutilise le store existant (RadioPlayer) ; expose `currentStation`, `next()`, `prev()`, `togglePlay()` via hook déjà en place ou via événements custom si besoin.
 
-Le zoom passe par un `viewBox` SVG dynamique (`TaxiTycoon.tsx` ligne 2163-2238). Tout ce qui est dessiné dans le `<svg>` — sol, bâtiments, ROADS dashed — scale de façon synchrone par construction. Les véhicules reçoivent un `scale(1/zoom)` via `vehicleScale.ts`.
-
-Audit prévu : confirmer qu'aucune route/dashed n'a de `transform` indépendant et que `strokeDasharray` est exprimé en unités viewBox (ce qui le fait scaler avec la carte). Si un écart est détecté, le corriger.
-
-## 5. Ce qui ne change PAS (déjà OK, conservé tel quel)
-
-- Atelier iso 3D vide tant que `lifts < 1`, mécano animé qui marche autour du taxi sur le pont.
-- Routes blanches en pointillés (`stroke="#fff"`, `strokeDasharray="10 15"`, width 2).
-- Clic mafia = explosion + `+100 $`.
-- Échelle écran constante des taxis et des voitures mafia.
-- Onglet 🏢 COMPAGNIE pour gérer flotte/personnel.
-
-## Détails techniques
-
-- **Fichiers supprimés** : `src/game/CityRivalTaxis.tsx`, `src/game/TerritoryWar.tsx`, `src/game/TerritoryPanel.tsx`.
-- **Fichiers édités** : `src/routes/index.tsx` (retrait de `<CityRivalTaxis/>`), `src/game/TaxiTycoon.tsx` (suppression de `RivalDepot`, du bouton TERRITOIRE, du calcul `districtMult`, des refs `rivalTaxisRef`), `src/game/MafiaAttacks.tsx` (réutilisation du SVG de véhicule existant), `src/game/companyV2.ts` (courbe de spawn mafia).
-- **Aucun changement** dans `adminConfig` côté schéma ; le flag `rivalEnabled` devient simplement inutilisé (à laisser pour ne pas casser le storage existant).
-
-## Risque
-
-`CityRivalTaxis` écoute des events territoire et publie des positions de taxis rivaux. La suppression est franche et locale ; aucun consommateur externe identifié dans la base.
+Aucune logique de jeu modifiée — uniquement présentation et réorganisation des contrôles existants.

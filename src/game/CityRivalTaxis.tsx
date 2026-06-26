@@ -14,14 +14,10 @@
 // =============================================================
 import { useEffect, useMemo, useRef, useState } from "react";
 import { ROADS, VILLAGE_PATHS } from "./CityTraffic";
-import { DEFAULT_DISTRICTS, findDistrictAt, type District } from "./TerritoryWar";
-import { getVehicleScale } from "./vehicleScale";
-
 
 const RIVAL_ROAD_IDX = ROADS.map((_, i) => i).filter((i) => !VILLAGE_PATHS.has(i));
 const LANE_HALF = 9;
 const MAX_RIVALS = 10;
-const SECTOR_BIAS = 0.82; // 82% des fois le rival choisit une route de son quartier
 
 type Competitor = {
   id: string;
@@ -39,27 +35,43 @@ type RivalSpec = {
   letter: string;
   vehicleUrl?: string;
   startPathIdx: number;
-  homeDistrictId: string;
 };
 
 type Mode = "roam" | "to_mission" | "on_mission" | "to_dropoff" | "return_hq";
 
 type RivalState = {
   mode: Mode;
+  // ROAM
   pathIdx: number;
   flip: boolean;
-  duration: number;
-  startedAt: number;
-  x: number; y: number; ang: number;
-  tgtX: number; tgtY: number; tgtSpeed: number;
+  duration: number;     // s pour parcourir la route
+  startedAt: number;    // performance.now()
+  // Position courante (utile pour TO_MISSION/RETURN_HQ qui n'utilisent pas un path)
+  x: number;
+  y: number;
+  ang: number;
+  // Cible (lerp linéaire)
+  tgtX: number;
+  tgtY: number;
+  tgtSpeed: number;     // px/s
+  // Mission
   missionId?: number;
-  dropX?: number; dropY?: number;
+  dropX?: number;
+  dropY?: number;
+  // Parking
   parkUntil?: number;
+  // Watchdog
   lastMoveAt: number;
-  lastX: number; lastY: number;
+  lastX: number;
+  lastY: number;
 };
 
-type IncomingMission = { id: number; x: number; y: number };
+type IncomingMission = {
+  id: number;
+  x: number;
+  y: number;
+  // pas de dropoff dans l'event actuel → on en simule un aléatoire à proximité
+};
 
 function buildSpecs(comps: Competitor[]): RivalSpec[] {
   const alive = comps.filter((c) => !c.bankrupt);
@@ -68,7 +80,6 @@ function buildSpecs(comps: Competitor[]): RivalSpec[] {
   const perComp = Math.max(1, Math.min(2, Math.floor(MAX_RIVALS / Math.max(1, alive.length))));
   let i = 0;
   for (const c of alive) {
-    const home = findDistrictAt(DEFAULT_DISTRICTS, c.x, c.y);
     for (let k = 0; k < perComp && out.length < MAX_RIVALS; k++) {
       out.push({
         compId: c.id,
@@ -76,7 +87,6 @@ function buildSpecs(comps: Competitor[]): RivalSpec[] {
         letter: (c.name?.[0] ?? "?").toUpperCase(),
         vehicleUrl: c.vehicleUrl,
         startPathIdx: RIVAL_ROAD_IDX[i % RIVAL_ROAD_IDX.length] ?? 0,
-        homeDistrictId: home?.id ?? DEFAULT_DISTRICTS[0].id,
       });
       i++;
     }
@@ -86,14 +96,6 @@ function buildSpecs(comps: Competitor[]): RivalSpec[] {
 
 function pickPath(): number {
   return RIVAL_ROAD_IDX[Math.floor(Math.random() * RIVAL_ROAD_IDX.length)] ?? 0;
-}
-
-function pickSectorPath(homeId: string, roadsByDistrict: Record<string, number[]>): number {
-  const list = roadsByDistrict[homeId];
-  if (list && list.length > 0 && Math.random() < SECTOR_BIAS) {
-    return list[Math.floor(Math.random() * list.length)];
-  }
-  return pickPath();
 }
 
 export default function CityRivalTaxis() {
@@ -122,9 +124,6 @@ export default function CityRivalTaxis() {
   const carRefs = useRef<(SVGGElement | null)[]>([]);
   const stateRef = useRef<RivalState[]>([]);
   const missionsRef = useRef<IncomingMission[]>([]);
-  const homeIdsRef = useRef<string[]>([]);
-  const pendingHomeRef = useRef<(string | null)[]>([]);
-  const roadsByDistrictRef = useRef<Record<string, number[]>>({});
 
   // Écoute des missions/incidents publiés par CrimeEvents → un rival va "rafler"
   useEffect(() => {
@@ -150,49 +149,6 @@ export default function CityRivalTaxis() {
     };
   }, []);
 
-  // Réassignation de secteur quand un quartier change de propriétaire.
-  useEffect(() => {
-    const onOwnerChanged = (e: Event) => {
-      const d = (e as CustomEvent<{ districtId: string; newOwner: string }>).detail;
-      if (!d) return;
-      const territory = (window as unknown as { __mtwTerritory?: District[] }).__mtwTerritory ?? DEFAULT_DISTRICTS;
-      for (let i = 0; i < homeIdsRef.current.length; i++) {
-        if (homeIdsRef.current[i] !== d.districtId) continue;
-        const sp = specs[i];
-        const comp = compsRef.current.find((c) => c.id === sp.compId);
-        const originX = comp?.x ?? 960;
-        const originY = comp?.y ?? 540;
-        // Cherche le quartier non détenu par le joueur le plus proche du QG de l'opérateur.
-        let bestId: string | null = null;
-        let bestDist = Infinity;
-        for (const dist of territory) {
-          if (dist.owned) continue; // quartier player → off-limits
-          const cx = dist.x + dist.w / 2;
-          const cy = dist.y + dist.h / 2;
-          const dd = Math.hypot(cx - originX, cy - originY);
-          if (dd < bestDist) { bestDist = dd; bestId = dist.id; }
-        }
-        const newHome = bestId ?? DEFAULT_DISTRICTS[0].id;
-        const st = stateRef.current[i];
-        // Si le rival est en pleine mission, on diffère ; sinon on bascule.
-        if (st && (st.mode === "to_mission" || st.mode === "on_mission" || st.mode === "to_dropoff")) {
-          pendingHomeRef.current[i] = newHome;
-        } else {
-          homeIdsRef.current[i] = newHome;
-          // Reroute immédiat vers le nouveau secteur (mode return_hq pour transition douce).
-          if (st && comp) {
-            st.mode = "return_hq";
-            st.tgtX = comp.x;
-            st.tgtY = comp.y;
-            st.tgtSpeed = 200;
-          }
-        }
-      }
-    };
-    window.addEventListener("mtw:district-owner-changed", onOwnerChanged as EventListener);
-    return () => window.removeEventListener("mtw:district-owner-changed", onOwnerChanged as EventListener);
-  }, [specs]);
-
   useEffect(() => {
     // Mesure des paths : retry tant que pas prêt (évite le freeze "tout disparaît")
     let raf = 0;
@@ -200,27 +156,11 @@ export default function CityRivalTaxis() {
 
     const ensureLens = () => {
       lens = pathRefs.current.map((p) => (p ? p.getTotalLength() : 0));
-      if (!lens.every((l) => l > 1)) return false;
-      // Une fois les paths mesurés, on classe chaque route dans son quartier
-      // d'origine (selon le point milieu de la route).
-      const by: Record<string, number[]> = {};
-      for (const idx of RIVAL_ROAD_IDX) {
-        const p = pathRefs.current[idx];
-        const len = lens[idx];
-        if (!p || !len) continue;
-        const mid = p.getPointAtLength(len / 2);
-        const d = findDistrictAt(DEFAULT_DISTRICTS, mid.x, mid.y);
-        if (!d) continue;
-        (by[d.id] ||= []).push(idx);
-      }
-      roadsByDistrictRef.current = by;
-      return true;
+      return lens.every((l) => l > 1);
     };
 
-    // Init states + home districts mutables
+    // Init states
     const now0 = performance.now();
-    homeIdsRef.current = specs.map((sp) => sp.homeDistrictId);
-    pendingHomeRef.current = specs.map(() => null);
     stateRef.current = specs.map((sp, i) => {
       const comp = compsRef.current.find((c) => c.id === sp.compId);
       return {
@@ -296,7 +236,7 @@ export default function CityRivalTaxis() {
           let u = (now - st.startedAt) / (st.duration * 1000);
           if (u >= 1) {
             // Nouvelle route : enchaîner toutes les rues
-            st.pathIdx = pickSectorPath(homeIdsRef.current[i] ?? sp.homeDistrictId, roadsByDistrictRef.current);
+            st.pathIdx = pickPath();
             st.flip = Math.random() < 0.5;
             st.duration = 14 + Math.random() * 10;
             st.startedAt = now;
@@ -338,26 +278,16 @@ export default function CityRivalTaxis() {
               st.mode = "on_mission";
               st.parkUntil = now + 1500;
             } else if (st.mode === "to_dropoff") {
-              // Course rivale terminée → crédite la semaine du quartier de dépose
-              window.dispatchEvent(new CustomEvent("mtw:rival-course-completed", {
-                detail: { x: st.x, y: st.y, compId: sp.compId },
-              }));
               st.mode = "return_hq";
               const c = compsRef.current.find((c) => c.id === sp.compId);
               st.tgtX = c?.x ?? 960;
               st.tgtY = c?.y ?? 540;
               st.tgtSpeed = 200;
             } else if (st.mode === "return_hq") {
-              // Retour QG validé. Si une réassignation de secteur était en
-              // attente (changement de propriétaire pendant la course), on
-              // l'applique maintenant.
-              const pend = pendingHomeRef.current[i];
-              if (pend !== null) {
-                homeIdsRef.current[i] = pend;
-                pendingHomeRef.current[i] = null;
-              }
+              // Retour QG validé, puis reprise immédiate du trafic : les concurrents
+              // ne restent plus plantés/garés sur la carte.
               st.mode = "roam";
-              st.pathIdx = pickSectorPath(homeIdsRef.current[i] ?? sp.homeDistrictId, roadsByDistrictRef.current);
+              st.pathIdx = pickPath();
               st.flip = Math.random() < 0.5;
               st.duration = 14 + Math.random() * 10;
               st.startedAt = now;
@@ -386,7 +316,7 @@ export default function CityRivalTaxis() {
           if (moved > 0.5) { st.lastMoveAt = now; st.lastX = st.x; st.lastY = st.y; }
           else if (now - st.lastMoveAt > 2000) {
             st.mode = "roam";
-            st.pathIdx = pickSectorPath(homeIdsRef.current[i] ?? sp.homeDistrictId, roadsByDistrictRef.current);
+            st.pathIdx = pickPath();
             st.flip = Math.random() < 0.5;
             st.duration = 14 + Math.random() * 10;
             st.startedAt = now;
@@ -396,9 +326,8 @@ export default function CityRivalTaxis() {
 
         node.setAttribute(
           "transform",
-          `translate(${st.x.toFixed(2)},${st.y.toFixed(2)}) rotate(${st.ang.toFixed(2)}) scale(${getVehicleScale().toFixed(2)})`,
+          `translate(${st.x.toFixed(2)},${st.y.toFixed(2)}) rotate(${st.ang.toFixed(2)})`,
         );
-
       }
       raf = requestAnimationFrame(step);
     };

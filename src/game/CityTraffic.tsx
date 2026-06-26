@@ -1,7 +1,5 @@
 import { useEffect, useRef, useState } from "react";
 import { useAdminConfig } from "./adminConfig";
-import { getVehicleScale } from "./vehicleScale";
-
 import { getPedestrianPhotoUrls, listCustomVehicles, getCivilCarUrls, type CustomVehicleCategory } from "./gameAssets";
 import { VehicleSvg, type VehicleSvgKind } from "./vehicles/VehicleSvgs";
 import {
@@ -592,7 +590,7 @@ export default function CityTraffic() {
         const ang = (Math.atan2(tdy, tdx) * 180) / Math.PI;
         const ox = (-tdy / L) * LANE_HALF;
         const oy = (tdx / L) * LANE_HALF;
-        node.setAttribute("transform", `translate(${(p.x + ox).toFixed(2)},${(p.y + oy).toFixed(2)}) rotate(${ang.toFixed(2)}) scale(${getVehicleScale().toFixed(2)})`);
+        node.setAttribute("transform", `translate(${(p.x + ox).toFixed(2)},${(p.y + oy).toFixed(2)}) rotate(${ang.toFixed(2)})`);
         checkRadars(st, prev);
       }
       void needsRebuild;

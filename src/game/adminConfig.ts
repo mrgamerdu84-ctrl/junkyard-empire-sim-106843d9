@@ -79,7 +79,7 @@ export const DEFAULT_ADMIN: AdminConfig = {
   gasStationX: 1450,
   gasStationY: 540,
 
-  rivalEnabled: false,
+  rivalEnabled: true,
   rivalHQX: 1650,
   rivalHQY: 220,
   rivalTaxiCount: 3,
@@ -101,25 +101,19 @@ export const DEFAULT_ADMIN: AdminConfig = {
 const KEY = "taxi-tycoon-admin-v3";
 
 
-// Clés de QG verrouillées : on ignore toute valeur sauvegardée / patch.
-const HQ_LOCKED_KEYS: (keyof AdminConfig)[] = [
-  "hqUseFreePos", "hqX", "hqY", "hqScale", "hqRotation",
-  "rivalHQX", "rivalHQY",
-];
-function applyHqLock<T extends Partial<AdminConfig>>(obj: T): T {
-  for (const k of HQ_LOCKED_KEYS) {
-    (obj as Record<string, unknown>)[k as string] = (DEFAULT_ADMIN as Record<string, unknown>)[k as string];
-  }
-  return obj;
-}
-
 function load(): AdminConfig {
   if (typeof window === "undefined") return DEFAULT_ADMIN;
   try {
     const raw = localStorage.getItem(KEY);
     if (!raw) return DEFAULT_ADMIN;
     const parsed = JSON.parse(raw);
-    return applyHqLock({ ...DEFAULT_ADMIN, ...parsed });
+    // Migration ponctuelle : si l'ancienne position du QG (parking en bas-gauche)
+    // est encore là, on bascule sur la nouvelle (restaurant près du rond-point).
+    if (parsed && parsed.hqX === 230 && parsed.hqY === 900) {
+      parsed.hqX = DEFAULT_ADMIN.hqX;
+      parsed.hqY = DEFAULT_ADMIN.hqY;
+    }
+    return { ...DEFAULT_ADMIN, ...parsed };
   } catch {
     return DEFAULT_ADMIN;
   }
@@ -145,14 +139,10 @@ export function getAdmin(): AdminConfig {
 }
 
 export function setAdmin(patch: Partial<AdminConfig>) {
-  // Filtre toute tentative de modifier la position/échelle des QG.
-  const safe: Partial<AdminConfig> = { ...patch };
-  for (const k of HQ_LOCKED_KEYS) delete (safe as Record<string, unknown>)[k as string];
-  current = { ...current, ...safe };
+  current = { ...current, ...patch };
   try { localStorage.setItem(KEY, JSON.stringify(current)); } catch {}
   for (const l of listeners) l(current);
 }
-
 
 export function resetAdmin() {
   current = { ...DEFAULT_ADMIN };
