@@ -2070,8 +2070,20 @@ export default function TaxiTycoon() {
     free.transitionFromX = here.x;
     free.transitionFromY = here.y;
     free.transitionUntil = performance.now() + TRANSITION_MS;
-    setJobs((js) => js.map((j) => j.id === id ? { ...j, status: "accepted", acceptedAt: Date.now() } : j));
+    setJobs((js) => js.map((j) => j.id === id ? { ...j, status: "accepted", acceptedAt: Date.now(), claimedBy: "player", claimedColor: currentPaint.color } : j));
+
+    // 🥷 Vol en territoire adverse : si la course appartenait à un rival,
+    // on prévient ses taxis EXISTANTS qui vont tenter de rafler le client
+    // au pickup (réutilise le canal d'intervention déjà géré par CityRivalTaxis).
+    if (job.claimedBy && job.claimedBy !== "player") {
+      const pk = getSidewalk(job.pickupPath, job.pickup, job.sidePickup);
+      window.dispatchEvent(new CustomEvent("jce.intervention.request", {
+        detail: { id: job.id, x: pk.x, y: pk.y, ownerId: job.claimedBy },
+      }));
+      showToast("🥷 Tu voles un client en territoire adverse !");
+    }
   };
+
 
   // === Mission spéciale joueur ===
   // Déclenchée par le bouton HUD. Injecte un client doré dans la file avec
