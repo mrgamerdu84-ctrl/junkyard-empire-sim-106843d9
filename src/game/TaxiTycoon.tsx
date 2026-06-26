@@ -2431,10 +2431,10 @@ export default function TaxiTycoon() {
           return (
             <g
               style={{ cursor: "pointer", pointerEvents: "auto" }}
-              onClick={() => setShopOpen(true)}
+              onClick={() => setWorkshopOpen(true)}
               transform={admin.hqRotation ? `rotate(${admin.hqRotation} ${cx} ${cy})` : undefined}
             >
-              <title>QG — My Taxi HQ (cliquer pour la boutique)</title>
+              <title>🏭 Atelier — cliquer pour entrer dans le garage</title>
               {/* ombre douce sous le bâtiment pour l'ancrer au sol */}
               <ellipse cx={cx} cy={cy + h * 0.42} rx={w * 0.42} ry={h * 0.08} fill="rgba(0,0,0,0.45)" />
               <image
