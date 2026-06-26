@@ -299,9 +299,7 @@ export default function AdminPanel() {
         </>
       )}
 
-      {!open && isAdmin && (
-        <button className="adm-btn" onClick={() => setOpen(true)} aria-label="Panneau admin" title="Panneau admin">⚙</button>
-      )}
+      {/* Bouton admin déplacé dans la topbar de TaxiTycoon */}
 
       {open && !isAdmin && (
         <>
