@@ -745,3 +745,27 @@ export function getRepairSpeedMul(): number {
   const lifts = getGarageEquipment().lifts;
   return Math.max(0.4, 1 - lifts * 0.2);
 }
+
+// === Mafia hooks ===
+export function damageRandomTaxi(amount = 22): { hit?: string } {
+  if (state.fleet.length === 0) return {};
+  const armorMul = (lvl: number) => (lvl >= 2 ? 0.4 : lvl >= 1 ? 0.65 : 1);
+  const i = Math.floor(Math.random() * state.fleet.length);
+  let hitName: string | undefined;
+  mutate(s => {
+    const t = s.fleet[i];
+    if (!t) return;
+    const dmg = amount * armorMul(t.upgrades.armor);
+    t.condition = Math.max(0, t.condition - dmg);
+    if (t.condition <= 0) t.status = "broken";
+    hitName = t.livery;
+  });
+  if (typeof window !== "undefined")
+    window.dispatchEvent(new CustomEvent("mtw:mafia-hit", { detail: { taxi: hitName } }));
+  return { hit: hitName };
+}
+
+export function rewardMafiaTakedown(amount = 180) {
+  pushCashToPlayer(amount, "Mafia neutralisée");
+  mutate(s => { s.reputation = Math.min(100, s.reputation + 1); });
+}
