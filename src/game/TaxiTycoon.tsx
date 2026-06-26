@@ -2927,10 +2927,14 @@ export default function TaxiTycoon() {
             <button className="tt-lcd-key" onClick={() => setShowLeaderboard(true)}>
               <span className="tt-lcd-key-ico">⚔️</span><b>RIVALITÉ</b>
             </button>
+            <button className="tt-lcd-key" onClick={() => setPersonnelOpen(true)}>
+              <span className="tt-lcd-key-ico">👥</span><b>ÉQUIPE</b>
+            </button>
             <button className="tt-lcd-key" onClick={() => setShowTutorial(true)}>
               <span className="tt-lcd-key-ico">📖</span><b>TUTO</b>
             </button>
           </div>
+
 
           {/* Rangée 5 — OUTILS */}
           <div className="tt-lcd-tools tt-lcd-tools-5">
