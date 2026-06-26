@@ -120,7 +120,23 @@ export type CompanyState = {
   todayWages: number;
   todayMaintenance: number;
   todayRides: number;
+  // équipement atelier
+  garageEquipment?: GarageEquipment;
 };
+
+export type GarageEquipment = {
+  lifts: number;      // 0..3 ponts élévateurs (réduit durée réparation)
+  tireRack: boolean;  // -10% coût pneus
+  workbench: boolean; // -10% coût moteur
+  paintBooth: boolean;// -50% coût peinture
+};
+
+export const GARAGE_EQUIPMENT_CATALOG = [
+  { key: "lift",       label: "Pont élévateur", icon: "🛗", cost: 2500, desc: "+1 pont (max 3). −20% durée de réparation par pont." },
+  { key: "tireRack",   label: "Rack à pneus",   icon: "🛞", cost: 1200, desc: "−10 % sur tous les upgrades de pneus." },
+  { key: "workbench",  label: "Établi outillé", icon: "🛠", cost: 1500, desc: "−10 % sur tous les upgrades moteur." },
+  { key: "paintBooth", label: "Cabine peinture",icon: "🎨", cost: 3200, desc: "−50 % sur le coût de peinture." },
+] as const;
 
 // ----------- Defaults -----------
 const DEFAULT_CONTRACTS: Contract[] = [
