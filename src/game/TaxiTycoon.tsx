@@ -1059,6 +1059,24 @@ export default function TaxiTycoon() {
   // Démarre le tick salaires/revenus du personnel (une seule fois).
   useEffect(() => { startPersonnelTick(); }, []);
 
+  // Passif des quartiers contrôlés (lecture temps réel).
+  const [territoryPassive, setTerritoryPassive] = useState(0);
+  useEffect(() => {
+    const refresh = () => {
+      const arr = (window as unknown as { __mtwTerritory?: Array<{ owned: boolean }> }).__mtwTerritory;
+      const owned = arr ? arr.filter((d) => d.owned).length : 0;
+      setTerritoryPassive(owned * 60);
+    };
+    refresh();
+    const t = window.setInterval(refresh, 1500);
+    window.addEventListener("mtw:course-completed", refresh as EventListener);
+    return () => {
+      window.clearInterval(t);
+      window.removeEventListener("mtw:course-completed", refresh as EventListener);
+    };
+  }, []);
+
+
 
   const popFloat = (text: string, x: number, y: number) => {
     const id = ++popIdRef.current;
@@ -2909,7 +2927,12 @@ export default function TaxiTycoon() {
               <span className="tt-lcd-lbl">COURSES</span>
               <span className="tt-lcd-mini-val">{taxisRef.current.filter((t) => t.mode !== "idle").length}</span>
             </button>
+            <button className="tt-lcd-seg tt-lcd-mini" onClick={() => window.dispatchEvent(new CustomEvent("mtw:open-territory"))} title="Passif quartiers contrôlés">
+              <span className="tt-lcd-lbl">PASSIF</span>
+              <span className="tt-lcd-mini-val tt-lcd-money">+{fmt(territoryPassive)}$/min</span>
+            </button>
           </div>
+
 
           {/* Rangée 3 — PILOTE */}
           <div className="tt-lcd-pilot">
@@ -3269,7 +3292,7 @@ export default function TaxiTycoon() {
           display: flex; flex-direction: column; gap: 6px;
         }
         .tt-console-lcd .tt-dashboard-lcd { margin: 0; }
-        .tt-lcd-row2 { grid-template-columns: repeat(4, 1fr) !important; }
+        .tt-lcd-row2 { grid-template-columns: repeat(5, 1fr) !important; }
         .tt-lcd-mini {
           background: rgba(0,0,0,0.35); border: 1px solid rgba(255,180,60,0.18);
           border-radius: 6px; box-shadow: inset 0 0 8px rgba(0,0,0,0.6);

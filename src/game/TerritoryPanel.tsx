@@ -31,16 +31,21 @@ export default function TerritoryPanel() {
 
   useEffect(() => {
     const refresh = () => setDistricts(read());
+    const openEvt = () => { refresh(); setOpen(true); };
     const t = window.setInterval(refresh, 1500);
     window.addEventListener("mtw:course-completed", refresh as EventListener);
+    window.addEventListener("mtw:open-territory", openEvt as EventListener);
     return () => {
       window.clearInterval(t);
       window.removeEventListener("mtw:course-completed", refresh as EventListener);
+      window.removeEventListener("mtw:open-territory", openEvt as EventListener);
     };
   }, []);
 
   const owned = districts.filter((d) => d.owned).length;
   const passive = owned * BONUS_PER_DISTRICT;
+  const fmtMoney = (n: number) => n.toLocaleString("fr-FR");
+
 
   return (
     <>
@@ -102,7 +107,7 @@ export default function TerritoryPanel() {
               display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 12,
             }}>
               <Stat label="QUARTIERS" value={`${owned}/${districts.length || 6}`} />
-              <Stat label="PASSIF" value={`+${passive} $/min`} highlight />
+              <Stat label="PASSIF" value={`+${fmtMoney(passive)}$/min`} highlight />
             </div>
 
             <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
@@ -124,7 +129,7 @@ export default function TerritoryPanel() {
                         {d.owned ? "★ " : ""}{d.name.toUpperCase()}
                       </div>
                       <div style={{ fontSize: 11, fontWeight: 700, color: d.owned ? "#fde047" : "#cbb98a" }}>
-                        {d.owned ? `+${BONUS_PER_DISTRICT} $/min` : `${d.count}/${THRESHOLD}`}
+                        {d.owned ? `+${fmtMoney(BONUS_PER_DISTRICT)}$/min` : `${d.count}/${THRESHOLD}`}
                       </div>
                     </div>
                     <div style={{ height: 6, borderRadius: 3, background: "rgba(255,255,255,0.12)", overflow: "hidden" }}>
