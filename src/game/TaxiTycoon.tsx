@@ -21,6 +21,7 @@ import PersonnelPanel from "./PersonnelPanel";
 import { getMaintenanceDiscount, getTipsBonus, startPersonnelTick } from "./personnel";
 import CompanyPanel from "./CompanyPanel";
 import GaragePanel from "./GaragePanel";
+import MafiaAttacks from "./MafiaAttacks";
 import { startCompanySim } from "./companyV2";
 
 import { useAuth } from "@/lib/useAuth";
@@ -2869,6 +2870,9 @@ export default function TaxiTycoon() {
             </text>
           </g>
         ))}
+
+        {/* === Mafia (dépôt + voitures noires cliquables) === */}
+        <MafiaAttacks />
       </svg>
 
         {/* === HUD HTML incrusté — rendu hors carte pour rester fixe === */}
@@ -3161,7 +3165,7 @@ export default function TaxiTycoon() {
           money={save.money}
           onHireCharge={(cost) => setSave((s) => ({ ...s, money: Math.max(0, s.money - cost) }))}
         />
-        {companyOpen && <CompanyPanel onClose={() => setCompanyOpen(false)} />}
+        {companyOpen && <CompanyPanel onClose={() => setCompanyOpen(false)} onOpenGarage={() => { setCompanyOpen(false); setWorkshopOpen(true); }} />}
         {workshopOpen && <GaragePanel onClose={() => setWorkshopOpen(false)} />}
 
 

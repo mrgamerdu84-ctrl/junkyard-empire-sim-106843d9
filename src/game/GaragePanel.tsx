@@ -15,8 +15,12 @@ import {
   applyRepair,
   applySticker,
   applyUpgrade,
+  buyGarageEquipment,
+  GARAGE_EQUIPMENT_CATALOG,
   getCompany,
   getFleetPrestige,
+  getGarageEquipment,
+  getRepairSpeedMul,
   subscribe,
   type Taxi,
 } from "./companyV2";
@@ -86,22 +90,25 @@ export default function GaragePanel({ onClose }: Props) {
   function finishWorking() {
     if (!working || !selected) { setWorking(null); return; }
     const k = working.kind;
-    const cat = working.kind;
+    const eqNow = getGarageEquipment();
+    const tireD = eqNow.tireRack ? 0.10 : 0;
+    const engineD = eqNow.workbench ? 0.10 : 0;
+    const paintD = eqNow.paintBooth ? 0.50 : 0;
     let r: { ok: boolean; msg?: string; cost?: number } = { ok: false };
     if (k === "repair") {
       r = applyRepair(selected.id, getMaintenanceDiscount());
     } else if (k === "tires1" || k === "tires2") {
       const def = defFor(k);
-      r = applyUpgrade(selected.id, "tires", k === "tires2" ? 2 : 1, def.cost);
+      r = applyUpgrade(selected.id, "tires", k === "tires2" ? 2 : 1, Math.round(def.cost * (1 - tireD)));
     } else if (k === "engine1" || k === "engine2") {
       const def = defFor(k);
-      r = applyUpgrade(selected.id, "engine", k === "engine2" ? 2 : 1, def.cost);
+      r = applyUpgrade(selected.id, "engine", k === "engine2" ? 2 : 1, Math.round(def.cost * (1 - engineD)));
     } else if (k === "armor1" || k === "armor2") {
       const def = defFor(k);
       r = applyUpgrade(selected.id, "armor", k === "armor2" ? 2 : 1, def.cost);
     } else if (k === "paint") {
       const p = pendingPaint;
-      if (p) applyPaint(selected.id, p.color, p.accent, defFor("paint").cost);
+      if (p) applyPaint(selected.id, p.color, p.accent, Math.round(defFor("paint").cost * (1 - paintD)));
       r = { ok: true };
     } else if (k === "sticker") {
       applySticker(selected.id, defFor("sticker").cost);
@@ -113,16 +120,21 @@ export default function GaragePanel({ onClose }: Props) {
     setPendingPaint(null);
     // bruit d'attente pour que le state companyV2 se propage
     setTimeout(() => force(n => n + 1), 50);
-    void cat;
   }
 
   function startWork(kind: UpgradeKind) {
     if (!selected || working) return;
     const def = defFor(kind);
-    setWorking({ kind, endsAt: Date.now() + def.durationMs, mode: modeFor(kind) });
+    const speedMul = getRepairSpeedMul();
+    const dur = kind === "repair" ? def.durationMs * speedMul : def.durationMs;
+    setWorking({ kind, endsAt: Date.now() + dur, mode: modeFor(kind) });
   }
 
   const prestige = getFleetPrestige();
+  const eq = getGarageEquipment();
+  const tireDisc = eq.tireRack ? 0.10 : 0;
+  const engineDisc = eq.workbench ? 0.10 : 0;
+  const paintDisc = eq.paintBooth ? 0.50 : 0;
 
   return (
     <div className="garage-overlay" role="dialog" aria-label="Atelier">
@@ -201,8 +213,58 @@ export default function GaragePanel({ onClose }: Props) {
                 <text x="22" y="9">🎨</text>
               </g>
             </g>
-            {/* sol */}
+
+            {/* sol béton (rendu avant l'équipement pour qu'il apparaisse au sol) */}
             <rect x="0" y="90" width="400" height="230" fill="url(#floor)" />
+
+            {/* === Équipement acheté (rendu dans la scène) === */}
+            {eq.tireRack && (
+              <g transform="translate(20,140)">
+                <rect width="40" height="55" fill="#374151" stroke="#0b0d10" strokeWidth="1.5" rx="2" />
+                {[0, 12, 24, 36].map(y => (
+                  <g key={y} transform={`translate(6,${4 + y})`}>
+                    <circle cx="6"  cy="4" r="3.5" fill="#0b0d10" />
+                    <circle cx="16" cy="4" r="3.5" fill="#0b0d10" />
+                    <circle cx="26" cy="4" r="3.5" fill="#0b0d10" />
+                  </g>
+                ))}
+                <text x="20" y="68" textAnchor="middle" fontSize="6" fill="#fde047" fontWeight="700">PNEUS</text>
+              </g>
+            )}
+            {eq.workbench && (
+              <g transform="translate(330,160)">
+                <rect width="55" height="20" y="20" fill="#92400e" stroke="#0b0d10" strokeWidth="1.5" />
+                <rect x="2"  y="38" width="4" height="20" fill="#451a03" />
+                <rect x="49" y="38" width="4" height="20" fill="#451a03" />
+                <rect x="6"  y="14" width="10" height="6" fill="#9ca3af" />
+                <rect x="20" y="10" width="6"  height="10" fill="#9ca3af" />
+                <circle cx="40" cy="16" r="4" fill="#dc2626" />
+                <text x="27" y="68" textAnchor="middle" fontSize="6" fill="#fde047" fontWeight="700">ÉTABLI</text>
+              </g>
+            )}
+            {eq.paintBooth && (
+              <g transform="translate(110,100)">
+                <rect width="70" height="80" fill="#1e293b" stroke="#fde047" strokeWidth="1.5" rx="3" opacity="0.85" />
+                <rect x="6"  y="6"  width="58" height="40" fill="#7dd3fc" opacity="0.4" stroke="#0b0d10" strokeWidth="0.6" />
+                <text x="35" y="62" textAnchor="middle" fontSize="7" fill="#fde047" fontWeight="700">CABINE</text>
+                <text x="35" y="72" textAnchor="middle" fontSize="6" fill="#fde047">PEINTURE</text>
+              </g>
+            )}
+            {/* ponts élévateurs additionnels (1er rendu par défaut, 2e/3e via achat) */}
+            {eq.lifts >= 2 && (
+              <g transform="translate(60,265)">
+                <rect width="60" height="6" fill="#facc15" stroke="#0b0d10" strokeWidth="1" rx="1" />
+                <rect x="27" y="6" width="6" height="20" fill="#1a1d22" />
+              </g>
+            )}
+            {eq.lifts >= 3 && (
+              <g transform="translate(290,265)">
+                <rect width="60" height="6" fill="#facc15" stroke="#0b0d10" strokeWidth="1" rx="1" />
+                <rect x="27" y="6" width="6" height="20" fill="#1a1d22" />
+              </g>
+            )}
+
+            {/* (sol déjà rendu ci-dessus) */}
             {/* pont élévateur */}
             <ellipse cx="200" cy="240" rx="120" ry="14" fill="#0b0d10" opacity="0.5" />
             <rect x="90"  y="210" width="220" height="14" rx="2" fill="#facc15" stroke="#0b0d10" strokeWidth="1.5" />
@@ -382,6 +444,42 @@ export default function GaragePanel({ onClose }: Props) {
               </div>
             </>
           )}
+
+          {/* === Équipement du garage === */}
+          <div className="garage-section-title" style={{ marginTop: 14 }}>🏗 Équipement</div>
+          <div className="garage-eq-note">
+            Ponts: <b>{eq.lifts}/3</b>
+            {eq.tireRack && " · 🛞−10%"}
+            {eq.workbench && " · ⚙−10%"}
+            {eq.paintBooth && " · 🎨−50%"}
+          </div>
+          {GARAGE_EQUIPMENT_CATALOG.map(def => {
+            const owned =
+              def.key === "lift"
+                ? eq.lifts >= 3
+                : !!(eq as Record<string, unknown>)[def.key];
+            const lvlInfo = def.key === "lift" ? ` (${eq.lifts}/3)` : "";
+            return (
+              <button
+                key={def.key}
+                className="garage-action"
+                disabled={!!working || owned}
+                onClick={() => {
+                  const r = buyGarageEquipment(def.key as "lift" | "tireRack" | "workbench" | "paintBooth");
+                  showToast(r.msg);
+                }}
+              >
+                <span className="ico">{def.icon}</span>
+                <span className="meta">
+                  <b>{def.label}{lvlInfo}</b>
+                  <i>{def.desc}</i>
+                </span>
+                <span className="cost">{owned ? "✓" : `${def.cost} $`}</span>
+              </button>
+            );
+          })}
+          {/* lint anti-warning */}
+          <span hidden>{tireDisc}{engineDisc}{paintDisc}</span>
         </aside>
       </div>
     </div>

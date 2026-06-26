@@ -17,7 +17,7 @@ import {
 
 type Tab = "fleet" | "hr" | "contracts" | "finance" | "expansion" | "events";
 
-export default function CompanyPanel({ onClose }: { onClose: () => void }) {
+export default function CompanyPanel({ onClose, onOpenGarage }: { onClose: () => void; onOpenGarage?: () => void }) {
   const [s, setS] = useState<CompanyState>(getCompany());
   const [tab, setTab] = useState<Tab>("fleet");
   const [report, setReport] = useState<DailyReport | null>(null);
@@ -46,6 +46,16 @@ export default function CompanyPanel({ onClose }: { onClose: () => void }) {
             <div><b>{s.drivers.length}</b><span>chauffeurs</span></div>
             <div><b>{activeContracts}</b><span>contrats</span></div>
           </div>
+          {onOpenGarage && (
+            <button
+              className="cpv2-x"
+              onClick={onOpenGarage}
+              title="Ouvrir l'atelier 3D"
+              style={{ marginRight: 6, width: "auto", padding: "0 12px", background: "#fde047", color: "#0b0d10", fontWeight: 900 }}
+            >
+              🏭 ATELIER
+            </button>
+          )}
           <button className="cpv2-x" onClick={onClose}>✕</button>
         </header>
 

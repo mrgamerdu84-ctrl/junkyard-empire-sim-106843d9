@@ -120,7 +120,23 @@ export type CompanyState = {
   todayWages: number;
   todayMaintenance: number;
   todayRides: number;
+  // équipement atelier
+  garageEquipment?: GarageEquipment;
 };
+
+export type GarageEquipment = {
+  lifts: number;      // 0..3 ponts élévateurs (réduit durée réparation)
+  tireRack: boolean;  // -10% coût pneus
+  workbench: boolean; // -10% coût moteur
+  paintBooth: boolean;// -50% coût peinture
+};
+
+export const GARAGE_EQUIPMENT_CATALOG = [
+  { key: "lift",       label: "Pont élévateur", icon: "🛗", cost: 2500, desc: "+1 pont (max 3). −20% durée de réparation par pont." },
+  { key: "tireRack",   label: "Rack à pneus",   icon: "🛞", cost: 1200, desc: "−10 % sur tous les upgrades de pneus." },
+  { key: "workbench",  label: "Établi outillé", icon: "🛠", cost: 1500, desc: "−10 % sur tous les upgrades moteur." },
+  { key: "paintBooth", label: "Cabine peinture",icon: "🎨", cost: 3200, desc: "−50 % sur le coût de peinture." },
+] as const;
 
 // ----------- Defaults -----------
 const DEFAULT_CONTRACTS: Contract[] = [
@@ -204,6 +220,7 @@ function defaultState(): CompanyState {
     todayWages: 0,
     todayMaintenance: 0,
     todayRides: 0,
+    garageEquipment: { lifts: 0, tireRack: false, workbench: false, paintBooth: false },
   };
 }
 
@@ -219,6 +236,7 @@ function loadState(): CompanyState {
     const parsed = JSON.parse(raw);
     const merged = { ...defaultState(), ...parsed } as CompanyState;
     merged.fleet = (merged.fleet || []).map(ensureTaxiShape);
+    if (!merged.garageEquipment) merged.garageEquipment = { lifts: 0, tireRack: false, workbench: false, paintBooth: false };
     return merged;
   } catch { return defaultState(); }
 }
@@ -484,23 +502,27 @@ function simTick() {
   const net = revenueTick - fuelTick - wagesTick - maintTick;
   if (Math.abs(net) > 0.5) pushCashToPlayer(Math.round(net));
 
-  // ---- événements aléatoires ----
-  if (Math.random() < 0.02) {
+  // ---- ambiance météo (flavor) ----
+  if (Math.random() < 0.006) {
     const r = Math.random();
-    if (r < 0.25) logEvent("weather", "🌧 Pluie : demande +50% mais accidents en hausse.");
-    else if (r < 0.4) logEvent("strike", "🚇 Grève des transports en commun ! Jackpot de la journée.");
-    else if (r < 0.55) logEvent("rush", "⚡ Pic de demande inattendu dans le quartier centre.");
-    else if (r < 0.7 && s.fleet.length > 0) {
-      const t = s.fleet[Math.floor(Math.random() * s.fleet.length)];
-      const fine = 80 + Math.floor(Math.random() * 200);
-      pushCashToPlayer(-fine, "Amende contrôle");
-      logEvent("control", `🚓 Contrôle police sur ${t.livery} : amende -${fine} $`, -fine);
-    } else if (r < 0.85) {
-      const insp = 300 + Math.floor(Math.random() * 400);
-      pushCashToPlayer(-insp, "Inspection mairie");
-      logEvent("inspection", `🏛 Inspection mairie : mise aux normes -${insp} $`, -insp);
+    if (r < 0.4) logEvent("weather", "🌧 Pluie : demande +50%, accidents en hausse.");
+    else if (r < 0.7) logEvent("strike", "🚇 Grève des transports : jackpot de la journée.");
+    else logEvent("rush", "⚡ Pic de demande inattendu en centre-ville.");
+  }
+
+  // ---- attaques mafia (gameplay carte) ----
+  // Fréquence : monte avec le revenu journalier + taille de flotte.
+  // Base 0.4%/tick (~1 attaque/4min réelles à 5s/tick), max 3%/tick.
+  if (typeof window !== "undefined" && s.fleet.length > 0) {
+    const revenueFactor = Math.min(1, s.todayRevenue / 3000);
+    const fleetFactor = Math.min(1, s.fleet.length / 10);
+    const p = 0.004 + 0.026 * Math.max(revenueFactor, fleetFactor);
+    if (Math.random() < p) {
+      window.dispatchEvent(new CustomEvent("mtw:mafia-attack-spawn"));
+      logEvent("control", "🕵 Voiture suspecte signalée près de notre flotte !");
     }
   }
+
 
   // ---- fin de jour jeu ----
   if (s.tick % DAY_LENGTH_TICKS === 0) {
@@ -695,4 +717,55 @@ export function applyMafiaHit(taxiId?: string): { taxiId: string; damage: number
     if (tt.condition <= 0) tt.status = "broken";
   });
   return { taxiId: t.id, damage: dmg, broken: t.condition - dmg <= 0 };
+}
+
+// ----------- Équipement atelier -----------
+export function getGarageEquipment(): GarageEquipment {
+  return state.garageEquipment ?? { lifts: 0, tireRack: false, workbench: false, paintBooth: false };
+}
+
+export function buyGarageEquipment(key: "lift" | "tireRack" | "workbench" | "paintBooth"): { ok: boolean; msg: string } {
+  const def = GARAGE_EQUIPMENT_CATALOG.find(e => e.key === key);
+  if (!def) return { ok: false, msg: "Inconnu" };
+  const eq = getGarageEquipment();
+  if (key === "lift" && eq.lifts >= 3) return { ok: false, msg: "Max ponts atteints" };
+  if (key !== "lift" && (eq as any)[key]) return { ok: false, msg: "Déjà installé" };
+  pushCashToPlayer(-def.cost, `Atelier — ${def.label}`);
+  mutate(s => {
+    if (!s.garageEquipment) s.garageEquipment = { lifts: 0, tireRack: false, workbench: false, paintBooth: false };
+    if (key === "lift") s.garageEquipment.lifts++;
+    else (s.garageEquipment as any)[key] = true;
+  });
+  if (typeof window !== "undefined") window.dispatchEvent(new CustomEvent("mtw:garage-equipment"));
+  return { ok: true, msg: `${def.label} installé !` };
+}
+
+// Coefficient de durée réparation (1 → 0.4 selon ponts).
+export function getRepairSpeedMul(): number {
+  const lifts = getGarageEquipment().lifts;
+  return Math.max(0.4, 1 - lifts * 0.2);
+}
+
+// === Mafia hooks ===
+export function damageRandomTaxi(amount = 22): { hit?: string } {
+  if (state.fleet.length === 0) return {};
+  const armorMul = (lvl: number) => (lvl >= 2 ? 0.4 : lvl >= 1 ? 0.65 : 1);
+  const i = Math.floor(Math.random() * state.fleet.length);
+  let hitName: string | undefined;
+  mutate(s => {
+    const t = s.fleet[i];
+    if (!t) return;
+    const dmg = amount * armorMul(t.upgrades.armor);
+    t.condition = Math.max(0, t.condition - dmg);
+    if (t.condition <= 0) t.status = "broken";
+    hitName = t.livery;
+  });
+  if (typeof window !== "undefined")
+    window.dispatchEvent(new CustomEvent("mtw:mafia-hit", { detail: { taxi: hitName } }));
+  return { hit: hitName };
+}
+
+export function rewardMafiaTakedown(amount = 180) {
+  pushCashToPlayer(amount, "Mafia neutralisée");
+  mutate(s => { s.reputation = Math.min(100, s.reputation + 1); });
 }
