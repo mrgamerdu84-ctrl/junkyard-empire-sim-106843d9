@@ -873,17 +873,8 @@ export default function TaxiTycoon() {
     // tier client : forcé par circuit VIP, sinon roll selon permis
     const tier = forcedTier ?? rollClientTier(license.level);
     const tMult = tierFareMult(tier);
-    // 🏙️ Tarif dynamique par quartier : centre-ville paie plus, banlieue moins.
-    const pPath = pathRefs.current[pickupPath];
-    let districtMult = 1;
-    if (pPath) {
-      const pt = pPath.getPointAtLength(pickup);
-      const dx = pt.x - 960, dy = pt.y - 540;
-      const dist = Math.sqrt(dx * dx + dy * dy);
-      // 0 au centre → 1.30, ~1100 (coin) → 0.85
-      districtMult = Math.max(0.85, Math.min(1.30, 1.30 - (dist / 1100) * 0.45));
-    }
-    const baseFare = Math.round((25 + distNorm * 220) * t.fareMult * adm.clientFareMult * revBonus * tMult * districtMult);
+    // Tarif uniforme sur toute la ville (système de quartiers retiré).
+    const baseFare = Math.round((25 + distNorm * 220) * t.fareMult * adm.clientFareMult * revBonus * tMult);
 
     const duration = (22 + Math.min(20, baseFare / 30)) * 1000;
     return {

@@ -79,7 +79,7 @@ export const DEFAULT_ADMIN: AdminConfig = {
   gasStationX: 1450,
   gasStationY: 540,
 
-  rivalEnabled: true,
+  rivalEnabled: false,
   rivalHQX: 1650,
   rivalHQY: 220,
   rivalTaxiCount: 3,

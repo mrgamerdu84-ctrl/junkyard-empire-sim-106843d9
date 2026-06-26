@@ -4,9 +4,7 @@ import citymap from "@/assets/citymap2.jpg";
 import TaxiTycoon from "@/game/TaxiTycoon";
 import CityTraffic from "@/game/CityTraffic";
 import CityCompetitors from "@/game/CityCompetitors";
-import TerritoryWar from "@/game/TerritoryWar";
-import TerritoryPanel from "@/game/TerritoryPanel";
-import CityRivalTaxis from "@/game/CityRivalTaxis";
+// Système de rivalité / quartiers retiré — solo vs Mafia uniquement.
 import ArmoredTruck from "@/game/ArmoredTruck";
 import CrimeEvents from "@/game/CrimeEvents";
 import InterventionDispatcher from "@/game/InterventionDispatcher";
@@ -167,8 +165,6 @@ function TaxiTycoonPage() {
         <div className="tt-vignette" />
         <CityTraffic />
         <CityCompetitors />
-        <TerritoryWar />
-        <CityRivalTaxis />
         <EmergencyStations />
         <CrimeEvents />
         <InterventionDispatcher />
@@ -178,7 +174,6 @@ function TaxiTycoonPage() {
 
       {/* HUD et panneaux hors zoom (toujours nets) */}
       <RadarFlash />
-      <TerritoryPanel />
       {/* <AmbientSirens /> — désactivé sur demande joueur */}
       <AdminPanel />
       <VersionBanner />

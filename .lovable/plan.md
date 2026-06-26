@@ -1,74 +1,53 @@
-# Atelier de Réparation & Personnalisation
+# Refonte finale : Solo vs Mafia (clean slate)
 
-## Objectif
-Cliquer sur le QG du joueur ouvre un **atelier-garage** immersif (vue intérieure) où un mécano animé répare les taxis abîmés par la mafia, et où le joueur achète des améliorations **visibles** sur la carte.
+Beaucoup d'éléments du cahier des charges sont déjà en place suite à nos passes précédentes (atelier vide jusqu'à l'achat du pont, routes en pointillés, récompense mafia +100 $, échelle inverse des véhicules sur le zoom caméra). Ce plan finit le ménage et corrige les vrais écarts restants.
 
-## 1. Entrée dans l'atelier
-- Zone cliquable invisible posée sur l'image `player-hq.png` (coords déjà fixées 1030/360).
-- Au clic → overlay plein écran `GaragePanel.tsx` avec animation d'ouverture (zoom + fade).
-- Bouton « ← Retour à la ville » qui referme.
+## 1. Supprimer entièrement les "rivaux" et la "guerre de territoire"
 
-## 2. Vue intérieure (2.5D isométrique, pas de vraie 3D)
-Pour rester léger et cohérent avec le style actuel (SVG + isométrique) :
-- Décor : sol béton, baies vitrées, panneaux d'outils, pont élévateur, néons.
-  → un SVG composé (pas d'asset binaire requis) + 1 image de fond optionnelle générée.
-- Taxi sélectionné posé au centre sur le pont élévateur, vu de 3/4.
-- **Mécano animé** : sprite SVG qui se déplace autour du taxi (translateX/Y CSS keyframes), avec outil en main (clé à molette, pistolet à peinture selon l'action). Étincelles ponctuelles quand il répare, gouttes de peinture quand il repeint.
+Tu as demandé : *"Il n'y a plus aucune entreprise rivale classique"* et *"supprime l'ancien système de guerre de territoire ou de quartiers"*.
 
-## 3. Sélection de flotte
-- Liste latérale : tous les taxis du joueur (issus de `companyV2.fleet`).
-- Chaque ligne montre : nom, état (PV %), couleur, niveau pneus/moteur/blindage.
-- Les taxis **endommagés par la mafia** (PV < 100 %) ont un badge rouge « À réparer ».
+À retirer du jeu :
+- `src/game/CityRivalTaxis.tsx` (taxis rouges rivaux qui roulent en ville) + son montage dans `src/routes/index.tsx`.
+- Le bâtiment **RIVAL CABS** (HQ rouge avec enseigne ⚔️) rendu dans `TaxiTycoon.tsx` (lignes ~470-513) et son rendu conditionnel à `admin.rivalEnabled` (ligne 2494).
+- Le bouton **TERRITOIRE** et l'ouverture de `TerritoryPanel` depuis le dashboard.
+- Les fichiers `src/game/TerritoryWar.tsx` et `src/game/TerritoryPanel.tsx` (orphelins après suppression).
+- Les événements `mtw:district-owner-changed` et le multiplicateur `districtMult` du calcul de tarif (ligne 878-886 de `TaxiTycoon.tsx`).
 
-## 4. Actions disponibles par taxi
-| Action | Coût | Effet | Temps animé |
-|---|---|---|---|
-| Réparer carrosserie | 50 $/PV manquant (−mécano discount) | PV → 100 % | 3 s + étincelles |
-| Pneus sport | 800 $ | +8 % vitesse | 2 s |
-| Pneus pro | 2 200 $ | +15 % vitesse | 2 s |
-| Moteur V2 | 1 800 $ | +10 % revenus/course | 4 s |
-| Moteur V3 | 4 500 $ | +20 % revenus/course | 4 s |
-| Blindage léger | 1 500 $ | −40 % dégâts mafia | 3 s |
-| Blindage lourd | 3 800 $ | immunité mafia 1 attaque/jour | 3 s |
-| Repeindre (palette couleurs) | 300 $ | change `color`/`accent` du taxi | 2 s |
-| Stickers (toit lumineux, bandes) | 250 $ | ajoute calque visuel | 1 s |
+Effet visible : plus aucun rouge sur la carte, plus aucune référence à "quartiers conquis", plus de taxis ennemis.
 
-Pendant l'animation : barre de progression, mécano qui bouge, blocage des autres actions sur ce taxi.
+## 2. Voitures mafia avec de VRAIS modèles du jeu, colorés en noir
 
-## 5. Stockage & propagation à la carte
-- Étendre `companyV2.Taxi` avec :
-  ```ts
-  upgrades: { tires: 0|1|2; engine: 0|1|2; armor: 0|1|2; sticker: null|"roof"|"stripes" }
-  paint: { color: string; accent: string }
-  hp: number  // 0..100
-  ```
-- Émettre `mtw:fleet-upgraded` quand une amélioration est appliquée.
-- `CityRivalTaxis.tsx` (ou le calque qui dessine les taxis employés du joueur) lit `paint` pour la couleur du SVG, et ajoute :
-  - calque pneus plus larges si tires ≥ 1
-  - plaque de blindage (rect gris) si armor ≥ 1
-  - barre lumineuse jaune sur le toit si sticker = "roof"
-- Vitesse du taxi sur la carte multipliée par `(1 + 0.08*tires_level)` ; revenu de course multiplié par `(1 + 0.1*engine_level)` dans `companyV2.simTick`.
+Aujourd'hui `src/game/MafiaAttacks.tsx` dessine un simple rectangle. Le cahier dit : *"utilise des modèles de voitures déjà présents dans le jeu, mais colorés en noir"*.
 
-## 6. Dégâts mafia (boucle gameplay)
-- `CrimeEvents` / mafia attaque déjà existante → quand un taxi du joueur est touché, son `hp` baisse de 20–40 %.
-- S'il tombe à 0 → marqué « hors-service », ne roule plus jusqu'à passage au garage.
-- Le joueur DOIT visiter l'atelier pour réparer → boucle économique forte.
+Action : remplacer le rectangle par le même composant SVG que la circulation civile (`VehicleSvgs` / asset de `gameAssets`) en forçant la peinture en noir mat (`#0b0d10`) avec liseré rouge sombre pour rester reconnaissable comme menace. Conserver le halo cliquable et l'animation explosion. La voiture garde l'échelle inverse via `vehicleScale` (déjà câblé pour le sélecteur `.mafia-vehicle` équivalent SVG).
 
-## 7. Progression Tycoon
-- Score « qualité flotte » = moyenne (tires+engine+armor)/6.
-- Plus le score grimpe :
-  - +5 % de clients VIP générés par tick dans `companyV2`
-  - +10 % de pourboires
-  - déblocage de contrats B2B premium (déjà existants) à partir de qualité ≥ 0.5
-- Affichage d'une jauge « Prestige flotte » dans l'atelier + dans le LCD du tableau de bord.
+## 3. Difficulté évolutive de la Mafia
 
-## Fichiers
-- **Créer** : `src/game/garage/GaragePanel.tsx`, `src/game/garage/MechanicSprite.tsx`, `src/game/garage/garageUpgrades.ts` (catalogue + types).
-- **Modifier** : `src/game/companyV2.ts` (champs upgrades/paint/hp + maths), `src/game/TaxiTycoon.tsx` (hotspot clic QG → ouvre `GaragePanel`), `src/game/CityRivalTaxis.tsx` (lecture paint + calques d'upgrade), `src/game/vehicles/VehicleSvgs.tsx` (ajouter props `tires`, `armor`, `sticker` au `SedanSvg`).
+Le tick `companyV2` déclenche déjà `mtw:mafia-attack-spawn`. À ajuster pour matcher le cahier ("plus on grandit, plus la mafia s'énerve") :
+- Probabilité de spawn par tick = `base + k1 * (cash / 10 000) + k2 * fleetSize`.
+- Plafond de vagues simultanées passe de 6 à 10.
+- Vitesse des voitures noires : `durationMs` se raccourcit avec le niveau de colère mafia.
 
-## Hors scope
-- Pas de vraie 3D WebGL (resterait du SVG isométrique stylé).
-- Pas de marketplace de pièces, pas de réparations facturées par chauffeur (forfait simple).
-- Pas de modification du système mafia existant au-delà de l'ajout du champ `hp`.
+## 4. Vérification du bug zoom (pointillés solidaires du décor)
 
-Réponds **« go »** pour lancer l'implémentation, ou indique ce que tu veux ajuster (catalogue d'upgrades, prix, vrai rendu 3D Three.js plutôt qu'isométrique SVG, etc.).
+Le zoom passe par un `viewBox` SVG dynamique (`TaxiTycoon.tsx` ligne 2163-2238). Tout ce qui est dessiné dans le `<svg>` — sol, bâtiments, ROADS dashed — scale de façon synchrone par construction. Les véhicules reçoivent un `scale(1/zoom)` via `vehicleScale.ts`.
+
+Audit prévu : confirmer qu'aucune route/dashed n'a de `transform` indépendant et que `strokeDasharray` est exprimé en unités viewBox (ce qui le fait scaler avec la carte). Si un écart est détecté, le corriger.
+
+## 5. Ce qui ne change PAS (déjà OK, conservé tel quel)
+
+- Atelier iso 3D vide tant que `lifts < 1`, mécano animé qui marche autour du taxi sur le pont.
+- Routes blanches en pointillés (`stroke="#fff"`, `strokeDasharray="10 15"`, width 2).
+- Clic mafia = explosion + `+100 $`.
+- Échelle écran constante des taxis et des voitures mafia.
+- Onglet 🏢 COMPAGNIE pour gérer flotte/personnel.
+
+## Détails techniques
+
+- **Fichiers supprimés** : `src/game/CityRivalTaxis.tsx`, `src/game/TerritoryWar.tsx`, `src/game/TerritoryPanel.tsx`.
+- **Fichiers édités** : `src/routes/index.tsx` (retrait de `<CityRivalTaxis/>`), `src/game/TaxiTycoon.tsx` (suppression de `RivalDepot`, du bouton TERRITOIRE, du calcul `districtMult`, des refs `rivalTaxisRef`), `src/game/MafiaAttacks.tsx` (réutilisation du SVG de véhicule existant), `src/game/companyV2.ts` (courbe de spawn mafia).
+- **Aucun changement** dans `adminConfig` côté schéma ; le flag `rivalEnabled` devient simplement inutilisé (à laisser pour ne pas casser le storage existant).
+
+## Risque
+
+`CityRivalTaxis` écoute des events territoire et publie des positions de taxis rivaux. La suppression est franche et locale ; aucun consommateur externe identifié dans la base.

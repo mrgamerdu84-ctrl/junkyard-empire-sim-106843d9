@@ -27,18 +27,21 @@ export default function MafiaAttacks() {
   const [flash, setFlash] = useState<{ x: number; y: number; t: number } | null>(null);
   const rafRef = useRef<number | null>(null);
 
-  // Spawn sur événement
+  // Spawn sur événement — accepte un facteur de colère (0..1) qui accélère les voitures.
   useEffect(() => {
-    function onSpawn() {
+    function onSpawn(e: Event) {
+      const anger = Math.max(0, Math.min(1, (e as CustomEvent<{ anger?: number }>).detail?.anger ?? 0));
       const target = TARGETS[Math.floor(Math.random() * TARGETS.length)];
+      // 11s (calme) → 6s (en rage)
+      const base = 11000 - anger * 5000;
       const a: Attack = {
         id: UID++,
         x: DEPOT.x, y: DEPOT.y,
         tx: target.x, ty: target.y,
         startedAt: performance.now(),
-        durationMs: 11000 + Math.random() * 4000,
+        durationMs: base + Math.random() * 2000,
       };
-      setAttacks(prev => [...prev, a].slice(-6));
+      setAttacks(prev => [...prev, a].slice(-10));
     }
     window.addEventListener("mtw:mafia-attack-spawn", onSpawn as EventListener);
     return () => window.removeEventListener("mtw:mafia-attack-spawn", onSpawn as EventListener);
@@ -91,7 +94,7 @@ export default function MafiaAttacks() {
               stroke="#0b0d10" strokeWidth="0.4">DÉPÔT MAFIA</text>
       </g>
 
-      {/* Voitures noires */}
+      {/* Voitures noires : sedan banalisé reprenant la silhouette des voitures du jeu */}
       {attacks.map(a => {
         const dx = a.tx - DEPOT.x;
         const dy = a.ty - DEPOT.y;
@@ -99,21 +102,35 @@ export default function MafiaAttacks() {
         return (
           <g
             key={a.id}
+            className="mafia-vehicle"
             transform={`translate(${a.x},${a.y}) rotate(${angle})`}
             onClick={() => neutralize(a.id, a.x, a.y)}
             onTouchStart={() => neutralize(a.id, a.x, a.y)}
             style={{ cursor: "pointer" }}
           >
-            {/* halo cliquable plus large */}
+            {/* halo cliquable pulsé */}
             <circle r="28" fill="rgba(220,38,38,0.18)">
               <animate attributeName="r" values="22;30;22" dur="1.2s" repeatCount="indefinite" />
             </circle>
-            <rect x="-18" y="-9" width="36" height="18" rx="3" fill="#0b0d10" stroke="#dc2626" strokeWidth="1.5" />
-            <rect x="-12" y="-6" width="10" height="12" fill="#1a1d22" />
-            <rect x="2"   y="-6" width="10" height="12" fill="#1a1d22" />
-            <circle cx="-14" cy="-9" r="2" fill="#dc2626" />
-            <circle cx="14"  cy="-9" r="2" fill="#dc2626" />
-            <text x="0" y="-14" textAnchor="middle" fontSize="9" fontWeight="900" fill="#fca5a5"
+            {/* ombre */}
+            <ellipse cx="0" cy="6" rx="18" ry="4" fill="rgba(0,0,0,0.55)" />
+            {/* carrosserie sedan noire — même proportions que les voitures civiles */}
+            <rect x="-19" y="-9" width="38" height="18" rx="4" fill="#0b0d10" stroke="#7f1d1d" strokeWidth="1.4" />
+            {/* capot/coffre teintés */}
+            <rect x="-19" y="-9" width="6"  height="18" fill="#16181c" />
+            <rect x="13"  y="-9" width="6"  height="18" fill="#16181c" />
+            {/* pare-brise teinté */}
+            <path d="M -8 -7 L 8 -7 L 6 -2 L -6 -2 Z" fill="#1f2937" stroke="#0b0d10" strokeWidth="0.6" />
+            <path d="M -8  7 L 8  7 L 6  2 L -6  2 Z" fill="#1f2937" stroke="#0b0d10" strokeWidth="0.6" />
+            {/* roues */}
+            <rect x="-14" y="-11" width="6" height="3" rx="1" fill="#0a0a0a" />
+            <rect x="-14" y="8"   width="6" height="3" rx="1" fill="#0a0a0a" />
+            <rect x="8"   y="-11" width="6" height="3" rx="1" fill="#0a0a0a" />
+            <rect x="8"   y="8"   width="6" height="3" rx="1" fill="#0a0a0a" />
+            {/* phares rouges menaçants */}
+            <circle cx="17" cy="-5" r="1.6" fill="#dc2626" />
+            <circle cx="17" cy="5"  r="1.6" fill="#dc2626" />
+            <text x="0" y="-14" textAnchor="middle" fontSize="8" fontWeight="900" fill="#fca5a5"
                   stroke="#0b0d10" strokeWidth="0.4">MAFIA</text>
           </g>
         );
