@@ -3082,6 +3082,9 @@ export default function TaxiTycoon() {
               <span className="tt-lcd-key-ico">🏢</span><b>COMPAGNIE</b>
             </button>
 
+            <button className="tt-lcd-key" onClick={() => setWorkshopOpen(true)}>
+              <span className="tt-lcd-key-ico">🏭</span><b>ATELIER</b>
+            </button>
             <button className="tt-lcd-key" onClick={() => setShowTutorial(true)}>
               <span className="tt-lcd-key-ico">📖</span><b>TUTO</b>
             </button>
