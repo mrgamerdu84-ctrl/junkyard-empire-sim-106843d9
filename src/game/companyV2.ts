@@ -236,6 +236,7 @@ function loadState(): CompanyState {
     const parsed = JSON.parse(raw);
     const merged = { ...defaultState(), ...parsed } as CompanyState;
     merged.fleet = (merged.fleet || []).map(ensureTaxiShape);
+    if (!merged.garageEquipment) merged.garageEquipment = { lifts: 0, tireRack: false, workbench: false, paintBooth: false };
     return merged;
   } catch { return defaultState(); }
 }
