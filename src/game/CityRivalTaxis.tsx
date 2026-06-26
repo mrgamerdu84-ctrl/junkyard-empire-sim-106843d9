@@ -394,8 +394,9 @@ export default function CityRivalTaxis() {
 
         node.setAttribute(
           "transform",
-          `translate(${st.x.toFixed(2)},${st.y.toFixed(2)}) rotate(${st.ang.toFixed(2)})`,
+          `translate(${st.x.toFixed(2)},${st.y.toFixed(2)}) rotate(${st.ang.toFixed(2)}) scale(${getVehicleScale().toFixed(2)})`,
         );
+
       }
       raf = requestAnimationFrame(step);
     };
