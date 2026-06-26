@@ -1849,6 +1849,7 @@ export default function TaxiTycoon() {
   const [missionsOpen, setMissionsOpen] = useState(false);
   const [missionsTab, setMissionsTab] = useState<"contracts" | "depot">("contracts");
   const [mapFullscreen, setMapFullscreen] = useState(false);
+  const mapFit = useMapFit();
   const [radioOpen, setRadioOpen] = useState(false);
   const [pseudoOpen, setPseudoOpen] = useState(false);
   const [cityInfoOpen, setCityInfoOpen] = useState(false);
