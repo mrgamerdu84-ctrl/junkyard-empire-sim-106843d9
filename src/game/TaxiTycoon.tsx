@@ -22,6 +22,7 @@ import { resolveAvatarSrc } from "@/components/ProfileCard";
 import { supabase } from "@/integrations/supabase/client";
 import playerHqAsset from "@/assets/player-hq.png.asset.json";
 import { preserveAspectFor, useMapFit, toggleMapFit } from "./mapView";
+import CityMapRender from "./CityMapRender";
 
 const PLAYER_HQ_IMG = playerHqAsset.url;
 
@@ -2194,7 +2195,8 @@ export default function TaxiTycoon() {
           </filter>
         </defs>
 
-
+        {/* === Nouvelle carte top-down (Étape 1 — fond + routes + QGs fixes) === */}
+        <CityMapRender />
 
         {/* Station-service — vraie station avec auvent, deux pompes, boutique */}
         {pathsReady && (
