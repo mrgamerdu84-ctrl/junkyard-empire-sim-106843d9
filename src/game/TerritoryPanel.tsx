@@ -107,7 +107,7 @@ export default function TerritoryPanel() {
               display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 12,
             }}>
               <Stat label="QUARTIERS" value={`${owned}/${districts.length || 6}`} />
-              <Stat label="PASSIF" value={`+${passive} $/min`} highlight />
+              <Stat label="PASSIF" value={`+${fmtMoney(passive)}$/min`} highlight />
             </div>
 
             <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
