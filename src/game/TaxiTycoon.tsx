@@ -2665,7 +2665,18 @@ export default function TaxiTycoon() {
 
         {/* === HUD HTML incrusté — rendu hors carte pour rester fixe === */}
       {typeof document !== "undefined" && createPortal((
-      <div className="tt-hud">
+      <div className={`tt-hud ${mapFullscreen ? "tt-hud-fs" : ""}`}>
+        {/* Bouton plein écran toujours visible */}
+        <button
+          className="tt-fs-toggle"
+          onClick={() => setMapFullscreen((v) => !v)}
+          title={mapFullscreen ? "Quitter le plein écran" : "Carte en plein écran"}
+          aria-label="Plein écran carte"
+        >
+          {mapFullscreen ? "✕" : "⛶"}
+        </button>
+
+        {!mapFullscreen && (<>
         <div className="tt-topbar">
           <button className="tt-round tt-help" onClick={() => setShowTutorial(true)} title="Tutoriel">?</button>
           <div className="tt-wood-name" />
@@ -2715,6 +2726,7 @@ export default function TaxiTycoon() {
         })()}
 
         {saveBlink && <div className="tt-save-blink">💾 Sauvegardé</div>}
+        </>)}
 
 
         {/* === Panneau Missions === */}
