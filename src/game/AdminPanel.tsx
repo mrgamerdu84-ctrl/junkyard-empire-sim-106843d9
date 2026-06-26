@@ -20,7 +20,7 @@ export default function AdminPanel() {
     window.addEventListener("mtw:open-admin", onOpen);
     return () => window.removeEventListener("mtw:open-admin", onOpen);
   }, []);
-  const [tab, setTab] = useState<"trafic" | "hq" | "missions" | "spec" | "rival" | "concurrents" | "circuit" | "skins" | "export">("trafic");
+  const [tab, setTab] = useState<"trafic" | "hq" | "missions" | "spec" | "mafia" | "circuit" | "skins" | "export">("trafic");
   const [placeMode, setPlaceMode] = useState(false);
   const [drawMode, setDrawMode] = useState(false);
   const [resetGameOpen, setResetGameOpen] = useState(false);
