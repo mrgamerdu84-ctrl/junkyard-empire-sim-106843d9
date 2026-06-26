@@ -220,6 +220,7 @@ function defaultState(): CompanyState {
     todayWages: 0,
     todayMaintenance: 0,
     todayRides: 0,
+    garageEquipment: { lifts: 0, tireRack: false, workbench: false, paintBooth: false },
   };
 }
 
