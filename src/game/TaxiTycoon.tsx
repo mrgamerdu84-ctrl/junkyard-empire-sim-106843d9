@@ -1173,7 +1173,8 @@ export default function TaxiTycoon() {
               // 💵 Pourboire : 30% de chance, +5 à +25%
               const tipRoll = Math.random();
               const tipMult = tipRoll < 0.30 ? 1 + (0.05 + Math.random() * 0.20) : 1;
-              const finalFare = Math.round(j.fare * bonus * specialMult * wearMult * tipMult);
+              const managerBonus = 1 + getTipsBonus();
+              const finalFare = Math.round(j.fare * bonus * specialMult * wearMult * tipMult * managerBonus);
               if (p) {
                 const pt = p.getPointAtLength(j.dropoff);
                 const tag = j.tier === "special"
