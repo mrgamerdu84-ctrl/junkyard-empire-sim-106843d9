@@ -511,15 +511,20 @@ function simTick() {
   }
 
   // ---- attaques mafia (gameplay carte) ----
-  // Fréquence : monte avec le revenu journalier + taille de flotte.
-  // Base 0.4%/tick (~1 attaque/4min réelles à 5s/tick), max 3%/tick.
+  // Plus la compagnie grandit, plus la Mafia s'énerve : la fréquence
+  // et l'intensité grimpent avec la flotte ET le revenu journalier.
   if (typeof window !== "undefined" && s.fleet.length > 0) {
-    const revenueFactor = Math.min(1, s.todayRevenue / 3000);
-    const fleetFactor = Math.min(1, s.fleet.length / 10);
-    const p = 0.004 + 0.026 * Math.max(revenueFactor, fleetFactor);
+    const revenueFactor = Math.min(1, s.todayRevenue / 2500);
+    const fleetFactor = Math.min(1, s.fleet.length / 8);
+    const anger = Math.max(revenueFactor, fleetFactor);            // 0..1
+    const p = 0.006 + 0.045 * anger;                                // base + montée
     if (Math.random() < p) {
-      window.dispatchEvent(new CustomEvent("mtw:mafia-attack-spawn"));
-      logEvent("control", "🕵 Voiture suspecte signalée près de notre flotte !");
+      // intensité : 1 voiture de base, jusqu'à 3 en colère max
+      const burst = 1 + (Math.random() < anger * 0.6 ? 1 : 0) + (Math.random() < anger * 0.3 ? 1 : 0);
+      for (let i = 0; i < burst; i++) {
+        window.dispatchEvent(new CustomEvent("mtw:mafia-attack-spawn", { detail: { anger } }));
+      }
+      logEvent("control", `🕵 ${burst > 1 ? `${burst} voitures suspectes` : "Voiture suspecte"} signalée${burst > 1 ? "s" : ""} près de notre flotte !`);
     }
   }
 

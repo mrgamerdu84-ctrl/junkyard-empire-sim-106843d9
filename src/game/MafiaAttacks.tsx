@@ -27,18 +27,21 @@ export default function MafiaAttacks() {
   const [flash, setFlash] = useState<{ x: number; y: number; t: number } | null>(null);
   const rafRef = useRef<number | null>(null);
 
-  // Spawn sur événement
+  // Spawn sur événement — accepte un facteur de colère (0..1) qui accélère les voitures.
   useEffect(() => {
-    function onSpawn() {
+    function onSpawn(e: Event) {
+      const anger = Math.max(0, Math.min(1, (e as CustomEvent<{ anger?: number }>).detail?.anger ?? 0));
       const target = TARGETS[Math.floor(Math.random() * TARGETS.length)];
+      // 11s (calme) → 6s (en rage)
+      const base = 11000 - anger * 5000;
       const a: Attack = {
         id: UID++,
         x: DEPOT.x, y: DEPOT.y,
         tx: target.x, ty: target.y,
         startedAt: performance.now(),
-        durationMs: 11000 + Math.random() * 4000,
+        durationMs: base + Math.random() * 2000,
       };
-      setAttacks(prev => [...prev, a].slice(-6));
+      setAttacks(prev => [...prev, a].slice(-10));
     }
     window.addEventListener("mtw:mafia-attack-spawn", onSpawn as EventListener);
     return () => window.removeEventListener("mtw:mafia-attack-spawn", onSpawn as EventListener);
