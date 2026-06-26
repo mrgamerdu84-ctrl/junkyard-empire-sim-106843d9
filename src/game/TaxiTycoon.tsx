@@ -2913,10 +2913,6 @@ export default function TaxiTycoon() {
               <span className="tt-lcd-lbl">COURSES</span>
               <span className="tt-lcd-mini-val">{taxisRef.current.filter((t) => t.mode !== "idle").length}</span>
             </button>
-            <button className="tt-lcd-seg tt-lcd-mini" onClick={() => { setMissionsOpen(true); setMissionsTab("depot"); }} title="Trésorerie">
-              <span className="tt-lcd-lbl">ARGENT</span>
-              <span className="tt-lcd-mini-val tt-lcd-money">{fmt(save.money)}$</span>
-            </button>
           </div>
 
 
