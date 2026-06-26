@@ -101,11 +101,11 @@ export default function CityCompetitors() {
     return { ...c, x: slot.x, y: slot.y };
   }), [comps]);
 
-  // Publie la liste pour les taxis rivaux qui circulent sur la map.
+  // Publie la liste (avec positions fixes) pour les taxis rivaux.
   useEffect(() => {
-    (window as unknown as { __jceCompetitors?: Competitor[] }).__jceCompetitors = comps;
-    window.dispatchEvent(new CustomEvent("jce:competitors-changed", { detail: comps }));
-  }, [comps]);
+    (window as unknown as { __jceCompetitors?: Competitor[] }).__jceCompetitors = compsWithFixedHq;
+    window.dispatchEvent(new CustomEvent("jce:competitors-changed", { detail: compsWithFixedHq }));
+  }, [compsWithFixedHq]);
 
   // Hydratation depuis le cloud (admin sync) OU depuis le panel admin (ajout/suppression).
   useEffect(() => {
