@@ -247,7 +247,7 @@ export default function CityRivalTaxis() {
           let u = (now - st.startedAt) / (st.duration * 1000);
           if (u >= 1) {
             // Nouvelle route : enchaîner toutes les rues
-            st.pathIdx = pickPath();
+            st.pathIdx = pickSectorPath(sp.homeDistrictId, roadsByDistrict);
             st.flip = Math.random() < 0.5;
             st.duration = 14 + Math.random() * 10;
             st.startedAt = now;
