@@ -2694,7 +2694,7 @@ export default function TaxiTycoon() {
             <span className="tt-coin">●</span>
             <b>{fmt(save.money)}$</b>
           </button>
-          <button className="tt-admin-top" onClick={() => window.dispatchEvent(new CustomEvent("mtw:open-admin"))} title="Admin" aria-label="Admin">⚙</button>
+          
         </div>
 
 
@@ -2888,9 +2888,12 @@ export default function TaxiTycoon() {
               <span className="tt-apk-ico">🤖</span>
               <span>TÉLÉCHARGER<br />L'APK</span>
             </button>
-            <button className="tt-slot" onClick={repairTaxis} disabled={wearNow <= 0 || save.money < maintenanceCost} title="Entretien flotte">
-              <span className="tt-slot-spark">✦</span>
-            </button>
+            <div className="tt-slot-wrap">
+              <button className="tt-slot" onClick={repairTaxis} disabled={wearNow <= 0 || save.money < maintenanceCost} title="Entretien flotte">
+                <span className="tt-slot-spark">✦</span>
+              </button>
+              <button className="tt-admin-badge" onClick={() => window.dispatchEvent(new CustomEvent("mtw:open-admin"))} title="Admin" aria-label="Admin">⚙</button>
+            </div>
             <button className="tt-diamond" onClick={triggerSpecialMission} disabled={nowTick < specialCooldownUntil} title="Mission spéciale">
               <span>✦</span>
             </button>
@@ -3243,12 +3246,15 @@ export default function TaxiTycoon() {
         .tt-pseudo-actions button.primary { background: linear-gradient(180deg, #f5c542, #e0a92a); color: #1a1208; border-color: #fde047; }
         .tt-pseudo-actions button:disabled { opacity: 0.5; cursor: not-allowed; }
         .tt-lower-tools { display: grid; grid-template-columns: 1.4fr 1fr 50px 50px; gap: 10px; align-items: center; margin-top: 10px; }
-        .tt-admin-top {
-          width: 32px; height: 32px; border-radius: 50%;
-          background: rgba(20,22,28,0.45); border: 1px solid rgba(245,197,66,0.35);
-          color: rgba(245,197,66,0.65); font-size: 13px;
+        .tt-slot-wrap { position: relative; display: flex; align-items: center; justify-content: center; }
+        .tt-admin-badge {
+          position: absolute; top: -6px; right: -6px;
+          width: 22px; height: 22px; border-radius: 50%;
+          background: rgba(20,22,28,0.85); border: 1px solid rgba(245,197,66,0.5);
+          color: rgba(245,197,66,0.85); font-size: 10px;
           display: flex; align-items: center; justify-content: center;
-          cursor: pointer; backdrop-filter: blur(4px);
+          cursor: pointer; z-index: 2;
+          box-shadow: 0 2px 6px rgba(0,0,0,0.4);
         }
         .tt-apk {
           border-radius: 26px; min-height: 48px; color: #fff; font-size: 13px; line-height: 1.05; font-weight: 900;
