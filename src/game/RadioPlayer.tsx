@@ -259,14 +259,16 @@ export default function RadioPlayer(props: { open?: boolean; onOpenChange?: (o: 
       `}</style>
 
       <div className="rp-root">
-        <button
-          className="rp-toggle"
-          onClick={() => setOpen((o) => !o)}
-          aria-label={open ? "Fermer la radio" : "Ouvrir la radio"}
-          title="Radio"
-        >
-          {playing ? "📻" : "🔇"}
-        </button>
+        {!props.hideToggle && (
+          <button
+            className="rp-toggle"
+            onClick={() => setOpen((o) => !o)}
+            aria-label={open ? "Fermer la radio" : "Ouvrir la radio"}
+            title="Radio"
+          >
+            {playing ? "📻" : "🔇"}
+          </button>
+        )}
 
         {open && (
           <div className="rp-panel">
