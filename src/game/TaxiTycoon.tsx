@@ -2998,6 +2998,12 @@ export default function TaxiTycoon() {
 
         {/* Radio (mode contrôlé : pas de bouton flottant, ouverte via console) */}
         <RadioPlayer open={radioOpen} onOpenChange={setRadioOpen} hideToggle />
+        <PersonnelPanel
+          open={personnelOpen}
+          onClose={() => setPersonnelOpen(false)}
+          money={save.money}
+          onHireCharge={(cost) => setSave((s) => ({ ...s, money: Math.max(0, s.money - cost) }))}
+        />
 
 
         {/* Dialog Pseudo */}
