@@ -1,107 +1,74 @@
-# Refonte gameplay — My Taxi World Rivalité v2 (Tycoon Simulation)
+# Atelier de Réparation & Personnalisation
 
-On garde la ville, les QG, les territoires, la radio et le moteur véhicules. On change le **cœur de la boucle** : tu ne cliques plus sur des courses une à une, tu **gères une compagnie** qui tourne toute seule pendant que tu prends des décisions stratégiques.
+## Objectif
+Cliquer sur le QG du joueur ouvre un **atelier-garage** immersif (vue intérieure) où un mécano animé répare les taxis abîmés par la mafia, et où le joueur achète des améliorations **visibles** sur la carte.
 
-## La nouvelle boucle de jeu
+## 1. Entrée dans l'atelier
+- Zone cliquable invisible posée sur l'image `player-hq.png` (coords déjà fixées 1030/360).
+- Au clic → overlay plein écran `GaragePanel.tsx` avec animation d'ouverture (zoom + fade).
+- Bouton « ← Retour à la ville » qui referme.
 
-```text
-┌──────────────────────────────────────────────────────────┐
-│  TES TAXIS ROULENT EN AUTONOMIE (passif temps réel)      │
-│           ↓                                              │
-│  Tu DÉCIDES : flotte, tarifs, embauches, contrats        │
-│           ↓                                              │
-│  Événements ville (météo, heure de pointe, grèves…)      │
-│           ↓                                              │
-│  Bilan journalier → réinvestir / s'étendre / saboter     │
-└──────────────────────────────────────────────────────────┘
-```
+## 2. Vue intérieure (2.5D isométrique, pas de vraie 3D)
+Pour rester léger et cohérent avec le style actuel (SVG + isométrique) :
+- Décor : sol béton, baies vitrées, panneaux d'outils, pont élévateur, néons.
+  → un SVG composé (pas d'asset binaire requis) + 1 image de fond optionnelle générée.
+- Taxi sélectionné posé au centre sur le pont élévateur, vu de 3/4.
+- **Mécano animé** : sprite SVG qui se déplace autour du taxi (translateX/Y CSS keyframes), avec outil en main (clé à molette, pistolet à peinture selon l'action). Étincelles ponctuelles quand il répare, gouttes de peinture quand il repeint.
 
-Tu peux toujours **prendre le volant** d'un taxi quand tu veux (mode "tournée perso" pour booster les revenus du jour), mais ce n'est plus obligatoire.
+## 3. Sélection de flotte
+- Liste latérale : tous les taxis du joueur (issus de `companyV2.fleet`).
+- Chaque ligne montre : nom, état (PV %), couleur, niveau pneus/moteur/blindage.
+- Les taxis **endommagés par la mafia** (PV < 100 %) ont un badge rouge « À réparer ».
 
-## Les 5 piliers du nouveau gameplay
+## 4. Actions disponibles par taxi
+| Action | Coût | Effet | Temps animé |
+|---|---|---|---|
+| Réparer carrosserie | 50 $/PV manquant (−mécano discount) | PV → 100 % | 3 s + étincelles |
+| Pneus sport | 800 $ | +8 % vitesse | 2 s |
+| Pneus pro | 2 200 $ | +15 % vitesse | 2 s |
+| Moteur V2 | 1 800 $ | +10 % revenus/course | 4 s |
+| Moteur V3 | 4 500 $ | +20 % revenus/course | 4 s |
+| Blindage léger | 1 500 $ | −40 % dégâts mafia | 3 s |
+| Blindage lourd | 3 800 $ | immunité mafia 1 attaque/jour | 3 s |
+| Repeindre (palette couleurs) | 300 $ | change `color`/`accent` du taxi | 2 s |
+| Stickers (toit lumineux, bandes) | 250 $ | ajoute calque visuel | 1 s |
 
-### 1. Flotte vivante & autonome
-- Chaque taxi possède : km au compteur, état mécanique (0-100%), niveau de carburant, chauffeur assigné, livrée.
-- Les taxis sortent du QG à l'heure de leur shift, prennent des clients réels sur la carte, rentrent quand fatigués / cassés / pleins.
-- **Tu vois ta flotte tourner sur la carte** comme aujourd'hui, mais c'est **ta gestion** qui détermine si ça rapporte.
+Pendant l'animation : barre de progression, mécano qui bouge, blocage des autres actions sur ce taxi.
 
-### 2. Chauffeurs RH (au lieu d'employés génériques)
-- Chaque chauffeur a : nom, photo, **3 stats** (Conduite / Service client / Endurance), salaire, moral.
-- Bons chauffeurs = + pourboires, - accidents. Mauvais = bouffent la marge.
-- Système de **shifts** (jour/nuit), congés, formations payantes pour upgrader les stats.
-- Risque de **démission** si moral trop bas (paie/horaires).
+## 5. Stockage & propagation à la carte
+- Étendre `companyV2.Taxi` avec :
+  ```ts
+  upgrades: { tires: 0|1|2; engine: 0|1|2; armor: 0|1|2; sticker: null|"roof"|"stripes" }
+  paint: { color: string; accent: string }
+  hp: number  // 0..100
+  ```
+- Émettre `mtw:fleet-upgraded` quand une amélioration est appliquée.
+- `CityRivalTaxis.tsx` (ou le calque qui dessine les taxis employés du joueur) lit `paint` pour la couleur du SVG, et ajoute :
+  - calque pneus plus larges si tires ≥ 1
+  - plaque de blindage (rect gris) si armor ≥ 1
+  - barre lumineuse jaune sur le toit si sticker = "roof"
+- Vitesse du taxi sur la carte multipliée par `(1 + 0.08*tires_level)` ; revenu de course multiplié par `(1 + 0.1*engine_level)` dans `companyV2.simTick`.
 
-### 3. Contrats B2B (cœur de la profondeur)
-Au lieu de chasser le client unique, tu signes des **contrats récurrents** :
-- Hôtel 4 étoiles → 30 courses/jour garanties, tarif fixe -10%.
-- Aéroport → grosses courses mais exige 5 taxis dispo H24.
-- Boîte de nuit → courses de nuit uniquement, gros pourboires.
-- Hôpital → priorité absolue, pénalités si retard.
+## 6. Dégâts mafia (boucle gameplay)
+- `CrimeEvents` / mafia attaque déjà existante → quand un taxi du joueur est touché, son `hp` baisse de 20–40 %.
+- S'il tombe à 0 → marqué « hors-service », ne roule plus jusqu'à passage au garage.
+- Le joueur DOIT visiter l'atelier pour réparer → boucle économique forte.
 
-Chaque contrat = **objectifs hebdo** à tenir sinon rupture + perte de réputation.
+## 7. Progression Tycoon
+- Score « qualité flotte » = moyenne (tires+engine+armor)/6.
+- Plus le score grimpe :
+  - +5 % de clients VIP générés par tick dans `companyV2`
+  - +10 % de pourboires
+  - déblocage de contrats B2B premium (déjà existants) à partir de qualité ≥ 0.5
+- Affichage d'une jauge « Prestige flotte » dans l'atelier + dans le LCD du tableau de bord.
 
-### 4. Économie & décisions qui pèsent
-- **Tarifs dynamiques** : tu fixes prix de base, surcharge nuit, surcharge pluie. Trop haut = clients vont chez les rivaux.
-- **Carburant** : prix qui fluctue, station essence à acheter pour économiser.
-- **Assurances & taxes** : poste de coût mensuel réel.
-- **Crédit bancaire** : emprunter pour acheter une 2e flotte, avec intérêts.
-- **Bilan journalier** (modal 6h du matin) : recettes / dépenses / bénéf net / cash dispo.
+## Fichiers
+- **Créer** : `src/game/garage/GaragePanel.tsx`, `src/game/garage/MechanicSprite.tsx`, `src/game/garage/garageUpgrades.ts` (catalogue + types).
+- **Modifier** : `src/game/companyV2.ts` (champs upgrades/paint/hp + maths), `src/game/TaxiTycoon.tsx` (hotspot clic QG → ouvre `GaragePanel`), `src/game/CityRivalTaxis.tsx` (lecture paint + calques d'upgrade), `src/game/vehicles/VehicleSvgs.tsx` (ajouter props `tires`, `armor`, `sticker` au `SedanSvg`).
 
-### 5. Expansion par quartier (réutilise les territoires existants)
-- Pour s'implanter dans un quartier : ouvrir une **station-relais** (achat foncier + permis mairie).
-- Plus tu as de stations, plus ta couverture est large, plus tu rafles de courses face aux rivaux.
-- Les rivaux font pareil → vraie guerre économique, pas juste un compteur de courses.
+## Hors scope
+- Pas de vraie 3D WebGL (resterait du SVG isométrique stylé).
+- Pas de marketplace de pièces, pas de réparations facturées par chauffeur (forfait simple).
+- Pas de modification du système mafia existant au-delà de l'ajout du champ `hp`.
 
-## Événements simulation (ton réaliste)
-
-- **Heure de pointe** matin/soir → demande x3 mais embouteillages.
-- **Pluie/neige** → demande +50% mais risque accident +30%.
-- **Grève transports** → jackpot d'une journée.
-- **Contrôle police** → amendes si chauffeurs en infraction.
-- **Panne mécanique aléatoire** si entretien négligé.
-- **Inspection mairie** → ferme un taxi si pas en règle.
-
-## Ce qu'on garde tel quel
-
-- Carte ville + QG verrouillés + rivaux qui roulent.
-- Radio Célébrer / Droit Libre.
-- Territoires (mais transformés en zones de couverture économique).
-- Mode "je conduis moi-même" (devient un bonus, pas l'obligation).
-- Personnel existant (réutilisé comme base RH).
-- Braquages / camion blindé (deviennent **événements aléatoires** qui menacent tes recettes).
-
-## Ce qui disparaît
-
-- Le clic obligatoire sur chaque course.
-- La compétition hebdo par compte de courses (remplacée par parts de marché €).
-- Le bouton "spawn taxi" instantané.
-
-## Détails techniques
-
-Nouveaux modules :
-- `src/game/company.ts` — état compagnie (cash, dette, réputation, parts de marché).
-- `src/game/fleet.ts` — gestion taxis individuels (état, shift, chauffeur).
-- `src/game/contracts.ts` — moteur de contrats B2B + résolution hebdo.
-- `src/game/economy.ts` — tarifs, carburant, taxes, bilans.
-- `src/game/simTick.ts` — boucle de simulation 1 tick = 1 minute jeu, génère courses auto.
-- `src/game/eventsSim.ts` — événements aléatoires (pluie, grève, panne…).
-
-Refonte UI :
-- Console basse → onglets **FLOTTE / RH / CONTRATS / FINANCES / EXPANSION**.
-- Modal **Bilan 6h** automatique chaque "jour" jeu.
-- Suppression des boutons "course rapide" / "spawn".
-- La carte reste le visuel central, mais devient surtout **informationnelle** (où sont mes taxis, où sont les rivaux, où la demande est forte → heatmap).
-
-## Migration douce
-Pas de wipe : ton cash actuel, ta flotte et tes territoires conquis sont convertis automatiquement (1 taxi possédé = 1 taxi dans la nouvelle flotte avec chauffeur par défaut).
-
----
-
-**Si tu valides**, j'attaque dans cet ordre :
-1. Moteur de simulation + flotte autonome (le cœur).
-2. RH chauffeurs + contrats B2B.
-3. Économie (tarifs, carburant, bilan journalier).
-4. Expansion stations + événements.
-5. Refonte UI console + heatmap demande.
-
-Dis-moi si je pars là-dessus, ou ce que tu veux ajuster avant.
+Réponds **« go »** pour lancer l'implémentation, ou indique ce que tu veux ajuster (catalogue d'upgrades, prix, vrai rendu 3D Three.js plutôt qu'isométrique SVG, etc.).
