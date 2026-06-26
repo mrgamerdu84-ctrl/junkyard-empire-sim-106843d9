@@ -246,7 +246,7 @@ export default function EmergencyStations() {
           return (
             <g key={r.id} transform={`translate(${x} ${y}) rotate(${angle})`}>
               <circle r="25" fill={flash ? "#3b82f6" : "#ef4444"} opacity="0.24" />
-              <g transform="rotate(90)">
+              <g transform="rotate(-90)">
                 <image href={r.sprite} x={-22} y={-17} width={44} height={34} preserveAspectRatio="xMidYMid meet" />
               </g>
               <rect x="-8" y="-4" width="16" height="5" rx="2" fill="#0b0d10" />
