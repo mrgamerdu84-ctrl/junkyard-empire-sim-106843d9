@@ -105,6 +105,9 @@ type Taxi = {
   transitionFromX?: number;
   transitionFromY?: number;
   transitionUntil?: number;
+  // Place de parking préférée au QG (index 0..6). Si définie, le taxi se gare
+  // toujours sur ce slot quand il est idle/dépose ; sinon attribution auto.
+  parkSlot?: number;
 };
 const TRANSITION_MS = 1500;
 
