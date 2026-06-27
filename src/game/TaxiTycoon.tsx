@@ -1138,7 +1138,7 @@ export default function TaxiTycoon() {
             const before = taxisRef.current.filter(
               (t) => t.mode === "to_pickup" || t.mode === "to_dest"
             ).length;
-            acceptJob(j.id);
+            acceptJob(j.id, { bypassCooldown: true });
             const after = taxisRef.current.filter(
               (t) => t.mode === "to_pickup" || t.mode === "to_dest"
             ).length;
@@ -2136,19 +2136,21 @@ export default function TaxiTycoon() {
   };
 
   // Le joueur accepte la course → on cherche un taxi idle, sinon on râle.
-  const acceptJob = (id: number) => {
+  // `opts.bypassCooldown` permet à l'auto-dispatch d'envoyer plusieurs
+  // taxis simultanément (1 chauffeur = 1 taxi qui sort).
+  const acceptJob = (id: number, opts?: { bypassCooldown?: boolean }) => {
     const job = jobsRef.current.find((j) => j.id === id);
     if (!job || job.status !== "offered") return;
     const free = taxisRef.current.find((t) => t.mode === "idle" || t.mode === "roaming");
     if (!free) {
-      showToast("🚖 Tous les taxis sont occupés");
+      if (!opts?.bypassCooldown) showToast("🚖 Tous les taxis sont occupés");
       return;
     }
     const adm = getAdmin();
     const prodReduction = Math.max(0.2, 1 - 0.15 * (saveRef.current.hqProductionLvl ?? 0));
     const cooldownMs = Math.max(0, adm.taxiSpawnCooldown) * 1000 * prodReduction;
     const now = performance.now();
-    if (now - lastTaxiDispatchRef.current < cooldownMs) {
+    if (!opts?.bypassCooldown && now - lastTaxiDispatchRef.current < cooldownMs) {
       showToast(`⏱️ Cooldown sortie QG`);
       return;
     }
@@ -2577,13 +2579,37 @@ export default function TaxiTycoon() {
           const p = getSidewalk(rd.pathIdx, rd.posFrac * plen, 1);
           return (
             <g key={`radar-${rd.id}`} transform={`translate(${p.x},${p.y}) rotate(${p.angle})`}>
-              {/* poteau */}
-              <rect x="-1.5" y="-2" width="3" height="14" fill="#0b0d10" />
-              {/* boîtier caméra */}
-              <rect x="-7" y="-9" width="14" height="9" rx="2" fill="#222831" stroke="#0b0d10" strokeWidth="1" />
-              <circle cx="0" cy="-4.5" r="3" fill="#0b0d10" stroke="#94a3b8" strokeWidth="0.8" />
-              <circle cx="0" cy="-4.5" r="1.4" fill="#3b82f6" />
-              <text x="0" y="-12" textAnchor="middle" fontSize="3.4" fontWeight="900" fill="#fbbf24" stroke="#0b0d10" strokeWidth="0.8" paintOrder="stroke">RADAR</text>
+              {/* Ombre projetée au sol */}
+              <ellipse cx="0" cy="2" rx="9" ry="2.4" fill="rgba(0,0,0,0.45)" />
+              {/* Socle béton */}
+              <rect x="-3" y="-1" width="6" height="3" rx="0.5" fill="#4b5563" stroke="#1f2937" strokeWidth="0.4" />
+              {/* Mât gris métallisé (dégradé) */}
+              <rect x="-1.4" y="-14" width="2.8" height="14" fill="#9ca3af" />
+              <rect x="0" y="-14" width="1.4" height="14" fill="#6b7280" />
+              {/* Bras de fixation */}
+              <rect x="-0.6" y="-17" width="1.2" height="4" fill="#6b7280" />
+              {/* Boîtier radar (corps principal type cabine MESTA) */}
+              <g transform="translate(0,-21)">
+                <rect x="-8" y="-6" width="16" height="11" rx="2.2"
+                  fill="#374151" stroke="#0b0d10" strokeWidth="0.8" />
+                {/* Face avant grise plus claire (volume 3D) */}
+                <rect x="-8" y="-6" width="16" height="3.2" rx="2"
+                  fill="#4b5563" stroke="#0b0d10" strokeWidth="0.4" />
+                {/* Objectif central avec reflet */}
+                <circle cx="0" cy="0" r="3.4" fill="#0b0d10" stroke="#9ca3af" strokeWidth="0.7" />
+                <circle cx="0" cy="0" r="2.4" fill="#1e293b" />
+                <circle cx="-0.8" cy="-0.8" r="0.9" fill="#60a5fa" opacity="0.8" />
+                {/* LED flash latéral (clignote) */}
+                <circle cx="-5.5" cy="-1" r="0.9" fill="#ef4444">
+                  <animate attributeName="opacity" values="0.2;1;0.2" dur="1.6s" repeatCount="indefinite" />
+                </circle>
+                <circle cx="5.5" cy="-1" r="0.9" fill="#fbbf24">
+                  <animate attributeName="opacity" values="1;0.2;1" dur="1.6s" repeatCount="indefinite" />
+                </circle>
+                {/* Logo "RADAR" */}
+                <rect x="-6.5" y="2.4" width="13" height="2.4" rx="0.4" fill="#0b0d10" />
+                <text x="0" y="4.3" textAnchor="middle" fontSize="2.2" fontWeight="900" fill="#fbbf24" fontFamily="ui-sans-serif">RADAR</text>
+              </g>
             </g>
           );
         })}

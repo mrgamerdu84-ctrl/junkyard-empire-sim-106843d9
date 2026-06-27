@@ -346,6 +346,56 @@ export default function MafiaGodfather() {
     <>
       {typeof document !== "undefined" && createPortal(badge, document.body)}
       {dialog}
+      <GodfatherToast />
     </>
   );
 }
+
+// ---------------------------------------------------------------
+// Petite bulle "toast" du Parrain (sans bouton). Écoute
+// `jce.godfather.say` (ex : raid terminé : "La prochaine fois,
+// ça sera plus cher.").
+// ---------------------------------------------------------------
+function GodfatherToast() {
+  const [msg, setMsg] = useState<string | null>(null);
+  useEffect(() => {
+    const onSay = (ev: Event) => {
+      const d = (ev as CustomEvent<{ text: string }>).detail;
+      if (!d || !d.text) return;
+      setMsg(d.text);
+      window.setTimeout(() => setMsg(null), 6000);
+    };
+    window.addEventListener("jce.godfather.say", onSay as EventListener);
+    return () => window.removeEventListener("jce.godfather.say", onSay as EventListener);
+  }, []);
+  if (!msg || typeof document === "undefined") return null;
+  return createPortal(
+    <>
+      <style>{`
+        .gf-toast {
+          position: fixed; left: 50%; top: 18%; transform: translateX(-50%);
+          z-index: 99998; display: flex; gap: 10px; align-items: flex-start;
+          background: linear-gradient(180deg,#1a0a0a,#0a0a0d);
+          border: 2px solid #b8860b; border-radius: 12px;
+          padding: 10px 12px; max-width: min(420px, 92vw);
+          box-shadow: 0 14px 40px rgba(0,0,0,0.7);
+          font-family: ui-sans-serif, system-ui, sans-serif;
+          animation: gf-in 0.3s ease-out;
+        }
+        @keyframes gf-in { from { opacity: 0; transform: translate(-50%, -10px) } to { opacity: 1; transform: translate(-50%, 0) } }
+        .gf-toast img { width: 56px; height: 56px; border-radius: 8px; object-fit: cover; border: 2px solid #b8860b; }
+        .gf-toast .gf-bub {
+          background: #fef3c7; color: #1a0a0a; border: 2px solid #1a0a0a;
+          border-radius: 10px; padding: 8px 10px; font-style: italic; font-weight: 700;
+          font-size: 13px; box-shadow: 3px 3px 0 #1a0a0a;
+        }
+      `}</style>
+      <div className="gf-toast" role="status">
+        <img src={godfatherImg} alt="Parrain" />
+        <div className="gf-bub">« {msg} »</div>
+      </div>
+    </>,
+    document.body,
+  );
+}
+
