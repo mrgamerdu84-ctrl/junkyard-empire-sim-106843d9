@@ -1138,7 +1138,7 @@ export default function TaxiTycoon() {
             const before = taxisRef.current.filter(
               (t) => t.mode === "to_pickup" || t.mode === "to_dest"
             ).length;
-            acceptJob(j.id);
+            acceptJob(j.id, { bypassCooldown: true });
             const after = taxisRef.current.filter(
               (t) => t.mode === "to_pickup" || t.mode === "to_dest"
             ).length;
