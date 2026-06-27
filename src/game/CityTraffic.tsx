@@ -24,6 +24,18 @@ const getPedPhotoImages = () => getPedestrianPhotoUrls();
 // dessine plus comme route (ci-dessous dans le rendu).
 export const VILLAGE_PATHS = new Set<number>([1]);
 
+// ZONE INTERDITE AU TRAFIC GÉNÉRAL (civils + mafia)
+// Couvre le parvis du QG « TAXI WORLD » incrusté dans citymap3 : les pointillés
+// peints DEVANT et DANS l'entrepôt servent UNIQUEMENT aux taxis du joueur
+// (sortie de parking, alignement, insertion sur la route principale).
+// Aucune voiture de ville ni voiture mafia ne doit y rouler.
+// Repère SVG 1920×1080.
+export const HQ_NO_CIVIL_ZONE = { x: 600, y: 60, w: 760, h: 380 };
+export function isInsideHQZone(x: number, y: number): boolean {
+  const z = HQ_NO_CIVIL_ZONE;
+  return x >= z.x && x <= z.x + z.w && y >= z.y && y <= z.y + z.h;
+}
+
 // === SÉPARATION DES VOIES (code de la route) ===
 // Demi-largeur d'une route ≈ 23 px. On place chaque véhicule à LANE_HALF px
 // du centre, à DROITE de son sens de marche. Les véhicules en sens inverse
