@@ -8,7 +8,7 @@ import mapAsset from "@/assets/citymap3.jpg.asset.json";
 const mapUrl = mapAsset.url;
 import { ROADS } from "./CityTraffic";
 
-const STORAGE_KEY = "jce.roads.calibrated.v1";
+const STORAGE_KEY = "jce.roads.calibrated.v2";
 const MAP_W = 1920;
 const MAP_H = 1080;
 const SAMPLE_W = 480;
