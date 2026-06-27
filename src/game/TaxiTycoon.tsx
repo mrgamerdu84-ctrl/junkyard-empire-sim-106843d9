@@ -2661,29 +2661,36 @@ export default function TaxiTycoon() {
 
 
         {(() => {
-          // Calcule les positions monde des places de parking du QG
+          // Places de parking alignées sur le taxi jaune peint dans l'image du QG
+          // (image 1024×1024, taxi peint ~ x[165..600] y[640..820]).
+          // On masque la zone peinte par un rect "tarmac" pour qu'on ne voie
+          // plus le taxi imprimé sous les vrais taxis du joueur.
           const hqCx = depotXY.x;
           const hqCy = depotXY.y - 18;
           const scale = admin.hqScale;
           const rot = (admin.hqRotation * Math.PI) / 180;
           const cosR = Math.cos(rot);
           const sinR = Math.sin(rot);
-          const W = 260;
+          // Centre de la zone peinte (en pixels image) ramené en unités monde (pre-scale)
+          // ((px-512)*320/1024) avec base 320 = w/scale.
+          const parvisCx = ((165 + 600) / 2 - 512) * (320 / 1024); // ≈ -40.5
+          const parvisCy = ((640 + 820) / 2 - 512) * (320 / 1024); // ≈ +21.6
+          const parvisW = (600 - 165) * (320 / 1024);              // ≈ 136
+          const parvisH = (820 - 640) * (320 / 1024);              // ≈ 56
           const slotsCount = 4 + (save.hqCapacityLvl ?? 0);
-          const slotW = (W - 60) / slotsCount;
+          const slotW = parvisW / slotsCount;
           const slotWorld = (i: number) => {
-            const lx = -W / 2 + 30 + i * slotW + slotW / 2;
-            const ly = 30;
+            const lx = parvisCx - parvisW / 2 + slotW / 2 + i * slotW;
+            const ly = parvisCy;
             const sx = lx * scale;
             const sy = ly * scale;
             return {
               x: hqCx + sx * cosR - sy * sinR,
               y: hqCy + sx * sinR + sy * cosR,
-              angle: -90 + admin.hqRotation, // taxi nez vers le bâtiment
+              angle: admin.hqRotation, // taxi horizontal, aligné comme le peint
             };
           };
-          // Tout taxi idle ou en dépôt est garé visuellement dans le QG
-          // (sa logique de retour s'est déjà assurée qu'il a rejoint le QG).
+          // Tout taxi idle ou en dépôt est garé visuellement dans le QG.
           const parked: { taxi: Taxi; slot: number }[] = [];
           const parkedIds = new Set<number>();
           taxisRef.current.forEach((t) => {
@@ -2694,6 +2701,15 @@ export default function TaxiTycoon() {
           });
 
           parked.forEach((p, i) => { p.slot = i % slotsCount; });
+
+          // Masque "tarmac" pour cacher le taxi jaune peint dans l'image.
+          const maskW = parvisW * scale * 1.05;
+          const maskH = parvisH * scale * 1.15;
+          const maskCx = hqCx + (parvisCx * scale) * cosR - (parvisCy * scale) * sinR;
+          const maskCy = hqCy + (parvisCx * scale) * sinR + (parvisCy * scale) * cosR;
+
+          const renderedTaxis = taxisRef.current.map((taxi) => {
+
 
           return taxisRef.current.map((taxi) => {
             const movingForward = taxi.target >= taxi.pos;
