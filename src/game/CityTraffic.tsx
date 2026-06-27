@@ -22,7 +22,7 @@ const getPedPhotoImages = () => getPedestrianPhotoUrls();
 // Index 1 = petite arche tout en haut (y≈0-90) : off-screen en portrait,
 // les voitures semblaient "voler". On l'exclut du trafic et on ne la
 // dessine plus comme route (ci-dessous dans le rendu).
-export const VILLAGE_PATHS = new Set<number>([1]);
+export const VILLAGE_PATHS = new Set<number>();
 
 // ZONE INTERDITE AU TRAFIC GÉNÉRAL (civils + mafia)
 // Couvre le parvis du QG « TAXI WORLD » incrusté dans citymap3 : les pointillés
