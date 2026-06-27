@@ -1170,6 +1170,33 @@ export default function TaxiTycoon() {
     window.setTimeout(() => setPopups((p) => p.filter((x) => x.id !== id)), 1100);
   };
 
+  // Rappel général : tous les taxis rentrent au QG en empruntant les routes.
+  const [recallPulse, setRecallPulse] = useState(0);
+  const recallAllTaxis = () => {
+    const adm = adminRef.current;
+    let count = 0;
+    for (const taxi of taxisRef.current) {
+      if (taxi.mode === "to_pickup" || taxi.mode === "to_dest") {
+        // course en cours : forcer le dépôt après livraison
+        taxi.mustDeposit = true;
+        count++;
+        continue;
+      }
+      if (taxi.mode === "depositing" || taxi.mode === "refueling") continue;
+      // Roaming / returning / idle / to_gas → recalcule un trajet route → QG
+      const pIdx = pickPath(taxi.pathIdx);
+      const here = taxiXY(taxi);
+      beginSegment(taxi, pIdx, closestOnPath(pIdx, here.x, here.y), closestOnPath(pIdx, adm.hqX, adm.hqY));
+      taxi.mode = "returning";
+      taxi.mustDeposit = true;
+      taxi.jobId = null;
+      count++;
+    }
+    popFloat(`📣 Rappel — ${count} taxis`, adm.hqX, adm.hqY - 30);
+    setRecallPulse(Date.now());
+  };
+
+
   // === Boucle de jeu : mouvement des taxis + génération des courses proposées ===
   useEffect(() => {
     if (!pathsReady) return;
