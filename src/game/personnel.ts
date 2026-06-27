@@ -165,6 +165,12 @@ export function getTipsBonus(): number {
   return Math.min(0.3, n * defFor("manager").tipBonus); // max +30 %
 }
 
+export function getMissionBonus(): number {
+  const list = loadStaff();
+  const n = countByRole(list, "secretary");
+  return Math.min(0.24, n * defFor("secretary").missionBonus); // max +24 %
+}
+
 // Driver de revenu passif. Une seule instance à monter au démarrage du jeu.
 let tickHandle: number | null = null;
 let lastTick = Date.now();
