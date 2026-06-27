@@ -1150,12 +1150,10 @@ export default function TaxiTycoon() {
           if (taxi.refuelUntil && Date.now() >= taxi.refuelUntil) {
             taxi.fuel = 100;
             taxi.refuelUntil = undefined;
-            // retour QG
+            // retour QG avec lerp visuel
             const pIdx = pickPath(taxi.pathIdx);
             const here = taxiXY(taxi);
-            taxi.pathIdx = pIdx;
-            taxi.pos = closestOnPath(pIdx, here.x, here.y);
-            taxi.target = closestOnPath(pIdx, adm.hqX, adm.hqY);
+            beginSegment(taxi, pIdx, closestOnPath(pIdx, here.x, here.y), closestOnPath(pIdx, adm.hqX, adm.hqY));
             taxi.mode = "returning";
           }
           continue;
