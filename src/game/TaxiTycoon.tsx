@@ -105,7 +105,7 @@ type Taxi = {
   transitionFromY?: number;
   transitionUntil?: number;
 };
-const TRANSITION_MS = 700;
+const TRANSITION_MS = 1500;
 
 
 // Mécanique : retour au QG tous les N courses, attente de DEPOSIT_MS
