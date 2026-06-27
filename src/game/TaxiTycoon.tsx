@@ -1102,7 +1102,9 @@ export default function TaxiTycoon() {
           taxi.fuel = Math.max(0, taxi.fuel - adm.fuelConsumption * dt);
         }
 
-        // Idle : jamais invisible/garé longtemps. Le taxi repart patrouiller sur les routes.
+        // Idle : le taxi reste GARÉ au QG (rendu visuel sur la place de parking).
+        // Il ne ré-erre plus sur la carte. Seul un manque de carburant le sort
+        // pour aller à la station-service ; sinon il attend une nouvelle course.
         if (taxi.mode === "idle") {
           if (taxi.fuel < FUEL_LOW_THRESHOLD) {
             const pIdx = pickPath(taxi.pathIdx);
@@ -1112,13 +1114,9 @@ export default function TaxiTycoon() {
             taxi.target = closestOnPath(pIdx, adm.gasStationX, adm.gasStationY);
             taxi.mode = "to_gas";
           } else {
-            const pIdx = pickPath(taxi.pathIdx);
-            const here = taxiXY(taxi);
-            taxi.pathIdx = pIdx;
-            taxi.pos = closestOnPath(pIdx, here.x, here.y);
-            const len = pathLensRef.current[pIdx] ?? 0;
-            taxi.target = Math.max(1, Math.min(len - 1, Math.random() * len));
-            taxi.mode = "roaming";
+            // S'assure que la position logique est snap au QG.
+            taxi.pos = closestOnPath(taxi.pathIdx, adm.hqX, adm.hqY);
+            taxi.target = taxi.pos;
           }
           continue;
         }
