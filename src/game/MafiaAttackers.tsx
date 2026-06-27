@@ -11,7 +11,7 @@
 // =============================================================
 import { useEffect, useMemo, useRef, useState } from "react";
 import { getCivilCarUrls } from "./gameAssets";
-import { ROADS, VILLAGE_PATHS } from "./CityTraffic";
+import { ROADS, VILLAGE_PATHS, isInsideHQZone } from "./CityTraffic";
 import { VEHICLE_SIZE } from "./TaxiTycoon";
 import { isMafiaTruceActive } from "./MafiaGodfather";
 import { getAdmin } from "./adminConfig";
