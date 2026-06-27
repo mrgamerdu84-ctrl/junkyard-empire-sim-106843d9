@@ -2047,19 +2047,23 @@ export default function TaxiTycoon() {
       return;
     }
     free.jobId = job.id;
+    // Position visuelle de départ : si le taxi était garé au QG, on part
+    // du QG pour qu'on le voie sortir vraiment (pas un saut sur la route).
+    const wasParked = free.mode === "idle" || free.mode === "depositing";
+    const visualFrom = wasParked ? { x: depotXY.x, y: depotXY.y - 18 } : taxiXY(free);
     // Bascule vers le path du pickup, partant de sa position actuelle.
-    const here = taxiXY(free);
     free.pathIdx = job.pickupPath;
-    free.pos = closestOnPath(job.pickupPath, here.x, here.y);
+    free.pos = closestOnPath(job.pickupPath, visualFrom.x, visualFrom.y);
     free.target = job.pickup;
     free.mode = "to_pickup";
     syncVehicleLane(free);
-    // Transition douce : on mémorise la position actuelle pour interpoler
-    // visuellement vers le nouveau path (évite le « saut » de voie).
-    free.transitionFromX = here.x;
-    free.transitionFromY = here.y;
+    // Transition douce : on mémorise la position visuelle de départ pour
+    // interpoler vers le path (évite le « saut »).
+    free.transitionFromX = visualFrom.x;
+    free.transitionFromY = visualFrom.y;
     free.transitionUntil = performance.now() + TRANSITION_MS;
     setJobs((js) => js.map((j) => j.id === id ? { ...j, status: "accepted", acceptedAt: Date.now() } : j));
+
   };
 
   // === Mission spéciale joueur ===
@@ -2677,7 +2681,18 @@ export default function TaxiTycoon() {
           const parvisCy = ((640 + 820) / 2 - 512) * (320 / 1024); // ≈ +21.6
           const parvisW = (600 - 165) * (320 / 1024);              // ≈ 136
           const parvisH = (820 - 640) * (320 / 1024);              // ≈ 56
-          const slotsCount = 4 + (save.hqCapacityLvl ?? 0);
+          // Tout taxi idle ou en dépôt est garé visuellement dans le QG.
+          const parked: { taxi: Taxi; slot: number }[] = [];
+          const parkedIds = new Set<number>();
+          taxisRef.current.forEach((t) => {
+            if (t.mode === "depositing" || t.mode === "idle") {
+              parked.push({ taxi: t, slot: 0 });
+              parkedIds.add(t.id);
+            }
+          });
+          // Le nombre de slots s'adapte au nombre de taxis garés pour
+          // qu'aucun véhicule ne soit caché derrière un autre.
+          const slotsCount = Math.max(4 + (save.hqCapacityLvl ?? 0), parked.length, 1);
           const slotW = parvisW / slotsCount;
           const slotWorld = (i: number) => {
             const lx = parvisCx - parvisW / 2 + slotW / 2 + i * slotW;
@@ -2690,17 +2705,8 @@ export default function TaxiTycoon() {
               angle: admin.hqRotation, // taxi horizontal, aligné comme le peint
             };
           };
-          // Tout taxi idle ou en dépôt est garé visuellement dans le QG.
-          const parked: { taxi: Taxi; slot: number }[] = [];
-          const parkedIds = new Set<number>();
-          taxisRef.current.forEach((t) => {
-            if (t.mode === "depositing" || t.mode === "idle") {
-              parked.push({ taxi: t, slot: 0 });
-              parkedIds.add(t.id);
-            }
-          });
+          parked.forEach((p, i) => { p.slot = i; });
 
-          parked.forEach((p, i) => { p.slot = i % slotsCount; });
 
           // Masque "tarmac" pour cacher le taxi jaune peint dans l'image.
           const maskW = parvisW * scale * 1.05;

@@ -46,9 +46,10 @@ type Mafia = {
 const REWARD = 100;
 const MAP_W = 1920;
 const MAP_H = 1080;
-const SPAWN_INTERVAL_MS = 7000;
-const MAX_CARS = 4;
+const SPAWN_INTERVAL_MS = 9000;
+const MAX_CARS = 2;
 const EXPLOSION_MS = 900;
+
 
 function getPlayerTaxis(): PlayerTaxi[] {
   const w = window as unknown as { __jcePlayerTaxis?: PlayerTaxi[] };
@@ -250,8 +251,9 @@ export default function MafiaAttackers() {
         }
       }
       carsRef.current = next;
-      // Limite les re-renders : 1 frame sur 2, ou si le set a changé.
-      if (changed || frame % 2 === 0) setTick((n) => (n + 1) & 0xffff);
+      // Limite les re-renders : 1 frame sur 3, ou si le set a changé.
+      if (changed || frame % 3 === 0) setTick((n) => (n + 1) & 0xffff);
+
 
       raf = requestAnimationFrame(tick);
     };

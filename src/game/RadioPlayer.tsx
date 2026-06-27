@@ -396,16 +396,20 @@ export default function RadioPlayer(props: { open?: boolean; onOpenChange?: (o: 
               />
               <span>{Math.round(volume * 100)}%</span>
             </div>
-
-            <audio
-              ref={audioRef}
-              src={track.url}
-              preload="metadata"
-              loop={false}
-            />
           </div>
         )}
+
+        {/* Audio TOUJOURS monté — sinon la lecture s'arrête dès qu'on
+            ferme le panneau ou qu'on bascule en plein écran. */}
+        <audio
+          ref={audioRef}
+          src={track.url}
+          preload="auto"
+          loop={false}
+          style={{ display: "none" }}
+        />
       </div>
     </>
   );
 }
+
