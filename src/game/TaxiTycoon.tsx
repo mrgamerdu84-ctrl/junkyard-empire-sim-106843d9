@@ -16,6 +16,7 @@ import { pickSpecialMission, SPECIAL_COOLDOWN_MS } from "@/lib/specialMissions";
 import { getGameTime, periodLabel } from "./cityClock";
 import RadioPlayer from "./RadioPlayer";
 import PersonnelPanel from "./PersonnelPanel";
+import MissionOfferToast from "./MissionOfferToast";
 import { getMaintenanceDiscount, getTipsBonus, startPersonnelTick } from "./personnel";
 import { useAuth } from "@/lib/useAuth";
 import { resolveAvatarSrc } from "@/components/ProfileCard";
@@ -1305,6 +1306,9 @@ export default function TaxiTycoon() {
         lastJobSpawnRef.current = now;
         const job = genJob(cur.depotTier);
         setJobs((js) => [...js, job]);
+        try {
+          window.dispatchEvent(new CustomEvent("jce:mission-offered", { detail: { id: job.id, fare: job.fare } }));
+        } catch {}
       }
 
       // === Mouvement des taxis ===
