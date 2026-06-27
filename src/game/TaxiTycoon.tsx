@@ -2283,7 +2283,24 @@ export default function TaxiTycoon() {
     return () => clearInterval(iv);
   }, []);
 
-  // Le joueur refuse / annule une course proposée
+  // === Écoute le toast secrétaire : accepter/refuser une course depuis la popup
+  useEffect(() => {
+    const onAccept = (e: Event) => {
+      const det = (e as CustomEvent<{ id: number; driver?: string }>).detail;
+      if (det?.id != null) acceptJob(det.id, { bypassCooldown: true });
+    };
+    const onReject = (e: Event) => {
+      const det = (e as CustomEvent<{ id: number }>).detail;
+      if (det?.id != null) rejectJob(det.id);
+    };
+    window.addEventListener("jce:mission-accept", onAccept);
+    window.addEventListener("jce:mission-reject", onReject);
+    return () => {
+      window.removeEventListener("jce:mission-accept", onAccept);
+      window.removeEventListener("jce:mission-reject", onReject);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   const rejectJob = (id: number) => {
     setJobs((js) => js.filter((j) => j.id !== id));
   };
