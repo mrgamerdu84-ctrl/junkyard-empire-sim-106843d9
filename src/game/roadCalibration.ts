@@ -4,7 +4,8 @@
 // proche dans un rayon de recherche. Le résultat est persisté en localStorage
 // et applique une mutation in-place sur le tableau ROADS exporté par
 // CityTraffic (les composants relisent ROADS à chaque rendu).
-import mapUrl from "@/assets/citymap3.jpg";
+import mapAsset from "@/assets/citymap3.jpg.asset.json";
+const mapUrl = mapAsset.url;
 import { ROADS } from "./CityTraffic";
 
 const STORAGE_KEY = "jce.roads.calibrated.v1";
