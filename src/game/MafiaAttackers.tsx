@@ -1,26 +1,40 @@
 // =============================================================
-// MAFIA — Dépôt clandestin envoie des voitures noires saboter nos
-// taxis pendant leurs courses. Les mafieux suivent STRICTEMENT le
-// réseau routier (mêmes paths SVG que le trafic civil) et utilisent
-// les vrais sprites de voitures du jeu, teintés en noir.
-// Le joueur doit TAPER chaque voiture noire pour la stopper net /
-// la faire exploser et protéger son taxi.
-// Récompense : +100 $ par mafieux neutralisé.
+// MAFIA — Les familles mafia (configurées dans le panel admin)
+// envoient des voitures saboter les taxis du joueur pendant leurs
+// courses. Les mafieux suivent strictement le réseau routier
+// (mêmes paths SVG que le trafic civil).
+//
+// Skins :
+//  - Si une famille mafia a un `vehicleUrl` configuré → on l'utilise
+//    tel quel (pas de teinte noire).
+//  - Sinon, on prend un sprite de voiture civile du jeu et on le
+//    teinte en noir (filtre SVG `mafia-black`).
+//
+// Le joueur doit TAPER chaque voiture mafia pour la stopper net /
+// la faire exploser et protéger son taxi. +100 $ par mafieux.
 // =============================================================
 import { useEffect, useMemo, useRef, useState } from "react";
 import { getCivilCarUrls } from "./gameAssets";
 import { ROADS, VILLAGE_PATHS } from "./CityTraffic";
+import { VEHICLE_SIZE } from "./TaxiTycoon";
 
 type PlayerTaxi = { id: number; x: number; y: number; onMission: boolean };
+type CompetitorLite = {
+  id: string;
+  name?: string;
+  vehicleUrl?: string;
+  color?: string;
+};
 
 type Mafia = {
   id: number;
   sprite: string;
+  tinted: boolean;
   pathIdx: number;
   pathLen: number;
-  t: number;        // distance le long du path (px)
-  dir: 1 | -1;      // sens de parcours
-  speed: number;    // px/s
+  t: number;
+  dir: 1 | -1;
+  speed: number;
   x: number;
   y: number;
   angle: number;
@@ -38,38 +52,53 @@ const EXPLOSION_MS = 900;
 
 function getPlayerTaxis(): PlayerTaxi[] {
   const w = window as unknown as { __jcePlayerTaxis?: PlayerTaxi[] };
-  return w.__jcePlayerTaxis ?? [];
+  return Array.isArray(w.__jcePlayerTaxis) ? w.__jcePlayerTaxis : [];
+}
+
+function getMafiaFamilies(): CompetitorLite[] {
+  const w = window as unknown as { __jceCompetitors?: CompetitorLite[] };
+  return Array.isArray(w.__jceCompetitors) ? w.__jceCompetitors : [];
 }
 
 function buildPathEls(): SVGPathElement[] {
   const ns = "http://www.w3.org/2000/svg";
-  return ROADS.map((d, i) => {
-    if (VILLAGE_PATHS.has(i)) return null;
-    const p = document.createElementNS(ns, "path");
-    p.setAttribute("d", d);
-    return p;
-  }).filter((p): p is SVGPathElement => p !== null);
+  const out: SVGPathElement[] = [];
+  for (let i = 0; i < ROADS.length; i++) {
+    if (VILLAGE_PATHS.has(i)) continue;
+    try {
+      const p = document.createElementNS(ns, "path");
+      p.setAttribute("d", ROADS[i]);
+      // touche getTotalLength pour vérifier que le path est valide
+      if (p.getTotalLength() > 0) out.push(p);
+    } catch {
+      /* path invalide, on ignore */
+    }
+  }
+  return out;
 }
 
-// Trouve l'index du path dont un point est le plus proche d'une cible (x,y),
-// + la distance le long du path (en px) du point le plus proche.
+// Trouve l'index du path dont un point est le plus proche d'une cible,
+// + la distance le long du path du point le plus proche.
+// Échantillonnage léger pour éviter les pics CPU.
 function nearestOnPath(
   paths: SVGPathElement[],
+  lens: number[],
   tx: number,
   ty: number,
 ): { idx: number; t: number } {
   let bestIdx = 0;
   let bestT = 0;
   let bestD = Infinity;
+  const STEPS = 24;
   for (let i = 0; i < paths.length; i++) {
     const p = paths[i];
-    const len = p.getTotalLength();
-    // échantillonnage grossier (60 pas)
-    const steps = 60;
-    for (let s = 0; s <= steps; s++) {
-      const t = (s / steps) * len;
+    const len = lens[i];
+    for (let s = 0; s <= STEPS; s++) {
+      const t = (s / STEPS) * len;
       const pt = p.getPointAtLength(t);
-      const d = (pt.x - tx) ** 2 + (pt.y - ty) ** 2;
+      const dx = pt.x - tx;
+      const dy = pt.y - ty;
+      const d = dx * dx + dy * dy;
       if (d < bestD) {
         bestD = d;
         bestIdx = i;
@@ -81,7 +110,7 @@ function nearestOnPath(
 }
 
 export default function MafiaAttackers() {
-  const [cars, setCars] = useState<Mafia[]>([]);
+  const [, setTick] = useState(0);
   const carsRef = useRef<Mafia[]>([]);
   const idRef = useRef(0);
   const lastSpawn = useRef(0);
@@ -89,16 +118,16 @@ export default function MafiaAttackers() {
   const pathEls = useMemo(() => buildPathEls(), []);
   const pathLens = useMemo(() => pathEls.map((p) => p.getTotalLength()), [pathEls]);
 
-  useEffect(() => { carsRef.current = cars; }, [cars]);
-
   useEffect(() => {
     if (pathEls.length === 0) return;
     let raf = 0;
     let last = performance.now();
+    let frame = 0;
 
     const tick = (now: number) => {
       const dt = Math.min(0.05, (now - last) / 1000);
       last = now;
+      frame++;
 
       const taxis = getPlayerTaxis();
       const onMission = taxis.filter((t) => t.onMission);
@@ -106,7 +135,7 @@ export default function MafiaAttackers() {
       const minutes = (Date.now() - startedAt.current) / 60000;
       const spawnEvery = Math.max(3500, SPAWN_INTERVAL_MS - minutes * 500);
 
-      // Spawn uniquement quand au moins un taxi joueur est en course.
+      // Spawn uniquement quand un taxi joueur est en course.
       if (
         onMission.length > 0 &&
         carsRef.current.filter((c) => c.state === "hunt").length < MAX_CARS &&
@@ -114,26 +143,41 @@ export default function MafiaAttackers() {
       ) {
         lastSpawn.current = now;
         const target = onMission[Math.floor(Math.random() * onMission.length)];
-        // On démarre le mafieux sur la ROUTE la plus proche de la cible,
-        // mais à une position aléatoire loin du taxi (effet "il arrive
-        // par la route, pas téléporté à côté").
-        const near = nearestOnPath(pathEls, target.x, target.y);
+        const near = nearestOnPath(pathEls, pathLens, target.x, target.y);
         const pathIdx = near.idx;
         const len = pathLens[pathIdx];
-        // démarre à ±300-600 px le long du path
         const offset = (300 + Math.random() * 300) * (Math.random() < 0.5 ? -1 : 1);
         let startT = near.t + offset;
         if (startT < 0) startT += len;
         if (startT > len) startT -= len;
-        const dir: 1 | -1 = offset >= 0 ? -1 : 1; // se rapprocher de la cible
-        const pt = pathEls[pathIdx].getPointAtLength(startT);
-        const urls = getCivilCarUrls();
-        const sprite = urls.length
-          ? urls[Math.floor(Math.random() * urls.length)]
-          : "";
+        startT = Math.max(0, Math.min(len, startT));
+        const dir: 1 | -1 = offset >= 0 ? -1 : 1;
+
+        // Choix du sprite : priorité aux familles mafia avec vehicleUrl,
+        // sinon sprite civil teinté en noir.
+        const families = getMafiaFamilies();
+        const withSprite = families.filter((f) => f && typeof f.vehicleUrl === "string" && f.vehicleUrl.length > 0);
+        let sprite = "";
+        let tinted = true;
+        if (withSprite.length > 0) {
+          sprite = withSprite[Math.floor(Math.random() * withSprite.length)].vehicleUrl!;
+          tinted = false;
+        } else {
+          const urls = getCivilCarUrls();
+          sprite = urls.length ? urls[Math.floor(Math.random() * urls.length)] : "";
+          tinted = true;
+        }
+
+        let pt: { x: number; y: number };
+        try {
+          pt = pathEls[pathIdx].getPointAtLength(startT);
+        } catch {
+          return;
+        }
         const mafia: Mafia = {
           id: ++idRef.current,
           sprite,
+          tinted,
           pathIdx,
           pathLen: len,
           t: startT,
@@ -149,30 +193,28 @@ export default function MafiaAttackers() {
       }
 
       // Avance chaque voiture le long de SA route.
-      let mutated = false;
+      let changed = false;
       const next: Mafia[] = [];
       for (const c of carsRef.current) {
         if (c.state === "exploding") {
           if (now - (c.explodedAt ?? now) < EXPLOSION_MS) next.push(c);
-          else mutated = true;
+          else changed = true;
           continue;
         }
         const p = pathEls[c.pathIdx];
+        if (!p) { changed = true; continue; }
         const len = c.pathLen;
         let nt = c.t + c.dir * c.speed * dt;
 
-        // Si on arrive au bout d'une route, on choisit la route la plus
-        // proche du taxi cible pour continuer la traque.
         if (nt < 0 || nt > len) {
           const tgt = taxis.find((t) => t.id === c.targetTaxiId) ?? taxis[0];
-          if (tgt) {
-            const near = nearestOnPath(pathEls, tgt.x, tgt.y);
-            const newPath = near.idx;
-            const newLen = pathLens[newPath];
-            // dir orientée pour se rapprocher
-            const t0 = near.t;
-            const startT = Math.max(0, Math.min(newLen, t0));
-            const newDir: 1 | -1 = startT < newLen / 2 ? 1 : -1;
+          if (!tgt) { changed = true; continue; }
+          const near = nearestOnPath(pathEls, pathLens, tgt.x, tgt.y);
+          const newPath = near.idx;
+          const newLen = pathLens[newPath];
+          const startT = Math.max(0, Math.min(newLen, near.t));
+          const newDir: 1 | -1 = startT < newLen / 2 ? 1 : -1;
+          try {
             const pt = pathEls[newPath].getPointAtLength(startT);
             const a0 = pathEls[newPath].getPointAtLength(
               Math.max(0, Math.min(newLen, startT + newDir * 4)),
@@ -188,32 +230,34 @@ export default function MafiaAttackers() {
               y: pt.y,
               angle,
             });
-            mutated = true;
-            continue;
-          } else {
-            // plus de cible → on sort
-            mutated = true;
-            continue;
+          } catch {
+            // path foireux, on retire la voiture
           }
+          changed = true;
+          continue;
         }
 
-        const pt = p.getPointAtLength(nt);
-        const ahead = p.getPointAtLength(
-          Math.max(0, Math.min(len, nt + c.dir * 4)),
-        );
-        const angle = (Math.atan2(ahead.y - pt.y, ahead.x - pt.x) * 180) / Math.PI;
-        next.push({ ...c, t: nt, x: pt.x, y: pt.y, angle });
-        mutated = true;
+        try {
+          const pt = p.getPointAtLength(nt);
+          const ahead = p.getPointAtLength(
+            Math.max(0, Math.min(len, nt + c.dir * 4)),
+          );
+          const angle = (Math.atan2(ahead.y - pt.y, ahead.x - pt.x) * 180) / Math.PI;
+          next.push({ ...c, t: nt, x: pt.x, y: pt.y, angle });
+        } catch {
+          changed = true;
+          continue;
+        }
       }
       carsRef.current = next;
-      if (mutated || next.length !== cars.length) setCars(next);
+      // Limite les re-renders : 1 frame sur 2, ou si le set a changé.
+      if (changed || frame % 2 === 0) setTick((n) => (n + 1) & 0xffff);
 
       raf = requestAnimationFrame(tick);
     };
 
     raf = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(raf);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pathEls, pathLens]);
 
   const explode = (id: number) => {
@@ -221,11 +265,14 @@ export default function MafiaAttackers() {
     carsRef.current = carsRef.current.map((c) =>
       c.id === id && c.state === "hunt" ? { ...c, state: "exploding", explodedAt: t } : c,
     );
-    setCars([...carsRef.current]);
+    setTick((n) => (n + 1) & 0xffff);
     window.dispatchEvent(
       new CustomEvent("jce.player.cashDelta", { detail: { amount: REWARD } }),
     );
   };
+
+  const cars = carsRef.current;
+  const S = VEHICLE_SIZE; // taille uniforme avec tous les autres véhicules
 
   return (
     <svg
@@ -256,23 +303,6 @@ export default function MafiaAttackers() {
               <circle r={r} fill="rgba(255,170,40,0.7)" opacity={op} />
               <circle r={r * 0.7} fill="rgba(255,90,30,0.9)" opacity={op} />
               <circle r={r * 0.35} fill="rgba(255,240,180,0.95)" opacity={op} />
-              <circle cx={-10} cy={-12 - age * 18} r={14 + age * 10} fill="rgba(30,30,30,0.55)" opacity={op * 0.7} />
-              <circle cx={12} cy={-8 - age * 22} r={11 + age * 8} fill="rgba(50,50,50,0.5)" opacity={op * 0.7} />
-              {[0, 60, 120, 180, 240, 300].map((a) => {
-                const rad = (a * Math.PI) / 180;
-                const d = age * 70;
-                return (
-                  <rect
-                    key={a}
-                    x={Math.cos(rad) * d - 2}
-                    y={Math.sin(rad) * d - 2}
-                    width={4}
-                    height={4}
-                    fill="#1a1a1a"
-                    opacity={op}
-                  />
-                );
-              })}
               <text y={-r - 6} textAnchor="middle" fontSize={30} fontWeight={900}
                 fill="#fde047" stroke="#1a1306" strokeWidth={1.6} opacity={op}>
                 +{REWARD}$
@@ -280,7 +310,6 @@ export default function MafiaAttackers() {
             </g>
           );
         }
-        const W = 56, H = 92;
         return (
           <g
             key={c.id}
@@ -289,27 +318,26 @@ export default function MafiaAttackers() {
             onClick={(e) => { e.stopPropagation(); explode(c.id); }}
             onTouchStart={(e) => { e.preventDefault(); explode(c.id); }}
           >
-            <rect x={-40} y={-30} width={80} height={60} fill="transparent" />
-            <ellipse cx={0} cy={6} rx={26} ry={6} fill="rgba(0,0,0,0.55)" />
+            {/* zone de tap confortable */}
+            <rect x={-S * 0.7} y={-S * 0.7} width={S * 1.4} height={S * 1.4} fill="transparent" />
+            <ellipse cx={0} cy={S * 0.04} rx={S * 0.34} ry={S * 0.07} fill="rgba(0,0,0,0.5)" />
             <g transform="rotate(90)">
               {c.sprite ? (
                 <image
                   href={c.sprite}
-                  x={-W / 2}
-                  y={-H / 2}
-                  width={W}
-                  height={H}
+                  x={-S / 2}
+                  y={-S / 2}
+                  width={S}
+                  height={S}
                   preserveAspectRatio="xMidYMid meet"
-                  filter="url(#mafia-black)"
+                  filter={c.tinted ? "url(#mafia-black)" : undefined}
                 />
               ) : (
-                <rect x={-W / 2} y={-H / 2} width={W} height={H} rx={8} fill="#0a0a0a" />
+                <rect x={-S / 2} y={-S / 2} width={S} height={S} rx={6} fill="#0a0a0a" />
               )}
             </g>
-            <circle cx={22} cy={-5} r={2} fill="#ff2a2a" />
-            <circle cx={22} cy={5} r={2} fill="#ff2a2a" />
-            <circle r={6} fill="rgba(0,0,0,0.7)" />
-            <text y={2} textAnchor="middle" fontSize={8} fontWeight={900} fill="#b91c1c">M</text>
+            <circle r={5} fill="rgba(0,0,0,0.75)" />
+            <text y={2} textAnchor="middle" fontSize={7} fontWeight={900} fill="#dc2626">M</text>
           </g>
         );
       })}
