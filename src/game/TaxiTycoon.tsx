@@ -912,6 +912,20 @@ export default function TaxiTycoon() {
     return { x: pt.x, y: pt.y };
   };
 
+  // Démarre un nouveau segment en mémorisant la position visuelle courante
+  // pour que le rendu lerpe doucement (évite les sauts entre routes).
+  const beginSegment = (taxi: Taxi, newPathIdx: number, newPos: number, newTarget: number) => {
+    const visual = taxiXY(taxi);
+    taxi.pathIdx = newPathIdx;
+    taxi.pos = newPos;
+    taxi.target = newTarget;
+    if (visual.x !== 0 || visual.y !== 0) {
+      taxi.transitionFromX = visual.x;
+      taxi.transitionFromY = visual.y;
+      taxi.transitionUntil = performance.now() + TRANSITION_MS;
+    }
+  };
+
   // Choisit aléatoirement un path différent du dernier (variété de trajet),
   // en évitant les paths du village (haut de la map).
   const pickPath = (avoid?: number): number => {
