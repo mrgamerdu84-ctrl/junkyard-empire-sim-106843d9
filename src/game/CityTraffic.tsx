@@ -131,9 +131,11 @@ const PHOTO_PEDS: PhotoPedSpec[] = [
 // une collision ou un futur effet tentait d'altérer sa position.
 export const SIDEWALK_LOCK_OFFSET = 64;
 // Les piétons photo marchent JUSTE à côté de la chaussée (stroke route = 46 → demi-largeur ≈ 23).
-// Un offset de 30 px les place sur le trottoir, sans déborder sur la chaussée d'une route perpendiculaire.
-const PHOTO_PED_OFFSET = 30;
-const PHOTO_PED_MIN_OFFSET = 26; // jamais plus près de l'axe que ça (anti-glissement chaussée)
+// Offset 42 = trottoir large, jamais sur la chaussée même en intersection.
+const PHOTO_PED_OFFSET = 42;
+const PHOTO_PED_MIN_OFFSET = 38; // jamais plus près de l'axe que ça (anti-glissement chaussée)
+// Rayon autour d'un feu où le piéton doit respecter le passage piéton.
+const PED_CROSSING_RADIUS = 44;
 
 
 /** Verrouille une coordonnée XY sur le trottoir : si elle est plus proche
@@ -179,13 +181,31 @@ function PhotoPedestrians({ pathRefs }: { pathRefs: React.MutableRefObject<(SVGP
     const step = (now: number) => {
       const dt = Math.min(0.05, (now - last) / 1000);
       last = now;
+      const tSec = nowSeconds();
+      const lights = getTrafficLights();
       for (let i = 0; i < states.length; i++) {
         const st = states[i];
         const node = nodes.current[i];
         const path = pathRefs.current[st.spec.pathIdx];
         if (!path || !node) continue;
-        st.s = (st.s + st.spec.speed * dt) % st.pathLen;
-        const p = path.getPointAtLength(st.s);
+        // Position courante pour décider d'un éventuel arrêt au passage piéton.
+        const cur = path.getPointAtLength(st.s);
+        // Cherche un feu à proximité : si le feu PIÉTON est rouge (= feu voiture vert/orange),
+        // on bloque le piéton AU BORD du passage (il n'entre pas sur la chaussée).
+        let blocked = false;
+        for (const l of lights) {
+          const dx0 = l.x - cur.x;
+          const dy0 = l.y - cur.y;
+          if (dx0 * dx0 + dy0 * dy0 < PED_CROSSING_RADIUS * PED_CROSSING_RADIUS) {
+            const carState = getLightState(l, tSec);
+            // Feu piéton vert UNIQUEMENT quand le feu voiture est rouge.
+            if (carState !== "red") { blocked = true; break; }
+          }
+        }
+        if (!blocked) {
+          st.s = (st.s + st.spec.speed * dt) % st.pathLen;
+        }
+        const p = blocked ? cur : path.getPointAtLength(st.s);
         // CULLING : hors viewport SVG (avec marge) → skip getPointAtLength d'appoint + DOM write.
         if (p.x < -200 || p.x > 2120 || p.y < -200 || p.y > 1280) continue;
         const p2 = path.getPointAtLength(Math.min(st.pathLen, st.s + 1));
