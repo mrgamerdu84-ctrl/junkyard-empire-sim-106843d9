@@ -151,21 +151,24 @@ export default function MafiaAttackers() {
       const taxis = getPlayerTaxis();
       const onMission = taxis.filter((t) => t.onMission);
       const minutes = (Date.now() - startedAt.current) / 60000;
-      const spawnEvery = Math.max(3500, SPAWN_INTERVAL_MS - minutes * 500);
-
-      // Trêve mafia payée au Parrain : aucun spawn de sabotage (sauf
-      // si un raid de représailles est en cours, géré ci-dessous).
       const truceOn = isMafiaTruceActive();
       const raidOn = now < raidUntilRef.current;
+      // Raid : représailles si le joueur a refusé la rançon → spawn
+      // agressif même hors mission, ciblé sur les taxis présents.
+      const spawnEvery = raidOn
+        ? 1500
+        : Math.max(3500, SPAWN_INTERVAL_MS - minutes * 500);
+      const wantSpawn = raidOn ? taxis.length > 0 : onMission.length > 0;
 
       if (
         !truceOn &&
-        onMission.length > 0 &&
-        carsRef.current.filter((c) => c.state === "hunt").length < maxCarsRef.current &&
+        wantSpawn &&
+        carsRef.current.filter((c) => c.state === "hunt").length < (raidOn ? maxCarsRef.current + 2 : maxCarsRef.current) &&
         now - lastSpawn.current > spawnEvery
       ) {
         lastSpawn.current = now;
-        const target = onMission[Math.floor(Math.random() * onMission.length)];
+        const pool = raidOn && taxis.length ? taxis : onMission;
+        const target = pool[Math.floor(Math.random() * pool.length)];
         const near = nearestOnPath(pathEls, pathLens, target.x, target.y);
         const pathIdx = near.idx;
         const len = pathLens[pathIdx];
