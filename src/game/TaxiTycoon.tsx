@@ -669,6 +669,9 @@ export default function TaxiTycoon() {
   const taxisRef = useRef<Taxi[]>([]);
   const nextIdRef = useRef(1);
   const lastJobSpawnRef = useRef(0);
+  // Cooldown global entre 2 annonces "📞 course entrante" de la secrétaire
+  // (le pool de jobs continue de se remplir en arrière-plan).
+  const lastOfferAnnouncedRef = useRef(0);
   const lastTaxiDispatchRef = useRef(0);
   const [, forceRender] = useState(0);
   const [toast, setToast] = useState<string | null>(null);
@@ -1331,9 +1334,15 @@ export default function TaxiTycoon() {
         lastJobSpawnRef.current = now;
         const job = genJob(cur.depotTier);
         setJobs((js) => [...js, job]);
-        try {
-          window.dispatchEvent(new CustomEvent("jce:mission-offered", { detail: { id: job.id, fare: job.fare } }));
-        } catch {}
+        // Annonce vocale espacée : pas plus d'une proposition toutes les 45 s
+        // pour ne pas saturer le joueur (la course reste disponible dans la file).
+        const OFFER_COOLDOWN_MS = 45_000;
+        if (now - lastOfferAnnouncedRef.current > OFFER_COOLDOWN_MS) {
+          lastOfferAnnouncedRef.current = now;
+          try {
+            window.dispatchEvent(new CustomEvent("jce:mission-offered", { detail: { id: job.id, fare: job.fare } }));
+          } catch {}
+        }
       }
 
       // === Mouvement des taxis ===
