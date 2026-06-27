@@ -2765,7 +2765,38 @@ export default function TaxiTycoon() {
               </g>
             );
           });
+
+          return (
+            <>
+              {/* Tarmac qui masque le taxi peint dans l'image du QG */}
+              <g transform={admin.hqRotation ? `rotate(${admin.hqRotation} ${maskCx} ${maskCy})` : undefined}>
+                <rect
+                  x={maskCx - maskW / 2}
+                  y={maskCy - maskH / 2}
+                  width={maskW}
+                  height={maskH}
+                  rx={6}
+                  fill="#2a2d33"
+                  opacity="0.92"
+                />
+                <rect
+                  x={maskCx - maskW / 2}
+                  y={maskCy - maskH / 2}
+                  width={maskW}
+                  height={maskH}
+                  rx={6}
+                  fill="none"
+                  stroke="#f5c542"
+                  strokeWidth="1.2"
+                  strokeDasharray="4 3"
+                  opacity="0.55"
+                />
+              </g>
+              {renderedTaxis}
+            </>
+          );
         })()}
+
 
 
         {/* Popups gains */}
