@@ -111,10 +111,10 @@ type Taxi = {
 };
 const TRANSITION_MS = 1500;
 
-// Rond-point central — coordonnées dans le repère SVG 1920×1080 (citymap3).
-// Aucun véhicule ne doit traverser ce disque : on s'en sert pour bloquer
-// tout lerp qui dessinerait un raccourci visuel par-dessus la fontaine.
-export const ROUNDABOUT = { x: 955, y: 608, r: 60 };
+// Ancien rond-point central — désactivé (r=0). On garde l'export pour la
+// compatibilité avec segmentHitsCircle ; les 4 grands boulevards sont
+// maintenant rectilignes et se croisent franchement au centre (960, 540).
+export const ROUNDABOUT = { x: 960, y: 540, r: 0 };
 
 // Test : est-ce que le segment [A,B] coupe le disque (cx,cy,r) ?
 function segmentHitsCircle(
