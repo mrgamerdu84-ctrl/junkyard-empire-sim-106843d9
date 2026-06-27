@@ -1736,3 +1736,51 @@ const specBtn = (accent: string, bg: string): CSSProperties => ({
 const specHint: CSSProperties = {
   marginTop: 4, fontSize: 10, fontWeight: 500, color: "#fde68a", opacity: 0.85,
 };
+
+function RoadCalibrationButtons() {
+  const [busy, setBusy] = useState(false);
+  const [msg, setMsg] = useState<string | null>(null);
+  const run = async () => {
+    setBusy(true);
+    setMsg(null);
+    try {
+      const { calibrateRoadsFromMap } = await import("./roadCalibration");
+      const r = await calibrateRoadsFromMap();
+      setMsg(`✓ ${r.snapped}/${r.count} segments recalés. Rechargement…`);
+      setTimeout(() => window.location.reload(), 800);
+    } catch (e) {
+      setMsg("Échec de la calibration");
+      setBusy(false);
+    }
+  };
+  const reset = async () => {
+    const { clearCalibration } = await import("./roadCalibration");
+    clearCalibration();
+    setMsg("Calibration effacée. Rechargement…");
+    setTimeout(() => window.location.reload(), 600);
+  };
+  return (
+    <div style={{ marginTop: 10, padding: 8, border: "1px solid #4b5563", borderRadius: 6, background: "#0f172a" }}>
+      <div style={{ fontSize: 11, fontWeight: 700, color: "#fde68a", marginBottom: 6 }}>
+        🛣️ Calibrage des routes (auto-snap sur la map)
+      </div>
+      <div style={{ fontSize: 10, color: "#cbd5e1", marginBottom: 8, lineHeight: 1.4 }}>
+        Si certaines voitures coupent ou dévient, lance un recalibrage : chaque point des
+        trajectoires est snappé sur le pixel route le plus proche de la carte actuelle.
+      </div>
+      <div style={{ display: "flex", gap: 6 }}>
+        <button onClick={run} disabled={busy}
+          style={{ flex: 1, padding: "8px 10px", background: "#1e3a8a", border: "1px solid #3b82f6",
+            borderRadius: 6, color: "#fff", font: "700 11px ui-sans-serif", cursor: busy ? "wait" : "pointer" }}>
+          {busy ? "…" : "Recalibrer maintenant"}
+        </button>
+        <button onClick={reset} disabled={busy}
+          style={{ padding: "8px 10px", background: "transparent", border: "1px solid #7f1d1d",
+            borderRadius: 6, color: "#fca5a5", font: "700 11px ui-sans-serif", cursor: "pointer" }}>
+          Réinit.
+        </button>
+      </div>
+      {msg && <div style={{ marginTop: 6, fontSize: 10, color: "#86efac" }}>{msg}</div>}
+    </div>
+  );
+}
