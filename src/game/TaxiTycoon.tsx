@@ -2421,7 +2421,7 @@ export default function TaxiTycoon() {
         ref={containerRef}
         viewBox="0 0 1920 1080"
         preserveAspectRatio="xMidYMid slice"
-        style={{ position: "absolute", inset: 0, width: "100%", height: "100%", pointerEvents: "none", zIndex: 4 }}
+        style={{ position: "absolute", inset: 0, width: "100%", height: "100%", pointerEvents: "none", zIndex: manualMode ? 9500 : 4, touchAction: manualMode ? "none" : undefined }}
       >
         <defs>
           {ROADS.map((d, i) => (
