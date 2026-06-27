@@ -43,7 +43,9 @@ const REWARD = 100;
 const MAP_W = 1920;
 const MAP_H = 1080;
 const SPAWN_INTERVAL_MS = 9000;
-const MAX_CARS = 2;
+const MAX_CARS_HI = 3; // FPS >= 55
+const MAX_CARS_MID = 2; // FPS >= 40
+const MAX_CARS_LO = 1; // FPS < 40
 const EXPLOSION_MS = 900;
 
 function getPlayerTaxis(): PlayerTaxi[] {
@@ -104,6 +106,8 @@ export default function MafiaAttackers() {
   const idRef = useRef(0);
   const lastSpawn = useRef(0);
   const startedAt = useRef(Date.now());
+  const fpsRef = useRef(60);
+  const maxCarsRef = useRef(MAX_CARS_MID);
   const pathEls = useMemo(() => buildPathEls(), []);
   const pathLens = useMemo(() => pathEls.map((p) => p.getTotalLength()), [pathEls]);
   // refs DOM par voiture -> mise à jour directe du transform sans re-render
@@ -116,9 +120,22 @@ export default function MafiaAttackers() {
     let structuralChange = false;
 
     const tick = (now: number) => {
-      const dt = Math.min(0.05, (now - last) / 1000);
+      const dtMs = now - last;
+      const dt = Math.min(0.05, dtMs / 1000);
       last = now;
       structuralChange = false;
+
+      // Lissage exponentiel du FPS (alpha ~0.05).
+      const inst = dtMs > 0 ? 1000 / dtMs : 60;
+      fpsRef.current = fpsRef.current * 0.95 + inst * 0.05;
+      const fps = fpsRef.current;
+      // Hystérésis pour éviter le yo-yo.
+      const cur = maxCarsRef.current;
+      let next = cur;
+      if (fps < 38 && cur > MAX_CARS_LO) next = MAX_CARS_LO;
+      else if (fps >= 42 && fps < 55 && cur !== MAX_CARS_MID) next = MAX_CARS_MID;
+      else if (fps >= 58 && cur < MAX_CARS_HI) next = MAX_CARS_HI;
+      maxCarsRef.current = next;
 
       const taxis = getPlayerTaxis();
       const onMission = taxis.filter((t) => t.onMission);
@@ -127,7 +144,7 @@ export default function MafiaAttackers() {
 
       if (
         onMission.length > 0 &&
-        carsRef.current.filter((c) => c.state === "hunt").length < MAX_CARS &&
+        carsRef.current.filter((c) => c.state === "hunt").length < maxCarsRef.current &&
         now - lastSpawn.current > spawnEvery
       ) {
         lastSpawn.current = now;
