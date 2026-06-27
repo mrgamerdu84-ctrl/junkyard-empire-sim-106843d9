@@ -3319,6 +3319,14 @@ export default function TaxiTycoon() {
             <button className="tt-lcd-key" onClick={() => setShowTutorial(true)}>
               <span className="tt-lcd-key-ico">📖</span><b>TUTO</b>
             </button>
+            <button
+              className="tt-lcd-key"
+              onClick={() => setManualMode((v) => !v)}
+              style={manualMode ? { background: "linear-gradient(180deg,#f472b6,#be185d)", color: "#fff" } : undefined}
+              title="Conduire un taxi au doigt"
+            >
+              <span className="tt-lcd-key-ico">🕹️</span><b>{manualMode ? "STOP" : "PILOTE"}</b>
+            </button>
           </div>
 
 
