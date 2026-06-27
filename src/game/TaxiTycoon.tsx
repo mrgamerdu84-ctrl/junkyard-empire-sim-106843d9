@@ -586,6 +586,7 @@ export default function TaxiTycoon() {
   // === Persistent state ===
   const [save, setSave] = useState<SaveData>(DEFAULT_SAVE);
   const [hydrated, setHydrated] = useState(false);
+  const lastCloudPushRef = useRef(0); // timestamp du dernier push qu'on a fait soi-même
   useEffect(() => {
     // 1) hydratation immédiate depuis localStorage pour zéro flash
     const local = loadSave();
@@ -603,6 +604,43 @@ export default function TaxiTycoon() {
         console.warn("[TaxiTycoon] cloud load skipped", e);
       }
     })();
+  }, []);
+
+  // 3) synchronisation temps réel : si la sauvegarde change sur un autre
+  //    appareil, on récupère la nouvelle version automatiquement.
+  useEffect(() => {
+    let cancelled = false;
+    let channel: ReturnType<typeof supabase.channel> | null = null;
+    (async () => {
+      const { supabase } = await import("@/integrations/supabase/client");
+      const { data: sess } = await supabase.auth.getSession();
+      const uid = sess.session?.user.id;
+      if (!uid || cancelled) return;
+      channel = supabase
+        .channel(`game_saves:${uid}`)
+        .on(
+          "postgres_changes",
+          { event: "*", schema: "public", table: "game_saves", filter: `user_id=eq.${uid}` },
+          (payload) => {
+            const row = (payload.new ?? payload.old) as { data?: unknown; updated_at?: string } | null;
+            if (!row || !row.data || typeof row.data !== "object") return;
+            // Ignore l'écho de notre propre push récent (< 3 s).
+            if (Date.now() - lastCloudPushRef.current < 3000) return;
+            setSave({ ...DEFAULT_SAVE, ...(row.data as Partial<SaveData>) });
+            setToast("🔄 Partie synchronisée");
+            window.setTimeout(() => setToast(null), 1500);
+          },
+        )
+        .subscribe();
+    })();
+    return () => {
+      cancelled = true;
+      if (channel) {
+        import("@/integrations/supabase/client").then(({ supabase }) => {
+          supabase.removeChannel(channel!);
+        });
+      }
+    };
   }, []);
   const saveRef = useRef(save);
   saveRef.current = save;
@@ -1078,12 +1116,36 @@ export default function TaxiTycoon() {
       (async () => {
         try {
           const { pushCloudSave } = await import("@/lib/cloudSave");
+          lastCloudPushRef.current = Date.now();
           await pushCloudSave(save);
         } catch {}
       })();
     }, 800);
     return () => clearTimeout(id);
   }, [save, hydrated]);
+
+  // Re-tire la sauvegarde cloud quand on revient sur l'onglet (filet de
+  // sécurité si le canal realtime a été coupé pendant la mise en veille).
+  useEffect(() => {
+    const onFocus = async () => {
+      try {
+        const { fetchCloudSave } = await import("@/lib/cloudSave");
+        const cloud = await fetchCloudSave();
+        if (cloud && cloud.data && typeof cloud.data === "object") {
+          const cloudTs = new Date(cloud.updatedAt).getTime();
+          // n'écrase pas un push local très récent
+          if (cloudTs - lastCloudPushRef.current > 2000) {
+            setSave({ ...DEFAULT_SAVE, ...(cloud.data as Partial<SaveData>) });
+          }
+        }
+      } catch {}
+    };
+    window.addEventListener("focus", onFocus);
+    document.addEventListener("visibilitychange", () => {
+      if (document.visibilityState === "visible") onFocus();
+    });
+    return () => window.removeEventListener("focus", onFocus);
+  }, []);
 
   const tier = DEPOT_TIERS[save.depotTier];
   const nextTier = DEPOT_TIERS[save.depotTier + 1];
