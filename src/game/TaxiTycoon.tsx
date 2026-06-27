@@ -1100,6 +1100,12 @@ export default function TaxiTycoon() {
     return () => window.removeEventListener("jce.player.cashDelta", onCashDelta as EventListener);
   }, []);
 
+  // Mirror du cash sur window pour les composants externes (Parrain mafia)
+  // qui doivent connaître la solvabilité du joueur sans accéder au state React.
+  useEffect(() => {
+    (window as unknown as { __jcePlayerCash?: number }).__jcePlayerCash = save.money;
+  }, [save.money]);
+
   // Démarre le tick salaires/revenus du personnel (une seule fois).
   useEffect(() => { startPersonnelTick(); }, []);
 

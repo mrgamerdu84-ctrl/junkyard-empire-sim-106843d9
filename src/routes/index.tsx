@@ -11,6 +11,7 @@ import EmergencyStations from "@/game/EmergencyStations";
 import RadarFlash from "@/game/RadarFlash";
 // AmbientSirens retiré : plus de bruits d'ambulance/pompiers/police en fond.
 import AdminPanel from "@/game/AdminPanel";
+import MafiaGodfather from "@/game/MafiaGodfather";
 import VersionBanner from "@/game/VersionBanner";
 import HomeScreen from "@/game/HomeScreen";
 import SplashScreen from "@/game/SplashScreen";
@@ -176,6 +177,7 @@ function TaxiTycoonPage() {
       
       {/* <AmbientSirens /> — désactivé sur demande joueur */}
       <AdminPanel />
+      <MafiaGodfather />
       <VersionBanner />
 
     </div>

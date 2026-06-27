@@ -1,40 +1,69 @@
-## Cadre style "écran de téléphone"
+## Système "Le Parrain réclame sa rançon"
 
-Ajouter un cadre noir tout autour de la zone de jeu (top, gauche, droite) avec coins arrondis, comme la bordure d'un smartphone. La carte du jeu vit à l'intérieur.
+### 1. Nouveau module `src/game/MafiaGodfather.tsx`
+Composant overlay HUD (portal, hors zoom carte) qui gère **toute** la mécanique :
 
-## Bandeau supérieur — uniquement le titre
+- **État local persistant** dans `localStorage` (clé `mtw.godfather.v1`) :
+  - `truceUntil` : timestamp ms — fin de la trêve payée (0 si aucune).
+  - `nextDemandAt` : timestamp ms — prochaine apparition du Parrain.
+  - `lastPaid` : timestamp.
+- **Cycle automatique** :
+  - À l'arrivée sur `nextDemandAt` → ouvre le pop-up du Parrain.
+  - Si le joueur **paye 1 500 $** (debit via `jce.player.cashDelta` avec `amount: -1500`, `reason: "ransom"`) :
+    - `truceUntil = now + 60 min`
+    - `nextDemandAt = truceUntil + 5 s` (le Parrain revient pile après la trêve)
+    - Émet `jce.mafia.truce` `{ active: true, until: truceUntil }`.
+  - Si le joueur **refuse** :
+    - Émet `jce.mafia.raid` `{ until: now + 90 s }` → déclenche un raid sur le QG.
+    - `nextDemandAt = now + 8 min` (le Parrain revient plus tard).
+- **Refus si fonds insuffisants** : bouton désactivé + message "Tu n'as pas de quoi payer… mauvaise idée." → traité comme refus si timer expire.
 
-Dans `.tt-topbar`, **supprimer** :
-- bouton `?` aide
-- pastille HEURE · MÉTÉO · ARGENT (info déjà dans le LCD du bas)
-- bouton Missions (descendu dans le tableau de bord)
+### 2. UI du pop-up (style talkie / haut-parleur old-school)
+- Overlay centré, fond semi-opaque sombre.
+- Carte sombre avec bord doré, icône **haut-parleur 📢** animé (pulse rouge quand il parle).
+- Portrait du Parrain (image générée : silhouette costume + chapeau, cigare, fond rouge sombre — `src/assets/godfather.png`).
+- **Bulle de dialogue** type bande dessinée (queue pointant vers le portrait) avec texte tapé caractère par caractère (effet machine à écrire ~25 ms/lettre).
+- Textes tirés d'un pool aléatoire (4-5 répliques signature, ex : *"Alors, gamin… on dit que ça roule pour toi. Ce serait dommage qu'il arrive un malheur à ta belle flotte. 1 500 $ et on n'en parle plus pendant une heure."*).
+- Boutons :
+  - 🟢 **PAYER 1 500 $** (vert, désactivé si cash < 1 500).
+  - 🔴 **REFUSER** (rouge, conséquences chiffrées sous le bouton).
+- Compte à rebours **15 s** pour répondre → expiration = refus.
 
-**Garder / ajouter** :
-- Gros titre centré **MY TAXI WORLD RIVALITÉ** (style enseigne lumineuse ambrée, Orbitron, glow doré)
-- Bouton ⛶ plein écran/zoom carte à droite (déjà existant `tt-fs-toggle` — repositionné sur le bandeau)
+### 3. Intégration "trêve" (1 h)
+Lecture d'un helper exporté `isMafiaTruceActive()` (lit `truceUntil` dans localStorage) :
 
-## Radio intégrée dans le tableau de bord
+- **`src/game/MafiaAttackers.tsx`** : court-circuite le spawn des voitures de sabotage si trêve active.
+- **`src/game/ArmoredTruck.tsx`** : ne lance pas de mission camion blindé pendant la trêve.
+- **`src/game/TaxiTycoon.tsx`** (génération des jobs / `claimedBy`) : ignore les "vols de course" par compagnies mafia tant que `isMafiaTruceActive()` est `true`.
 
-Remplacer la touche `RADIO` (rangée 4) par un **mini écran tactile radio** intégré dans la même rangée mais sur 2 slots de large :
-- Écran LCD ambré avec nom de la station qui défile (marquee si tronqué)
-- Indicateur ▶ / ⏸
-- Boutons tactiles ⏮ ⏭ pour changer de station
-- Petit séparateur "CÉLÉBRER" / "DROIT LIBRE" (catégorie active)
-- Au tap sur l'écran : ouvre le panneau radio complet pour choisir la station/volume
+### 4. Intégration "raid sur QG" (refus)
+Nouvel évènement `jce.mafia.raid` écouté par `MafiaAttackers.tsx` :
+- Pendant la durée du raid (90 s), spawn **3–5 voitures supplémentaires** dont la cible n'est plus les taxis mais le QG joueur (`admin.hqX/hqY`).
+- Le joueur doit les cliquer pour les exploser (mécanique sabotage existante).
+- À l'expiration, retour au régime normal (mafia continue son sabotage standard).
 
-Rangée 4 reconfigurée en 5 cellules (radio = 2) : `[RADIO écran ××][FLOTTE][QG][RIVALITÉ][TUTO]` — CLASSEMENT est déjà accessible via RIVALITÉ.
+### 5. HUD : badge "Trêve" sur le tableau de bord
+Dans `src/game/TaxiTycoon.tsx`, ajout d'une mini-pastille dans le bandeau status (à côté du trafic/météo) :
+- **🤝 TRÊVE 42:18** quand `truceUntil > now` (mm:ss restant, vert).
+- **☠ MENACE** quand pas de trêve (rouge discret).
+- Cliquable → ré-ouvre le pop-up Parrain à la demande (utile si fermé par erreur).
 
-## Bouton Missions
+### 6. Audio (optionnel, léger)
+- Court "bip" radio à l'ouverture du pop-up (Web Audio API, oscillateur 600 Hz 80 ms, déjà utilisé ailleurs dans le projet — pas de nouvel asset).
+- Voix off désactivée par défaut (évite la dépendance à TTS).
 
-Descendu dans la rangée 5 (outils) avec compteur rouge intégré :
-`[MISSIONS (n)][ENTRETIEN][SPÉCIAL][APK][ADMIN]` — rangée 5 passe à 5 colonnes.
+### 7. Assets
+- `src/assets/godfather.png` — portrait généré (fast quality, 512×512, fond sombre, costume noir, chapeau, cigare allumé, lunettes fumées) inséré dans le pop-up.
 
-## Fichier modifié
+### 8. Montage
+- `src/routes/index.tsx` : ajout de `<MafiaGodfather />` au même niveau que `<AdminPanel />` (HUD fixe, hors zoom).
+- Premier déclenchement : `nextDemandAt = now + 3 min` après la première partie (laisse le temps au joueur de s'installer).
 
-`src/game/TaxiTycoon.tsx` uniquement :
-- JSX `.tt-topbar` (réduit au titre + bouton zoom)
-- JSX `.tt-console-lcd` rangée 4 (radio intégrée) et rangée 5 (ajout Missions)
-- CSS : nouveau `.tt-phone-frame` (cadre), `.tt-title-banner` (enseigne lumineuse), `.tt-lcd-radio` (écran radio tactile avec animation marquee)
-- Logique radio : réutilise le store existant (RadioPlayer) ; expose `currentStation`, `next()`, `prev()`, `togglePlay()` via hook déjà en place ou via événements custom si besoin.
+### Récap mécanique
+| Action joueur | Effet immédiat | Suite |
+|---|---|---|
+| Paye 1 500 $ | −1 500 $, trêve 60 min (mafia OFF) | Parrain revient à T+60 min |
+| Refuse / timeout | Raid QG 90 s (vagues mafia) | Parrain revient à T+8 min |
+| Cash < 1 500 | Bouton payer grisé → forcé refus | Idem refus |
 
-Aucune logique de jeu modifiée — uniquement présentation et réorganisation des contrôles existants.
+Tout est local (localStorage + évènements `window`) — aucun changement backend.

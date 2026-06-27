@@ -13,6 +13,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { getCivilCarUrls } from "./gameAssets";
 import { ROADS, VILLAGE_PATHS } from "./CityTraffic";
 import { VEHICLE_SIZE } from "./TaxiTycoon";
+import { isMafiaTruceActive } from "./MafiaGodfather";
 
 type PlayerTaxi = { id: number; x: number; y: number; onMission: boolean };
 type CompetitorLite = {
@@ -112,6 +113,16 @@ export default function MafiaAttackers() {
   const pathLens = useMemo(() => pathEls.map((p) => p.getTotalLength()), [pathEls]);
   // refs DOM par voiture -> mise à jour directe du transform sans re-render
   const groupRefs = useRef<Map<number, SVGGElement>>(new Map());
+  const raidUntilRef = useRef(0);
+
+  useEffect(() => {
+    const onRaid = (ev: Event) => {
+      const d = (ev as CustomEvent<{ until: number }>).detail;
+      if (d && typeof d.until === "number") raidUntilRef.current = d.until;
+    };
+    window.addEventListener("jce.mafia.raid", onRaid as EventListener);
+    return () => window.removeEventListener("jce.mafia.raid", onRaid as EventListener);
+  }, []);
 
   useEffect(() => {
     if (pathEls.length === 0) return;
@@ -140,15 +151,24 @@ export default function MafiaAttackers() {
       const taxis = getPlayerTaxis();
       const onMission = taxis.filter((t) => t.onMission);
       const minutes = (Date.now() - startedAt.current) / 60000;
-      const spawnEvery = Math.max(3500, SPAWN_INTERVAL_MS - minutes * 500);
+      const truceOn = isMafiaTruceActive();
+      const raidOn = now < raidUntilRef.current;
+      // Raid : représailles si le joueur a refusé la rançon → spawn
+      // agressif même hors mission, ciblé sur les taxis présents.
+      const spawnEvery = raidOn
+        ? 1500
+        : Math.max(3500, SPAWN_INTERVAL_MS - minutes * 500);
+      const wantSpawn = raidOn ? taxis.length > 0 : onMission.length > 0;
 
       if (
-        onMission.length > 0 &&
-        carsRef.current.filter((c) => c.state === "hunt").length < maxCarsRef.current &&
+        !truceOn &&
+        wantSpawn &&
+        carsRef.current.filter((c) => c.state === "hunt").length < (raidOn ? maxCarsRef.current + 2 : maxCarsRef.current) &&
         now - lastSpawn.current > spawnEvery
       ) {
         lastSpawn.current = now;
-        const target = onMission[Math.floor(Math.random() * onMission.length)];
+        const pool = raidOn && taxis.length ? taxis : onMission;
+        const target = pool[Math.floor(Math.random() * pool.length)];
         const near = nearestOnPath(pathEls, pathLens, target.x, target.y);
         const pathIdx = near.idx;
         const len = pathLens[pathIdx];
