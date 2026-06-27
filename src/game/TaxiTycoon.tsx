@@ -1234,9 +1234,7 @@ export default function TaxiTycoon() {
             taxi.ridesSinceDeposit = (taxi.ridesSinceDeposit ?? 0) + 1;
             const pIdx = pickPath(taxi.pathIdx);
             const here = taxiXY(taxi);
-            taxi.pathIdx = pIdx;
-            taxi.pos = closestOnPath(pIdx, here.x, here.y);
-            taxi.target = closestOnPath(pIdx, adm.hqX, adm.hqY);
+            beginSegment(taxi, pIdx, closestOnPath(pIdx, here.x, here.y), closestOnPath(pIdx, adm.hqX, adm.hqY));
             taxi.mode = "returning";
             // tous les N courses, doit déposer au QG
             if (taxi.ridesSinceDeposit >= DEPOSIT_EVERY_RIDES) {
@@ -1244,7 +1242,6 @@ export default function TaxiTycoon() {
             }
           } else if (taxi.mode === "returning") {
             if (taxi.mustDeposit) {
-              // arrivé au garage : dépôt instantané puis reprise du roulage.
               taxi.mode = "idle";
               taxi.depositUntil = undefined;
               taxi.mustDeposit = false;
@@ -1258,17 +1255,14 @@ export default function TaxiTycoon() {
             if (taxi.fuel < FUEL_LOW_THRESHOLD) {
               const pIdx = pickPath(taxi.pathIdx);
               const here = taxiXY(taxi);
-              taxi.pathIdx = pIdx;
-              taxi.pos = closestOnPath(pIdx, here.x, here.y);
-              taxi.target = closestOnPath(pIdx, adm.gasStationX, adm.gasStationY);
+              beginSegment(taxi, pIdx, closestOnPath(pIdx, here.x, here.y), closestOnPath(pIdx, adm.gasStationX, adm.gasStationY));
               taxi.mode = "to_gas";
             } else {
               const pIdx = pickPath(taxi.pathIdx);
               const here = taxiXY(taxi);
-              taxi.pathIdx = pIdx;
-              taxi.pos = closestOnPath(pIdx, here.x, here.y);
+              const newPos = closestOnPath(pIdx, here.x, here.y);
               const len = pathLensRef.current[pIdx] ?? 0;
-              taxi.target = Math.max(1, Math.min(len - 1, Math.random() * len));
+              beginSegment(taxi, pIdx, newPos, Math.max(1, Math.min(len - 1, Math.random() * len)));
             }
           } else if (taxi.mode === "to_gas") {
             taxi.mode = "refueling";
