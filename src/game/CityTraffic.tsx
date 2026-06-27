@@ -724,27 +724,46 @@ export default function CityTraffic() {
                 fill={red ? "#ff2a2a" : orange ? "#ffb020" : "#22e36a"}
                 opacity={night * 0.35} />
             )}
-            {/* Feu piéton — pictogramme à côté du feu voiture */}
-            <g transform="translate(16,-6)">
-              <rect x="-5" y="-9" width="10" height="18" rx="2" fill="#0e1217" stroke="#000" strokeWidth="0.8" />
-              <g fill={pedColor}>
-                <circle cx="0" cy="-5" r="1.4" />
-                {pedGreen ? (
-                  <>
-                    <rect x="-0.8" y="-3.6" width="1.6" height="4" rx="0.4" />
-                    <rect x="-2.2" y="0.4" width="1.4" height="3" rx="0.4" transform="rotate(-18 -1.5 1.9)" />
-                    <rect x="0.8" y="0.4" width="1.4" height="3" rx="0.4" transform="rotate(18 1.5 1.9)" />
-                  </>
-                ) : (
-                  <>
-                    <rect x="-1" y="-3.6" width="2" height="4.2" rx="0.5" />
-                    <rect x="-1.6" y="0.6" width="1.4" height="3" rx="0.4" />
-                    <rect x="0.2" y="0.6" width="1.4" height="3" rx="0.4" />
-                  </>
-                )}
-              </g>
-              {pedGreen && night > 0.4 && (
-                <circle r="7" fill="#22e36a" opacity={night * 0.35} />
+            {/* Feu piéton — boîtier dédié avec silhouette MARCHE / NE PAS MARCHER */}
+            <g transform="translate(18,-4)">
+              {/* Boîtier noir */}
+              <rect x="-7" y="-13" width="14" height="26" rx="2.5" fill="#0a0c10" stroke="#000" strokeWidth="0.8" />
+              {/* Écran rouge (ne pas marcher) */}
+              <rect x="-5.5" y="-11.5" width="11" height="11" rx="1.2" fill={pedGreen ? "#2a0808" : "#1a0303"} />
+              {/* Écran vert (marcher) */}
+              <rect x="-5.5" y="0.5" width="11" height="11" rx="1.2" fill={pedGreen ? "#062a14" : "#06160c"} />
+              {pedGreen ? (
+                // ▶ MARCHE : silhouette "walking man" verte, animée
+                <g fill="#22e36a" transform="translate(0,6)">
+                  <circle cx="0" cy="-4.5" r="1.3" />
+                  {/* Torse incliné */}
+                  <rect x="-1" y="-3.2" width="2" height="3.6" rx="0.5" transform="rotate(-8)" />
+                  {/* Bras */}
+                  <rect x="-2.6" y="-2.6" width="1.1" height="2.6" rx="0.4" transform="rotate(-35 -2 -1.3)" />
+                  <rect x="1.5" y="-2.6" width="1.1" height="2.6" rx="0.4" transform="rotate(30 2 -1.3)" />
+                  {/* Jambes en mouvement */}
+                  <rect x="-1.6" y="0.2" width="1.3" height="3.4" rx="0.4" transform="rotate(-20 -1 1.9)">
+                    <animateTransform attributeName="transform" type="rotate" values="-25 -1 1.9;0 -1 1.9;-25 -1 1.9" dur="0.6s" repeatCount="indefinite" />
+                  </rect>
+                  <rect x="0.3" y="0.2" width="1.3" height="3.4" rx="0.4" transform="rotate(25 1 1.9)">
+                    <animateTransform attributeName="transform" type="rotate" values="25 1 1.9;0 1 1.9;25 1 1.9" dur="0.6s" repeatCount="indefinite" />
+                  </rect>
+                  {night > 0.4 && <circle r="7" fill="#22e36a" opacity={night * 0.45} />}
+                </g>
+              ) : (
+                // ✋ NE PAS MARCHER : main rouge levée (style US "DON'T WALK")
+                <g fill="#ff2a2a" transform="translate(0,-6)">
+                  {/* Paume */}
+                  <path d="M -3 -1 Q -3 -4.2 0 -4.2 Q 3 -4.2 3 -1 L 3 2.6 Q 3 4 1.6 4 L -1.6 4 Q -3 4 -3 2.6 Z" />
+                  {/* Poignet */}
+                  <rect x="-1.6" y="3.4" width="3.2" height="2" rx="0.5" />
+                  {/* Doigts (4 traits) */}
+                  <rect x="-2.4" y="-4.2" width="0.9" height="2.4" rx="0.3" />
+                  <rect x="-1.2" y="-4.8" width="0.9" height="3" rx="0.3" />
+                  <rect x="0.3" y="-4.8" width="0.9" height="3" rx="0.3" />
+                  <rect x="1.5" y="-4.2" width="0.9" height="2.4" rx="0.3" />
+                  {night > 0.4 && <circle r="7" fill="#ff2a2a" opacity={night * 0.4} />}
+                </g>
               )}
             </g>
             {/* Passages piétons (zébras) aux 4 côtés de l'intersection */}
