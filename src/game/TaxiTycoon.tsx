@@ -2139,6 +2139,8 @@ export default function TaxiTycoon() {
   const [cityInfoOpen, setCityInfoOpen] = useState(false);
   const [personnelOpen, setPersonnelOpen] = useState(false);
   const [hqPanelOpen, setHqPanelOpen] = useState(false);
+  // Taxi en cours d'assignation à une place de parking (id) — UI gestion flotte.
+  const [parkPickerTaxiId, setParkPickerTaxiId] = useState<number | null>(null);
 
   const auth = useAuth();
   const [pseudoDraft, setPseudoDraft] = useState("");
