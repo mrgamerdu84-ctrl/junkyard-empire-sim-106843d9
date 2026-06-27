@@ -3062,6 +3062,49 @@ export default function TaxiTycoon() {
             </text>
           </g>
         ))}
+
+        {/* === MODE PILOTE === capture du doigt + taxi spécial */}
+        {manualMode && (() => {
+          const p = manualPosRef.current;
+          void manualTick; // re-render à chaque frame
+          const setTargetFromEvent = (evt: React.PointerEvent<SVGRectElement>) => {
+            const svg = (evt.currentTarget.ownerSVGElement) as SVGSVGElement | null;
+            if (!svg) return;
+            const ctm = svg.getScreenCTM();
+            if (!ctm) return;
+            const pt = svg.createSVGPoint();
+            pt.x = evt.clientX; pt.y = evt.clientY;
+            const loc = pt.matrixTransform(ctm.inverse());
+            manualTargetRef.current = { x: loc.x, y: loc.y };
+          };
+          return (
+            <g>
+              <rect
+                x={0} y={0} width={1920} height={1080}
+                fill="transparent"
+                style={{ pointerEvents: "auto", cursor: "crosshair", touchAction: "none" }}
+                onPointerDown={(e) => { (e.currentTarget as Element).setPointerCapture?.(e.pointerId); setTargetFromEvent(e); }}
+                onPointerMove={(e) => { if (e.buttons || e.pointerType === "touch") setTargetFromEvent(e); }}
+                onPointerUp={(e) => { (e.currentTarget as Element).releasePointerCapture?.(e.pointerId); manualTargetRef.current = null; }}
+                onPointerCancel={() => { manualTargetRef.current = null; }}
+              />
+              {manualTargetRef.current && (
+                <circle cx={manualTargetRef.current.x} cy={manualTargetRef.current.y} r={14}
+                  fill="none" stroke="#ec4899" strokeWidth={3} opacity={0.9}>
+                  <animate attributeName="r" values="14;22;14" dur="0.9s" repeatCount="indefinite" />
+                </circle>
+              )}
+              <g transform={`translate(${p.x},${p.y}) rotate(${p.angle})`} filter="url(#taxi-shadow)">
+                <circle r={22} fill="#ec4899" opacity={0.25} />
+                <TaxiSprite image={currentLivery.image} faceRight={currentLivery.faceRight}
+                  paintFilter="hue-rotate(290deg) saturate(1.4)" markerColor="#ec4899"
+                  withClient={false} moving={!!manualTargetRef.current} />
+                <text x={0} y={-26} textAnchor="middle" fontSize="9" fontWeight="900"
+                  fill="#fff" stroke="#0a0c10" strokeWidth="2" paintOrder="stroke">PILOTE</text>
+              </g>
+            </g>
+          );
+        })()}
       </svg>
 
         {/* === HUD HTML incrusté — rendu hors carte pour rester fixe === */}
