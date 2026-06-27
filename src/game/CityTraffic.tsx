@@ -625,6 +625,20 @@ export default function CityTraffic() {
         const side = st.spec.flip ? -1 : 1;
         const ox = (-tdy / L) * LANE_HALF * side;
         const oy = (tdx / L) * LANE_HALF * side;
+        // Verrou QG : si la voiture civile pénètre la zone réservée aux taxis
+        // (parvis + intérieur de l'entrepôt), on la re-rolle vers un autre
+        // path autorisé. Invisible pour le joueur — elle disparaît hors-écran
+        // et réapparaît sur une autre route.
+        if (isInsideHQZone(p.x + ox, p.y + oy)) {
+          st.spec = rerollSpec(st.spec);
+          st.pathLen = lens[st.spec.pathIdx];
+          st.baseSpeed = st.pathLen / st.spec.duration;
+          st.s = Math.random() * st.pathLen;
+          st.laneKey = `${st.spec.pathIdx}:${st.spec.flip ? "r" : "f"}`;
+          node.setAttribute("opacity", "0");
+          checkRadars(st, prev);
+          continue;
+        }
         node.setAttribute("transform", `translate(${(p.x + ox).toFixed(2)},${(p.y + oy).toFixed(2)}) rotate(${ang.toFixed(2)})`);
         checkRadars(st, prev);
       }
