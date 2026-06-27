@@ -1084,6 +1084,56 @@ export default function TaxiTycoon() {
   // Démarre le tick salaires/revenus du personnel (une seule fois).
   useEffect(() => { startPersonnelTick(); }, []);
 
+  // === Auto-dispatch : chaque chauffeur embauché prend automatiquement
+  // les courses proposées et sort un taxi du QG. Un chauffeur = un taxi
+  // capable de bosser en autonome en plus du joueur. ===
+  useEffect(() => {
+    let stopped = false;
+    const tryDispatch = async () => {
+      try {
+        const { loadStaff, countByRole } = await import("./personnel");
+        const tick = () => {
+          if (stopped) return;
+          const drivers = countByRole(loadStaff(), "driver");
+          if (drivers <= 0) return;
+          // Combien de taxis sont déjà sur une mission ?
+          const busy = taxisRef.current.filter(
+            (t) => t.mode === "to_pickup" || t.mode === "to_dest"
+          ).length;
+          // Chaque chauffeur peut piloter un taxi en mission supplémentaire.
+          let slots = Math.max(0, drivers - busy);
+          if (slots <= 0) return;
+          // On accepte les courses offertes une par une (acceptJob respecte
+          // déjà le cooldown de sortie QG et la dispo des taxis).
+          const offered = jobsRef.current
+            .filter((j) => j.status === "offered")
+            .sort((a, b) => a.deadline - b.deadline);
+          for (const j of offered) {
+            if (slots <= 0) break;
+            const before = taxisRef.current.filter(
+              (t) => t.mode === "to_pickup" || t.mode === "to_dest"
+            ).length;
+            acceptJob(j.id);
+            const after = taxisRef.current.filter(
+              (t) => t.mode === "to_pickup" || t.mode === "to_dest"
+            ).length;
+            if (after > before) slots--;
+            else break; // cooldown ou aucun taxi libre → on retentera plus tard
+          }
+        };
+        const handle = window.setInterval(tick, 1500);
+        return () => window.clearInterval(handle);
+      } catch {
+        return undefined;
+      }
+    };
+    const cleanupPromise = tryDispatch();
+    return () => {
+      stopped = true;
+      cleanupPromise.then((fn) => fn && fn());
+    };
+  }, []);
+
 
 
 
