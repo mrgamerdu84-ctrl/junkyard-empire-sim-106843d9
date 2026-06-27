@@ -4,14 +4,10 @@
 // courses. Les mafieux suivent strictement le réseau routier
 // (mêmes paths SVG que le trafic civil).
 //
-// Skins :
-//  - Si une famille mafia a un `vehicleUrl` configuré → on l'utilise
-//    tel quel (pas de teinte noire).
-//  - Sinon, on prend un sprite de voiture civile du jeu et on le
-//    teinte en noir (filtre SVG `mafia-black`).
-//
-// Le joueur doit TAPER chaque voiture mafia pour la stopper net /
-// la faire exploser et protéger son taxi. +100 $ par mafieux.
+// Perf : on évite tout setState par frame. Les positions sont
+// mises à jour en direct sur les <g> via refs DOM (transform).
+// React ne re-render que quand une voiture apparaît / disparaît
+// ou explose.
 // =============================================================
 import { useEffect, useMemo, useRef, useState } from "react";
 import { getCivilCarUrls } from "./gameAssets";
@@ -50,7 +46,6 @@ const SPAWN_INTERVAL_MS = 9000;
 const MAX_CARS = 2;
 const EXPLOSION_MS = 900;
 
-
 function getPlayerTaxis(): PlayerTaxi[] {
   const w = window as unknown as { __jcePlayerTaxis?: PlayerTaxi[] };
   return Array.isArray(w.__jcePlayerTaxis) ? w.__jcePlayerTaxis : [];
@@ -69,18 +64,13 @@ function buildPathEls(): SVGPathElement[] {
     try {
       const p = document.createElementNS(ns, "path");
       p.setAttribute("d", ROADS[i]);
-      // touche getTotalLength pour vérifier que le path est valide
       if (p.getTotalLength() > 0) out.push(p);
-    } catch {
-      /* path invalide, on ignore */
-    }
+    } catch { /* ignore */ }
   }
   return out;
 }
 
-// Trouve l'index du path dont un point est le plus proche d'une cible,
-// + la distance le long du path du point le plus proche.
-// Échantillonnage léger pour éviter les pics CPU.
+// Échantillonnage léger : 12 pts/path, suffisant pour trouver une route.
 function nearestOnPath(
   paths: SVGPathElement[],
   lens: number[],
@@ -90,7 +80,7 @@ function nearestOnPath(
   let bestIdx = 0;
   let bestT = 0;
   let bestD = Infinity;
-  const STEPS = 24;
+  const STEPS = 12;
   for (let i = 0; i < paths.length; i++) {
     const p = paths[i];
     const len = lens[i];
@@ -100,43 +90,41 @@ function nearestOnPath(
       const dx = pt.x - tx;
       const dy = pt.y - ty;
       const d = dx * dx + dy * dy;
-      if (d < bestD) {
-        bestD = d;
-        bestIdx = i;
-        bestT = t;
-      }
+      if (d < bestD) { bestD = d; bestIdx = i; bestT = t; }
     }
   }
   return { idx: bestIdx, t: bestT };
 }
 
 export default function MafiaAttackers() {
-  const [, setTick] = useState(0);
+  // version sert uniquement à re-render quand la liste change
+  // (spawn / despawn / explosion start/end).
+  const [version, setVersion] = useState(0);
   const carsRef = useRef<Mafia[]>([]);
   const idRef = useRef(0);
   const lastSpawn = useRef(0);
   const startedAt = useRef(Date.now());
   const pathEls = useMemo(() => buildPathEls(), []);
   const pathLens = useMemo(() => pathEls.map((p) => p.getTotalLength()), [pathEls]);
+  // refs DOM par voiture -> mise à jour directe du transform sans re-render
+  const groupRefs = useRef<Map<number, SVGGElement>>(new Map());
 
   useEffect(() => {
     if (pathEls.length === 0) return;
     let raf = 0;
     let last = performance.now();
-    let frame = 0;
+    let structuralChange = false;
 
     const tick = (now: number) => {
       const dt = Math.min(0.05, (now - last) / 1000);
       last = now;
-      frame++;
+      structuralChange = false;
 
       const taxis = getPlayerTaxis();
       const onMission = taxis.filter((t) => t.onMission);
-
       const minutes = (Date.now() - startedAt.current) / 60000;
       const spawnEvery = Math.max(3500, SPAWN_INTERVAL_MS - minutes * 500);
 
-      // Spawn uniquement quand un taxi joueur est en course.
       if (
         onMission.length > 0 &&
         carsRef.current.filter((c) => c.state === "hunt").length < MAX_CARS &&
@@ -154,10 +142,10 @@ export default function MafiaAttackers() {
         startT = Math.max(0, Math.min(len, startT));
         const dir: 1 | -1 = offset >= 0 ? -1 : 1;
 
-        // Choix du sprite : priorité aux familles mafia avec vehicleUrl,
-        // sinon sprite civil teinté en noir.
         const families = getMafiaFamilies();
-        const withSprite = families.filter((f) => f && typeof f.vehicleUrl === "string" && f.vehicleUrl.length > 0);
+        const withSprite = families.filter(
+          (f) => f && typeof f.vehicleUrl === "string" && f.vehicleUrl.length > 0,
+        );
         let sprite = "";
         let tinted = true;
         if (withSprite.length > 0) {
@@ -169,47 +157,58 @@ export default function MafiaAttackers() {
           tinted = true;
         }
 
-        let pt: { x: number; y: number };
         try {
-          pt = pathEls[pathIdx].getPointAtLength(startT);
-        } catch {
-          return;
-        }
-        const mafia: Mafia = {
-          id: ++idRef.current,
-          sprite,
-          tinted,
-          pathIdx,
-          pathLen: len,
-          t: startT,
-          dir,
-          speed: 130 + Math.random() * 60 + minutes * 8,
-          x: pt.x,
-          y: pt.y,
-          angle: 0,
-          targetTaxiId: target.id,
-          state: "hunt",
-        };
-        carsRef.current = [...carsRef.current, mafia];
+          const pt = pathEls[pathIdx].getPointAtLength(startT);
+          carsRef.current = [
+            ...carsRef.current,
+            {
+              id: ++idRef.current,
+              sprite,
+              tinted,
+              pathIdx,
+              pathLen: len,
+              t: startT,
+              dir,
+              speed: 130 + Math.random() * 60 + minutes * 8,
+              x: pt.x,
+              y: pt.y,
+              angle: 0,
+              targetTaxiId: target.id,
+              state: "hunt",
+            },
+          ];
+          structuralChange = true;
+        } catch { /* ignore */ }
       }
 
-      // Avance chaque voiture le long de SA route.
-      let changed = false;
-      const next: Mafia[] = [];
+      // Avance + mutation in-place + transform DOM direct.
+      const survivors: Mafia[] = [];
       for (const c of carsRef.current) {
         if (c.state === "exploding") {
-          if (now - (c.explodedAt ?? now) < EXPLOSION_MS) next.push(c);
-          else changed = true;
+          if (now - (c.explodedAt ?? now) < EXPLOSION_MS) {
+            survivors.push(c);
+          } else {
+            groupRefs.current.delete(c.id);
+            structuralChange = true;
+          }
           continue;
         }
         const p = pathEls[c.pathIdx];
-        if (!p) { changed = true; continue; }
+        if (!p) {
+          groupRefs.current.delete(c.id);
+          structuralChange = true;
+          continue;
+        }
         const len = c.pathLen;
         let nt = c.t + c.dir * c.speed * dt;
 
         if (nt < 0 || nt > len) {
           const tgt = taxis.find((t) => t.id === c.targetTaxiId) ?? taxis[0];
-          if (!tgt) { changed = true; continue; }
+          if (!tgt) {
+            groupRefs.current.delete(c.id);
+            structuralChange = true;
+            continue;
+          }
           const near = nearestOnPath(pathEls, pathLens, tgt.x, tgt.y);
           const newPath = near.idx;
           const newLen = pathLens[newPath];
@@ -221,39 +220,46 @@ export default function MafiaAttackers() {
               Math.max(0, Math.min(newLen, startT + newDir * 4)),
             );
             const angle = (Math.atan2(a0.y - pt.y, a0.x - pt.x) * 180) / Math.PI;
-            next.push({
-              ...c,
-              pathIdx: newPath,
-              pathLen: newLen,
-              t: startT,
-              dir: newDir,
-              x: pt.x,
-              y: pt.y,
-              angle,
-            });
+            c.pathIdx = newPath;
+            c.pathLen = newLen;
+            c.t = startT;
+            c.dir = newDir;
+            c.x = pt.x;
+            c.y = pt.y;
+            c.angle = angle;
+            nt = startT;
           } catch {
-            // path foireux, on retire la voiture
+            groupRefs.current.delete(c.id);
+            structuralChange = true;
+            continue;
           }
-          changed = true;
-          continue;
+        } else {
+          try {
+            const pt = p.getPointAtLength(nt);
+            const ahead = p.getPointAtLength(
+              Math.max(0, Math.min(len, nt + c.dir * 4)),
+            );
+            const angle = (Math.atan2(ahead.y - pt.y, ahead.x - pt.x) * 180) / Math.PI;
+            c.t = nt;
+            c.x = pt.x;
+            c.y = pt.y;
+            c.angle = angle;
+          } catch {
+            groupRefs.current.delete(c.id);
+            structuralChange = true;
+            continue;
+          }
         }
 
-        try {
-          const pt = p.getPointAtLength(nt);
-          const ahead = p.getPointAtLength(
-            Math.max(0, Math.min(len, nt + c.dir * 4)),
-          );
-          const angle = (Math.atan2(ahead.y - pt.y, ahead.x - pt.x) * 180) / Math.PI;
-          next.push({ ...c, t: nt, x: pt.x, y: pt.y, angle });
-        } catch {
-          changed = true;
-          continue;
+        // Mise à jour directe DOM (pas de re-render React).
+        const g = groupRefs.current.get(c.id);
+        if (g) {
+          g.setAttribute("transform", `translate(${c.x.toFixed(2)},${c.y.toFixed(2)}) rotate(${c.angle.toFixed(1)})`);
         }
+        survivors.push(c);
       }
-      carsRef.current = next;
-      // Limite les re-renders : 1 frame sur 3, ou si le set a changé.
-      if (changed || frame % 3 === 0) setTick((n) => (n + 1) & 0xffff);
-
+      carsRef.current = survivors;
+      if (structuralChange) setVersion((v) => (v + 1) & 0xffff);
 
       raf = requestAnimationFrame(tick);
     };
@@ -264,17 +270,20 @@ export default function MafiaAttackers() {
 
   const explode = (id: number) => {
     const t = performance.now();
-    carsRef.current = carsRef.current.map((c) =>
-      c.id === id && c.state === "hunt" ? { ...c, state: "exploding", explodedAt: t } : c,
-    );
-    setTick((n) => (n + 1) & 0xffff);
+    const c = carsRef.current.find((x) => x.id === id);
+    if (!c || c.state !== "hunt") return;
+    c.state = "exploding";
+    c.explodedAt = t;
+    setVersion((v) => (v + 1) & 0xffff);
     window.dispatchEvent(
       new CustomEvent("jce.player.cashDelta", { detail: { amount: REWARD } }),
     );
   };
 
   const cars = carsRef.current;
-  const S = VEHICLE_SIZE; // taille uniforme avec tous les autres véhicules
+  const S = VEHICLE_SIZE;
+  // version est utilisé pour forcer un re-render structurel.
+  void version;
 
   return (
     <svg
@@ -315,12 +324,15 @@ export default function MafiaAttackers() {
         return (
           <g
             key={c.id}
+            ref={(el) => {
+              if (el) groupRefs.current.set(c.id, el);
+              else groupRefs.current.delete(c.id);
+            }}
             transform={`translate(${c.x},${c.y}) rotate(${c.angle})`}
-            style={{ pointerEvents: "auto", cursor: "pointer" }}
+            style={{ pointerEvents: "auto", cursor: "pointer", willChange: "transform" }}
             onClick={(e) => { e.stopPropagation(); explode(c.id); }}
             onTouchStart={(e) => { e.preventDefault(); explode(c.id); }}
           >
-            {/* zone de tap confortable */}
             <rect x={-S * 0.7} y={-S * 0.7} width={S * 1.4} height={S * 1.4} fill="transparent" />
             <ellipse cx={0} cy={S * 0.04} rx={S * 0.34} ry={S * 0.07} fill="rgba(0,0,0,0.5)" />
             <g transform="rotate(90)">
