@@ -498,6 +498,7 @@ export default function AdminPanel() {
                 <Slider label="🚓 Voitures de police" hint="0 = aucune patrouille, 6 = ville sous surveillance"
                   value={cfg.policeCarCount} min={0} max={6} step={1}
                   format={(v) => v.toFixed(0)} onChange={(v) => setAdmin({ policeCarCount: v })} />
+                <RoadCalibrationButtons />
               </>
             )}
 
