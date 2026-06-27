@@ -43,7 +43,9 @@ const REWARD = 100;
 const MAP_W = 1920;
 const MAP_H = 1080;
 const SPAWN_INTERVAL_MS = 9000;
-const MAX_CARS = 2;
+const MAX_CARS_HI = 3; // FPS >= 55
+const MAX_CARS_MID = 2; // FPS >= 40
+const MAX_CARS_LO = 1; // FPS < 40
 const EXPLOSION_MS = 900;
 
 function getPlayerTaxis(): PlayerTaxi[] {
