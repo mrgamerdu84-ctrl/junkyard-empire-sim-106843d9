@@ -20,7 +20,7 @@ import { getMaintenanceDiscount, getTipsBonus, startPersonnelTick } from "./pers
 import { useAuth } from "@/lib/useAuth";
 import { resolveAvatarSrc } from "@/components/ProfileCard";
 import { supabase } from "@/integrations/supabase/client";
-import playerHqAsset from "@/assets/player-hq.png.asset.json";
+import playerHqAsset from "@/assets/taxi-warehouse.png.asset.json";
 
 const PLAYER_HQ_IMG = playerHqAsset.url;
 
