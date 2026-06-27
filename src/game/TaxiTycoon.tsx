@@ -2136,19 +2136,21 @@ export default function TaxiTycoon() {
   };
 
   // Le joueur accepte la course → on cherche un taxi idle, sinon on râle.
-  const acceptJob = (id: number) => {
+  // `opts.bypassCooldown` permet à l'auto-dispatch d'envoyer plusieurs
+  // taxis simultanément (1 chauffeur = 1 taxi qui sort).
+  const acceptJob = (id: number, opts?: { bypassCooldown?: boolean }) => {
     const job = jobsRef.current.find((j) => j.id === id);
     if (!job || job.status !== "offered") return;
     const free = taxisRef.current.find((t) => t.mode === "idle" || t.mode === "roaming");
     if (!free) {
-      showToast("🚖 Tous les taxis sont occupés");
+      if (!opts?.bypassCooldown) showToast("🚖 Tous les taxis sont occupés");
       return;
     }
     const adm = getAdmin();
     const prodReduction = Math.max(0.2, 1 - 0.15 * (saveRef.current.hqProductionLvl ?? 0));
     const cooldownMs = Math.max(0, adm.taxiSpawnCooldown) * 1000 * prodReduction;
     const now = performance.now();
-    if (now - lastTaxiDispatchRef.current < cooldownMs) {
+    if (!opts?.bypassCooldown && now - lastTaxiDispatchRef.current < cooldownMs) {
       showToast(`⏱️ Cooldown sortie QG`);
       return;
     }
