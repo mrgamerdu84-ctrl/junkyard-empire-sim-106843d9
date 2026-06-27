@@ -3229,6 +3229,7 @@ export default function TaxiTycoon() {
         {/* === HUD HTML incrusté — rendu hors carte pour rester fixe === */}
       {typeof document !== "undefined" && createPortal((
       <div className={`tt-hud ${mapFullscreen ? "tt-hud-fs" : ""}`}>
+        <MissionOfferToast />
         {/* Bouton plein écran toujours visible */}
         <button
           className="tt-fs-toggle"
