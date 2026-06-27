@@ -46,9 +46,10 @@ type Mafia = {
 const REWARD = 100;
 const MAP_W = 1920;
 const MAP_H = 1080;
-const SPAWN_INTERVAL_MS = 7000;
-const MAX_CARS = 4;
+const SPAWN_INTERVAL_MS = 9000;
+const MAX_CARS = 2;
 const EXPLOSION_MS = 900;
+
 
 function getPlayerTaxis(): PlayerTaxi[] {
   const w = window as unknown as { __jcePlayerTaxis?: PlayerTaxi[] };
