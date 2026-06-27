@@ -177,6 +177,7 @@ function TaxiTycoonPage() {
       
       {/* <AmbientSirens /> — désactivé sur demande joueur */}
       <AdminPanel />
+      <MafiaGodfather />
       <VersionBanner />
 
     </div>
