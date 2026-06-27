@@ -586,6 +586,7 @@ export default function TaxiTycoon() {
   // === Persistent state ===
   const [save, setSave] = useState<SaveData>(DEFAULT_SAVE);
   const [hydrated, setHydrated] = useState(false);
+  const lastCloudPushRef = useRef(0); // timestamp du dernier push qu'on a fait soi-même
   useEffect(() => {
     // 1) hydratation immédiate depuis localStorage pour zéro flash
     const local = loadSave();
@@ -603,6 +604,43 @@ export default function TaxiTycoon() {
         console.warn("[TaxiTycoon] cloud load skipped", e);
       }
     })();
+  }, []);
+
+  // 3) synchronisation temps réel : si la sauvegarde change sur un autre
+  //    appareil, on récupère la nouvelle version automatiquement.
+  useEffect(() => {
+    let cancelled = false;
+    let channel: ReturnType<typeof supabase.channel> | null = null;
+    (async () => {
+      const { supabase } = await import("@/integrations/supabase/client");
+      const { data: sess } = await supabase.auth.getSession();
+      const uid = sess.session?.user.id;
+      if (!uid || cancelled) return;
+      channel = supabase
+        .channel(`game_saves:${uid}`)
+        .on(
+          "postgres_changes",
+          { event: "*", schema: "public", table: "game_saves", filter: `user_id=eq.${uid}` },
+          (payload) => {
+            const row = (payload.new ?? payload.old) as { data?: unknown; updated_at?: string } | null;
+            if (!row || !row.data || typeof row.data !== "object") return;
+            // Ignore l'écho de notre propre push récent (< 3 s).
+            if (Date.now() - lastCloudPushRef.current < 3000) return;
+            setSave({ ...DEFAULT_SAVE, ...(row.data as Partial<SaveData>) });
+            setToast("🔄 Partie synchronisée");
+            window.setTimeout(() => setToast(null), 1500);
+          },
+        )
+        .subscribe();
+    })();
+    return () => {
+      cancelled = true;
+      if (channel) {
+        import("@/integrations/supabase/client").then(({ supabase }) => {
+          supabase.removeChannel(channel!);
+        });
+      }
+    };
   }, []);
   const saveRef = useRef(save);
   saveRef.current = save;
