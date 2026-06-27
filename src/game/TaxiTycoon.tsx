@@ -2810,23 +2810,24 @@ export default function TaxiTycoon() {
 
 
         {(() => {
-          // Places de parking alignées sur le taxi jaune peint dans l'image du QG
-          // (image 1024×1024, taxi peint ~ x[165..600] y[640..820]).
-          // On masque la zone peinte par un rect "tarmac" pour qu'on ne voie
-          // plus le taxi imprimé sous les vrais taxis du joueur.
+          // Places de parking alignées sur les 6 emplacements peints du nouvel
+          // entrepôt « TAXI DEPOT » (image 1024×768 rendue dans une box 320×320
+          // avec preserveAspectRatio=meet → facteur uniforme 320/1024 = 0.3125,
+          // image centrée verticalement dans la box).
           const hqCx = depotXY.x;
           const hqCy = depotXY.y - 18;
           const scale = admin.hqScale;
           const rot = (admin.hqRotation * Math.PI) / 180;
           const cosR = Math.cos(rot);
           const sinR = Math.sin(rot);
-          // Centre de la zone peinte (en pixels image) ramené en unités monde (pre-scale)
-          // ((px-512)*320/1024) avec base 320 = w/scale.
-          const parvisCx = ((165 + 600) / 2 - 512) * (320 / 1024); // ≈ -40.5
-          const parvisCy = ((640 + 820) / 2 - 512) * (320 / 1024); // ≈ +21.6
-          const parvisW = (600 - 165) * (320 / 1024);              // ≈ 136
-          const parvisH = (820 - 640) * (320 / 1024);              // ≈ 56
-          // Tout taxi idle ou en dépôt est garé visuellement dans le QG.
+          const K = 320 / 1024; // facteur image → unités monde (pre-scale)
+          // 6 places visibles, centres X approximatifs dans l'image (px).
+          const slotCentersPx = [230, 340, 450, 560, 670, 780];
+          const slotYPx = 395; // y du milieu de la place (un peu sous l'icône peinte)
+          const SLOTS_MAX = slotCentersPx.length;
+          // Centre & largeur du parvis (utilisé pour le mapping logique)
+          const parvisCx = (((slotCentersPx[0] + slotCentersPx[SLOTS_MAX - 1]) / 2) - 512) * K;
+          const parvisCy = (slotYPx - 384) * K;
           const parked: { taxi: Taxi; slot: number }[] = [];
           const parkedIds = new Set<number>();
           taxisRef.current.forEach((t) => {
@@ -2835,29 +2836,22 @@ export default function TaxiTycoon() {
               parkedIds.add(t.id);
             }
           });
-          // Le nombre de slots s'adapte au nombre de taxis garés pour
-          // qu'aucun véhicule ne soit caché derrière un autre.
-          const slotsCount = Math.max(4 + (save.hqCapacityLvl ?? 0), parked.length, 1);
-          const slotW = parvisW / slotsCount;
           const slotWorld = (i: number) => {
-            const lx = parvisCx - parvisW / 2 + slotW / 2 + i * slotW;
-            const ly = parvisCy;
+            const safeI = i % SLOTS_MAX;
+            const lx = (slotCentersPx[safeI] - 512) * K;
+            const ly = (slotYPx - 384) * K;
             const sx = lx * scale;
             const sy = ly * scale;
             return {
               x: hqCx + sx * cosR - sy * sinR,
               y: hqCy + sx * sinR + sy * cosR,
-              angle: admin.hqRotation, // taxi horizontal, aligné comme le peint
+              angle: admin.hqRotation, // aligné comme les taxis peints
             };
           };
           parked.forEach((p, i) => { p.slot = i; });
+          // Plus de masque "tarmac" : le sol peint du nouvel entrepôt sert de parking.
+          void parvisCx; void parvisCy;
 
-
-          // Masque "tarmac" pour cacher le taxi jaune peint dans l'image.
-          const maskW = parvisW * scale * 1.05;
-          const maskH = parvisH * scale * 1.15;
-          const maskCx = hqCx + (parvisCx * scale) * cosR - (parvisCy * scale) * sinR;
-          const maskCy = hqCy + (parvisCx * scale) * sinR + (parvisCy * scale) * cosR;
 
           // Couleur d'état pour le halo (mise à jour en temps réel selon le mode du taxi)
           const statusFor = (mode: TaxiMode): { ring: string; label: string } => {
