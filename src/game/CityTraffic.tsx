@@ -708,7 +708,7 @@ export default function CityTraffic() {
         const red = st === "red", orange = st === "orange", green = st === "green";
         // Feu piéton : vert uniquement quand le feu voiture est rouge.
         const pedGreen = red;
-        const pedColor = pedGreen ? "#22e36a" : "#ff2a2a";
+        void pedGreen;
         return (
           <g key={`tl-${l.id}`} transform={`translate(${l.x},${l.y}) scale(1.6)`} pointerEvents="none">
             <ellipse cx="0" cy="14" rx="14" ry="4" fill="rgba(0,0,0,0.45)" />
