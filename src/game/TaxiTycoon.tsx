@@ -2584,7 +2584,41 @@ export default function TaxiTycoon() {
         })}
 
 
-        {/* Dépôt principal — bâtiment réel incrusté dans la ville (cliquable pour la boutique) */}
+        {/* === Route en travaux (extension future au nord du QG) === */}
+        {pathsReady && (() => {
+          const cx = depotXY.x;
+          const cy = depotXY.y - 180;
+          return (
+            <g transform={`translate(${cx},${cy})`} style={{ pointerEvents: "none" }}>
+              <ellipse cx="0" cy="22" rx="80" ry="8" fill="rgba(0,0,0,0.45)" />
+              {/* Barrière rayée rouge/blanc */}
+              <rect x="-70" y="-4" width="140" height="10" rx="2" fill="#fff" stroke="#0a0c10" strokeWidth="1.2" />
+              <g>
+                {[-60, -40, -20, 0, 20, 40].map((x) => (
+                  <rect key={x} x={x} y="-4" width="10" height="10" fill="#dc2626" />
+                ))}
+              </g>
+              <rect x="-72" y="6" width="6" height="22" fill="#1f2937" />
+              <rect x="66" y="6" width="6" height="22" fill="#1f2937" />
+              {/* Cônes */}
+              {[-50, 50].map((x) => (
+                <g key={x} transform={`translate(${x},14)`}>
+                  <polygon points="-5,8 5,8 2,-6 -2,-6" fill="#f97316" stroke="#0a0c10" strokeWidth="0.8" />
+                  <rect x="-3" y="0" width="6" height="2" fill="#fff" />
+                </g>
+              ))}
+              {/* Panneau "EN DÉVELOPPEMENT" */}
+              <g transform="translate(0,-38)">
+                <rect x="-58" y="-14" width="116" height="22" rx="2" fill="#fde047" stroke="#0a0c10" strokeWidth="1.5" />
+                <text x="0" y="-3" fontSize="6.5" fontWeight="900" textAnchor="middle" fill="#1a1208" letterSpacing="0.5">🚧 EN TRAVAUX</text>
+                <text x="0" y="5" fontSize="4.5" fontWeight="700" textAnchor="middle" fill="#1a1208">Nouvelle extension</text>
+                <rect x="-2" y="8" width="4" height="14" fill="#1f2937" />
+              </g>
+            </g>
+          );
+        })()}
+
+
         {pathsReady && (() => {
           const baseW = 320; // largeur visuelle au scale 1 (ratio carré image)
           const w = baseW * admin.hqScale;

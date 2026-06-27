@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "@tanstack/react-router";
-import bgAsset from "@/assets/home-bg.png.asset.json";
+import bgAssetV2 from "@/assets/menu-bg-v2.jpg";
 import { UpdateNotification } from "@/components/UpdateNotification";
 import TutorialDialog from "@/components/TutorialDialog";
 import LeaderboardPanel from "@/components/LeaderboardPanel";
@@ -83,9 +83,14 @@ export default function HomeScreen({ onPlay }: { onPlay: () => void }) {
       <style>{`
         .hs-home {
           position: fixed; inset: 0; z-index: 9999;
-          background: #0a0c10 url('${bgAsset.url}') center center / cover no-repeat;
+          background: #0a0c10 url('${bgAssetV2}') center center / cover no-repeat;
           font-family: system-ui, -apple-system, sans-serif;
           overflow: hidden;
+        }
+        .hs-home::before {
+          content: ""; position: absolute; inset: 0;
+          background: linear-gradient(180deg, rgba(10,12,16,0.25) 0%, rgba(10,12,16,0.55) 55%, rgba(10,12,16,0.92) 100%);
+          z-index: 1; pointer-events: none;
         }
         .hs-btns {
           position: absolute;
@@ -286,6 +291,13 @@ export default function HomeScreen({ onPlay }: { onPlay: () => void }) {
             🔐 Connexion
           </button>
         )}
+        <button
+          className="hs-btn"
+          style={{ background: "linear-gradient(180deg,#6b7280,#374151)", color: "#fde047", boxShadow: "0 6px 0 #1f2937, 0 12px 20px rgba(0,0,0,0.5)", border: "2px dashed #fde047", textShadow: "0 1px 0 rgba(0,0,0,0.4)" }}
+          onClick={() => alert("🚧 Extension en développement — débloquera une nouvelle carte vers le nord avec de nouvelles missions.")}
+        >
+          🔒 Étendre la ville (bientôt)
+        </button>
         <button className="hs-btn" onClick={() => navigate({ to: "/download" })}>
           <svg className="hs-apk-icon" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
             <path d="M17.6 9.48l1.84-3.2c.16-.27.07-.62-.2-.78-.27-.16-.62-.07-.78.2l-1.87 3.24c-1.52-.68-3.22-1.06-5.02-1.06-1.8 0-3.5.38-5.02 1.06L4.84 5.7c-.16-.27-.51-.36-.78-.2-.27.16-.36.51-.2.78l1.84 3.2C2.8 11.36 1 14.44 1 18h22c0-3.56-1.8-6.64-4.4-8.52zM7 15.25c-.69 0-1.25-.56-1.25-1.25s.56-1.25 1.25-1.25 1.25.56 1.25 1.25-.56 1.25-1.25 1.25zm10 0c-.69 0-1.25-.56-1.25-1.25s.56-1.25 1.25-1.25 1.25.56 1.25 1.25-.56 1.25-1.25 1.25z"/>

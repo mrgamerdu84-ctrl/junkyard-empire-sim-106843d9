@@ -62,83 +62,82 @@ export default function RulesPanel() {
             </div>
 
             <h3>🎯 But du jeu</h3>
-            <p>Fais prospérer ta compagnie de taxis. Tu hérites d'un garage délabré : achète des voitures, prends des clients, encaisse de l'argent et améliore ton QG pour devenir l'empire du taxi.</p>
+            <p>Tu diriges <b>My Taxi World Rivalité</b> : une compagnie de taxis qui doit grandir tout en repoussant la <b>Mafia</b> qui veut t'éliminer. Embauche, encaisse, détruis les saboteurs, détourne le camion blindé du Parrain — et deviens la légende de la ville.</p>
 
-            <h3>🚖 Les taxis</h3>
+            <h3>🏢 Ton QG (entrepôt jaune)</h3>
             <ul>
-              <li>Tu achètes tes taxis depuis le menu en bas (bouton "Acheter taxi").</li>
-              <li>Ils sortent automatiquement du QG dès qu'un client apparaît.</li>
-              <li>Tu peux limiter combien de taxis circulent en même temps depuis le Panel Admin → onglet <b>Trafic</b>.</li>
+              <li>Au centre de la ville. Tous tes taxis y dorment.</li>
+              <li><b>Clique sur l'entrepôt</b> pour rappeler instantanément toute la flotte (utile en cas de raid Mafia).</li>
+              <li>Tu peux le <b>déplacer et le faire pivoter</b> depuis le Panel Admin → onglet <b>QG</b>.</li>
             </ul>
 
-            <h3>👥 Les clients</h3>
+            <h3>👥 Équipe (bouton ÉQUIPE)</h3>
             <ul>
-              <li>Ils apparaissent au bord des routes (point 📍 jaune = destination, point bleu = client en attente).</li>
-              <li>Le taxi <b>le plus proche</b> est envoyé chercher le client.</li>
-              <li>Le client a <b>35 secondes</b> de patience. Au-delà, il s'en va et tu perds la course.</li>
+              <li>Chaque <b>Chauffeur</b> embauché débloque +1 taxi qui sort automatiquement en course.</li>
+              <li><b>Mécano</b> : réduit le coût d'entretien.</li>
+              <li><b>Manager</b> : bonus sur les revenus globaux.</li>
+              <li><b>Secrétaire</b> : +8% sur le prix de chaque course (max 2).</li>
             </ul>
 
-            <h3>💰 Les courses</h3>
+            <h3>🚖 Auto-dispatch</h3>
             <ul>
-              <li>Le tarif dépend de la <b>distance</b> entre le client et sa destination.</li>
-              <li>Plus ton QG est avancé, plus les tarifs grimpent.</li>
-              <li>L'argent tombe au moment où tu déposes le client.</li>
+              <li>Un client apparaît (point bleu) → le taxi le plus proche est envoyé tout seul.</li>
+              <li>Flèche bleue = prise en charge. Flèche orange = destination.</li>
+              <li>L'argent tombe à la dépose. Si le client expire, la course est perdue (pas de pénalité).</li>
             </ul>
 
-            <h3>🏛️ Le QG</h3>
-            <p>5 niveaux d'évolution :</p>
-            <ul>
-              <li>🏚️ Garage abandonné — 1 taxi max</li>
-              <li>🔧 Atelier rouillé — 2 taxis</li>
-              <li>🏢 Garage rénové — 4 taxis</li>
-              <li>🏬 Station moderne — 7 taxis</li>
-              <li>🏛️ QG Taxicorp — 12 taxis, meilleurs tarifs</li>
-            </ul>
-            <p>Tu peux aussi <b>déplacer, agrandir et faire pivoter</b> ton QG depuis le Panel Admin → onglet <b>QG</b>.</p>
+            <h3>🕹️ Mode PILOTE manuel</h3>
+            <p>Le bouton rose <b>PILOTE</b> du tableau de bord fait apparaître un taxi spécial que tu conduis <b>au doigt</b> directement sur la carte. Utile pour les courses stratégiques ou pour escorter le camion blindé.</p>
 
-            <h3>🚨 Missions d'urgence & concurrence</h3>
-            <p>La ville est envahie par les <b>QG rivaux de Junky City</b>. Leurs taxis sombres deviennent plus rapides à chaque niveau que tu gagnes — ils chassent les mêmes clients et les mêmes missions que toi.</p>
+            <h3>⚠️ La menace Mafia</h3>
             <ul>
-              <li>Quand une icône d'urgence apparaît (🚓 🚑 🚒), clique-la <b>avant l'IA</b> pour envoyer un véhicule.</li>
-              <li><b>Tu cliques en premier</b> et ton véhicule arrive : <span style={{ color: "#34d399" }}>+500 $ de bonus</span>.</li>
-              <li><b>L'IA est plus rapide</b> que toi : <span style={{ color: "#f87171" }}>−200 $ de pénalité</span> et la mission t'échappe.</li>
-              <li>Plus ton QG monte de niveau, plus l'IA accélère : la pression croît avec ton empire.</li>
+              <li>Des <b>voitures noires</b> roulent dans la ville et tentent de saboter tes taxis pendant leurs courses.</li>
+              <li><b>Clique vite dessus</b> pour les faire exploser avant qu'elles ne t'atteignent.</li>
+              <li>Plus ton empire grossit, plus la Mafia s'acharne.</li>
             </ul>
 
-            <h3>📜 Les contrats</h3>
+            <h3>🚚 Camion blindé du Parrain</h3>
             <ul>
-              <li>Missions optionnelles avec un objectif (servir X clients, gagner Y $, etc.) avant un délai.</li>
-              <li>Récompense : cash bonus + <b>×2 sur les tarifs</b> pendant 20 secondes.</li>
+              <li>Périodiquement, la Mafia transporte son butin vers son dépôt — escorté par ses voitures.</li>
+              <li><b>Intercepte le camion</b> et ramène-le à TON QG pour empocher le magot.</li>
+              <li>La Mafia envoie 10 voitures pour le récupérer : <b>aucune ne doit arriver à ton entrepôt</b>, sinon tu perds.</li>
             </ul>
 
-            <h3>📻 Les radios du taxi</h3>
+            <h3>🎩 Rançon du Parrain</h3>
             <ul>
-              <li>4 stations dispos depuis le bouton 📻 : musiques variées + <b>Junky Infos</b> en continu.</li>
-              <li><b>Météo et heure réelles</b> annoncées à l'antenne selon ta position.</li>
-              <li>Au début de chaque heure, <b>toutes les stations passent en mode "Infos" pendant 10 minutes</b>, puis la musique reprend.</li>
-              <li>Junky Infos diffuse les infos en continu, avec un peu de musique entre deux flashs.</li>
+              <li>Le Parrain te propose une <b>trêve de 1h</b> contre <b>1 500 $</b>.</li>
+              <li><b>Accepter</b> → tranquillité une heure (badge TRÊVE sur le dashboard).</li>
+              <li><b>Refuser</b> → <span style={{ color: "#f87171" }}>RAID immédiat</span> : 10 voitures Mafia foncent sur ton QG. Détruis-les toutes pour survivre.</li>
             </ul>
 
-            <h3>🏆 Classement &amp; profil</h3>
+            <h3>📻 Radio &amp; Contrats</h3>
             <ul>
-              <li>Crée un compte pour sauvegarder ton <b>pseudo</b>, ton <b>avatar</b> et tes scores en ligne.</li>
-              <li>Choisis ton modèle de taxi et sa couleur depuis <b>Mon profil</b> (menu ☰).</li>
-              <li>Le <b>permis</b> monte de niveau au fil des courses et débloque des clients VIP / STAR avec de meilleurs pourboires.</li>
+              <li>Deux stations : <b>Célébrer Radio</b> (musiques libres) et <b>Droit Libre</b> (rotation du jeu).</li>
+              <li>Bouton CONTRATS pour les missions spéciales chronométrées avec bonus.</li>
+            </ul>
+
+            <h3>⚔️ Arène Mondiale (multijoueur)</h3>
+            <p>Défie d'autres compagnies en temps réel via Supabase Realtime, classement ELO mondial. Fair-play obligatoire : pas de triche, pas d'insulte.</p>
+
+            <h3>🪪 Profil joueur</h3>
+            <ul>
+              <li>Pseudo, avatar, photo, modèle de taxi, couleur — tout est sync entre tes appareils.</li>
+              <li>Le <b>permis</b> monte avec les courses et débloque les clients VIP / STAR (meilleurs pourboires).</li>
             </ul>
 
             <h3>💡 Astuces</h3>
             <div className="rules-tip">
-              • Limite les taxis actifs pour éviter les embouteillages.<br/>
-              • Place ton QG près d'un croisement dense pour réduire les trajets à vide.<br/>
-              • Améliore ton QG dès que possible : plus de taxis = plus de revenus.<br/>
-              • Vise les contrats : le bonus ×2 paye vite tes upgrades.
+              • Embauche au moins 3 chauffeurs avant de provoquer la Mafia.<br/>
+              • Garde toujours 1 500 $ d'avance pour la rançon — ça évite les raids.<br/>
+              • Le mode PILOTE est imbattable pour escorter le camion blindé.<br/>
+              • Clique l'entrepôt = recall d'urgence quand un raid tourne mal.
             </div>
 
             <h3>🚧 Bientôt</h3>
             <ul>
-              <li>Nouveaux modèles de véhicules et livrées exclusives.</li>
-              <li>Événements météo dynamiques en jeu (pluie, nuit, embouteillages).</li>
-              <li>Missions spéciales (urgences, VIP, défis chrono).</li>
+              <li>Extension de la ville vers le nord (route en travaux à côté du QG).</li>
+              <li>Nouveaux véhicules Mafia et boss exclusifs.</li>
+              <li>Événements saisonniers et défis quotidiens.</li>
             </ul>
 
             <div style={{ marginTop: 18, paddingTop: 14, borderTop: "1px solid #2a2f38", textAlign: "center" }}>

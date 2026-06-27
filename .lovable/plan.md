@@ -1,32 +1,38 @@
-## Objectif
-Remplacer l'ancien bâtiment QG (image `player-hq.png` ancrée sur `admin.hqX/hqY`) par un nouvel entrepôt-dépôt de taxis avec grand panneau et places de parking visibles, le rendre cliquable pour rappeler les taxis, et garantir que les taxis y entrent en empruntant les routes (pas de coupe à travers décors).
+… Voici ce que je propose de faire en un seul sprint :
 
-## 1. Nouvel asset entrepôt
-- Générer une image isométrique « Taxi Depot » : grand hangar gris/jaune, enseigne lumineuse « TAXI DEPOT », 6 places de parking jaunes dessinées au sol, allée d'entrée alignée avec la route → `src/assets/taxi-warehouse.png` (via `imagegen`, transparent_background).
-- Créer le pointeur `src/assets/taxi-warehouse.png.asset.json` et remplacer l'import `playerHqAsset` dans `src/game/TaxiTycoon.tsx`.
-- L'ancien `player-hq.png` reste sur disque mais n'est plus importé.
+## 1. Tutoriel & Règlement mis à jour
+- Réécrire le **tutoriel** (`src/game/Tutorial.tsx` ou équivalent) avec le gameplay actuel :
+  - Flotte de taxis autonomes + chauffeurs embauchés
+  - Menace Mafia (sabotage, raids, rançon du Parrain)
+  - Détournement du camion blindé mafieux vers le QG
+  - Pilote manuel au doigt (mode 🕹️)
+  - Tableau de bord LCD (radio, équipe, profil, contrats, admin)
+- Réécrire le **règlement / principes du jeu** : objectifs, économie, conditions de défaite (raid réussi mafia), trêve, fair-play multijoueur Arène.
+- Accessible depuis le menu principal + bouton "?" dans le tableau de bord.
 
-## 2. Intégration sur la carte
-Dans `src/game/TaxiTycoon.tsx` (bloc ligne ~2410-2440) :
-- Garder l'ancrage `admin.hqX/hqY/hqScale/hqRotation` (configurable via Admin Panel, donc l'utilisateur pourra repositionner finement sur l'emplacement de l'ancien QG en haut).
-- Augmenter légèrement la `baseW` par défaut pour matcher la silhouette du hangar.
-- Conserver le tarmac mask pour cacher tout résidu de l'image de fond.
+## 2. Carte de profil refaite
+- Mise à jour de `ProfileCard.tsx` : nouveau design cohérent avec le tableau de bord LCD (cadre noir, écran tactile), affichage flotte réelle, chauffeurs embauchés, stats Mafia (raids repoussés, camions détournés), ELO Arène, photo conducteur.
 
-## 3. Zone cliquable « Rappeler les taxis »
-- Wrapper le `<image href={TAXI_WAREHOUSE_IMG}>` dans un `<g>` avec `onClick` + `style={{ cursor: "pointer" }}` + `<title>Rappeler les taxis</title>`.
-- Ajouter un handler `recallAllTaxis()` qui, pour chaque taxi en état `idle|enroute|return`, force `state = "returning"` et `beginSegment(...)` vers `closestOnPath(pathIdx, hqX, hqY)`. Les taxis en `pickup`/`delivery` finissent leur course actuelle puis rentrent (flag `mustDeposit = true`).
-- Feedback : `popFloat("📣 Rappel général", hqX, hqY-30)` + halo pulse 600 ms sur le bâtiment (state local `recallPulse`).
+## 3. Menu du jeu refait (beau fond + style tableau de bord)
+- Refonte de l'écran d'accueil/menu (`src/routes/index.tsx` ou `MainMenu`) :
+  - Nouveau **fond illustré** (image générée : skyline nocturne avec taxis jaunes + entrepôt + ambiance mafia néon)
+  - Boutons type LCD/console bois comme le dashboard
+  - Entrées : Jouer, Tutoriel, Règlement, Profil, Arène, Admin, Quitter
 
-## 4. Pathfinding propre vers le parking
-- Pas de nouveau moteur de pathfinding : les taxis utilisent déjà les `paths` SVG du circuit. La règle anti-saut (`beginSegment` snap si distance > 60 px) est en place.
-- Ajout : définir un point d'entrée parking `PARK_ENTRY = closestOnPath(0, hqX, hqY)` calculé une fois. Le retour QG vise désormais `PARK_ENTRY` (sur route) puis lerp court (≤ 40 px, 800 ms) vers la place de parking assignée — garantit que le taxi suit la route, prend le rond-point si nécessaire, puis tourne dans l'allée.
-- Les places de parking restent assignées par index (logique existante alignée sur le tarmac).
+## 4. Route nord du QG en travaux
+- Dans `TaxiTycoon.tsx` : identifier le tronçon de route inutilisé au nord du QG.
+- Le **barrer visuellement** : barrières rouges/blanches, panneau "🚧 EN DÉVELOPPEMENT — Nouvelle extension bientôt", cônes.
+- Désactiver le pathing des voitures sur ce segment (filtrer dans `roadPaths`).
 
-## 5. Hors-scope (non touché)
-- Pas de modification du HUD, radio, mafia, missions, ou Admin Panel autre que l'image.
-- Pas de changement de la logique économique du QG (upgrades, tiers, dépôt).
+## 5. Bouton "Nouvelle extension" (préparation future carte)
+- Bouton verrouillé 🔒 dans le menu/dashboard : "Étendre la ville (bientôt)".
+- Au clic actuel : toast "Extension en développement — débloquera une nouvelle carte avec circulation vers le nord."
+- Architecture prête pour brancher plus tard une 2ᵉ scène SVG.
 
 ## Détails techniques
-- Fichiers modifiés : `src/game/TaxiTycoon.tsx` uniquement.
-- Fichiers créés : `src/assets/taxi-warehouse.png`, `src/assets/taxi-warehouse.png.asset.json`.
-- Aucune migration BDD, aucun nouveau package.
+- Nouvelle image fond menu : `src/assets/menu-bg.jpg` (généré).
+- Nouvelle image barrières travaux : SVG inline (pas besoin d'asset lourd).
+- Aucun changement backend ; tout est frontend/présentation.
+- Pas de nouvelle table Supabase.
+
+Confirme et je lance l'implémentation. Une question rapide avant : **veux-tu que le menu principal soit une vraie page séparée (route `/menu`) avec bouton "JOUER" qui lance la partie, ou un overlay qui s'affiche par-dessus la carte au démarrage ?**
