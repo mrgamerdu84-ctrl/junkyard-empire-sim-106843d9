@@ -192,21 +192,25 @@ export default function ArmoredTruck() {
   };
 
   const resolveAtHQ = () => {
-    const aliveMafia = mafiaRef.current.filter((m) => m.alive).length;
-    if (aliveMafia === 0) {
-      adjustPlayerMoney(+loot, "Butin mafia récupéré");
-      showToast(`💰 Butin récupéré au QG ! +${fmtMoney(loot)} $`, 5500);
-      window.dispatchEvent(new CustomEvent("jce:armored-resolved", {
-        detail: { winner: "player", amount: loot, success: true },
-      }));
-    } else {
-      const fine = Math.round(loot * 0.5);
-      adjustPlayerMoney(-fine, "Camion repris par la mafia");
-      showToast(`🚨 La mafia (${aliveMafia}) a repris le camion devant ton QG ! −${fmtMoney(fine)} $`, 5500);
-      window.dispatchEvent(new CustomEvent("jce:armored-resolved", {
-        detail: { winner: "mafia", amount: loot, success: false },
-      }));
+    // Une fois le camion à l'intérieur du QG, il est en sécurité :
+    // la mafia ne peut PLUS le reprendre, même s'il reste des poursuivants.
+    // Les voitures mafia encore vivantes décrochent (despawn) et le butin
+    // est intégralement crédité au joueur.
+    const survivors = mafiaRef.current.filter((m) => m.alive);
+    if (survivors.length > 0) {
+      // Décrochage : on les marque "explosées" silencieusement pour
+      // les faire disparaître sans bonus (elles ont fui, pas été tuées).
+      const now = performance.now();
+      mafiaRef.current = mafiaRef.current.map((m) =>
+        m.alive ? { ...m, alive: false, explodedAt: now - EXPLOSION_MS } : m
+      );
+      setMafia([...mafiaRef.current]);
     }
+    adjustPlayerMoney(+loot, "Butin mafia sécurisé au QG");
+    showToast(`💰 Camion à l'abri dans le QG ! Butin sécurisé : +${fmtMoney(loot)} $`, 5500);
+    window.dispatchEvent(new CustomEvent("jce:armored-resolved", {
+      detail: { winner: "player", amount: loot, success: true },
+    }));
     setPhase("done");
   };
 
