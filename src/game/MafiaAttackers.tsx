@@ -161,31 +161,47 @@ export default function MafiaAttackers() {
       const minutes = (Date.now() - startedAt.current) / 60000;
       const truceOn = isMafiaTruceActive();
       const raidOn = now < raidUntilRef.current;
-      // Raid : représailles si le joueur a refusé la rançon → spawn
-      // agressif même hors mission, ciblé sur les taxis présents.
+      const raidSession = raidSessionRef.current;
+      // Pendant un raid : on essaie d'avoir en permanence des voitures
+      // jusqu'à atteindre 10 spawn cumulés. Pas de spawn passé ce quota.
+      const raidQuotaLeft = raidOn ? Math.max(0, RAID_TARGET - raidSession.spawned) : 0;
       const spawnEvery = raidOn
-        ? 1500
+        ? 900
         : Math.max(3500, SPAWN_INTERVAL_MS - minutes * 500);
-      const wantSpawn = raidOn ? taxis.length > 0 : onMission.length > 0;
+      const wantSpawn = raidOn ? raidQuotaLeft > 0 : onMission.length > 0;
+      // Plafond simultané : pendant le raid, on peut avoir jusqu'à 5 chasseurs en vol.
+      const maxConcurrent = raidOn ? Math.min(5, maxCarsRef.current + 3) : maxCarsRef.current;
 
       if (
         !truceOn &&
         wantSpawn &&
-        carsRef.current.filter((c) => c.state === "hunt").length < (raidOn ? maxCarsRef.current + 2 : maxCarsRef.current) &&
+        carsRef.current.filter((c) => c.state === "hunt").length < maxConcurrent &&
         now - lastSpawn.current > spawnEvery
       ) {
         lastSpawn.current = now;
+        // Cible : pendant un raid, on prend un taxi quelconque (le QG est
+        // assiégé). Sinon, uniquement les taxis en course.
         const pool = raidOn && taxis.length ? taxis : onMission;
         const target = pool[Math.floor(Math.random() * pool.length)];
-        const near = nearestOnPath(pathEls, pathLens, target.x, target.y);
-        const pathIdx = near.idx;
+        // Pendant le raid : on apparaît AU QG mafia (admin.rivalHQX/Y) sur
+        // la route la plus proche, et on roule vers le taxi cible.
+        const adm = getAdmin();
+        const spawnAnchor = raidOn
+          ? nearestOnPath(pathEls, pathLens, adm.rivalHQX, adm.rivalHQY)
+          : (() => {
+              // Hors raid : spawn à mi-chemin entre mafia HQ et taxi cible.
+              const near = nearestOnPath(pathEls, pathLens, target.x, target.y);
+              const len = pathLens[near.idx];
+              const offset = (300 + Math.random() * 300) * (Math.random() < 0.5 ? -1 : 1);
+              let st = near.t + offset;
+              if (st < 0) st += len;
+              if (st > len) st -= len;
+              return { idx: near.idx, t: Math.max(0, Math.min(len, st)) };
+            })();
+        const pathIdx = spawnAnchor.idx;
         const len = pathLens[pathIdx];
-        const offset = (300 + Math.random() * 300) * (Math.random() < 0.5 ? -1 : 1);
-        let startT = near.t + offset;
-        if (startT < 0) startT += len;
-        if (startT > len) startT -= len;
-        startT = Math.max(0, Math.min(len, startT));
-        const dir: 1 | -1 = offset >= 0 ? -1 : 1;
+        const startT = Math.max(0, Math.min(len, spawnAnchor.t));
+        const dir: 1 | -1 = startT < len / 2 ? 1 : -1;
 
         const families = getMafiaFamilies();
         const withSprite = families.filter(
@@ -197,6 +213,8 @@ export default function MafiaAttackers() {
           sprite = withSprite[Math.floor(Math.random() * withSprite.length)].vehicleUrl!;
           tinted = false;
         } else {
+          // Pas de modèle mafia uploadé → on réutilise les voitures civiles
+          // existantes (assets du jeu), teintées en noir.
           const urls = getCivilCarUrls();
           sprite = urls.length ? urls[Math.floor(Math.random() * urls.length)] : "";
           tinted = true;
@@ -222,9 +240,11 @@ export default function MafiaAttackers() {
               state: "hunt",
             },
           ];
+          if (raidOn) raidSession.spawned++;
           structuralChange = true;
         } catch { /* ignore */ }
       }
+
 
       // Avance + mutation in-place + transform DOM direct.
       const survivors: Mafia[] = [];
