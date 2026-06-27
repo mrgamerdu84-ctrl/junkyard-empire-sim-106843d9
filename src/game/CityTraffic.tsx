@@ -55,31 +55,25 @@ const LANE_HALF = 11;
  * calées sur les routes même en mobile recadré.
  * ============================================================ */
 
-// === 4 GRANDS BOULEVARDS RECTILIGNES ===
-// L'ancien rond-point a été supprimé : on remplace par une intersection
-// classique au centre de la carte (960, 540). Chaque axe traverse la map
-// en ligne parfaitement droite. Le `flip` du moteur (CarSpec.flip) sert
-// les deux sens de circulation sur chaque axe.
-//   • 0 : horizontal complet (Ouest ↔ Est) y=540
-//   • 1 : vertical, démarre sous le QG (évite HQ_NO_CIVIL_ZONE) (Nord ↔ Sud) x=960
-//   • 2 : duplicata horizontal pour densité de trafic
-//   • 3 : duplicata vertical pour densité de trafic
-// Les véhicules ne dévient JAMAIS : ils suivent l'axe au pixel près, et
-// ne « tournent » qu'au centre en changeant simplement de path.
+// === 2 GRANDS BOULEVARDS EN X (suivent les traits noirs de la carte) ===
+// La carte de fond (citymap4) montre déjà 2 boulevards diagonaux qui se
+// croisent au centre (960, 540). On colle nos waypoints invisibles dessus.
+//   • 0 : diagonale NW ↘ SE
+//   • 1 : diagonale NE ↙ SW
+//   • 2 : duplicata NW↘SE pour densifier le trafic
+//   • 3 : duplicata NE↙SW pour densifier le trafic
+// Les voitures ne dévient JAMAIS et tournent uniquement au centre (intersection).
 export const ROADS = [
-  "M 0 540 L 1920 540",
-  "M 960 460 L 960 1080",
-  "M 0 540 L 1920 540",
-  "M 960 460 L 960 1080",
+  "M 0 0 L 1920 1080",
+  "M 1920 0 L 0 1080",
+  "M 0 0 L 1920 1080",
+  "M 1920 0 L 0 1080",
 ];
 
-// Applique en mémoire une calibration précédemment sauvegardée (admin →
-// « Recalibrer routes »). Mutation in-place pour préserver les imports.
-// Clé v2 : les boulevards rectilignes ne sont plus compatibles avec les
-// calibrages courbés stockés sous la clé v1.
+// Calibration v3 (X diagonal). Les clés v1/v2 (horizontal/vertical) sont obsolètes.
 if (typeof window !== "undefined") {
   try {
-    const raw = window.localStorage?.getItem("jce.roads.calibrated.v2");
+    const raw = window.localStorage?.getItem("jce.roads.calibrated.v3");
     if (raw) {
       const arr = JSON.parse(raw);
       if (Array.isArray(arr) && arr.length === ROADS.length) {
@@ -88,6 +82,7 @@ if (typeof window !== "undefined") {
     }
   } catch { /* noop */ }
 }
+
 
 type VehicleKind = VehicleSvgKind;
 type VehicleVariant = "black" | "red";
@@ -700,67 +695,14 @@ export default function CityTraffic() {
         </filter>
       </defs>
 
-      {/* === 4 GRANDS BOULEVARDS — lignes parfaitement droites ===
-          Largeur 72 px (boulevards larges) + bordures blanches + double
-          ligne centrale jaune. Aucun rond-point : intersection franche au
-          centre (960, 540). Les véhicules tournent uniquement au centre. */}
-      {/* Ombre sous la chaussée */}
-      <g opacity="0.32">
-        {ROADS.map((d, i) => (
-          VILLAGE_PATHS.has(i) ? null : (
-            <path key={`shadow-${i}`} d={d} stroke="#000" strokeWidth={80} fill="none"
-                  strokeLinecap="butt" filter="url(#jce-soft-shadow)" />
-          )
-        ))}
-      </g>
-      {/* Asphalte */}
-      <g opacity="0.65">
-        {ROADS.map((d, i) => (
-          VILLAGE_PATHS.has(i) ? null : (
-            <path key={`asphalt-${i}`} d={d} stroke="#1c2024" strokeWidth={72} fill="none"
-                  strokeLinecap="butt" />
-          )
-        ))}
-      </g>
-      {/* Bordures blanches (rives) */}
-      <g opacity="0.55">
-        {ROADS.slice(0, 2).map((d, i) => (
-          <path key={`edge-${i}`} d={d} stroke="#f4f5f7" strokeWidth={2.2} fill="none"
-                strokeDasharray="0 0" opacity={0.55}
-                transform={i === 0 ? "translate(0,-34)" : "translate(-34,0)"} />
-        ))}
-        {ROADS.slice(0, 2).map((d, i) => (
-          <path key={`edge2-${i}`} d={d} stroke="#f4f5f7" strokeWidth={2.2} fill="none"
-                strokeDasharray="0 0" opacity={0.55}
-                transform={i === 0 ? "translate(0,34)" : "translate(34,0)"} />
-        ))}
-      </g>
-      {/* Double ligne centrale jaune en pointillés (axe de chaque boulevard) */}
-      <g>
-        {ROADS.slice(0, 2).map((d, i) => (
-          <path key={`dash-${i}`} d={d} stroke="#f6d56a" strokeWidth={2.4}
-                strokeDasharray="22 18" fill="none" opacity={0.85} strokeLinecap="butt" />
-        ))}
-      </g>
-      {/* Marquage de l'intersection centrale (passages piétons) */}
-      <g pointerEvents="none" opacity={0.85}>
-        {/* Passage piéton Nord */}
-        {[-30, -18, -6, 6, 18, 30].map((dx) => (
-          <rect key={`pn-${dx}`} x={960 + dx - 3} y={540 - 50} width={6} height={14} fill="#f4f5f7" />
-        ))}
-        {/* Passage piéton Sud */}
-        {[-30, -18, -6, 6, 18, 30].map((dx) => (
-          <rect key={`ps-${dx}`} x={960 + dx - 3} y={540 + 36} width={6} height={14} fill="#f4f5f7" />
-        ))}
-        {/* Passage piéton Ouest */}
-        {[-30, -18, -6, 6, 18, 30].map((dy) => (
-          <rect key={`pw-${dy}`} x={960 - 50} y={540 + dy - 3} width={14} height={6} fill="#f4f5f7" />
-        ))}
-        {/* Passage piéton Est */}
-        {[-30, -18, -6, 6, 18, 30].map((dy) => (
-          <rect key={`pe-${dy}`} x={960 + 36} y={540 + dy - 3} width={14} height={6} fill="#f4f5f7" />
-        ))}
-      </g>
+      {/* === ROUTES INVISIBLES ===
+          La carte de fond (citymap4) contient déjà l'asphalte, les bordures,
+          les pointillés jaunes et les passages piétons des deux boulevards
+          diagonaux. On garde les waypoints (defs ci-dessus) pour le pathing
+          IA mais on NE dessine PLUS d'overlay route — sinon ça doublonne et
+          ça décale visuellement les véhicules par rapport à la chaussée
+          peinte sur l'image. */}
+
 
 
 
