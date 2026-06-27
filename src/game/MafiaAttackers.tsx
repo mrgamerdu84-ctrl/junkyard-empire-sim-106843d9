@@ -142,7 +142,13 @@ export default function MafiaAttackers() {
       const minutes = (Date.now() - startedAt.current) / 60000;
       const spawnEvery = Math.max(3500, SPAWN_INTERVAL_MS - minutes * 500);
 
+      // Trêve mafia payée au Parrain : aucun spawn de sabotage (sauf
+      // si un raid de représailles est en cours, géré ci-dessous).
+      const truceOn = isMafiaTruceActive();
+      const raidOn = now < raidUntilRef.current;
+
       if (
+        !truceOn &&
         onMission.length > 0 &&
         carsRef.current.filter((c) => c.state === "hunt").length < maxCarsRef.current &&
         now - lastSpawn.current > spawnEvery
