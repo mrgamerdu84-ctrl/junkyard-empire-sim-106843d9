@@ -1856,10 +1856,40 @@ export default function TaxiTycoon() {
 
 
   // === Actions UI ===
+  // Suit en temps réel le nombre de chauffeurs embauchés : chaque chauffeur
+  // débloque +1 place de flotte et fait sortir un taxi supplémentaire en ville.
+  const [driversCount, setDriversCount] = useState(0);
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      const { loadStaff, countByRole } = await import("./personnel");
+      const refresh = () => {
+        if (cancelled) return;
+        setDriversCount(countByRole(loadStaff(), "driver"));
+      };
+      refresh();
+      window.addEventListener("mtw:personnel-changed", refresh);
+      return () => window.removeEventListener("mtw:personnel-changed", refresh);
+    })();
+    return () => { cancelled = true; };
+  }, []);
   const taxiCount = save.taxis.length;
-  const effectiveMaxTaxis = tier.maxTaxis + (save.hqCapacityLvl ?? 0);
+  const effectiveMaxTaxis = tier.maxTaxis + (save.hqCapacityLvl ?? 0) + driversCount;
   const taxiBuyCost = Math.round(TAXI_COST_BASE * Math.pow(1.65, taxiCount));
   const speedCost = Math.round(SPEED_UPGRADE_COST_BASE * Math.pow(2.1, save.taxiSpeedLvl));
+
+  // Chaque chauffeur embauché reçoit automatiquement un taxi gratuit
+  // (= un véhicule supplémentaire qui sort de l'entrepôt sur la route).
+  useEffect(() => {
+    const target = 1 + driversCount; // 1 taxi de base au joueur + 1 par chauffeur
+    if (save.taxis.length >= target) return;
+    setSave((s) => {
+      if (s.taxis.length >= target) return s;
+      const extras = Array.from({ length: target - s.taxis.length }, () => ({ colorId: s.defaultColor }));
+      return { ...s, taxis: [...s.taxis, ...extras] };
+    });
+  }, [driversCount, save.taxis.length, setSave]);
+
 
   const hqCostFor = (base: number, lvl: number) => Math.round(base * Math.pow(1.9, lvl));
   type HqKind = "capacity" | "production" | "revenue";
