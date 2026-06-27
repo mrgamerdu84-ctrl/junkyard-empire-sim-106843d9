@@ -561,6 +561,17 @@ export default function TaxiTycoon() {
   const admin = useAdminConfig(); // re-render quand l'admin change
   const navigate = useNavigate();
   const realEnv = useRealWorldEnv();
+  const weatherEmoji = (w: string, isDay: boolean) => {
+    switch (w) {
+      case "clear": return isDay ? "☀️" : "🌙";
+      case "clouds": return "☁️";
+      case "rain": return "🌧️";
+      case "snow": return "❄️";
+      case "fog": return "🌫️";
+      case "storm": return "⛈️";
+      default: return "🌡️";
+    }
+  };
   const [showLeaderboard, setShowLeaderboard] = useState(false);
   const [showTutorial, setShowTutorial] = useState(false);
   const [dayOffset, setDayOffset] = useState(0);
@@ -2968,9 +2979,13 @@ export default function TaxiTycoon() {
 
           {/* Rangée 2 — STATUS LCD */}
           <div className="tt-dashboard-lcd tt-lcd-row2">
-            <button className="tt-lcd-seg tt-lcd-mini" onClick={() => setCityInfoOpen(true)} title="Météo">
-              <span className="tt-lcd-lbl">MÉTÉO</span>
-              <span className="tt-lcd-mini-val">{realEnv ? weatherLabelFr(realEnv.weather) : "…"}</span>
+            <button className="tt-lcd-seg tt-lcd-mini" onClick={() => setCityInfoOpen(true)} title="Météo en direct">
+              <span className="tt-lcd-lbl">MÉTÉO {realEnv?.city ? `· ${realEnv.city}` : ""}</span>
+              <span className="tt-lcd-mini-val">
+                {realEnv
+                  ? `${weatherEmoji(realEnv.weather, realEnv.isDay)} ${weatherLabelFr(realEnv.weather)}${realEnv.tempC != null ? ` · ${Math.round(realEnv.tempC)}°C` : ""}`
+                  : "Localisation…"}
+              </span>
             </button>
             <button className="tt-lcd-seg tt-lcd-mini" onClick={() => { setMissionsOpen(true); setMissionsTab("depot"); }} title="Trésorerie">
               <span className="tt-lcd-lbl">ARGENT</span>
