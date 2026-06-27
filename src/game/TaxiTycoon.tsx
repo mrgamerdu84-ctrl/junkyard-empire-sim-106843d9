@@ -2528,19 +2528,21 @@ export default function TaxiTycoon() {
           const w = baseW * admin.hqScale;
           const h = w; // image 1024x1024
           const cx = depotXY.x;
-          const cy = depotXY.y - 18;
+          const groundY = depotXY.y; // point d'ancrage au sol
+          // on pose le bâtiment : sa base est sur le sol, pas son centre
+          const cy = groundY - h / 2;
           return (
             <g
               style={{ cursor: "pointer", pointerEvents: "auto" }}
               onClick={recallAllTaxis}
-              transform={admin.hqRotation ? `rotate(${admin.hqRotation} ${cx} ${cy})` : undefined}
+              transform={admin.hqRotation ? `rotate(${admin.hqRotation} ${cx} ${groundY})` : undefined}
             >
               <title>Entrepôt Taxi — cliquer pour rappeler tous les taxis</title>
-              {/* ombre douce sous le bâtiment pour l'ancrer au sol */}
-              <ellipse cx={cx} cy={cy + h * 0.42} rx={w * 0.42} ry={h * 0.08} fill="rgba(0,0,0,0.45)" />
+              {/* ombre projetée au pied du bâtiment pour l'ancrer au sol */}
+              <ellipse cx={cx} cy={groundY} rx={w * 0.44} ry={h * 0.07} fill="rgba(0,0,0,0.55)" />
               {/* halo pulse quand on déclenche le rappel */}
               {recallPulse > 0 && Date.now() - recallPulse < 900 && (
-                <circle cx={cx} cy={cy} r={w * 0.45} fill="none" stroke="#fde047" strokeWidth="4" opacity="0.85">
+                <circle cx={cx} cy={groundY - h * 0.15} r={w * 0.45} fill="none" stroke="#fde047" strokeWidth="4" opacity="0.85">
                   <animate attributeName="r" from={w * 0.30} to={w * 0.55} dur="0.9s" />
                   <animate attributeName="opacity" from="0.85" to="0" dur="0.9s" />
                 </circle>
@@ -2548,14 +2550,14 @@ export default function TaxiTycoon() {
               <image
                 href={PLAYER_HQ_IMG}
                 x={cx - w / 2}
-                y={cy - h / 2}
+                y={groundY - h}
                 width={w}
                 height={h}
-                preserveAspectRatio="xMidYMid meet"
-                style={{ filter: "drop-shadow(0 6px 10px rgba(0,0,0,0.55))" }}
+                preserveAspectRatio="xMidYMax meet"
+                style={{ filter: "drop-shadow(0 4px 6px rgba(0,0,0,0.5))" }}
               />
-              {/* badge tier discret en bas */}
-              <text x={cx} y={cy + h * 0.48} textAnchor="middle" fontSize="11" fontWeight="900"
+              {/* badge tier discret au pied */}
+              <text x={cx} y={groundY + 14} textAnchor="middle" fontSize="11" fontWeight="900"
                     fill="#fde047" stroke="#000" strokeWidth="3" paintOrder="stroke"
                     style={{ letterSpacing: 1.5 }}>
                 {tier.name.toUpperCase()}
