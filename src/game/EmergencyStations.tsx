@@ -254,9 +254,10 @@ export default function EmergencyStations() {
               <g transform={`rotate(${ROAD_SPRITE_FORWARD_OFFSET})`}>
                 <image href={r.sprite} x={-22} y={-17} width={44} height={34} preserveAspectRatio="xMidYMid meet" />
               </g>
-              <rect x="-8" y="-4" width="16" height="5" rx="2" fill="#0b0d10" />
-              <rect x="-7" y="-3" width="6" height="3" rx="1" fill={flash ? "#60a5fa" : "#1e3a8a"} />
-              <rect x="1" y="-3" width="6" height="3" rx="1" fill={flash ? "#7f1d1d" : "#f87171"} />
+              {/* Gyrophare perpendiculaire au sens de marche (en travers du toit) */}
+              <rect x="-2.5" y="-9" width="5" height="18" rx="1.2" fill="#0b0d10" />
+              <rect x="-2" y="-8.5" width="4" height="8.5" rx="0.8" fill={flash ? "#60a5fa" : "#1e3a8a"} />
+              <rect x="-2" y="0" width="4" height="8.5" rx="0.8" fill={flash ? "#7f1d1d" : "#f87171"} />
               <text x="0" y="30" textAnchor="middle" fontSize="4.5" fontWeight="900" fill="#fbbf24" stroke="#0b0d10" strokeWidth="0.9" paintOrder="stroke">
                 {r.label.toUpperCase()}
               </text>
