@@ -108,6 +108,25 @@ type Taxi = {
 };
 const TRANSITION_MS = 1500;
 
+// Rond-point central — coordonnées dans le repère SVG 1920×1080 (citymap3).
+// Aucun véhicule ne doit traverser ce disque : on s'en sert pour bloquer
+// tout lerp qui dessinerait un raccourci visuel par-dessus la fontaine.
+export const ROUNDABOUT = { x: 955, y: 608, r: 60 };
+
+// Test : est-ce que le segment [A,B] coupe le disque (cx,cy,r) ?
+function segmentHitsCircle(
+  ax: number, ay: number, bx: number, by: number,
+  cx: number, cy: number, r: number,
+): boolean {
+  const dx = bx - ax, dy = by - ay;
+  const len2 = dx * dx + dy * dy;
+  if (len2 === 0) return Math.hypot(ax - cx, ay - cy) < r;
+  let t = ((cx - ax) * dx + (cy - ay) * dy) / len2;
+  t = Math.max(0, Math.min(1, t));
+  const px = ax + t * dx, py = ay + t * dy;
+  return Math.hypot(px - cx, py - cy) < r;
+}
+
 
 // Mécanique : retour au QG tous les N courses, attente de DEPOSIT_MS
 const DEPOSIT_EVERY_RIDES = 3;
@@ -977,12 +996,18 @@ export default function TaxiTycoon() {
     taxi.pathIdx = newPathIdx;
     taxi.pos = newPos;
     taxi.target = newTarget;
-    if ((visual.x !== 0 || visual.y !== 0) && dist <= 60) {
+    // Verrou rond-point : si le segment de lerp passe à travers le rond-point,
+    // on snap pour ne PAS dessiner un raccourci visuel par-dessus la fontaine.
+    const crossesRound = segmentHitsCircle(
+      visual.x, visual.y, nearX, nearY,
+      ROUNDABOUT.x, ROUNDABOUT.y, ROUNDABOUT.r,
+    );
+    if ((visual.x !== 0 || visual.y !== 0) && dist <= 60 && !crossesRound) {
       taxi.transitionFromX = visual.x;
       taxi.transitionFromY = visual.y;
       taxi.transitionUntil = performance.now() + TRANSITION_MS;
     } else {
-      // Snap : pas de trajet hors route.
+      // Snap : pas de trajet hors route ni à travers le rond-point.
       taxi.transitionFromX = undefined;
       taxi.transitionFromY = undefined;
       taxi.transitionUntil = undefined;
@@ -2605,6 +2630,65 @@ export default function TaxiTycoon() {
           );
         })}
 
+
+        {/* === Fontaine décorative au centre du rond-point === */}
+        {pathsReady && (
+          <g transform={`translate(${ROUNDABOUT.x},${ROUNDABOUT.y})`} style={{ pointerEvents: "none" }}>
+            {/* gazon central */}
+            <circle r={ROUNDABOUT.r * 0.78} fill="#2f5e2c" stroke="#1f3d1c" strokeWidth="1.5" />
+            <circle r={ROUNDABOUT.r * 0.78} fill="url(#grassRadial)" opacity="0.55" />
+            <defs>
+              <radialGradient id="grassRadial">
+                <stop offset="0%" stopColor="#5fae47" />
+                <stop offset="100%" stopColor="#244a1f" stopOpacity="0" />
+              </radialGradient>
+            </defs>
+            {/* allée pavée */}
+            <circle r={ROUNDABOUT.r * 0.42} fill="#b59770" stroke="#6e5536" strokeWidth="1.2" />
+            {/* bassin */}
+            <ellipse cx="0" cy="6" rx="32" ry="9" fill="rgba(0,0,0,0.35)" />
+            <circle r="26" fill="#3a82c4" stroke="#0e3a64" strokeWidth="2.5" />
+            <circle r="26" fill="url(#waterShine)" />
+            <defs>
+              <radialGradient id="waterShine" cx="35%" cy="30%">
+                <stop offset="0%" stopColor="#bfe2ff" stopOpacity="0.9" />
+                <stop offset="60%" stopColor="#3a82c4" stopOpacity="0" />
+              </radialGradient>
+            </defs>
+            {/* socle pierre */}
+            <circle r="10" fill="#cbbfa6" stroke="#6b5e44" strokeWidth="1.2" />
+            <circle r="6" fill="#a08f70" stroke="#4d4231" strokeWidth="0.8" />
+            {/* jet d'eau */}
+            <g opacity="0.9">
+              <ellipse cx="0" cy="-10" rx="4" ry="14" fill="#dff1ff">
+                <animate attributeName="ry" values="12;16;12" dur="2s" repeatCount="indefinite" />
+                <animate attributeName="opacity" values="0.7;1;0.7" dur="2s" repeatCount="indefinite" />
+              </ellipse>
+              <circle cx="-6" cy="-2" r="1.6" fill="#dff1ff">
+                <animate attributeName="cy" values="-2;6;-2" dur="1.6s" repeatCount="indefinite" />
+              </circle>
+              <circle cx="6" cy="-2" r="1.6" fill="#dff1ff">
+                <animate attributeName="cy" values="-2;6;-2" dur="1.4s" repeatCount="indefinite" />
+              </circle>
+              <circle cx="0" cy="-18" r="2" fill="#dff1ff">
+                <animate attributeName="cy" values="-18;-10;-18" dur="2s" repeatCount="indefinite" />
+                <animate attributeName="opacity" values="0;1;0" dur="2s" repeatCount="indefinite" />
+              </circle>
+            </g>
+            {/* fleurs autour du bassin */}
+            {[0, 60, 120, 180, 240, 300].map((a) => {
+              const rad = (a * Math.PI) / 180;
+              const fx = Math.cos(rad) * 40;
+              const fy = Math.sin(rad) * 40;
+              return (
+                <g key={a} transform={`translate(${fx},${fy})`}>
+                  <circle r="3" fill="#e11d48" />
+                  <circle r="1.2" fill="#fde68a" />
+                </g>
+              );
+            })}
+          </g>
+        )}
 
         {/* === Route en travaux (extension future au nord du QG) === */}
         {pathsReady && (() => {
