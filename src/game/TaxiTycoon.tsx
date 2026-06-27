@@ -2774,7 +2774,21 @@ export default function TaxiTycoon() {
           const maskCx = hqCx + (parvisCx * scale) * cosR - (parvisCy * scale) * sinR;
           const maskCy = hqCy + (parvisCx * scale) * sinR + (parvisCy * scale) * cosR;
 
-          const renderedTaxis = taxisRef.current.map((taxi) => {
+          // Couleur d'état pour le halo (mise à jour en temps réel selon le mode du taxi)
+          const statusFor = (mode: TaxiMode): { ring: string; label: string } => {
+            switch (mode) {
+              case "to_pickup":  return { ring: "#38bdf8", label: "PICK" };
+              case "to_dest":    return { ring: "#22c55e", label: "COURSE" };
+              case "returning":  return { ring: "#a78bfa", label: "RETOUR" };
+              case "to_gas":     return { ring: "#fb923c", label: "ESSENCE" };
+              case "refueling":  return { ring: "#fb923c", label: "⛽" };
+              case "depositing": return { ring: "#fde047", label: "DÉPÔT" };
+              case "roaming":    return { ring: "#94a3b8", label: "PATROUILLE" };
+              default:           return { ring: "#475569", label: "QG" };
+            }
+          };
+
+          const renderedTaxis = taxisRef.current.map((taxi, idx) => {
 
             const movingForward = taxi.target >= taxi.pos;
             const onPath = taxi.lane ?? getLaneXY(taxi.pathIdx, taxi.pos, movingForward);
@@ -2800,16 +2814,45 @@ export default function TaxiTycoon() {
             const fuelPct = Math.max(0, Math.min(1, taxi.fuel / 100));
             const fuelLow = taxi.fuel < FUEL_LOW_THRESHOLD;
             const isHonking = honkingTaxis.has(taxi.id);
+            // Chaque taxi débloqué a sa propre teinte (colorId), ainsi tous
+            // les taxis sont visibles distinctement sur la carte.
+            const ownPaint = TAXI_PAINTS.find((pt) => pt.id === taxi.colorId) ?? currentPaint;
+            const status = statusFor(taxi.mode);
+            const onMission = taxi.mode === "to_pickup" || taxi.mode === "to_dest";
             return (
               <g key={taxi.id}>
+                {/* Halo d'état (clignote quand en mission) */}
+                <circle
+                  cx={p.x} cy={p.y} r={onMission ? 22 : 18}
+                  fill="none" stroke={status.ring}
+                  strokeWidth={onMission ? 2.4 : 1.6}
+                  opacity={onMission ? 0.85 : 0.45}
+                  pointerEvents="none"
+                >
+                  {onMission && (
+                    <animate attributeName="opacity" values="0.85;0.3;0.85" dur="1.1s" repeatCount="indefinite" />
+                  )}
+                </circle>
                 <g
                   transform={`translate(${p.x},${p.y}) rotate(${angle})`}
                   filter="url(#taxi-shadow)"
                   style={{ cursor: "pointer", pointerEvents: "auto" }}
                   onClick={(e) => { e.stopPropagation(); honkTaxi(taxi.id); }}
                 >
-                  <TaxiSprite image={currentLivery.image} faceRight={currentLivery.faceRight} paintFilter={currentPaint.filter} markerColor={currentPaint.color} withClient={taxi.mode === "to_dest"} moving={taxi.mode !== "idle" && taxi.mode !== "refueling" && taxi.mode !== "depositing"} />
+                  <TaxiSprite image={currentLivery.image} faceRight={currentLivery.faceRight} paintFilter={ownPaint.filter} markerColor={ownPaint.color} withClient={taxi.mode === "to_dest"} moving={taxi.mode !== "idle" && taxi.mode !== "refueling" && taxi.mode !== "depositing"} />
                 </g>
+                {/* Numéro de taxi — toujours visible, ne tourne pas */}
+                <g transform={`translate(${p.x + 14},${p.y - 14})`} pointerEvents="none">
+                  <circle r="7" fill="#0a0c10" stroke={ownPaint.color} strokeWidth="1.5" />
+                  <text y="3" textAnchor="middle" fontSize="9" fontWeight="900" fill={ownPaint.color}>{idx + 1}</text>
+                </g>
+                {/* Étiquette d'état au-dessus quand en mission/action */}
+                {taxi.mode !== "idle" && (
+                  <g transform={`translate(${p.x},${p.y - 28})`} pointerEvents="none">
+                    <rect x={-26} y={-7} width={52} height={12} rx={3} fill="#0a0c10" opacity="0.82" stroke={status.ring} strokeWidth="0.8" />
+                    <text y={2} textAnchor="middle" fontSize="8" fontWeight="900" fill={status.ring}>{status.label}</text>
+                  </g>
+                )}
                 {/* Coup de phare + halo klaxon */}
                 {isHonking && (
                   <g transform={`translate(${p.x},${p.y})`} pointerEvents="none">
@@ -2817,7 +2860,7 @@ export default function TaxiTycoon() {
                       <animate attributeName="r" from="14" to="44" dur="0.6s" fill="freeze" />
                       <animate attributeName="opacity" from="0.95" to="0" dur="0.6s" fill="freeze" />
                     </circle>
-                    <text y="-36" fontSize="14" fontWeight="900" textAnchor="middle" fill="#fde047" stroke="#0a0c10" strokeWidth="2" paintOrder="stroke">📯 BIP</text>
+                    <text y="-44" fontSize="14" fontWeight="900" textAnchor="middle" fill="#fde047" stroke="#0a0c10" strokeWidth="2" paintOrder="stroke">📯 BIP</text>
                   </g>
                 )}
                 {/* Mini jauge essence sous le taxi */}
@@ -2825,9 +2868,6 @@ export default function TaxiTycoon() {
                   <rect x="0" y="0" width="24" height="3" rx="1" fill="#0a0c10" opacity="0.7" />
                   <rect x="0" y="0" width={24 * fuelPct} height="3" rx="1" fill={fuelLow ? "#ef4444" : "#34d399"} />
                 </g>
-                {taxi.mode === "refueling" && (
-                  <text x={p.x} y={p.y - 30} fontSize="11" textAnchor="middle" fill="#fde68a" fontWeight="900">⛽</text>
-                )}
               </g>
             );
           });
