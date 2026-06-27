@@ -11,7 +11,7 @@
 // =============================================================
 import { useEffect, useMemo, useRef, useState } from "react";
 import { getCivilCarUrls } from "./gameAssets";
-import { ROADS, VILLAGE_PATHS, isInsideHQZone } from "./CityTraffic";
+import { ROADS, VILLAGE_PATHS } from "./CityTraffic";
 import { VEHICLE_SIZE } from "./TaxiTycoon";
 import { isMafiaTruceActive } from "./MafiaGodfather";
 import { getAdmin } from "./adminConfig";
@@ -314,14 +314,6 @@ export default function MafiaAttackers() {
             structuralChange = true;
             continue;
           }
-        }
-
-        // Verrou QG : hors raid, aucune voiture mafia n'a le droit de rouler
-        // sur le parvis du QG (réservé aux taxis du joueur). On la despawn.
-        if (!raidOn && isInsideHQZone(c.x, c.y)) {
-          groupRefs.current.delete(c.id);
-          structuralChange = true;
-          continue;
         }
 
         // Mise à jour directe DOM (pas de re-render React).

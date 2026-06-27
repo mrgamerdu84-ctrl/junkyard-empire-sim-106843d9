@@ -105,30 +105,8 @@ type Taxi = {
   transitionFromX?: number;
   transitionFromY?: number;
   transitionUntil?: number;
-  // Place de parking préférée au QG (index 0..6). Si définie, le taxi se gare
-  // toujours sur ce slot quand il est idle/dépose ; sinon attribution auto.
-  parkSlot?: number;
 };
 const TRANSITION_MS = 1500;
-
-// Rond-point central — coordonnées dans le repère SVG 1920×1080 (citymap3).
-// Aucun véhicule ne doit traverser ce disque : on s'en sert pour bloquer
-// tout lerp qui dessinerait un raccourci visuel par-dessus la fontaine.
-export const ROUNDABOUT = { x: 955, y: 608, r: 60 };
-
-// Test : est-ce que le segment [A,B] coupe le disque (cx,cy,r) ?
-function segmentHitsCircle(
-  ax: number, ay: number, bx: number, by: number,
-  cx: number, cy: number, r: number,
-): boolean {
-  const dx = bx - ax, dy = by - ay;
-  const len2 = dx * dx + dy * dy;
-  if (len2 === 0) return Math.hypot(ax - cx, ay - cy) < r;
-  let t = ((cx - ax) * dx + (cy - ay) * dy) / len2;
-  t = Math.max(0, Math.min(1, t));
-  const px = ax + t * dx, py = ay + t * dy;
-  return Math.hypot(px - cx, py - cy) < r;
-}
 
 
 // Mécanique : retour au QG tous les N courses, attente de DEPOSIT_MS
@@ -672,9 +650,6 @@ export default function TaxiTycoon() {
   const taxisRef = useRef<Taxi[]>([]);
   const nextIdRef = useRef(1);
   const lastJobSpawnRef = useRef(0);
-  // Cooldown global entre 2 annonces "📞 course entrante" de la secrétaire
-  // (le pool de jobs continue de se remplir en arrière-plan).
-  const lastOfferAnnouncedRef = useRef(0);
   const lastTaxiDispatchRef = useRef(0);
   const [, forceRender] = useState(0);
   const [toast, setToast] = useState<string | null>(null);
@@ -1002,18 +977,12 @@ export default function TaxiTycoon() {
     taxi.pathIdx = newPathIdx;
     taxi.pos = newPos;
     taxi.target = newTarget;
-    // Verrou rond-point : si le segment de lerp passe à travers le rond-point,
-    // on snap pour ne PAS dessiner un raccourci visuel par-dessus la fontaine.
-    const crossesRound = segmentHitsCircle(
-      visual.x, visual.y, nearX, nearY,
-      ROUNDABOUT.x, ROUNDABOUT.y, ROUNDABOUT.r,
-    );
-    if ((visual.x !== 0 || visual.y !== 0) && dist <= 60 && !crossesRound) {
+    if ((visual.x !== 0 || visual.y !== 0) && dist <= 60) {
       taxi.transitionFromX = visual.x;
       taxi.transitionFromY = visual.y;
       taxi.transitionUntil = performance.now() + TRANSITION_MS;
     } else {
-      // Snap : pas de trajet hors route ni à travers le rond-point.
+      // Snap : pas de trajet hors route.
       taxi.transitionFromX = undefined;
       taxi.transitionFromY = undefined;
       taxi.transitionUntil = undefined;
@@ -1337,15 +1306,9 @@ export default function TaxiTycoon() {
         lastJobSpawnRef.current = now;
         const job = genJob(cur.depotTier);
         setJobs((js) => [...js, job]);
-        // Annonce vocale espacée : pas plus d'une proposition toutes les 45 s
-        // pour ne pas saturer le joueur (la course reste disponible dans la file).
-        const OFFER_COOLDOWN_MS = 45_000;
-        if (now - lastOfferAnnouncedRef.current > OFFER_COOLDOWN_MS) {
-          lastOfferAnnouncedRef.current = now;
-          try {
-            window.dispatchEvent(new CustomEvent("jce:mission-offered", { detail: { id: job.id, fare: job.fare } }));
-          } catch {}
-        }
+        try {
+          window.dispatchEvent(new CustomEvent("jce:mission-offered", { detail: { id: job.id, fare: job.fare } }));
+        } catch {}
       }
 
       // === Mouvement des taxis ===
@@ -2138,9 +2101,6 @@ export default function TaxiTycoon() {
   const [pseudoOpen, setPseudoOpen] = useState(false);
   const [cityInfoOpen, setCityInfoOpen] = useState(false);
   const [personnelOpen, setPersonnelOpen] = useState(false);
-  const [hqPanelOpen, setHqPanelOpen] = useState(false);
-  // Taxi en cours d'assignation à une place de parking (id) — UI gestion flotte.
-  const [parkPickerTaxiId, setParkPickerTaxiId] = useState<number | null>(null);
 
   const auth = useAuth();
   const [pseudoDraft, setPseudoDraft] = useState("");
@@ -2645,65 +2605,6 @@ export default function TaxiTycoon() {
         })}
 
 
-        {/* === Fontaine décorative au centre du rond-point === */}
-        {pathsReady && (
-          <g transform={`translate(${ROUNDABOUT.x},${ROUNDABOUT.y})`} style={{ pointerEvents: "none" }}>
-            {/* gazon central */}
-            <circle r={ROUNDABOUT.r * 0.78} fill="#2f5e2c" stroke="#1f3d1c" strokeWidth="1.5" />
-            <circle r={ROUNDABOUT.r * 0.78} fill="url(#grassRadial)" opacity="0.55" />
-            <defs>
-              <radialGradient id="grassRadial">
-                <stop offset="0%" stopColor="#5fae47" />
-                <stop offset="100%" stopColor="#244a1f" stopOpacity="0" />
-              </radialGradient>
-            </defs>
-            {/* allée pavée */}
-            <circle r={ROUNDABOUT.r * 0.42} fill="#b59770" stroke="#6e5536" strokeWidth="1.2" />
-            {/* bassin */}
-            <ellipse cx="0" cy="6" rx="32" ry="9" fill="rgba(0,0,0,0.35)" />
-            <circle r="26" fill="#3a82c4" stroke="#0e3a64" strokeWidth="2.5" />
-            <circle r="26" fill="url(#waterShine)" />
-            <defs>
-              <radialGradient id="waterShine" cx="35%" cy="30%">
-                <stop offset="0%" stopColor="#bfe2ff" stopOpacity="0.9" />
-                <stop offset="60%" stopColor="#3a82c4" stopOpacity="0" />
-              </radialGradient>
-            </defs>
-            {/* socle pierre */}
-            <circle r="10" fill="#cbbfa6" stroke="#6b5e44" strokeWidth="1.2" />
-            <circle r="6" fill="#a08f70" stroke="#4d4231" strokeWidth="0.8" />
-            {/* jet d'eau */}
-            <g opacity="0.9">
-              <ellipse cx="0" cy="-10" rx="4" ry="14" fill="#dff1ff">
-                <animate attributeName="ry" values="12;16;12" dur="2s" repeatCount="indefinite" />
-                <animate attributeName="opacity" values="0.7;1;0.7" dur="2s" repeatCount="indefinite" />
-              </ellipse>
-              <circle cx="-6" cy="-2" r="1.6" fill="#dff1ff">
-                <animate attributeName="cy" values="-2;6;-2" dur="1.6s" repeatCount="indefinite" />
-              </circle>
-              <circle cx="6" cy="-2" r="1.6" fill="#dff1ff">
-                <animate attributeName="cy" values="-2;6;-2" dur="1.4s" repeatCount="indefinite" />
-              </circle>
-              <circle cx="0" cy="-18" r="2" fill="#dff1ff">
-                <animate attributeName="cy" values="-18;-10;-18" dur="2s" repeatCount="indefinite" />
-                <animate attributeName="opacity" values="0;1;0" dur="2s" repeatCount="indefinite" />
-              </circle>
-            </g>
-            {/* fleurs autour du bassin */}
-            {[0, 60, 120, 180, 240, 300].map((a) => {
-              const rad = (a * Math.PI) / 180;
-              const fx = Math.cos(rad) * 40;
-              const fy = Math.sin(rad) * 40;
-              return (
-                <g key={a} transform={`translate(${fx},${fy})`}>
-                  <circle r="3" fill="#e11d48" />
-                  <circle r="1.2" fill="#fde68a" />
-                </g>
-              );
-            })}
-          </g>
-        )}
-
         {/* === Route en travaux (extension future au nord du QG) === */}
         {pathsReady && (() => {
           const cx = depotXY.x;
@@ -2750,20 +2651,12 @@ export default function TaxiTycoon() {
           return (
             <g
               style={{ cursor: "pointer", pointerEvents: "auto" }}
-              onClick={() => setHqPanelOpen(true)}
+              onClick={recallAllTaxis}
               transform={admin.hqRotation ? `rotate(${admin.hqRotation} ${cx} ${groundY})` : undefined}
             >
-              <title>Entrepôt Taxi — ouvrir le panneau QG</title>
-              {/* QG intégré directement à la map (citymap3) — on garde juste une zone cliquable invisible
-                  qui couvre l'entrepôt dessiné dans l'image de fond. */}
-              <rect
-                x={cx - w / 2}
-                y={groundY - h}
-                width={w}
-                height={h}
-                fill="transparent"
-                pointerEvents="auto"
-              />
+              <title>Entrepôt Taxi — cliquer pour rappeler tous les taxis</title>
+              {/* ombre projetée au pied du bâtiment pour l'ancrer au sol */}
+              <ellipse cx={cx} cy={groundY} rx={w * 0.44} ry={h * 0.07} fill="rgba(0,0,0,0.55)" />
               {/* halo pulse quand on déclenche le rappel */}
               {recallPulse > 0 && Date.now() - recallPulse < 900 && (
                 <circle cx={cx} cy={groundY - h * 0.15} r={w * 0.45} fill="none" stroke="#fde047" strokeWidth="4" opacity="0.85">
@@ -2771,6 +2664,15 @@ export default function TaxiTycoon() {
                   <animate attributeName="opacity" from="0.85" to="0" dur="0.9s" />
                 </circle>
               )}
+              <image
+                href={PLAYER_HQ_IMG}
+                x={cx - w / 2}
+                y={groundY - h}
+                width={w}
+                height={h}
+                preserveAspectRatio="xMidYMax meet"
+                style={{ filter: "drop-shadow(0 4px 6px rgba(0,0,0,0.5))" }}
+              />
               {/* badge tier discret au pied */}
               <text x={cx} y={groundY + 14} textAnchor="middle" fontSize="11" fontWeight="900"
                     fill="#fde047" stroke="#000" strokeWidth="3" paintOrder="stroke"
@@ -3159,26 +3061,7 @@ export default function TaxiTycoon() {
               angle: admin.hqRotation + SLOT_ANGLE_DEG,
             };
           };
-          // Attribution : on place d'abord les taxis ayant une place préférée,
-          // puis on remplit les places libres avec les autres dans l'ordre.
-          const used = new Set<number>();
-          parked.forEach((p) => {
-            const pref = p.taxi.parkSlot;
-            if (pref != null && pref >= 0 && pref < SLOTS_MAX && !used.has(pref)) {
-              p.slot = pref;
-              used.add(pref);
-            } else {
-              p.slot = -1;
-            }
-          });
-          let next = 0;
-          parked.forEach((p) => {
-            if (p.slot >= 0) return;
-            while (used.has(next) && next < SLOTS_MAX) next++;
-            p.slot = next % SLOTS_MAX;
-            used.add(p.slot);
-            next++;
-          });
+          parked.forEach((p, i) => { p.slot = i; });
 
           // Plus de masque "tarmac" : le sol peint du nouvel entrepôt sert de parking.
 
@@ -3749,165 +3632,6 @@ export default function TaxiTycoon() {
           </div>
         )}
 
-
-        {hqPanelOpen && (
-          <div className="tt-modal-overlay" onClick={() => setHqPanelOpen(false)}>
-            <div className="tt-modal" onClick={(e) => e.stopPropagation()} style={{ maxWidth: 460 }}>
-              <div className="tt-modal-h">
-                <h3>🏛️ QG — {tier.name}</h3>
-                <button className="tt-modal-x" onClick={() => setHqPanelOpen(false)}>×</button>
-              </div>
-              <p className="tt-modal-sub">Quartier général · niveau {save.depotTier + 1}</p>
-
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 6, marginBottom: 12 }}>
-                <div style={{ background: "#0f1117", border: "1px solid #2a2e38", borderRadius: 8, padding: "8px 6px", textAlign: "center" }}>
-                  <div style={{ fontSize: 10, color: "#9ca3af" }}>TRÉSORERIE</div>
-                  <div style={{ fontSize: 14, fontWeight: 900, color: "#fde68a" }}>{fmt(save.money)} $</div>
-                </div>
-                <div style={{ background: "#0f1117", border: "1px solid #2a2e38", borderRadius: 8, padding: "8px 6px", textAlign: "center" }}>
-                  <div style={{ fontSize: 10, color: "#9ca3af" }}>FLOTTE</div>
-                  <div style={{ fontSize: 14, fontWeight: 900, color: "#86efac" }}>{taxiCount}/{effectiveMaxTaxis}</div>
-                </div>
-                <div style={{ background: "#0f1117", border: "1px solid #2a2e38", borderRadius: 8, padding: "8px 6px", textAlign: "center" }}>
-                  <div style={{ fontSize: 10, color: "#9ca3af" }}>USURE</div>
-                  <div style={{ fontSize: 14, fontWeight: 900, color: wearNow > 60 ? "#fca5a5" : "#e6e0d8" }}>{wearNow}%</div>
-                </div>
-              </div>
-
-              <p className="tt-modal-sub">Actions rapides</p>
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 6, marginBottom: 12 }}>
-                <button className="tt-wood-btn" style={{ padding: "10px 8px", borderRadius: 10, color: "#fde68a", fontWeight: 800 }}
-                  onClick={() => { recallAllTaxis(); setHqPanelOpen(false); }}>
-                  📣 Rappeler tous
-                </button>
-                <button className="tt-wood-btn" style={{ padding: "10px 8px", borderRadius: 10, color: "#fde68a", fontWeight: 800 }}
-                  onClick={repairTaxis} disabled={wearNow <= 0 || save.money < maintenanceCost}>
-                  🔧 Entretien {maintenanceCost > 0 ? `(${fmt(maintenanceCost)} $)` : ""}
-                </button>
-                <button className="tt-wood-btn" style={{ padding: "10px 8px", borderRadius: 10, color: "#fde68a", fontWeight: 800 }}
-                  onClick={() => { setHqPanelOpen(false); setGarageOpen(true); }}>
-                  🏁 Garage / Livrées
-                </button>
-                <button className="tt-wood-btn" style={{ padding: "10px 8px", borderRadius: 10, color: "#fde68a", fontWeight: 800 }}
-                  onClick={() => { setHqPanelOpen(false); setPersonnelOpen(true); }}>
-                  👥 Personnel
-                </button>
-              </div>
-
-              <p className="tt-modal-sub">Flotte</p>
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 6, marginBottom: 8 }}>
-                <button className="tt-wood-btn" style={{ padding: "10px 8px", borderRadius: 10, color: "#fde68a", fontWeight: 800 }}
-                  onClick={buyTaxi} disabled={taxiCount >= effectiveMaxTaxis || save.money < taxiBuyCost}>
-                  🚕 Acheter taxi ({fmt(taxiBuyCost)} $)
-                </button>
-                <button className="tt-wood-btn" style={{ padding: "10px 8px", borderRadius: 10, color: "#fde68a", fontWeight: 800 }}
-                  onClick={upgradeSpeed} disabled={save.money < speedCost}>
-                  ⚡ Vitesse +1 ({fmt(speedCost)} $)
-                </button>
-              </div>
-
-              {/* Liste cliquable des taxis pour assigner une place de parking au QG */}
-              <div style={{ background: "#0f1117", border: "1px solid #2a2e38", borderRadius: 8, padding: 8, marginBottom: 12, maxHeight: 220, overflowY: "auto" }}>
-                <div style={{ fontSize: 10, color: "#9ca3af", marginBottom: 6, letterSpacing: 0.5 }}>
-                  🅿️ PLACES DE PARKING — touche un taxi puis choisis une place
-                </div>
-                {taxisRef.current.length === 0 && (
-                  <div style={{ fontSize: 11, color: "#6b7280", padding: "8px 0", textAlign: "center" }}>Aucun taxi.</div>
-                )}
-                {taxisRef.current.map((t, i) => {
-                  const isPicking = parkPickerTaxiId === t.id;
-                  const slotLabel = t.parkSlot != null ? `Place ${t.parkSlot + 1}` : "Auto";
-                  return (
-                    <div key={t.id} style={{ borderTop: i === 0 ? "none" : "1px solid #1f242e", padding: "6px 0" }}>
-                      <button
-                        onClick={() => setParkPickerTaxiId(isPicking ? null : t.id)}
-                        style={{
-                          width: "100%", display: "flex", alignItems: "center", justifyContent: "space-between",
-                          background: "transparent", border: "none", color: "#e5e7eb", fontWeight: 700, fontSize: 13,
-                          cursor: "pointer", padding: "4px 2px",
-                        }}
-                      >
-                        <span>🚕 Taxi #{t.id} <span style={{ color: "#9ca3af", fontWeight: 500, fontSize: 11 }}>· {t.mode}</span></span>
-                        <span style={{ color: isPicking ? "#fde047" : "#fde68a", fontSize: 11 }}>{slotLabel} {isPicking ? "▾" : "›"}</span>
-                      </button>
-                      {isPicking && (
-                        <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 4, marginTop: 6 }}>
-                          {[0,1,2,3,4,5,6].map((slot) => {
-                            const taken = taxisRef.current.find((x) => x.id !== t.id && x.parkSlot === slot);
-                            return (
-                              <button
-                                key={slot}
-                                disabled={!!taken}
-                                onClick={() => {
-                                  t.parkSlot = slot;
-                                  setParkPickerTaxiId(null);
-                                  forceRender((n) => n + 1);
-                                  showToast(`Taxi #${t.id} assigné à la place ${slot + 1}`);
-                                }}
-                                style={{
-                                  padding: "6px 0", borderRadius: 6, fontSize: 11, fontWeight: 800,
-                                  border: "1px solid " + (t.parkSlot === slot ? "#f5c542" : "#374151"),
-                                  background: t.parkSlot === slot ? "#3a2a08" : taken ? "#1a1a1f" : "#0a0c10",
-                                  color: taken ? "#4b5563" : t.parkSlot === slot ? "#fde047" : "#d1d5db",
-                                  cursor: taken ? "not-allowed" : "pointer",
-                                }}
-                                title={taken ? `Occupée par #${taken.id}` : `Place ${slot + 1}`}
-                              >
-                                {slot + 1}
-                              </button>
-                            );
-                          })}
-                          <button
-                            onClick={() => {
-                              t.parkSlot = undefined;
-                              setParkPickerTaxiId(null);
-                              forceRender((n) => n + 1);
-                              showToast(`Taxi #${t.id} : place auto`);
-                            }}
-                            style={{
-                              gridColumn: "span 4", marginTop: 2, padding: "6px 0", borderRadius: 6,
-                              fontSize: 10, fontWeight: 700, border: "1px dashed #4b5563",
-                              background: "transparent", color: "#9ca3af", cursor: "pointer",
-                            }}
-                          >
-                            ↺ Attribution automatique
-                          </button>
-                        </div>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
-
-
-
-              <p className="tt-modal-sub">Améliorations QG</p>
-              <div style={{ display: "grid", gap: 6, marginBottom: 12 }}>
-                {(["capacity","production","revenue"] as const).map((k) => {
-                  const labels = { capacity: "🚕 Capacité", production: "⚙️ Production", revenue: "💰 Revenus" } as const;
-                  const lvl = hqLevel(k);
-                  const max = lvl >= HQ_UPGRADE_MAX;
-                  const cost = hqCost(k);
-                  return (
-                    <button key={k} className="tt-wood-btn"
-                      style={{ padding: "10px 12px", borderRadius: 10, color: "#fde68a", fontWeight: 800, display: "flex", justifyContent: "space-between", alignItems: "center" }}
-                      onClick={() => hqUpgrade(k)} disabled={max || save.money < cost}>
-                      <span>{labels[k]} · Niv. {lvl}/{HQ_UPGRADE_MAX}</span>
-                      <span style={{ color: max ? "#86efac" : "#fff" }}>{max ? "MAX" : `${fmt(cost)} $`}</span>
-                    </button>
-                  );
-                })}
-              </div>
-
-              {nextTier && (
-                <button className="tt-wood-btn" style={{ width: "100%", padding: "12px", borderRadius: 10, color: "#fde68a", fontWeight: 900, letterSpacing: 1 }}
-                  onClick={upgradeDepot} disabled={save.money < nextTier.cost}>
-                  🏗️ Passer au {nextTier.name} — {fmt(nextTier.cost)} $
-                </button>
-              )}
-            </div>
-          </div>
-        )}
 
         {toast && <div className="tt-toast">{toast}</div>}
         {showLeaderboard && <LeaderboardPanel onClose={() => setShowLeaderboard(false)} />}

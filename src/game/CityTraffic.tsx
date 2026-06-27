@@ -24,18 +24,6 @@ const getPedPhotoImages = () => getPedestrianPhotoUrls();
 // dessine plus comme route (ci-dessous dans le rendu).
 export const VILLAGE_PATHS = new Set<number>([1]);
 
-// ZONE INTERDITE AU TRAFIC GÉNÉRAL (civils + mafia)
-// Couvre le parvis du QG « TAXI WORLD » incrusté dans citymap3 : les pointillés
-// peints DEVANT et DANS l'entrepôt servent UNIQUEMENT aux taxis du joueur
-// (sortie de parking, alignement, insertion sur la route principale).
-// Aucune voiture de ville ni voiture mafia ne doit y rouler.
-// Repère SVG 1920×1080.
-export const HQ_NO_CIVIL_ZONE = { x: 600, y: 60, w: 760, h: 380 };
-export function isInsideHQZone(x: number, y: number): boolean {
-  const z = HQ_NO_CIVIL_ZONE;
-  return x >= z.x && x <= z.x + z.w && y >= z.y && y <= z.y + z.h;
-}
-
 // === SÉPARATION DES VOIES (code de la route) ===
 // Demi-largeur d'une route ≈ 23 px. On place chaque véhicule à LANE_HALF px
 // du centre, à DROITE de son sens de marche. Les véhicules en sens inverse
@@ -625,20 +613,6 @@ export default function CityTraffic() {
         const side = st.spec.flip ? -1 : 1;
         const ox = (-tdy / L) * LANE_HALF * side;
         const oy = (tdx / L) * LANE_HALF * side;
-        // Verrou QG : si la voiture civile pénètre la zone réservée aux taxis
-        // (parvis + intérieur de l'entrepôt), on la re-rolle vers un autre
-        // path autorisé. Invisible pour le joueur — elle disparaît hors-écran
-        // et réapparaît sur une autre route.
-        if (isInsideHQZone(p.x + ox, p.y + oy)) {
-          st.spec = rerollSpec(st.spec);
-          st.pathLen = lens[st.spec.pathIdx];
-          st.baseSpeed = st.pathLen / st.spec.duration;
-          st.s = Math.random() * st.pathLen;
-          st.laneKey = `${st.spec.pathIdx}:${st.spec.flip ? "r" : "f"}`;
-          node.setAttribute("opacity", "0");
-          checkRadars(st, prev);
-          continue;
-        }
         node.setAttribute("transform", `translate(${(p.x + ox).toFixed(2)},${(p.y + oy).toFixed(2)}) rotate(${ang.toFixed(2)})`);
         checkRadars(st, prev);
       }
@@ -676,54 +650,17 @@ export default function CityTraffic() {
         </filter>
       </defs>
 
-      {/* === Routes embellies, alignées sur les axes calibrés ===
-          4 couches : ombre douce → asphalte → bordures blanches → ligne centrale jaune.
-          Largeur unifiée à 48 px (= largeur visible du bitume de citymap3.jpg).
-          Le rond-point est dessiné en dernier pour rester net autour de la fontaine. */}
-      {/* Ombre sous la chaussée */}
-      <g opacity="0.28">
+      <g opacity="0.12">
         {ROADS.map((d, i) => (
           VILLAGE_PATHS.has(i) ? null : (
-            <path key={`shadow-${i}`} d={d} stroke="#000" strokeWidth={54} fill="none"
-                  strokeLinecap="round" strokeLinejoin="round" filter="url(#jce-soft-shadow)" />
+            <path key={i} d={d} stroke="#0b0d10" strokeWidth={i >= 4 ? 34 : 46} fill="none" strokeLinecap="round" />
           )
         ))}
-      </g>
-      {/* Asphalte */}
-      <g opacity="0.55">
-        {ROADS.map((d, i) => (
+        {ROADS.slice(0, 4).map((d, i) => (
           VILLAGE_PATHS.has(i) ? null : (
-            <path key={`asphalt-${i}`} d={d} stroke="#1c2024" strokeWidth={48} fill="none"
-                  strokeLinecap="round" strokeLinejoin="round" />
+            <path key={`dash-${i}`} d={d} stroke="#f6d56a" strokeWidth="2.4" strokeDasharray="18 18" fill="none" opacity="0.72" />
           )
         ))}
-      </g>
-      {/* Bordures blanches (rives) */}
-      <g opacity="0.55">
-        {ROADS.map((d, i) => (
-          VILLAGE_PATHS.has(i) ? null : (
-            <path key={`edge-${i}`} d={d} stroke="#f4f5f7" strokeWidth={50} fill="none"
-                  strokeLinecap="round" strokeLinejoin="round"
-                  strokeDasharray="0 0" style={{ mixBlendMode: "screen" as const }} opacity={0.18} />
-          )
-        ))}
-      </g>
-      {/* Ligne centrale jaune en pointillés */}
-      <g>
-        {ROADS.map((d, i) => (
-          VILLAGE_PATHS.has(i) ? null : (
-            <path key={`dash-${i}`} d={d} stroke="#f6d56a" strokeWidth={2.6}
-                  strokeDasharray="20 16" fill="none" opacity={0.78} strokeLinecap="round" />
-          )
-        ))}
-      </g>
-      {/* Anneau du rond-point (autour de la fontaine x=955 y=608 r=60) */}
-      <g pointerEvents="none">
-        <circle cx={955} cy={608} r={92} fill="none" stroke="#1c2024" strokeWidth={48} opacity={0.55} />
-        <circle cx={955} cy={608} r={92} fill="none" stroke="#f6d56a" strokeWidth={2.6}
-                strokeDasharray="14 12" opacity={0.85} />
-        <circle cx={955} cy={608} r={68} fill="none" stroke="#f4f5f7" strokeWidth={2} opacity={0.55} />
-        <circle cx={955} cy={608} r={116} fill="none" stroke="#f4f5f7" strokeWidth={2} opacity={0.45} />
       </g>
 
 

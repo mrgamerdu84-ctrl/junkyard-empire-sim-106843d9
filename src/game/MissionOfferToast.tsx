@@ -80,14 +80,10 @@ export default function MissionOfferToast() {
       beep();
       speakSecretary(det.fare, name);
       if (expireRef.current) window.clearTimeout(expireRef.current);
-      // Sans réponse du joueur sous 10 s, la secrétaire accepte d'office.
       expireRef.current = window.setTimeout(() => {
-        shutUp();
-        try {
-          window.dispatchEvent(new CustomEvent("jce:mission-accept", { detail: { id: det.id, driver: name, auto: true } }));
-        } catch {}
         setOffer(null);
-      }, 10000);
+        shutUp();
+      }, 8000);
     };
     window.addEventListener("jce:mission-offered", onOffer);
     return () => {
