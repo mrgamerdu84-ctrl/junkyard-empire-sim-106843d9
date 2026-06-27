@@ -561,6 +561,17 @@ export default function TaxiTycoon() {
   const admin = useAdminConfig(); // re-render quand l'admin change
   const navigate = useNavigate();
   const realEnv = useRealWorldEnv();
+  const weatherEmoji = (w: string, isDay: boolean) => {
+    switch (w) {
+      case "clear": return isDay ? "☀️" : "🌙";
+      case "clouds": return "☁️";
+      case "rain": return "🌧️";
+      case "snow": return "❄️";
+      case "fog": return "🌫️";
+      case "storm": return "⛈️";
+      default: return "🌡️";
+    }
+  };
   const [showLeaderboard, setShowLeaderboard] = useState(false);
   const [showTutorial, setShowTutorial] = useState(false);
   const [dayOffset, setDayOffset] = useState(0);
