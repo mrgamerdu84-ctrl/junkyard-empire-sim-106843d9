@@ -1,69 +1,32 @@
-## Système "Le Parrain réclame sa rançon"
+## Objectif
+Remplacer l'ancien bâtiment QG (image `player-hq.png` ancrée sur `admin.hqX/hqY`) par un nouvel entrepôt-dépôt de taxis avec grand panneau et places de parking visibles, le rendre cliquable pour rappeler les taxis, et garantir que les taxis y entrent en empruntant les routes (pas de coupe à travers décors).
 
-### 1. Nouveau module `src/game/MafiaGodfather.tsx`
-Composant overlay HUD (portal, hors zoom carte) qui gère **toute** la mécanique :
+## 1. Nouvel asset entrepôt
+- Générer une image isométrique « Taxi Depot » : grand hangar gris/jaune, enseigne lumineuse « TAXI DEPOT », 6 places de parking jaunes dessinées au sol, allée d'entrée alignée avec la route → `src/assets/taxi-warehouse.png` (via `imagegen`, transparent_background).
+- Créer le pointeur `src/assets/taxi-warehouse.png.asset.json` et remplacer l'import `playerHqAsset` dans `src/game/TaxiTycoon.tsx`.
+- L'ancien `player-hq.png` reste sur disque mais n'est plus importé.
 
-- **État local persistant** dans `localStorage` (clé `mtw.godfather.v1`) :
-  - `truceUntil` : timestamp ms — fin de la trêve payée (0 si aucune).
-  - `nextDemandAt` : timestamp ms — prochaine apparition du Parrain.
-  - `lastPaid` : timestamp.
-- **Cycle automatique** :
-  - À l'arrivée sur `nextDemandAt` → ouvre le pop-up du Parrain.
-  - Si le joueur **paye 1 500 $** (debit via `jce.player.cashDelta` avec `amount: -1500`, `reason: "ransom"`) :
-    - `truceUntil = now + 60 min`
-    - `nextDemandAt = truceUntil + 5 s` (le Parrain revient pile après la trêve)
-    - Émet `jce.mafia.truce` `{ active: true, until: truceUntil }`.
-  - Si le joueur **refuse** :
-    - Émet `jce.mafia.raid` `{ until: now + 90 s }` → déclenche un raid sur le QG.
-    - `nextDemandAt = now + 8 min` (le Parrain revient plus tard).
-- **Refus si fonds insuffisants** : bouton désactivé + message "Tu n'as pas de quoi payer… mauvaise idée." → traité comme refus si timer expire.
+## 2. Intégration sur la carte
+Dans `src/game/TaxiTycoon.tsx` (bloc ligne ~2410-2440) :
+- Garder l'ancrage `admin.hqX/hqY/hqScale/hqRotation` (configurable via Admin Panel, donc l'utilisateur pourra repositionner finement sur l'emplacement de l'ancien QG en haut).
+- Augmenter légèrement la `baseW` par défaut pour matcher la silhouette du hangar.
+- Conserver le tarmac mask pour cacher tout résidu de l'image de fond.
 
-### 2. UI du pop-up (style talkie / haut-parleur old-school)
-- Overlay centré, fond semi-opaque sombre.
-- Carte sombre avec bord doré, icône **haut-parleur 📢** animé (pulse rouge quand il parle).
-- Portrait du Parrain (image générée : silhouette costume + chapeau, cigare, fond rouge sombre — `src/assets/godfather.png`).
-- **Bulle de dialogue** type bande dessinée (queue pointant vers le portrait) avec texte tapé caractère par caractère (effet machine à écrire ~25 ms/lettre).
-- Textes tirés d'un pool aléatoire (4-5 répliques signature, ex : *"Alors, gamin… on dit que ça roule pour toi. Ce serait dommage qu'il arrive un malheur à ta belle flotte. 1 500 $ et on n'en parle plus pendant une heure."*).
-- Boutons :
-  - 🟢 **PAYER 1 500 $** (vert, désactivé si cash < 1 500).
-  - 🔴 **REFUSER** (rouge, conséquences chiffrées sous le bouton).
-- Compte à rebours **15 s** pour répondre → expiration = refus.
+## 3. Zone cliquable « Rappeler les taxis »
+- Wrapper le `<image href={TAXI_WAREHOUSE_IMG}>` dans un `<g>` avec `onClick` + `style={{ cursor: "pointer" }}` + `<title>Rappeler les taxis</title>`.
+- Ajouter un handler `recallAllTaxis()` qui, pour chaque taxi en état `idle|enroute|return`, force `state = "returning"` et `beginSegment(...)` vers `closestOnPath(pathIdx, hqX, hqY)`. Les taxis en `pickup`/`delivery` finissent leur course actuelle puis rentrent (flag `mustDeposit = true`).
+- Feedback : `popFloat("📣 Rappel général", hqX, hqY-30)` + halo pulse 600 ms sur le bâtiment (state local `recallPulse`).
 
-### 3. Intégration "trêve" (1 h)
-Lecture d'un helper exporté `isMafiaTruceActive()` (lit `truceUntil` dans localStorage) :
+## 4. Pathfinding propre vers le parking
+- Pas de nouveau moteur de pathfinding : les taxis utilisent déjà les `paths` SVG du circuit. La règle anti-saut (`beginSegment` snap si distance > 60 px) est en place.
+- Ajout : définir un point d'entrée parking `PARK_ENTRY = closestOnPath(0, hqX, hqY)` calculé une fois. Le retour QG vise désormais `PARK_ENTRY` (sur route) puis lerp court (≤ 40 px, 800 ms) vers la place de parking assignée — garantit que le taxi suit la route, prend le rond-point si nécessaire, puis tourne dans l'allée.
+- Les places de parking restent assignées par index (logique existante alignée sur le tarmac).
 
-- **`src/game/MafiaAttackers.tsx`** : court-circuite le spawn des voitures de sabotage si trêve active.
-- **`src/game/ArmoredTruck.tsx`** : ne lance pas de mission camion blindé pendant la trêve.
-- **`src/game/TaxiTycoon.tsx`** (génération des jobs / `claimedBy`) : ignore les "vols de course" par compagnies mafia tant que `isMafiaTruceActive()` est `true`.
+## 5. Hors-scope (non touché)
+- Pas de modification du HUD, radio, mafia, missions, ou Admin Panel autre que l'image.
+- Pas de changement de la logique économique du QG (upgrades, tiers, dépôt).
 
-### 4. Intégration "raid sur QG" (refus)
-Nouvel évènement `jce.mafia.raid` écouté par `MafiaAttackers.tsx` :
-- Pendant la durée du raid (90 s), spawn **3–5 voitures supplémentaires** dont la cible n'est plus les taxis mais le QG joueur (`admin.hqX/hqY`).
-- Le joueur doit les cliquer pour les exploser (mécanique sabotage existante).
-- À l'expiration, retour au régime normal (mafia continue son sabotage standard).
-
-### 5. HUD : badge "Trêve" sur le tableau de bord
-Dans `src/game/TaxiTycoon.tsx`, ajout d'une mini-pastille dans le bandeau status (à côté du trafic/météo) :
-- **🤝 TRÊVE 42:18** quand `truceUntil > now` (mm:ss restant, vert).
-- **☠ MENACE** quand pas de trêve (rouge discret).
-- Cliquable → ré-ouvre le pop-up Parrain à la demande (utile si fermé par erreur).
-
-### 6. Audio (optionnel, léger)
-- Court "bip" radio à l'ouverture du pop-up (Web Audio API, oscillateur 600 Hz 80 ms, déjà utilisé ailleurs dans le projet — pas de nouvel asset).
-- Voix off désactivée par défaut (évite la dépendance à TTS).
-
-### 7. Assets
-- `src/assets/godfather.png` — portrait généré (fast quality, 512×512, fond sombre, costume noir, chapeau, cigare allumé, lunettes fumées) inséré dans le pop-up.
-
-### 8. Montage
-- `src/routes/index.tsx` : ajout de `<MafiaGodfather />` au même niveau que `<AdminPanel />` (HUD fixe, hors zoom).
-- Premier déclenchement : `nextDemandAt = now + 3 min` après la première partie (laisse le temps au joueur de s'installer).
-
-### Récap mécanique
-| Action joueur | Effet immédiat | Suite |
-|---|---|---|
-| Paye 1 500 $ | −1 500 $, trêve 60 min (mafia OFF) | Parrain revient à T+60 min |
-| Refuse / timeout | Raid QG 90 s (vagues mafia) | Parrain revient à T+8 min |
-| Cash < 1 500 | Bouton payer grisé → forcé refus | Idem refus |
-
-Tout est local (localStorage + évènements `window`) — aucun changement backend.
+## Détails techniques
+- Fichiers modifiés : `src/game/TaxiTycoon.tsx` uniquement.
+- Fichiers créés : `src/assets/taxi-warehouse.png`, `src/assets/taxi-warehouse.png.asset.json`.
+- Aucune migration BDD, aucun nouveau package.

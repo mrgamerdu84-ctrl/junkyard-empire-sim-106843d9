@@ -20,7 +20,7 @@ import { getMaintenanceDiscount, getTipsBonus, startPersonnelTick } from "./pers
 import { useAuth } from "@/lib/useAuth";
 import { resolveAvatarSrc } from "@/components/ProfileCard";
 import { supabase } from "@/integrations/supabase/client";
-import playerHqAsset from "@/assets/player-hq.png.asset.json";
+import playerHqAsset from "@/assets/taxi-warehouse.png.asset.json";
 
 const PLAYER_HQ_IMG = playerHqAsset.url;
 
@@ -1169,6 +1169,33 @@ export default function TaxiTycoon() {
     setPopups((p) => [...p, { id, text, x, y }]);
     window.setTimeout(() => setPopups((p) => p.filter((x) => x.id !== id)), 1100);
   };
+
+  // Rappel général : tous les taxis rentrent au QG en empruntant les routes.
+  const [recallPulse, setRecallPulse] = useState(0);
+  const recallAllTaxis = () => {
+    const adm = getAdmin();
+    let count = 0;
+    for (const taxi of taxisRef.current) {
+      if (taxi.mode === "to_pickup" || taxi.mode === "to_dest") {
+        // course en cours : forcer le dépôt après livraison
+        taxi.mustDeposit = true;
+        count++;
+        continue;
+      }
+      if (taxi.mode === "depositing" || taxi.mode === "refueling") continue;
+      // Roaming / returning / idle / to_gas → recalcule un trajet route → QG
+      const pIdx = pickPath(taxi.pathIdx);
+      const here = taxiXY(taxi);
+      beginSegment(taxi, pIdx, closestOnPath(pIdx, here.x, here.y), closestOnPath(pIdx, adm.hqX, adm.hqY));
+      taxi.mode = "returning";
+      taxi.mustDeposit = true;
+      taxi.jobId = null;
+      count++;
+    }
+    popFloat(`📣 Rappel — ${count} taxis`, adm.hqX, adm.hqY - 30);
+    setRecallPulse(Date.now());
+  };
+
 
   // === Boucle de jeu : mouvement des taxis + génération des courses proposées ===
   useEffect(() => {
@@ -2416,12 +2443,19 @@ export default function TaxiTycoon() {
           return (
             <g
               style={{ cursor: "pointer", pointerEvents: "auto" }}
-              onClick={() => setShopOpen(true)}
+              onClick={recallAllTaxis}
               transform={admin.hqRotation ? `rotate(${admin.hqRotation} ${cx} ${cy})` : undefined}
             >
-              <title>QG — My Taxi HQ (cliquer pour la boutique)</title>
+              <title>Entrepôt Taxi — cliquer pour rappeler tous les taxis</title>
               {/* ombre douce sous le bâtiment pour l'ancrer au sol */}
               <ellipse cx={cx} cy={cy + h * 0.42} rx={w * 0.42} ry={h * 0.08} fill="rgba(0,0,0,0.45)" />
+              {/* halo pulse quand on déclenche le rappel */}
+              {recallPulse > 0 && Date.now() - recallPulse < 900 && (
+                <circle cx={cx} cy={cy} r={w * 0.45} fill="none" stroke="#fde047" strokeWidth="4" opacity="0.85">
+                  <animate attributeName="r" from={w * 0.30} to={w * 0.55} dur="0.9s" />
+                  <animate attributeName="opacity" from="0.85" to="0" dur="0.9s" />
+                </circle>
+              )}
               <image
                 href={PLAYER_HQ_IMG}
                 x={cx - w / 2}
