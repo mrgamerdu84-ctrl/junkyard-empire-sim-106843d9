@@ -113,6 +113,16 @@ export default function MafiaAttackers() {
   const pathLens = useMemo(() => pathEls.map((p) => p.getTotalLength()), [pathEls]);
   // refs DOM par voiture -> mise à jour directe du transform sans re-render
   const groupRefs = useRef<Map<number, SVGGElement>>(new Map());
+  const raidUntilRef = useRef(0);
+
+  useEffect(() => {
+    const onRaid = (ev: Event) => {
+      const d = (ev as CustomEvent<{ until: number }>).detail;
+      if (d && typeof d.until === "number") raidUntilRef.current = d.until;
+    };
+    window.addEventListener("jce.mafia.raid", onRaid as EventListener);
+    return () => window.removeEventListener("jce.mafia.raid", onRaid as EventListener);
+  }, []);
 
   useEffect(() => {
     if (pathEls.length === 0) return;
