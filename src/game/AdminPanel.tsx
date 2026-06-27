@@ -335,14 +335,14 @@ export default function AdminPanel() {
         .adm-toggle { display: flex; align-items: center; gap: 8px; cursor: pointer; font-size: 12px; color: #c8ccd2; }
         .adm-toggle input { accent-color: #f5c542; }
         .adm-place-banner {
-          position: absolute; top: 14px; left: 50%; transform: translateX(-50%); z-index: 60;
+          position: fixed; top: 12px; left: 50%; transform: translateX(-50%); z-index: 9999;
           background: #f5c542; color: #14171c; padding: 8px 14px; border-radius: 20px;
-          font-size: 13px; font-weight: 700; box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+          font-size: 13px; font-weight: 700; box-shadow: 0 4px 12px rgba(0,0,0,0.5);
           pointer-events: none;
         }
         .adm-place-controls {
-          position: absolute; bottom: 16px; left: 50%; transform: translateX(-50%); z-index: 60;
-          background: rgba(20,22,28,0.95); color: #e8edf2; padding: 10px 12px; border-radius: 14px;
+          position: fixed; top: 56px; left: 50%; transform: translateX(-50%); z-index: 9999;
+          background: rgba(20,22,28,0.96); color: #e8edf2; padding: 10px 12px; border-radius: 14px;
           box-shadow: 0 6px 20px rgba(0,0,0,0.6); backdrop-filter: blur(8px);
           display: flex; flex-direction: column; gap: 8px; align-items: stretch;
           font-family: system-ui, sans-serif; min-width: 240px;
@@ -356,14 +356,53 @@ export default function AdminPanel() {
         }
         .adm-place-row button:active { background: #2a2f38; }
         .adm-place-done {
-          padding: 8px; border-radius: 8px; border: none; background: #f5c542; color: #14171c;
-          font-weight: 700; cursor: pointer; font-size: 13px;
+          padding: 10px; border-radius: 8px; border: none; background: #f5c542; color: #14171c;
+          font-weight: 800; cursor: pointer; font-size: 14px; letter-spacing: 0.3px;
+        }
+        /* Anneau de rotation flottant autour du QG */
+        .adm-hq-rotator {
+          position: fixed; z-index: 9998; pointer-events: none;
+          display: flex; align-items: center; justify-content: center;
+        }
+        .adm-hq-rotator .ring {
+          position: absolute; inset: 0; border-radius: 50%;
+          border: 3px dashed rgba(245,197,66,0.85);
+          box-shadow: 0 0 0 2px rgba(0,0,0,0.35), inset 0 0 0 1px rgba(0,0,0,0.35);
+          background: radial-gradient(circle, rgba(245,197,66,0.0) 60%, rgba(245,197,66,0.10) 100%);
+        }
+        .adm-hq-knob {
+          position: absolute; width: 44px; height: 44px; border-radius: 50%;
+          background: #f5c542; color: #14171c; font-weight: 900; font-size: 18px;
+          display: flex; align-items: center; justify-content: center;
+          border: 3px solid #14171c; box-shadow: 0 4px 10px rgba(0,0,0,0.5);
+          touch-action: none; cursor: grab; pointer-events: auto;
+          transform-origin: 50% 50%;
+        }
+        .adm-hq-knob:active { cursor: grabbing; transform: scale(1.05); }
+        .adm-hq-center {
+          width: 14px; height: 14px; border-radius: 50%;
+          background: rgba(245,197,66,0.9); border: 2px solid #14171c;
+          box-shadow: 0 0 8px rgba(245,197,66,0.6);
         }
       `}</style>
 
       {placeMode && (
         <>
-          <div className="adm-place-banner">📍 Cliquez sur la carte pour placer le QG</div>
+          <div className="adm-place-banner">📍 Glisse le QG avec le doigt — utilise l'anneau pour tourner</div>
+          {/* Anneau de rotation positionné autour du QG */}
+          <div ref={rotatorRef} className="adm-hq-rotator">
+            <div className="ring" />
+            <div className="adm-hq-center" />
+            <div
+              className="adm-hq-knob"
+              onPointerDown={onRotatorPointerDown}
+              style={{
+                left: "50%",
+                top: "50%",
+                transform: `translate(-50%, -50%) rotate(${cfg.hqRotation}deg) translateX(calc(50% + 30px)) rotate(${-cfg.hqRotation}deg)`,
+              }}
+            >↻</div>
+          </div>
           <div className="adm-place-controls">
             <div className="adm-place-row">
               <button onClick={() => bumpScale(-0.1)} aria-label="Réduire">−</button>
@@ -377,7 +416,7 @@ export default function AdminPanel() {
               <span className="val">{cfg.hqRotation.toFixed(0)}°</span>
               <button onClick={() => bumpRot(15)} aria-label="Rotation droite">↻</button>
             </div>
-            <button className="adm-place-done" onClick={() => setPlaceMode(false)}>✓ Terminé</button>
+            <button className="adm-place-done" onClick={() => setPlaceMode(false)}>✓ Valider l'emplacement</button>
           </div>
         </>
       )}
