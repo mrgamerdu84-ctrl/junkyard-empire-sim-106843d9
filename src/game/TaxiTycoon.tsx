@@ -3633,6 +3633,90 @@ export default function TaxiTycoon() {
         )}
 
 
+        {hqPanelOpen && (
+          <div className="tt-modal-overlay" onClick={() => setHqPanelOpen(false)}>
+            <div className="tt-modal" onClick={(e) => e.stopPropagation()} style={{ maxWidth: 460 }}>
+              <div className="tt-modal-h">
+                <h3>🏛️ QG — {tier.name}</h3>
+                <button className="tt-modal-x" onClick={() => setHqPanelOpen(false)}>×</button>
+              </div>
+              <p className="tt-modal-sub">Quartier général · niveau {save.depotTier + 1}</p>
+
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 6, marginBottom: 12 }}>
+                <div style={{ background: "#0f1117", border: "1px solid #2a2e38", borderRadius: 8, padding: "8px 6px", textAlign: "center" }}>
+                  <div style={{ fontSize: 10, color: "#9ca3af" }}>TRÉSORERIE</div>
+                  <div style={{ fontSize: 14, fontWeight: 900, color: "#fde68a" }}>{fmt(save.money)} $</div>
+                </div>
+                <div style={{ background: "#0f1117", border: "1px solid #2a2e38", borderRadius: 8, padding: "8px 6px", textAlign: "center" }}>
+                  <div style={{ fontSize: 10, color: "#9ca3af" }}>FLOTTE</div>
+                  <div style={{ fontSize: 14, fontWeight: 900, color: "#86efac" }}>{taxiCount}/{effectiveMaxTaxis}</div>
+                </div>
+                <div style={{ background: "#0f1117", border: "1px solid #2a2e38", borderRadius: 8, padding: "8px 6px", textAlign: "center" }}>
+                  <div style={{ fontSize: 10, color: "#9ca3af" }}>USURE</div>
+                  <div style={{ fontSize: 14, fontWeight: 900, color: wearNow > 60 ? "#fca5a5" : "#e6e0d8" }}>{wearNow}%</div>
+                </div>
+              </div>
+
+              <p className="tt-modal-sub">Actions rapides</p>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 6, marginBottom: 12 }}>
+                <button className="tt-wood-btn" style={{ padding: "10px 8px", borderRadius: 10, color: "#fde68a", fontWeight: 800 }}
+                  onClick={() => { recallAllTaxis(); setHqPanelOpen(false); }}>
+                  📣 Rappeler tous
+                </button>
+                <button className="tt-wood-btn" style={{ padding: "10px 8px", borderRadius: 10, color: "#fde68a", fontWeight: 800 }}
+                  onClick={repairTaxis} disabled={wearNow <= 0 || save.money < maintenanceCost}>
+                  🔧 Entretien {maintenanceCost > 0 ? `(${fmt(maintenanceCost)} $)` : ""}
+                </button>
+                <button className="tt-wood-btn" style={{ padding: "10px 8px", borderRadius: 10, color: "#fde68a", fontWeight: 800 }}
+                  onClick={() => { setHqPanelOpen(false); setGarageOpen(true); }}>
+                  🏁 Garage / Livrées
+                </button>
+                <button className="tt-wood-btn" style={{ padding: "10px 8px", borderRadius: 10, color: "#fde68a", fontWeight: 800 }}
+                  onClick={() => { setHqPanelOpen(false); setPersonnelOpen(true); }}>
+                  👥 Personnel
+                </button>
+              </div>
+
+              <p className="tt-modal-sub">Flotte</p>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 6, marginBottom: 12 }}>
+                <button className="tt-wood-btn" style={{ padding: "10px 8px", borderRadius: 10, color: "#fde68a", fontWeight: 800 }}
+                  onClick={buyTaxi} disabled={taxiCount >= effectiveMaxTaxis || save.money < taxiBuyCost}>
+                  🚕 Acheter taxi ({fmt(taxiBuyCost)} $)
+                </button>
+                <button className="tt-wood-btn" style={{ padding: "10px 8px", borderRadius: 10, color: "#fde68a", fontWeight: 800 }}
+                  onClick={upgradeSpeed} disabled={save.money < speedCost}>
+                  ⚡ Vitesse +1 ({fmt(speedCost)} $)
+                </button>
+              </div>
+
+              <p className="tt-modal-sub">Améliorations QG</p>
+              <div style={{ display: "grid", gap: 6, marginBottom: 12 }}>
+                {(["capacity","production","revenue"] as const).map((k) => {
+                  const labels = { capacity: "🚕 Capacité", production: "⚙️ Production", revenue: "💰 Revenus" } as const;
+                  const lvl = hqLevel(k);
+                  const max = lvl >= HQ_UPGRADE_MAX;
+                  const cost = hqCost(k);
+                  return (
+                    <button key={k} className="tt-wood-btn"
+                      style={{ padding: "10px 12px", borderRadius: 10, color: "#fde68a", fontWeight: 800, display: "flex", justifyContent: "space-between", alignItems: "center" }}
+                      onClick={() => hqUpgrade(k)} disabled={max || save.money < cost}>
+                      <span>{labels[k]} · Niv. {lvl}/{HQ_UPGRADE_MAX}</span>
+                      <span style={{ color: max ? "#86efac" : "#fff" }}>{max ? "MAX" : `${fmt(cost)} $`}</span>
+                    </button>
+                  );
+                })}
+              </div>
+
+              {nextTier && (
+                <button className="tt-wood-btn" style={{ width: "100%", padding: "12px", borderRadius: 10, color: "#fde68a", fontWeight: 900, letterSpacing: 1 }}
+                  onClick={upgradeDepot} disabled={save.money < nextTier.cost}>
+                  🏗️ Passer au {nextTier.name} — {fmt(nextTier.cost)} $
+                </button>
+              )}
+            </div>
+          </div>
+        )}
+
         {toast && <div className="tt-toast">{toast}</div>}
         {showLeaderboard && <LeaderboardPanel onClose={() => setShowLeaderboard(false)} />}
         {showTutorial && <TutorialDialog onClose={() => setShowTutorial(false)} />}
