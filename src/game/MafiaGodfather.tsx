@@ -107,7 +107,16 @@ export default function MafiaGodfather() {
       if (now < state.truceUntil) return;
       if (now - lastCheckRef.current < 1000) return;
       lastCheckRef.current = now;
-      // Ouvre la demande de rançon
+      const w = window as unknown as { __mafiaLimoReady?: boolean; __mafiaLimoActive?: boolean };
+      // Si la limo est dispo et pas déjà en route → on la fait arriver d'abord
+      if (w.__mafiaLimoReady && !w.__mafiaLimoActive) {
+        window.dispatchEvent(new CustomEvent("jce.limo.start"));
+        // La limo dispatchera "jce.godfather.open" une fois garée.
+        // On laisse 12 s de marge pour ne pas re-déclencher entre-temps.
+        lastCheckRef.current = now + 12_000;
+        return;
+      }
+      // Fallback : pas de limo → ouverture directe
       setLine(pickLine());
       setTyped("");
       setDeadline(now + DECISION_MS);
