@@ -3184,7 +3184,7 @@ export default function TaxiTycoon() {
                 </circle>
                 <g
                   transform={`translate(${p.x},${p.y}) rotate(${angle})`}
-                  filter="url(#taxi-shadow)"
+                  filter={reducedFx ? undefined : "url(#taxi-shadow)"}
                   style={{ cursor: "pointer", pointerEvents: "auto" }}
                   onClick={(e) => { e.stopPropagation(); honkTaxi(taxi.id); }}
                 >
@@ -3206,8 +3206,8 @@ export default function TaxiTycoon() {
                 {isHonking && (
                   <g transform={`translate(${p.x},${p.y})`} pointerEvents="none">
                     <circle r="34" fill="none" stroke="#fde047" strokeWidth="3" opacity="0.85">
-                      <animate attributeName="r" from="14" to="44" dur="0.6s" fill="freeze" />
-                      <animate attributeName="opacity" from="0.95" to="0" dur="0.6s" fill="freeze" />
+                      {!reducedFx && <animate attributeName="r" from="14" to="44" dur="0.6s" fill="freeze" />}
+                      {!reducedFx && <animate attributeName="opacity" from="0.95" to="0" dur="0.6s" fill="freeze" />}
                     </circle>
                     <text y="-44" fontSize="14" fontWeight="900" textAnchor="middle" fill="#fde047" stroke="#0a0c10" strokeWidth="2" paintOrder="stroke">📯 BIP</text>
                   </g>
