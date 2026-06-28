@@ -291,12 +291,13 @@ function TaxiSprite({
   // sits horizontally centered in the source — so we draw it large and let
   // the transparent padding overflow the road; SVG image origin is the car center.
   const S = size;
+  const canAnimate = moving && !reduceMotion();
   return (
     <g>
       {/* Shadow under the car body (visible car ~60% of sprite width) */}
       <ellipse cx="0" cy={S * 0.04} rx={S * 0.34} ry={S * 0.07} fill="rgba(0,0,0,0.5)" />
       <g>
-        {moving && (
+        {canAnimate && (
           <animateTransform attributeName="transform" type="translate" values="0 -0.3; 0 0.3; 0 -0.3" dur="0.22s" repeatCount="indefinite" />
         )}
         <g transform={faceRight ? "rotate(90)" : "rotate(-90)"}>
