@@ -737,8 +737,8 @@ export default function CityTraffic() {
           </g>
         );
       })}
-      {/* Piétons photos qui marchent sur les trottoirs (markets/promeneurs) */}
-      <PhotoPedestrians pathRefs={pathRefs} />
+      {/* Piétons photos désactivés (perf mobile) */}
+      {false && <PhotoPedestrians pathRefs={pathRefs} />}
 
 
       {/* Piétons cartoon SVG retirés — remplacés par les sprites top-down (PhotoPedestrians) */}
