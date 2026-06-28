@@ -592,20 +592,26 @@ export default function TaxiTycoon() {
     // 1) hydratation immédiate depuis localStorage pour zéro flash
     const local = loadSave();
     setSave(local);
-    setHydrated(true);
-    // 2) tentative de surcharge depuis le cloud si l'utilisateur est connecté
+    // 2) tentative de surcharge depuis le cloud AVANT d'autoriser les push :
+    //    sinon le push local débounce pourrait écraser la sauvegarde cloud
+    //    sur un nouvel appareil avec une connexion lente.
     (async () => {
       try {
         const { fetchCloudSave } = await import("@/lib/cloudSave");
         const cloud = await fetchCloudSave();
         if (cloud && cloud.data && typeof cloud.data === "object") {
+          // marque ce timestamp pour éviter qu'un push immédiat écrase le cloud
+          lastCloudPushRef.current = Date.now();
           setSave({ ...DEFAULT_SAVE, ...(cloud.data as Partial<SaveData>) });
         }
       } catch (e) {
         console.warn("[TaxiTycoon] cloud load skipped", e);
+      } finally {
+        setHydrated(true);
       }
     })();
   }, []);
+
 
   // 3) synchronisation temps réel : si la sauvegarde change sur un autre
   //    appareil, on récupère la nouvelle version automatiquement.
