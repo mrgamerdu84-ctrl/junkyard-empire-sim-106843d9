@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "@tanstack/react-router";
 import bgAssetV2 from "@/assets/menu-bg-v2.jpg";
+import bgLiteAsset from "@/assets/menu-bg-v2-lite.jpg.asset.json";
 import { UpdateNotification } from "@/components/UpdateNotification";
 import TutorialDialog from "@/components/TutorialDialog";
 import LeaderboardPanel from "@/components/LeaderboardPanel";
@@ -9,8 +10,10 @@ import { hasSeenTutorial, resetTutorial, getPlayerName, setPlayerName, pushLocal
 import { useAuth, signOut } from "@/lib/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import LoadingScreen from "./LoadingScreen";
+import { preferLiteAssets } from "@/lib/perf";
 
 export default function HomeScreen({ onPlay, onReplayIntro }: { onPlay: () => void; onReplayIntro?: () => void }) {
+  const bgUrl = preferLiteAssets() ? bgLiteAsset.url : bgAssetV2;
   const navigate = useNavigate();
   const { user, pseudo: cloudPseudo, avatarKind, avatarUrl } = useAuth();
   const [showProfile, setShowProfile] = useState(false);
@@ -83,8 +86,7 @@ export default function HomeScreen({ onPlay, onReplayIntro }: { onPlay: () => vo
       <style>{`
         .hs-home {
           position: fixed; inset: 0; z-index: 9999;
-          background: #0a0c10 url('${bgAssetV2}') center center / cover no-repeat;
-          background-attachment: fixed;
+          background: #0a0c10 url('${bgUrl}') center center / cover no-repeat;
           font-family: system-ui, -apple-system, sans-serif;
           overflow-y: auto;
           overflow-x: hidden;
@@ -95,6 +97,10 @@ export default function HomeScreen({ onPlay, onReplayIntro }: { onPlay: () => vo
           content: ""; position: fixed; inset: 0;
           background: linear-gradient(180deg, rgba(10,12,16,0.35) 0%, rgba(10,12,16,0.7) 55%, rgba(10,12,16,0.96) 100%);
           z-index: 1; pointer-events: none;
+        }
+        @media (max-width: 900px), (pointer: coarse) {
+          .hs-home::before { background: linear-gradient(180deg, rgba(10,12,16,0.28) 0%, rgba(10,12,16,0.68) 60%, rgba(10,12,16,0.96) 100%); }
+          .hs-btn-hero { animation: none; }
         }
         .hs-scroll {
           position: relative; z-index: 2;

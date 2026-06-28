@@ -15,6 +15,7 @@ import { ROADS, VILLAGE_PATHS } from "./CityTraffic";
 import { VEHICLE_SIZE } from "./TaxiTycoon";
 import { isMafiaTruceActive } from "./MafiaGodfather";
 import { getAdmin } from "./adminConfig";
+import { isUltraLite, reduceMotion, targetFps } from "@/lib/perf";
 
 type PlayerTaxi = { id: number; x: number; y: number; onMission: boolean };
 type CompetitorLite = {
@@ -109,7 +110,7 @@ export default function MafiaAttackers() {
   const lastSpawn = useRef(0);
   const startedAt = useRef(Date.now());
   const fpsRef = useRef(60);
-  const maxCarsRef = useRef(MAX_CARS_MID);
+  const maxCarsRef = useRef(isUltraLite() ? MAX_CARS_LO : MAX_CARS_MID);
   const pathEls = useMemo(() => buildPathEls(), []);
   const pathLens = useMemo(() => pathEls.map((p) => p.getTotalLength()), [pathEls]);
   // refs DOM par voiture -> mise à jour directe du transform sans re-render
@@ -119,7 +120,7 @@ export default function MafiaAttackers() {
   const raidSessionRef = useRef<{ active: boolean; spawned: number; destroyed: number }>({
     active: false, spawned: 0, destroyed: 0,
   });
-  const RAID_TARGET = 10;
+  const RAID_TARGET = isUltraLite() ? 6 : 10;
 
   useEffect(() => {
     const onRaid = (ev: Event) => {
@@ -137,7 +138,8 @@ export default function MafiaAttackers() {
     let raf = 0;
     let last = performance.now();
     let structuralChange = false;
-    const MIN_FRAME = 1000 / 30;
+    const MIN_FRAME = 1000 / targetFps();
+    const ultra = isUltraLite();
 
     const tick = (now: number) => {
       raf = requestAnimationFrame(tick);
@@ -155,7 +157,8 @@ export default function MafiaAttackers() {
       // Hystérésis pour éviter le yo-yo.
       const cur = maxCarsRef.current;
       let next = cur;
-      if (fps < 38 && cur > MAX_CARS_LO) next = MAX_CARS_LO;
+      if (ultra) next = MAX_CARS_LO;
+      else if (fps < 38 && cur > MAX_CARS_LO) next = MAX_CARS_LO;
       else if (fps >= 42 && fps < 55 && cur !== MAX_CARS_MID) next = MAX_CARS_MID;
       else if (fps >= 58 && cur < MAX_CARS_HI) next = MAX_CARS_HI;
       maxCarsRef.current = next;
@@ -174,7 +177,9 @@ export default function MafiaAttackers() {
         : Math.max(3500, SPAWN_INTERVAL_MS - minutes * 500);
       const wantSpawn = raidOn ? raidQuotaLeft > 0 : onMission.length > 0;
       // Plafond simultané : pendant le raid, on peut avoir jusqu'à 5 chasseurs en vol.
-      const maxConcurrent = raidOn ? Math.min(5, maxCarsRef.current + 3) : maxCarsRef.current;
+      const maxConcurrent = raidOn
+        ? (ultra ? 2 : Math.min(4, maxCarsRef.current + 2))
+        : maxCarsRef.current;
 
       if (
         !truceOn &&
@@ -366,6 +371,7 @@ export default function MafiaAttackers() {
 
   const cars = carsRef.current;
   const S = VEHICLE_SIZE;
+  const simpleFx = reduceMotion();
   // version est utilisé pour forcer un re-render structurel.
   void version;
 
@@ -390,14 +396,14 @@ export default function MafiaAttackers() {
       {cars.map((c) => {
         if (c.state === "exploding") {
           const age = (performance.now() - (c.explodedAt ?? 0)) / EXPLOSION_MS;
-          const r = 22 + age * 95;
+          const r = simpleFx ? 36 : 22 + age * 95;
           const op = 1 - age;
           return (
             <g key={c.id} transform={`translate(${c.x},${c.y})`} pointerEvents="none">
-              <circle r={r * 1.2} fill="none" stroke="rgba(255,200,80,0.7)" strokeWidth={3} opacity={op} />
+              {!simpleFx && <circle r={r * 1.2} fill="none" stroke="rgba(255,200,80,0.7)" strokeWidth={3} opacity={op} />}
               <circle r={r} fill="rgba(255,170,40,0.7)" opacity={op} />
-              <circle r={r * 0.7} fill="rgba(255,90,30,0.9)" opacity={op} />
-              <circle r={r * 0.35} fill="rgba(255,240,180,0.95)" opacity={op} />
+              {!simpleFx && <circle r={r * 0.7} fill="rgba(255,90,30,0.9)" opacity={op} />}
+              {!simpleFx && <circle r={r * 0.35} fill="rgba(255,240,180,0.95)" opacity={op} />}
               <text y={-r - 6} textAnchor="middle" fontSize={30} fontWeight={900}
                 fill="#fde047" stroke="#1a1306" strokeWidth={1.6} opacity={op}>
                 +{REWARD}$

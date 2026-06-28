@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useAdminConfig } from "./adminConfig";
 import { getPedestrianPhotoUrls, listCustomVehicles, getCivilCarUrls, type CustomVehicleCategory } from "./gameAssets";
 import { VehicleSvg, type VehicleSvgKind } from "./vehicles/VehicleSvgs";
@@ -10,7 +10,7 @@ import {
   type TrafficLight,
 } from "./trafficLights";
 import { getGameTime } from "./cityClock";
-import { densityMult } from "@/lib/perf";
+import { densityMult, isUltraLite, perfTier, reduceMotion, targetFps, trafficBudget } from "@/lib/perf";
 
 
 // Dynamique : inclut les piétons custom uploadés via le panel admin.
@@ -163,6 +163,7 @@ export function lockToSidewalk(
 
 function PhotoPedestrians({ pathRefs }: { pathRefs: React.MutableRefObject<(SVGPathElement | null)[]> }) {
   const nodes = useRef<(SVGGElement | null)[]>([]);
+  const pedSpecs = isUltraLite() ? [] : (perfTier() === "low" ? PHOTO_PEDS.slice(0, 3) : PHOTO_PEDS);
   // Rotation aléatoire des sprites parmi tous ceux dispos (défaut + custom admin).
   const [pool, setPool] = useState<string[]>(() => getPedPhotoImages());
   useEffect(() => {
@@ -173,7 +174,8 @@ function PhotoPedestrians({ pathRefs }: { pathRefs: React.MutableRefObject<(SVGP
   useEffect(() => {
     const lens = pathRefs.current.map(p => p ? p.getTotalLength() : 0);
     if (lens.some(l => l <= 1)) return;
-    const states = PHOTO_PEDS.map(spec => ({
+    if (pedSpecs.length === 0) return;
+    const states = pedSpecs.map(spec => ({
       spec,
       pathLen: lens[spec.pathIdx],
       s: spec.startFrac * lens[spec.pathIdx],
@@ -238,10 +240,11 @@ function PhotoPedestrians({ pathRefs }: { pathRefs: React.MutableRefObject<(SVGP
     };
     raf = requestAnimationFrame(step);
     return () => cancelAnimationFrame(raf);
-  }, [pathRefs]);
+  }, [pathRefs, pedSpecs.length]);
+  if (pedSpecs.length === 0) return null;
   return (
     <g pointerEvents="none">
-      {PHOTO_PEDS.map((spec, i) => {
+      {pedSpecs.map((spec, i) => {
         // Sprites top-down ~36px (vue du ciel), rotation = sens de marche
         const S = 36 * spec.scale;
         return (
@@ -399,6 +402,8 @@ function buildCarsFromCustom(count?: number): CarSpec[] {
 export default function CityTraffic() {
   const [night, setNight] = useState(0.25);
   const [lightsTick, setLightsTick] = useState(0);
+  const tier = perfTier();
+  const reducedFx = reduceMotion();
   const admin = useAdminConfig();
   const [customTick, setCustomTick] = useState(0);
   // Re-render quand le joueur ajoute/supprime un véhicule custom.
@@ -409,9 +414,8 @@ export default function CityTraffic() {
   }, []);
   // Trafic = uniquement véhicules uploadés par le joueur (catégories roulantes).
   // Le slider "Véhicules civils" du panel admin sert de plafond (0 = aucun, max = tous).
-  const allCustomCars = buildCarsFromCustom(admin.civilVehicleCount);
-  void customTick;
-  const activeCars = allCustomCars;
+  const requestedCars = trafficBudget(admin.civilVehicleCount);
+  const activeCars = useMemo(() => buildCarsFromCustom(requestedCars), [requestedCars, customTick]);
   const pathRefs = useRef<(SVGPathElement | null)[]>([]);
   const carNodes = useRef<(SVGGElement | null)[]>([]);
   const svgRef = useRef<SVGSVGElement | null>(null);
@@ -475,7 +479,7 @@ export default function CityTraffic() {
       const daylight = Math.max(0, Math.sin(t * Math.PI * 2 + Math.PI / 2));
       setNight(0.1 + (1 - daylight) * 0.6);
       setLightsTick(v => (v + 1) % 1000000);
-    }, 250);
+    }, tier === "ultra" || tier === "low" ? 1000 : 500);
     return () => window.clearInterval(id);
   }, []);
 
@@ -543,7 +547,7 @@ export default function CityTraffic() {
     let raf = 0;
     // 30 fps suffit largement pour du trafic vu de haut, ça divise le coût CPU
     // par 2 sur les smartphones d'entrée de gamme (Xiaomi, Redmi, etc.).
-    const MIN_FRAME = 1000 / 30;
+    const MIN_FRAME = 1000 / targetFps();
     let lastDensityCheck = 0;
     let activeCount = states.length;
     const step = (now: number) => {
@@ -659,7 +663,7 @@ export default function CityTraffic() {
     return () => {
       cancelAnimationFrame(raf);
     };
-  }, [activeCars.length]);
+  }, [activeCars]);
 
 
   return (
@@ -753,7 +757,7 @@ export default function CityTraffic() {
             <ellipse cx="0" cy="14" rx="14" ry="4" fill="rgba(0,0,0,0.45)" />
             <rect x="-7" y="-22" width="14" height="36" rx="3" fill="#0e1217" stroke="#000" strokeWidth="1" />
             <circle cx="0" cy="-14" r="3.4" fill={red ? "#ff2a2a" : "#2a0808"} opacity={red ? 1 : 0.4}>
-              {red && <animate attributeName="r" values="3.4;4.2;3.4" dur="1s" repeatCount="indefinite" />}
+              {red && !reducedFx && <animate attributeName="r" values="3.4;4.2;3.4" dur="1s" repeatCount="indefinite" />}
             </circle>
             <circle cx="0" cy="-4"  r="3.4" fill={orange ? "#ffb020" : "#2a1a00"} opacity={orange ? 1 : 0.4} />
             <circle cx="0" cy="6"   r="3.4" fill={green ? "#22e36a" : "#0a2a14"} opacity={green ? 1 : 0.4} />
@@ -763,8 +767,8 @@ export default function CityTraffic() {
                 fill={red ? "#ff2a2a" : orange ? "#ffb020" : "#22e36a"}
                 opacity={night * 0.35} />
             )}
-            {/* Feu piéton — boîtier dédié avec silhouette MARCHE / NE PAS MARCHER */}
-            <g transform="translate(18,-4)">
+            {/* Feu piéton — retiré en ultra-léger pour réduire les nœuds SVG */}
+            {!reducedFx && <g transform="translate(18,-4)">
               {/* Boîtier noir */}
               <rect x="-7" y="-13" width="14" height="26" rx="2.5" fill="#0a0c10" stroke="#000" strokeWidth="0.8" />
               {/* Écran rouge (ne pas marcher) */}
@@ -804,9 +808,9 @@ export default function CityTraffic() {
                   {night > 0.4 && <circle r="7" fill="#ff2a2a" opacity={night * 0.4} />}
                 </g>
               )}
-            </g>
+            </g>}
             {/* Passages piétons (zébras) aux 4 côtés de l'intersection */}
-            <g opacity="0.65" pointerEvents="none">
+            {!reducedFx && <g opacity="0.65" pointerEvents="none">
               {/* Sud */}
               {[-12, -6, 0, 6, 12].map((ox) => (
                 <rect key={`s${ox}`} x={ox - 1.5} y={20} width="3" height="14" fill="#f4f4f4" rx="0.5" />
@@ -823,7 +827,7 @@ export default function CityTraffic() {
               {[-12, -6, 0, 6, 12].map((oy) => (
                 <rect key={`w${oy}`} x={-34} y={oy - 1.5} width="14" height="3" fill="#f4f4f4" rx="0.5" />
               ))}
-            </g>
+            </g>}
           </g>
         );
       })}

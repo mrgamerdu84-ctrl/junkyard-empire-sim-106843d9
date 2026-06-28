@@ -1,6 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
 import citymap from "@/assets/citymap2.jpg";
+import citymapLiteAsset from "@/assets/citymap2-lite.jpg.asset.json";
 import TaxiTycoon from "@/game/TaxiTycoon";
 import CityTraffic from "@/game/CityTraffic";
 import MafiaAttackers from "@/game/MafiaAttackers";
@@ -17,6 +18,7 @@ import VersionBanner from "@/game/VersionBanner";
 import HomeScreen from "@/game/HomeScreen";
 import SplashScreen from "@/game/SplashScreen";
 import IntroStory, { hasSeenIntro } from "@/game/IntroStory";
+import { preferLiteAssets } from "@/lib/perf";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -41,6 +43,7 @@ function TaxiTycoonPage() {
   const worldRef = useRef<HTMLDivElement | null>(null);
 
   const zoom = ZOOM_LEVELS[zoomIdx];
+  const mapSrc = preferLiteAssets() ? citymapLiteAsset.url : citymap;
 
   // Clamp pan : on n'a pas le droit de tirer la carte hors-écran.
   useEffect(() => {
@@ -115,7 +118,7 @@ function TaxiTycoonPage() {
         .tt-world {
           position: absolute; inset: 0;
           transform-origin: center center;
-          transition: transform 0.18s ease-out;
+          transition: transform 0.12s ease-out;
           will-change: transform;
           touch-action: none;
         }
@@ -156,6 +159,10 @@ function TaxiTycoonPage() {
           .adm-btn { top: 8px !important; right: 8px !important; width: 38px !important; height: 38px !important; }
           .tt-zoom-btn { bottom: 12px; right: 60px; }
         }
+        @media (max-width: 900px), (pointer: coarse) {
+          .tt-map { filter: brightness(0.95); }
+          .tt-vignette { display: none; }
+        }
       `}</style>
 
       <div
@@ -167,7 +174,7 @@ function TaxiTycoonPage() {
         onPointerUp={onPointerUp}
         onPointerCancel={onPointerUp}
       >
-        <img src={citymap} alt="Plan de la ville pour le jeu de taxi" className="tt-map" />
+        <img src={mapSrc} alt="Plan de la ville pour le jeu de taxi" className="tt-map" />
         <div className="tt-vignette" />
         <CityTraffic />
         <MafiaAttackers />

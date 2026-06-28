@@ -11,6 +11,7 @@ import { useEffect, useRef, useState } from "react";
 import { getAdmin } from "./adminConfig";
 import { listCustomVehiclesByCategory } from "./gameAssets";
 import defaultLimoImg from "@/assets/mafia-limo.png";
+import { reduceMotion, targetFps } from "@/lib/perf";
 
 const MAP_W = 1920;
 const MAP_H = 1080;
@@ -31,6 +32,7 @@ function pickLimoSprite(): string {
 }
 
 export default function MafiaLimo() {
+  const reducedFx = reduceMotion();
   const [phase, setPhase] = useState<Phase>("off");
   const [pos, setPos] = useState({ x: MAP_W + 200, y: MAP_H / 2, angle: 180 });
   const [sprite, setSprite] = useState<string>(pickLimoSprite());
@@ -68,7 +70,12 @@ export default function MafiaLimo() {
   useEffect(() => {
     if (phase === "off" || phase === "parked") return;
     let prev = performance.now();
+    let lastFrame = prev;
+    const MIN_FRAME = 1000 / targetFps();
     const tick = (now: number) => {
+      rafRef.current = requestAnimationFrame(tick);
+      if (now - lastFrame < MIN_FRAME) return;
+      lastFrame = now;
       const dt = Math.min(0.05, (now - prev) / 1000);
       prev = now;
       setPos((p) => {
@@ -97,7 +104,6 @@ export default function MafiaLimo() {
         const angle = (Math.atan2(dy, dx) * 180) / Math.PI;
         return { x: p.x + dx * k, y: p.y + dy * k, angle };
       });
-      rafRef.current = requestAnimationFrame(tick);
     };
     rafRef.current = requestAnimationFrame(tick);
     return () => {
@@ -117,14 +123,16 @@ export default function MafiaLimo() {
       preserveAspectRatio="xMidYMid slice"
       style={{ position: "absolute", inset: 0, width: "100%", height: "100%", pointerEvents: "none", zIndex: 7 }}
     >
-      <defs>
-        <filter id="limo-shadow" x="-20%" y="-20%" width="140%" height="140%">
-          <feGaussianBlur stdDeviation="3" />
-        </filter>
-      </defs>
+      {!reducedFx && (
+        <defs>
+          <filter id="limo-shadow" x="-20%" y="-20%" width="140%" height="140%">
+            <feGaussianBlur stdDeviation="3" />
+          </filter>
+        </defs>
+      )}
       <g transform={`translate(${pos.x},${pos.y})`}>
         {/* ombre sous la limo */}
-        <ellipse cx={4} cy={LIMO_H * 0.35} rx={LIMO_W * 0.52} ry={LIMO_H * 0.32} fill="rgba(0,0,0,0.45)" filter="url(#limo-shadow)" />
+        <ellipse cx={4} cy={LIMO_H * 0.35} rx={LIMO_W * 0.52} ry={LIMO_H * 0.32} fill="rgba(0,0,0,0.45)" filter={reducedFx ? undefined : "url(#limo-shadow)"} />
         <g transform={`rotate(${pos.angle})`}>
           <image
             href={sprite}

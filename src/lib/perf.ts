@@ -23,6 +23,8 @@ function detectTier(): Tier {
   const cpu = nav.hardwareConcurrency ?? 4;
   const ua = nav.userAgent || "";
   const isMobile = /Android|iPhone|iPad|Mobile/i.test(ua);
+  const isAndroid = /Android/i.test(ua);
+  const isXiaomiLike = /Xiaomi|Redmi|Miui|M210|M200|M190|POCO/i.test(ua);
 
   const override = readOverride();
   if (override === "on") return "ultra";
@@ -33,8 +35,12 @@ function detectTier(): Tier {
     return "high";
   }
 
-  // Auto : déclenche l'ultra-light sur vraies entrées de gamme
+  // Auto : déclenche l'ultra-light sur vraies entrées de gamme.
+  // Les Xiaomi/Redmi annoncent souvent 4 Go mais gardent peu de RAM libre
+  // dans WebView : on les traite plus agressivement pour éviter les freezes.
   if (mem <= 2 || cpu <= 2) return "ultra";
+  if (isAndroid && isXiaomiLike) return "ultra";
+  if (isAndroid && isMobile && mem <= 4 && cpu <= 4) return "ultra";
   if (isMobile && mem <= 3 && cpu <= 4) return "ultra";
   if (mem <= 3 || cpu <= 4 || (isMobile && mem <= 4)) return "low";
   if (mem <= 6 || cpu <= 6 || isMobile) return "mid";
@@ -61,8 +67,8 @@ export function setUltraLite(on: boolean | null) {
 
 export function targetFps(): number {
   const t = perfTier();
-  if (t === "ultra") return 20;
-  if (t === "low") return 24;
+  if (t === "ultra") return 18;
+  if (t === "low") return 22;
   if (t === "mid") return 30;
   return 60;
 }
@@ -70,10 +76,28 @@ export function targetFps(): number {
 // Multiplicateur sur les comptages (trafic, piétons, mafia, etc.).
 export function densityMult(): number {
   const t = perfTier();
-  if (t === "ultra") return 0.15;
-  if (t === "low") return 0.35;
+  if (t === "ultra") return 0.08;
+  if (t === "low") return 0.25;
   if (t === "mid") return 0.6;
   return 1;
+}
+
+export function isMobileLike(): boolean {
+  if (typeof navigator === "undefined") return false;
+  return /Android|iPhone|iPad|Mobile/i.test(navigator.userAgent || "");
+}
+
+export function preferLiteAssets(): boolean {
+  const t = perfTier();
+  return t === "ultra" || t === "low" || isMobileLike();
+}
+
+export function trafficBudget(defaultCount: number): number {
+  const t = perfTier();
+  if (t === "ultra") return Math.min(defaultCount, 5);
+  if (t === "low") return Math.min(defaultCount, 9);
+  if (t === "mid") return Math.min(defaultCount, 16);
+  return defaultCount;
 }
 
 // True si on doit couper les animations purement décoratives

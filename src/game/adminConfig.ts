@@ -57,7 +57,7 @@ export type AdminConfig = {
 
 export const DEFAULT_ADMIN: AdminConfig = {
   depotPosNorm: 0.78, // conservé pour compat ; non utilisé en mode XY libre
-  civilVehicleCount: 32,
+  civilVehicleCount: 16,
   taxiSpeedMult: 1,
   spawnRateMult: 1,
   maxClientsBonus: 0,

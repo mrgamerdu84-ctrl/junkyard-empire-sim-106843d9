@@ -22,6 +22,7 @@ import { useAuth } from "@/lib/useAuth";
 import { resolveAvatarSrc } from "@/components/ProfileCard";
 import { supabase } from "@/integrations/supabase/client";
 import playerHqAsset from "@/assets/taxi-warehouse.png.asset.json";
+import { isUltraLite, perfTier, reduceMotion, targetFps } from "@/lib/perf";
 
 const PLAYER_HQ_IMG = playerHqAsset.url;
 
@@ -290,12 +291,13 @@ function TaxiSprite({
   // sits horizontally centered in the source — so we draw it large and let
   // the transparent padding overflow the road; SVG image origin is the car center.
   const S = size;
+  const canAnimate = moving && !reduceMotion();
   return (
     <g>
       {/* Shadow under the car body (visible car ~60% of sprite width) */}
       <ellipse cx="0" cy={S * 0.04} rx={S * 0.34} ry={S * 0.07} fill="rgba(0,0,0,0.5)" />
       <g>
-        {moving && (
+        {canAnimate && (
           <animateTransform attributeName="transform" type="translate" values="0 -0.3; 0 0.3; 0 -0.3" dur="0.22s" repeatCount="indefinite" />
         )}
         <g transform={faceRight ? "rotate(90)" : "rotate(-90)"}>
@@ -394,7 +396,7 @@ function Depot({ tier, x, y, scale = 1, rotation = 0, capLvl = 0, revLvl = 0, pr
       <path d={`M ${W / 2 - 16} ${H / 2 - 6} l -10 -4 l 10 -4 z`} fill="#f5c542" opacity="0.8" />
 
       {/* Néons bord de toit */}
-      {lit && (
+      {lit && !reduceMotion() && (
         <g>
           <rect x={-W / 2 + 16} y={-H / 2 + 20} width={W - 32} height="2" fill="#ffd84a" opacity={neonOp}>
             <animate attributeName="opacity" values={`${neonOp};${Math.min(1, neonOp + 0.25)};${neonOp}`} dur="2.4s" repeatCount="indefinite" />
@@ -428,8 +430,9 @@ function RivalDepot({ x, y }: { x: number; y: number }) {
   // places de parking rouges, antenne radio. Aucun simple cube.
   const W = 220;
   const H = 200;
+  const fx = !reduceMotion();
   return (
-    <g transform={`translate(${x},${y})`} filter="url(#taxi-shadow)">
+    <g transform={`translate(${x},${y})`} filter={fx ? "url(#taxi-shadow)" : undefined}>
       {/* ombre portée */}
       <ellipse cx="0" cy={H / 2 - 8} rx={W / 2 + 4} ry="14" fill="rgba(0,0,0,0.55)" />
 
@@ -447,7 +450,7 @@ function RivalDepot({ x, y }: { x: number; y: number }) {
       <path d={`M ${-W / 2 + 14} ${-H / 2 + 20} L 0 ${-H / 2 - 8} L ${W / 2 - 14} ${-H / 2 + 20} Z`} fill="#7a1020" stroke="#0a0608" strokeWidth="1.6" />
       <rect x="-6" y={-H / 2 - 28} width="3" height="22" fill="#0a0608" />
       <circle cx="-4.5" cy={-H / 2 - 30} r="2.2" fill="#ff3040">
-        <animate attributeName="opacity" values="1;0.2;1" dur="1.1s" repeatCount="indefinite" />
+        {!reduceMotion() && <animate attributeName="opacity" values="1;0.2;1" dur="1.1s" repeatCount="indefinite" />}
       </circle>
 
       {/* Vitrines / fenêtres (2 rangées) */}
@@ -554,6 +557,10 @@ function RadioLcd({ onOpen }: { onOpen: () => void }) {
 }
 
 export default function TaxiTycoon() {
+  const perfMode = perfTier();
+  const ultraLite = isUltraLite();
+  const reducedFx = reduceMotion();
+  const frameMs = 1000 / targetFps();
 
   // Une ref par chemin disponible — permet de varier les trajets des taxis.
   const pathRefs = useRef<(SVGPathElement | null)[]>([]);
@@ -1297,7 +1304,7 @@ export default function TaxiTycoon() {
     if (!pathsReady) return;
     let raf = 0;
     let last = performance.now();
-    const MIN_FRAME = 1000 / 30; // 30 fps pour rester fluide même sur Xiaomi low-end
+    const MIN_FRAME = frameMs; // plafonné par le mode performance de l'appareil
     const tick = () => {
       raf = requestAnimationFrame(tick);
       const now = performance.now();
@@ -1311,7 +1318,7 @@ export default function TaxiTycoon() {
       const curTier = DEPOT_TIERS[cur.depotTier];
 
       // === Génération de courses proposées dans la file ===
-      const maxJobs = MAX_JOBS_BASE + adm.maxClientsBonus;
+      const maxJobs = Math.min(MAX_JOBS_BASE + adm.maxClientsBonus, ultraLite ? 1 : perfMode === "low" ? 2 : 4);
       if (
         jobsRef.current.length < maxJobs &&
         now - lastJobSpawnRef.current > curTier.spawnEvery * 1000 * adm.spawnRateMult
@@ -1965,7 +1972,7 @@ export default function TaxiTycoon() {
     manualTargetRef.current = null;
     let raf = 0;
     let last = performance.now();
-    const MIN_FRAME = 1000 / 30;
+    const MIN_FRAME = frameMs;
     const SPEED = 260;
     const tick = () => {
       raf = requestAnimationFrame(tick);
@@ -2200,7 +2207,7 @@ export default function TaxiTycoon() {
         });
       }
       w.__jcePlayerTaxis = arr;
-    }, 220);
+    }, ultraLite ? 800 : perfMode === "low" ? 500 : 220);
     return () => window.clearInterval(iv);
   }, []);
 
@@ -2296,7 +2303,7 @@ export default function TaxiTycoon() {
         }
         return changed ? kept : js;
       });
-    }, 250);
+    }, ultraLite || perfMode === "low" ? 1000 : 500);
     return () => clearInterval(iv);
   }, []);
 
@@ -2459,7 +2466,7 @@ export default function TaxiTycoon() {
 
   return (
     <>
-      <WeatherNightOverlay />
+      {!ultraLite && <WeatherNightOverlay lite={perfMode === "low"} />}
 
       {/* === Calque SVG du jeu === */}
       <svg
@@ -2477,16 +2484,16 @@ export default function TaxiTycoon() {
               d={d}
             />
           ))}
-          <filter id="taxi-shadow" x="-30%" y="-30%" width="160%" height="160%">
+          {!reducedFx && <filter id="taxi-shadow" x="-30%" y="-30%" width="160%" height="160%">
             <feDropShadow dx="0" dy="6" stdDeviation="5" floodColor="#000" floodOpacity="0.4" />
-          </filter>
+          </filter>}
         </defs>
 
 
 
         {/* Station-service — vraie station avec auvent, deux pompes, boutique */}
-        {pathsReady && (
-          <g transform={`translate(${admin.gasStationX},${admin.gasStationY})`} filter="url(#taxi-shadow)">
+        {pathsReady && !ultraLite && (
+          <g transform={`translate(${admin.gasStationX},${admin.gasStationY})`} filter={reducedFx ? undefined : "url(#taxi-shadow)"}>
             {/* ombre globale */}
             <ellipse cx="0" cy="34" rx="62" ry="10" fill="rgba(0,0,0,0.55)" />
 
@@ -2534,7 +2541,7 @@ export default function TaxiTycoon() {
 
             {/* Petite enseigne illuminée */}
             <circle cx="-58" cy="-40" r="2.2" fill="#fde68a">
-              <animate attributeName="opacity" values="0.4;1;0.4" dur="1.6s" repeatCount="indefinite" />
+              {!reducedFx && <animate attributeName="opacity" values="0.4;1;0.4" dur="1.6s" repeatCount="indefinite" />}
             </circle>
           </g>
         )}
@@ -2566,8 +2573,8 @@ export default function TaxiTycoon() {
               {/* halo au sol — plus gros et pulsant pour MISSION SPÉCIALE */}
               {isSpecial && (
                 <circle r="22" fill="none" stroke={ringColor} strokeWidth="2" opacity="0.85">
-                  <animate attributeName="r" values="18;26;18" dur="1.4s" repeatCount="indefinite" />
-                  <animate attributeName="opacity" values="0.9;0.3;0.9" dur="1.4s" repeatCount="indefinite" />
+                  {!reducedFx && <animate attributeName="r" values="18;26;18" dur="1.4s" repeatCount="indefinite" />}
+                  {!reducedFx && <animate attributeName="opacity" values="0.9;0.3;0.9" dur="1.4s" repeatCount="indefinite" />}
                 </circle>
               )}
               <circle r={isSpecial ? 18 : (isStar || isVip ? 16 : 13)} fill={haloColor} opacity={isSpecial ? 0.5 : (isStar || isVip ? 0.35 : 0.22)} />
@@ -2641,7 +2648,7 @@ export default function TaxiTycoon() {
           return (
             <g key={"d" + j.id} transform={`translate(${p.x},${p.y})`}>
               <circle r="11" fill="none" stroke="#f59e0b" strokeWidth="2.5" strokeDasharray="4 3" opacity="0.85">
-                <animateTransform attributeName="transform" type="rotate" from="0" to="360" dur="6s" repeatCount="indefinite" />
+                {!reducedFx && <animateTransform attributeName="transform" type="rotate" from="0" to="360" dur="6s" repeatCount="indefinite" />}
               </circle>
               <circle r="6" fill="#0f172a" stroke="#f59e0b" strokeWidth="1.5" />
               <text y="3" fontSize="9" textAnchor="middle">📍</text>
@@ -2703,7 +2710,7 @@ export default function TaxiTycoon() {
               {/* ombre projetée au pied du bâtiment pour l'ancrer au sol */}
               <ellipse cx={cx} cy={groundY} rx={w * 0.44} ry={h * 0.07} fill="rgba(0,0,0,0.55)" />
               {/* halo pulse quand on déclenche le rappel */}
-              {recallPulse > 0 && Date.now() - recallPulse < 900 && (
+              {recallPulse > 0 && Date.now() - recallPulse < 900 && !reducedFx && (
                 <circle cx={cx} cy={groundY - h * 0.15} r={w * 0.45} fill="none" stroke="#fde047" strokeWidth="4" opacity="0.85">
                   <animate attributeName="r" from={w * 0.30} to={w * 0.55} dur="0.9s" />
                   <animate attributeName="opacity" from="0.85" to="0" dur="0.9s" />
@@ -2716,7 +2723,7 @@ export default function TaxiTycoon() {
                 width={w}
                 height={h}
                 preserveAspectRatio="xMidYMax meet"
-                style={{ filter: "drop-shadow(0 4px 6px rgba(0,0,0,0.5))" }}
+                style={{ filter: reducedFx ? undefined : "drop-shadow(0 4px 6px rgba(0,0,0,0.5))" }}
               />
               {/* badge tier discret au pied */}
               <text x={cx} y={groundY + 14} textAnchor="middle" fontSize="11" fontWeight="900"
@@ -2755,7 +2762,7 @@ export default function TaxiTycoon() {
               <circle cx="3" cy="-2" r="1.1" fill="#0b0d10" />
               {/* sourire narquois */}
               <path d="M -3 3 Q 0 5.5 3 3" stroke="#0b0d10" strokeWidth="1.2" fill="none" strokeLinecap="round" />
-              <animateTransform attributeName="transform" type="translate" values="0 0; 0 -3; 0 0" dur="1.6s" repeatCount="indefinite" />
+              {!reducedFx && <animateTransform attributeName="transform" type="translate" values="0 0; 0 -3; 0 0" dur="1.6s" repeatCount="indefinite" />}
             </g>
             {/* bulle de dialogue */}
             {rivalTaunt && (() => {
@@ -2801,7 +2808,7 @@ export default function TaxiTycoon() {
         {circuitInfo.pts.length >= 2 && circuitTaxisRef.current.map((ct) => {
           const p = circuitAt(ct.pos);
           return (
-            <g key={ct.id} transform={`translate(${p.x},${p.y}) rotate(${p.angle})`} filter="url(#taxi-shadow)">
+            <g key={ct.id} transform={`translate(${p.x},${p.y}) rotate(${p.angle})`} filter={reducedFx ? undefined : "url(#taxi-shadow)"}>
               <TaxiSprite image={currentLivery.image} faceRight={currentLivery.faceRight} paintFilter={currentPaint.filter} markerColor={currentPaint.color} withClient={false} moving={true} />
             </g>
           );
@@ -2814,7 +2821,7 @@ export default function TaxiTycoon() {
           const angle = p.angle;
           return (
             <g key={r.id}>
-              <g transform={`translate(${p.x},${p.y}) rotate(${angle})`} filter="url(#taxi-shadow)">
+              <g transform={`translate(${p.x},${p.y}) rotate(${angle})`} filter={reducedFx ? undefined : "url(#taxi-shadow)"}>
                 <TaxiSprite image={TAXI_RED_URL} faceRight={true} withClient={r.mode === "to_dest"} moving={r.mode !== "idle"} />
               </g>
               
@@ -2823,7 +2830,7 @@ export default function TaxiTycoon() {
         })}
 
         {/* Radars fixes au bord de la route */}
-        {RADARS.map((rd) => {
+        {!ultraLite && RADARS.map((rd) => {
           const plen = pathLensRef.current[rd.pathIdx] ?? 0;
           if (plen <= 0) return null;
           // Radar ancré sur le trottoir (bord droit de la route), pas sur la voie
@@ -2866,7 +2873,7 @@ export default function TaxiTycoon() {
         })}
 
         {/* Planques police — emplacements de stationnement */}
-        {HIDEOUTS.map((ho) => {
+        {!ultraLite && HIDEOUTS.map((ho) => {
           const occupied = Object.values(stakeoutHideoutRef.current).includes(ho.id);
           return (
             <g key={`hideout-${ho.id}`} transform={`translate(${ho.x},${ho.y})`}>
@@ -2890,8 +2897,8 @@ export default function TaxiTycoon() {
           return (
             <g key={`flash-${fl.id}-${fl.t}`} transform={`translate(${fl.x},${fl.y})`} pointerEvents="none">
               <circle r="60" fill="#ffffff" opacity="0.85">
-                <animate attributeName="r" values="20;120" dur="0.3s" fill="freeze" />
-                <animate attributeName="opacity" values="0.95;0" dur="0.3s" fill="freeze" />
+                {!reducedFx && <animate attributeName="r" values="20;120" dur="0.3s" fill="freeze" />}
+                {!reducedFx && <animate attributeName="opacity" values="0.95;0" dur="0.3s" fill="freeze" />}
               </circle>
             </g>
           );
@@ -2914,8 +2921,8 @@ export default function TaxiTycoon() {
           void ledA; void ledB;
 
           return (
-            <g key={pc.id} transform={`translate(${p.x},${p.y}) rotate(${p.angle})`} filter="url(#taxi-shadow)">
-              {flashing && (
+            <g key={pc.id} transform={`translate(${p.x},${p.y}) rotate(${p.angle})`} filter={reducedFx ? undefined : "url(#taxi-shadow)"}>
+              {flashing && !reducedFx && (
                 <circle r="24" fill={t === 0 ? "#3b82f6" : "#ef4444"} opacity="0.28">
                   <animate attributeName="r" values="20;28;20" dur="0.5s" repeatCount="indefinite" />
                 </circle>
@@ -2958,7 +2965,7 @@ export default function TaxiTycoon() {
             <g key={`acc-${a.id}`} transform={`translate(${a.x},${a.y})`} pointerEvents="none">
               {/* zone rouge pulsante */}
               <circle r="22" fill="#ef4444" opacity="0.18">
-                <animate attributeName="r" values="18;28;18" dur="1.4s" repeatCount="indefinite" />
+                {!reducedFx && <animate attributeName="r" values="18;28;18" dur="1.4s" repeatCount="indefinite" />}
               </circle>
               {/* Cônes de signalisation orange centrés autour de l'accident */}
               {conePositions.map((c, i) => (
@@ -2969,14 +2976,18 @@ export default function TaxiTycoon() {
                 </g>
               ))}
               {/* fumée */}
-              <circle cx="-4" cy="-8" r="5" fill="#1f2937" opacity="0.55">
-                <animate attributeName="cy" values="-8;-16;-8" dur="2.4s" repeatCount="indefinite" />
-                <animate attributeName="opacity" values="0.55;0.1;0.55" dur="2.4s" repeatCount="indefinite" />
-              </circle>
-              <circle cx="5" cy="-10" r="4" fill="#374151" opacity="0.5">
-                <animate attributeName="cy" values="-10;-18;-10" dur="2.8s" repeatCount="indefinite" />
-                <animate attributeName="opacity" values="0.5;0.05;0.5" dur="2.8s" repeatCount="indefinite" />
-              </circle>
+              {!reducedFx && (
+                <>
+                  <circle cx="-4" cy="-8" r="5" fill="#1f2937" opacity="0.55">
+                    <animate attributeName="cy" values="-8;-16;-8" dur="2.4s" repeatCount="indefinite" />
+                    <animate attributeName="opacity" values="0.55;0.1;0.55" dur="2.4s" repeatCount="indefinite" />
+                  </circle>
+                  <circle cx="5" cy="-10" r="4" fill="#374151" opacity="0.5">
+                    <animate attributeName="cy" values="-10;-18;-10" dur="2.8s" repeatCount="indefinite" />
+                    <animate attributeName="opacity" values="0.5;0.05;0.5" dur="2.8s" repeatCount="indefinite" />
+                  </circle>
+                </>
+              )}
               {/* triangle de signalisation */}
               <polygon points="0,-9 8,5 -8,5" fill="#fbbf24" stroke="#0b0d10" strokeWidth="1.2" />
               <text x="0" y="3" textAnchor="middle" fontSize="7" fontWeight="900" fill="#0b0d10">!</text>
@@ -3032,7 +3043,7 @@ export default function TaxiTycoon() {
           const W = VEHICLE_SIZE; // même taille que tous les autres véhicules
           const blueOn = t === 0;
           return (
-            <g key={ev.id} transform={`translate(${p.x},${p.y}) rotate(${p.angle})`} filter="url(#taxi-shadow)">
+            <g key={ev.id} transform={`translate(${p.x},${p.y}) rotate(${p.angle})`} filter={reducedFx ? undefined : "url(#taxi-shadow)"}>
               <g>
                 <RoadAlignedVehicleSprite image={href} size={W}>
                 {alerting && (
@@ -3127,7 +3138,16 @@ export default function TaxiTycoon() {
             }
           };
 
-          const renderedTaxis = taxisRef.current.map((taxi, idx) => {
+          // Mode téléphone faible : on garde la logique de toute la flotte,
+          // mais on ne dessine qu'une petite sélection. Dessiner 12+ PNG avec
+          // halos/labels à chaque frame fait ramer les Xiaomi/WebView.
+          const taxiRenderCap = ultraLite ? 6 : perfMode === "low" ? 10 : Number.POSITIVE_INFINITY;
+          const taxiRenderSource = taxisRef.current
+            .map((taxi, idx) => ({ taxi, idx }))
+            .filter(({ taxi }, order) => !ultraLite || taxi.mode !== "idle" || order < 3)
+            .slice(0, taxiRenderCap);
+
+          const renderedTaxis = taxiRenderSource.map(({ taxi, idx }) => {
 
             const movingForward = taxi.target >= taxi.pos;
             const onPath = taxi.lane ?? getLaneXY(taxi.pathIdx, taxi.pos, movingForward);
@@ -3160,33 +3180,35 @@ export default function TaxiTycoon() {
             const onMission = taxi.mode === "to_pickup" || taxi.mode === "to_dest";
             return (
               <g key={taxi.id}>
-                {/* Halo d'état (clignote quand en mission) */}
-                <circle
-                  cx={p.x} cy={p.y} r={onMission ? 22 : 18}
-                  fill="none" stroke={status.ring}
-                  strokeWidth={onMission ? 2.4 : 1.6}
-                  opacity={onMission ? 0.85 : 0.45}
-                  pointerEvents="none"
-                >
-                  {onMission && (
-                    <animate attributeName="opacity" values="0.85;0.3;0.85" dur="1.1s" repeatCount="indefinite" />
-                  )}
-                </circle>
+                {/* Halo d'état (clignote quand en mission) — coupé en ultra léger */}
+                {!ultraLite && (
+                  <circle
+                    cx={p.x} cy={p.y} r={onMission ? 22 : 18}
+                    fill="none" stroke={status.ring}
+                    strokeWidth={onMission ? 2.4 : 1.6}
+                    opacity={onMission ? 0.85 : 0.45}
+                    pointerEvents="none"
+                  >
+                    {onMission && !reducedFx && (
+                      <animate attributeName="opacity" values="0.85;0.3;0.85" dur="1.1s" repeatCount="indefinite" />
+                    )}
+                  </circle>
+                )}
                 <g
                   transform={`translate(${p.x},${p.y}) rotate(${angle})`}
-                  filter="url(#taxi-shadow)"
+                  filter={reducedFx ? undefined : "url(#taxi-shadow)"}
                   style={{ cursor: "pointer", pointerEvents: "auto" }}
                   onClick={(e) => { e.stopPropagation(); honkTaxi(taxi.id); }}
                 >
                   <TaxiSprite image={currentLivery.image} faceRight={currentLivery.faceRight} paintFilter={ownPaint.filter} markerColor={ownPaint.color} withClient={taxi.mode === "to_dest"} moving={taxi.mode !== "idle" && taxi.mode !== "refueling" && taxi.mode !== "depositing"} />
                 </g>
                 {/* Numéro de taxi — toujours visible, ne tourne pas */}
-                <g transform={`translate(${p.x + 14},${p.y - 14})`} pointerEvents="none">
+                {!ultraLite && <g transform={`translate(${p.x + 14},${p.y - 14})`} pointerEvents="none">
                   <circle r="7" fill="#0a0c10" stroke={ownPaint.color} strokeWidth="1.5" />
                   <text y="3" textAnchor="middle" fontSize="9" fontWeight="900" fill={ownPaint.color}>{idx + 1}</text>
-                </g>
+                </g>}
                 {/* Étiquette d'état au-dessus quand en mission/action */}
-                {taxi.mode !== "idle" && (
+                {taxi.mode !== "idle" && !ultraLite && (
                   <g transform={`translate(${p.x},${p.y - 28})`} pointerEvents="none">
                     <rect x={-26} y={-7} width={52} height={12} rx={3} fill="#0a0c10" opacity="0.82" stroke={status.ring} strokeWidth="0.8" />
                     <text y={2} textAnchor="middle" fontSize="8" fontWeight="900" fill={status.ring}>{status.label}</text>
@@ -3196,17 +3218,17 @@ export default function TaxiTycoon() {
                 {isHonking && (
                   <g transform={`translate(${p.x},${p.y})`} pointerEvents="none">
                     <circle r="34" fill="none" stroke="#fde047" strokeWidth="3" opacity="0.85">
-                      <animate attributeName="r" from="14" to="44" dur="0.6s" fill="freeze" />
-                      <animate attributeName="opacity" from="0.95" to="0" dur="0.6s" fill="freeze" />
+                      {!reducedFx && <animate attributeName="r" from="14" to="44" dur="0.6s" fill="freeze" />}
+                      {!reducedFx && <animate attributeName="opacity" from="0.95" to="0" dur="0.6s" fill="freeze" />}
                     </circle>
                     <text y="-44" fontSize="14" fontWeight="900" textAnchor="middle" fill="#fde047" stroke="#0a0c10" strokeWidth="2" paintOrder="stroke">📯 BIP</text>
                   </g>
                 )}
                 {/* Mini jauge essence sous le taxi */}
-                <g transform={`translate(${p.x - 12},${p.y + 22})`}>
+                {(!ultraLite || fuelLow) && <g transform={`translate(${p.x - 12},${p.y + 22})`}>
                   <rect x="0" y="0" width="24" height="3" rx="1" fill="#0a0c10" opacity="0.7" />
                   <rect x="0" y="0" width={24 * fuelPct} height="3" rx="1" fill={fuelLow ? "#ef4444" : "#34d399"} />
-                </g>
+                </g>}
               </g>
             );
           });
@@ -3218,7 +3240,7 @@ export default function TaxiTycoon() {
 
 
         {/* Popups gains */}
-        {popups.map((p) => (
+        {!ultraLite && popups.map((p) => (
           <g key={p.id} transform={`translate(${p.x},${p.y})`}>
             <text fontSize="22" fontWeight="900" textAnchor="middle" fill="#34d399" stroke="#0a0c10" strokeWidth="3" paintOrder="stroke">
               {p.text}
@@ -3256,10 +3278,10 @@ export default function TaxiTycoon() {
               {manualTargetRef.current && (
                 <circle cx={manualTargetRef.current.x} cy={manualTargetRef.current.y} r={14}
                   fill="none" stroke="#ec4899" strokeWidth={3} opacity={0.9}>
-                  <animate attributeName="r" values="14;22;14" dur="0.9s" repeatCount="indefinite" />
+                  {!reducedFx && <animate attributeName="r" values="14;22;14" dur="0.9s" repeatCount="indefinite" />}
                 </circle>
               )}
-              <g transform={`translate(${p.x},${p.y}) rotate(${p.angle})`} filter="url(#taxi-shadow)">
+              <g transform={`translate(${p.x},${p.y}) rotate(${p.angle})`} filter={reducedFx ? undefined : "url(#taxi-shadow)"}>
                 <circle r={22} fill="#ec4899" opacity={0.25} />
                 <TaxiSprite image={currentLivery.image} faceRight={currentLivery.faceRight}
                   paintFilter="hue-rotate(290deg) saturate(1.4)" markerColor="#ec4899"

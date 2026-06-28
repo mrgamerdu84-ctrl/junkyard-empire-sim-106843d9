@@ -14,6 +14,7 @@
 // =============================================================
 import { useEffect, useMemo, useRef, useState } from "react";
 import { ROADS, VILLAGE_PATHS } from "./CityTraffic";
+import { isUltraLite, perfTier, targetFps } from "@/lib/perf";
 
 const RIVAL_ROAD_IDX = ROADS.map((_, i) => i).filter((i) => !VILLAGE_PATHS.has(i));
 const LANE_HALF = 9;
@@ -76,11 +77,12 @@ type IncomingMission = {
 function buildSpecs(comps: Competitor[]): RivalSpec[] {
   const alive = comps.filter((c) => !c.bankrupt);
   if (alive.length === 0) return [];
+  const maxRivals = isUltraLite() ? 2 : perfTier() === "low" ? 4 : MAX_RIVALS;
   const out: RivalSpec[] = [];
-  const perComp = Math.max(1, Math.min(2, Math.floor(MAX_RIVALS / Math.max(1, alive.length))));
+  const perComp = Math.max(1, Math.min(2, Math.floor(maxRivals / Math.max(1, alive.length))));
   let i = 0;
   for (const c of alive) {
-    for (let k = 0; k < perComp && out.length < MAX_RIVALS; k++) {
+    for (let k = 0; k < perComp && out.length < maxRivals; k++) {
       out.push({
         compId: c.id,
         color: c.color,
@@ -178,10 +180,15 @@ export default function CityRivalTaxis() {
       };
     });
 
+    let lastFrame = performance.now();
+    const MIN_FRAME = 1000 / targetFps();
     const step = (now: number) => {
+      raf = requestAnimationFrame(step);
+      if (now - lastFrame < MIN_FRAME) return;
+      const dt = Math.min(0.05, (now - lastFrame) / 1000);
+      lastFrame = now;
       if (lens.length === 0 || lens.some((l) => l <= 1)) {
         if (!ensureLens()) {
-          raf = requestAnimationFrame(step);
           return;
         }
       }
@@ -263,8 +270,7 @@ export default function CityRivalTaxis() {
           st.y = p.y + oy;
           st.ang = ang;
         } else if (st.mode === "to_mission" || st.mode === "to_dropoff" || st.mode === "return_hq") {
-          // Déplacement linéaire vers cible (à 60fps env. dt~16ms)
-          const dt = 1 / 60;
+          // Déplacement linéaire vers cible, limité au FPS du téléphone.
           const dx = st.tgtX - st.x;
           const dy = st.tgtY - st.y;
           const dist = Math.hypot(dx, dy);
@@ -329,7 +335,6 @@ export default function CityRivalTaxis() {
           `translate(${st.x.toFixed(2)},${st.y.toFixed(2)}) rotate(${st.ang.toFixed(2)})`,
         );
       }
-      raf = requestAnimationFrame(step);
     };
     raf = requestAnimationFrame(step);
     return () => cancelAnimationFrame(raf);
