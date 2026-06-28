@@ -89,7 +89,7 @@ export default function LoadingScreen({ progress }: { progress: number }) {
         }
       `}</style>
 
-      <img src={loadingAsset.url} alt="My Taxi World Tycoon - La Guerre des Taxis" className="ld-bg" />
+      <img src={loadingAsset.url} alt="My Taxi World : L'Empire des Rues - La Guerre des Taxis" className="ld-bg" />
       <div className="ld-fade" />
 
       <div className="ld-content">

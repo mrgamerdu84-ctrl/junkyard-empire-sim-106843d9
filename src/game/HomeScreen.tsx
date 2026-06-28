@@ -228,7 +228,7 @@ export default function HomeScreen({ onPlay }: { onPlay: () => void }) {
           }}
           style={{ cursor: "default", userSelect: "none", WebkitUserSelect: "none" }}
         >
-          My Taxi World Rivalité
+          My Taxi World : L'Empire des Rues
         </h1>
       </div>
 
@@ -322,7 +322,7 @@ export default function HomeScreen({ onPlay }: { onPlay: () => void }) {
           padding: "0 12px",
         }}
       >
-        © 2026 My Taxi World Rivalité — Tous droits réservés.
+        © 2026 My Taxi World : L'Empire des Rues — Tous droits réservés.
       </div>
 
       {showTutorial && <TutorialDialog onClose={() => setShowTutorial(false)} />}

@@ -14,9 +14,9 @@ type ApkInfo = {
 export const Route = createFileRoute("/download")({
   head: () => ({
     meta: [
-      { title: "Télécharger My Taxi World Tycoon — APK Android" },
-      { name: "description", content: "Télécharge la dernière version APK de My Taxi World Tycoon pour Android." },
-      { property: "og:title", content: "Télécharger My Taxi World Tycoon" },
+      { title: "Télécharger My Taxi World : L'Empire des Rues — APK Android" },
+      { name: "description", content: "Télécharge la dernière version APK de My Taxi World : L'Empire des Rues pour Android." },
+      { property: "og:title", content: "Télécharger My Taxi World : L'Empire des Rues" },
       { property: "og:description", content: "Dernière version APK officielle pour Android." },
     ],
   }),
@@ -199,7 +199,7 @@ function DownloadPage() {
           fontSize: 28, fontWeight: 900, color: "#f5c542", letterSpacing: 1, margin: 0,
           textShadow: "0 2px 0 #b8860b, 0 4px 12px rgba(0,0,0,0.5)",
         }}>
-          My Taxi World Tycoon
+          My Taxi World : L'Empire des Rues
         </h1>
         <p style={{ color: "#9ca3af", margin: "8px 0 28px", fontSize: 14, letterSpacing: 2, textTransform: "uppercase" }}>
           Télécharger pour Android

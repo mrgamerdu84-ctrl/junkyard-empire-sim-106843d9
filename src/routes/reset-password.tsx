@@ -5,7 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 export const Route = createFileRoute("/reset-password")({
   ssr: false,
   component: ResetPasswordPage,
-  head: () => ({ meta: [{ title: "Nouveau mot de passe — My Taxi World Rivalité" }] }),
+  head: () => ({ meta: [{ title: "Nouveau mot de passe — My Taxi World : L'Empire des Rues" }] }),
 });
 
 function ResetPasswordPage() {

@@ -19,7 +19,7 @@ import {
 export const Route = createFileRoute("/_authenticated/arena")({
   head: () => ({
     meta: [
-      { title: "Arène mondiale — My Taxi World Rivalité" },
+      { title: "Arène mondiale — My Taxi World : L'Empire des Rues" },
       { name: "description", content: "Affronte un autre chauffeur du monde entier en temps réel. 5 minutes, le plus de fric gagne." },
     ],
   }),

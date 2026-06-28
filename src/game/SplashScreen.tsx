@@ -83,7 +83,7 @@ export default function SplashScreen({ onDone }: { onDone: () => void }) {
       <div className="sp-vignette" />
 
       <div className={`sp-content sp-${phase}`}>
-        <div className="sp-sub">My Taxi World Rivalité</div>
+        <div className="sp-sub">My Taxi World : L'Empire des Rues</div>
         <div className="sp-bar-wrap">
           <div className="sp-bar-fill" />
         </div>

@@ -3278,7 +3278,7 @@ export default function TaxiTycoon() {
 
         {!mapFullscreen && (<>
         <div className="tt-topbar tt-topbar-slim">
-          <div className="tt-title-banner" aria-label="My Taxi World Rivalité">
+          <div className="tt-title-banner" aria-label="My Taxi World : L'Empire des Rues">
             <span className="tt-title-glow">MY TAXI WORLD</span>
             <span className="tt-title-sub">RIVALITÉ</span>
           </div>

@@ -62,7 +62,7 @@ export default function RulesPanel() {
             </div>
 
             <h3>🎯 But du jeu</h3>
-            <p>Tu diriges <b>My Taxi World Rivalité</b> : une compagnie de taxis qui doit grandir tout en repoussant la <b>Mafia</b> qui veut t'éliminer. Embauche, encaisse, détruis les saboteurs, détourne le camion blindé du Parrain — et deviens la légende de la ville.</p>
+            <p>Tu diriges <b>My Taxi World : L'Empire des Rues</b> : une compagnie de taxis qui doit grandir tout en repoussant la <b>Mafia</b> qui veut t'éliminer. Embauche, encaisse, détruis les saboteurs, détourne le camion blindé du Parrain — et deviens la légende de la ville.</p>
 
             <h3>🏢 Ton QG (entrepôt jaune)</h3>
             <ul>

@@ -19,10 +19,10 @@ import SplashScreen from "@/game/SplashScreen";
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: "My Taxi World Rivalité" },
+      { title: "My Taxi World : L'Empire des Rues" },
       { name: "description", content: "Hérite d'un garage délabré et bâtis le plus grand empire de taxis de la ville." },
       { name: "viewport", content: "width=device-width, initial-scale=1, viewport-fit=cover" },
-      { property: "og:title", content: "My Taxi World Rivalité" },
+      { property: "og:title", content: "My Taxi World : L'Empire des Rues" },
       { property: "og:description", content: "Tycoon idle : tes taxis vont chercher les clients, tu agrandis l'entrepôt." },
     ],
   }),

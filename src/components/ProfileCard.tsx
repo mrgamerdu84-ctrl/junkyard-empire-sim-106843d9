@@ -185,7 +185,7 @@ export default function ProfileCard({ onClose }: { onClose: () => void }) {
       <div className="pc-card" onClick={(e) => e.stopPropagation()}>
         <span className="pc-badge">CARTE PRO</span>
         <h2 className="pc-title">🪪 Chauffeur de Taxi</h2>
-        <p className="pc-sub">My Taxi World Tycoon — Licence officielle</p>
+        <p className="pc-sub">My Taxi World : L'Empire des Rues — Licence officielle</p>
 
         <div className="pc-avatar-row">
           <div className="pc-avatar-big">

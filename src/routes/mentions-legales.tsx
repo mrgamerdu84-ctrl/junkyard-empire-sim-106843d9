@@ -3,13 +3,13 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 export const Route = createFileRoute("/mentions-legales")({
   head: () => ({
     meta: [
-      { title: "Mentions légales & confidentialité — My Taxi World Tycoon" },
+      { title: "Mentions légales & confidentialité — My Taxi World : L'Empire des Rues" },
       {
         name: "description",
         content:
-          "Politique de confidentialité du jeu My Taxi World Tycoon : données collectées, utilisation, droits, suppression de compte.",
+          "Politique de confidentialité du jeu My Taxi World : L'Empire des Rues : données collectées, utilisation, droits, suppression de compte.",
       },
-      { property: "og:title", content: "Mentions légales & confidentialité — My Taxi World Tycoon" },
+      { property: "og:title", content: "Mentions légales & confidentialité — My Taxi World : L'Empire des Rues" },
       {
         property: "og:description",
         content:
@@ -118,12 +118,12 @@ function MentionsLegalesPage() {
         <div className="ml-card">
           <h1>📜 Mentions légales &amp; confidentialité</h1>
           <p className="ml-sub">
-            My Taxi World Tycoon — Politique de confidentialité &amp; informations légales.
+            My Taxi World : L'Empire des Rues — Politique de confidentialité &amp; informations légales.
           </p>
 
           <h2>Qui sommes-nous</h2>
           <p>
-            <strong>My Taxi World Tycoon</strong> est un jeu indépendant développé par un créateur passionné.
+            <strong>My Taxi World : L'Empire des Rues</strong> est un jeu indépendant développé par un créateur passionné.
             Le jeu est gratuit et n'a pas de but commercial direct. Pour toute question, contacte&nbsp;:{" "}
             <a href={`mailto:${CONTACT_EMAIL}`}>{CONTACT_EMAIL}</a>.
           </p>
@@ -208,7 +208,7 @@ function MentionsLegalesPage() {
           </p>
 
           <div className="ml-foot">
-            © 2026 My Taxi World Rivalité — Tous droits réservés.
+            © 2026 My Taxi World : L'Empire des Rues — Tous droits réservés.
           </div>
         </div>
       </div>

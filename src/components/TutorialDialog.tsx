@@ -4,7 +4,7 @@ import { markTutorialSeen } from "@/lib/leaderboard";
 
 const STEPS = [
   {
-    title: "Bienvenue dans My Taxi World Rivalité !",
+    title: "Bienvenue dans My Taxi World : L'Empire des Rues !",
     text: "Salut patron ! Je suis Léo, ton bras droit. Ici, tu ne pilotes pas un seul taxi : tu diriges toute une compagnie face à la Mafia qui veut ta peau. Suis le guide.",
   },
   {
