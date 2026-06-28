@@ -2483,9 +2483,9 @@ export default function TaxiTycoon() {
               d={d}
             />
           ))}
-          <filter id="taxi-shadow" x="-30%" y="-30%" width="160%" height="160%">
+          {!reducedFx && <filter id="taxi-shadow" x="-30%" y="-30%" width="160%" height="160%">
             <feDropShadow dx="0" dy="6" stdDeviation="5" floodColor="#000" floodOpacity="0.4" />
-          </filter>
+          </filter>}
         </defs>
 
 
