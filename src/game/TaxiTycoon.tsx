@@ -2896,8 +2896,8 @@ export default function TaxiTycoon() {
           return (
             <g key={`flash-${fl.id}-${fl.t}`} transform={`translate(${fl.x},${fl.y})`} pointerEvents="none">
               <circle r="60" fill="#ffffff" opacity="0.85">
-                <animate attributeName="r" values="20;120" dur="0.3s" fill="freeze" />
-                <animate attributeName="opacity" values="0.95;0" dur="0.3s" fill="freeze" />
+                {!reducedFx && <animate attributeName="r" values="20;120" dur="0.3s" fill="freeze" />}
+                {!reducedFx && <animate attributeName="opacity" values="0.95;0" dur="0.3s" fill="freeze" />}
               </circle>
             </g>
           );
