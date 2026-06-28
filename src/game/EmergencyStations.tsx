@@ -149,14 +149,14 @@ export default function EmergencyStations() {
   }, []);
 
   useEffect(() => {
-    let raf = 0;
-    const tick = () => {
+    // Tick à 15 fps : suffit pour le clignotement des gyrophares, et libère
+    // beaucoup de CPU sur les smartphones d'entrée de gamme.
+    const id = window.setInterval(() => {
       forceFrame((v) => (v + 1) % 1_000_000);
-      raf = requestAnimationFrame(tick);
-    };
-    raf = requestAnimationFrame(tick);
-    return () => cancelAnimationFrame(raf);
+    }, 66);
+    return () => window.clearInterval(id);
   }, []);
+
 
   return (
     <>
