@@ -3042,7 +3042,7 @@ export default function TaxiTycoon() {
           const W = VEHICLE_SIZE; // même taille que tous les autres véhicules
           const blueOn = t === 0;
           return (
-            <g key={ev.id} transform={`translate(${p.x},${p.y}) rotate(${p.angle})`} filter="url(#taxi-shadow)">
+            <g key={ev.id} transform={`translate(${p.x},${p.y}) rotate(${p.angle})`} filter={reducedFx ? undefined : "url(#taxi-shadow)"}>
               <g>
                 <RoadAlignedVehicleSprite image={href} size={W}>
                 {alerting && (
