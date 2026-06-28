@@ -10,7 +10,7 @@ import { useAuth, signOut } from "@/lib/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import LoadingScreen from "./LoadingScreen";
 
-export default function HomeScreen({ onPlay }: { onPlay: () => void }) {
+export default function HomeScreen({ onPlay, onReplayIntro }: { onPlay: () => void; onReplayIntro?: () => void }) {
   const navigate = useNavigate();
   const { user, pseudo: cloudPseudo, avatarKind, avatarUrl } = useAuth();
   const [showProfile, setShowProfile] = useState(false);
