@@ -539,12 +539,15 @@ export default function CityTraffic() {
 
     let last = performance.now();
     let raf = 0;
-    // Densité jour/nuit : on garde le moteur d'origine (progression linéaire)
-    // et on affiche simplement moins de véhicules la nuit.
+    // 30 fps suffit largement pour du trafic vu de haut, ça divise le coût CPU
+    // par 2 sur les smartphones d'entrée de gamme (Xiaomi, Redmi, etc.).
+    const MIN_FRAME = 1000 / 30;
     let lastDensityCheck = 0;
     let activeCount = states.length;
     const step = (now: number) => {
-      const dt = Math.min(0.05, (now - last) / 1000); // clamp à 50ms (onglet inactif)
+      raf = requestAnimationFrame(step);
+      if (now - last < MIN_FRAME) return;
+      const dt = Math.min(0.05, (now - last) / 1000);
       last = now;
 
       if (now - lastDensityCheck > 4000) {
@@ -552,8 +555,10 @@ export default function CityTraffic() {
         const gt = getGameTime();
         // Beaucoup de monde le jour, trafic très réduit la nuit.
         const ratio = Math.max(0.12, Math.min(1, gt.density / 1.2));
-        activeCount = Math.max(1, Math.round(states.length * ratio));
+        // densityMult ramène l'effectif sur appareils low-end (≈35%).
+        activeCount = Math.max(1, Math.round(states.length * ratio * densityMult()));
       }
+
 
       const vr = visibleRect.current;
       for (let i = 0; i < states.length; i++) {
