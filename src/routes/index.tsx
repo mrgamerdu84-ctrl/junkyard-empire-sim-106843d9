@@ -12,9 +12,11 @@ import RadarFlash from "@/game/RadarFlash";
 // AmbientSirens retiré : plus de bruits d'ambulance/pompiers/police en fond.
 import AdminPanel from "@/game/AdminPanel";
 import MafiaGodfather from "@/game/MafiaGodfather";
+import MafiaLimo from "@/game/MafiaLimo";
 import VersionBanner from "@/game/VersionBanner";
 import HomeScreen from "@/game/HomeScreen";
 import SplashScreen from "@/game/SplashScreen";
+import IntroStory, { hasSeenIntro } from "@/game/IntroStory";
 
 export const Route = createFileRoute("/")({
   head: () => ({
