@@ -146,7 +146,7 @@ const SAVE_KEY = "taxi-tycoon-v4";
 const BASE_SPEED = 74; // px (sur viewBox 1920) par seconde — taxis un peu plus vifs que la circulation
 const SPEED_UPGRADE_COST_BASE = 800;
 const TAXI_COST_BASE = 600;
-const MAX_JOBS_BASE = 3;
+const MAX_JOBS_BASE = 2;
 const FUEL_REFILL_MS = 4000;
 const FUEL_LOW_THRESHOLD = 25;
 
