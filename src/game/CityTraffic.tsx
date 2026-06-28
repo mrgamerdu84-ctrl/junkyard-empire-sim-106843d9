@@ -663,7 +663,7 @@ export default function CityTraffic() {
     return () => {
       cancelAnimationFrame(raf);
     };
-  }, [activeCars.length]);
+  }, [activeCars]);
 
 
   return (
