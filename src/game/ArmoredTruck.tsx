@@ -312,10 +312,9 @@ export default function ArmoredTruck() {
 
       truckPosRef.current = { x: tx, y: ty, angle: ang };
       truckRef.current?.setAttribute("transform", `translate(${tx.toFixed(2)},${ty.toFixed(2)}) rotate(${ang.toFixed(2)})`);
-
-      raf = requestAnimationFrame(step);
     };
     raf = requestAnimationFrame(step);
+
     return () => cancelAnimationFrame(raf);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [phase, pathIdx, flip]);
