@@ -88,11 +88,15 @@ function TaxiTycoonPage() {
   };
 
   if (phase === "splash") {
-    return <SplashScreen onDone={() => setPhase("home")} />;
+    return <SplashScreen onDone={() => setPhase(hasSeenIntro() ? "home" : "intro")} />;
+  }
+
+  if (phase === "intro") {
+    return <IntroStory onDone={() => setPhase("home")} />;
   }
 
   if (phase === "home") {
-    return <HomeScreen onPlay={() => setPhase("game")} />;
+    return <HomeScreen onPlay={() => setPhase("game")} onReplayIntro={() => setPhase("intro")} />;
   }
 
   return (
