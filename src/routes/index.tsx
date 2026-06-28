@@ -1,7 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
 import citymap from "@/assets/citymap2.jpg";
-import citymapLiteAsset from "@/assets/citymap2-lite.jpg.asset.json";
 import TaxiTycoon from "@/game/TaxiTycoon";
 import CityTraffic from "@/game/CityTraffic";
 import MafiaAttackers from "@/game/MafiaAttackers";
@@ -19,7 +18,6 @@ import HomeScreen from "@/game/HomeScreen";
 import SplashScreen from "@/game/SplashScreen";
 import IntroStory, { hasSeenIntro } from "@/game/IntroStory";
 import UltraFluidPanel from "@/game/UltraFluidPanel";
-import { preferLiteAssets } from "@/lib/perf";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -44,7 +42,7 @@ function TaxiTycoonPage() {
   const worldRef = useRef<HTMLDivElement | null>(null);
 
   const zoom = ZOOM_LEVELS[zoomIdx];
-  const mapSrc = preferLiteAssets() ? citymapLiteAsset.url : citymap;
+  const mapSrc = citymap;
 
   useEffect(() => {
     const el = worldRef.current;
@@ -88,17 +86,9 @@ function TaxiTycoonPage() {
     try { (e.currentTarget as HTMLElement).releasePointerCapture(e.pointerId); } catch {}
   };
 
-  if (phase === "splash") {
-    return <SplashScreen onDone={() => setPhase(hasSeenIntro() ? "home" : "intro")} />;
-  }
-
-  if (phase === "intro") {
-    return <IntroStory onDone={() => setPhase("home")} />;
-  }
-
-  if (phase === "home") {
-    return <HomeScreen onPlay={() => setPhase("game")} onReplayIntro={() => setPhase("intro")} />;
-  }
+  if (phase === "splash") return <SplashScreen onDone={() => setPhase(hasSeenIntro() ? "home" : "intro")} />;
+  if (phase === "intro") return <IntroStory onDone={() => setPhase("home")} />;
+  if (phase === "home") return <HomeScreen onPlay={() => setPhase("game")} onReplayIntro={() => setPhase("intro")} />;
 
   return (
     <div className="tt-root">
@@ -117,15 +107,7 @@ function TaxiTycoonPage() {
         @media (max-width: 900px), (pointer: coarse) { .tt-map { filter: brightness(0.95); } .tt-vignette { display: none; } }
       `}</style>
 
-      <div
-        ref={worldRef}
-        className="tt-world"
-        style={{ transform: `translate(${pan.x}px, ${pan.y}px) scale(${zoom})`, cursor: zoom > 1 ? (dragRef.current ? "grabbing" : "grab") : "default" }}
-        onPointerDown={onPointerDown}
-        onPointerMove={onPointerMove}
-        onPointerUp={onPointerUp}
-        onPointerCancel={onPointerUp}
-      >
+      <div ref={worldRef} className="tt-world" style={{ transform: `translate(${pan.x}px, ${pan.y}px) scale(${zoom})`, cursor: zoom > 1 ? (dragRef.current ? "grabbing" : "grab") : "default" }} onPointerDown={onPointerDown} onPointerMove={onPointerMove} onPointerUp={onPointerUp} onPointerCancel={onPointerUp}>
         <img src={mapSrc} alt="Plan de la ville pour le jeu de taxi" className="tt-map" />
         <div className="tt-vignette" />
         <CityTraffic />
