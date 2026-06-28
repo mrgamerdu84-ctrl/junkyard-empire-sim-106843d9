@@ -8,6 +8,7 @@ import { useEffect, useState } from "react";
 import { getGameTime } from "./cityClock";
 import { getAdmin } from "./adminConfig";
 import type { CustomVehicleCategory } from "./gameAssets";
+import { isUltraLite, reduceMotion } from "@/lib/perf";
 
 type CrimeKind = "robbery" | "accident" | "control" | "fight" | "fire";
 
@@ -91,6 +92,8 @@ function pickKind(isNight: boolean, robberyOk: boolean): CrimeKind {
 void robberyRolledToday;
 
 export default function CrimeEvents() {
+  const ultraLite = isUltraLite();
+  const reducedFx = reduceMotion();
   const [events, setEvents] = useState<CrimeEvent[]>([]);
 
   // Génération
@@ -107,6 +110,8 @@ export default function CrimeEvents() {
       else if (t.period === "lunch") p = 0.08;
       if (t.isWeekend) p *= 0.7;
       if (t.isHoliday) p *= 0.5;
+
+      if (ultraLite) p *= 0.35;
 
       if (Math.random() < p) {
         const isolatedPool = HOTSPOTS.filter(h => h.isolated);
@@ -132,9 +137,9 @@ export default function CrimeEvents() {
           label: `${meta.label} · ${t.label.split(" ")[1]}`,
           aiClaimAt: now + aiDelay,
         };
-        setEvents(es => [...es, ev]);
+        setEvents(es => [...es, ev].slice(ultraLite ? -2 : -5));
       }
-    }, 2000);
+    }, ultraLite ? 5000 : 2000);
     return () => window.clearInterval(id);
   }, []);
 
@@ -154,7 +159,7 @@ export default function CrimeEvents() {
         }
         return next;
       });
-    }, 300);
+    }, ultraLite ? 1000 : 300);
     const onResolved = (ev: Event) => {
       const detail = (ev as CustomEvent<{ id: number }>).detail;
       if (!detail) return;
@@ -191,7 +196,7 @@ export default function CrimeEvents() {
         label: `${meta.label} · admin`,
         aiClaimAt: now + aiDelay,
       };
-      setEvents(es => [...es, ev2]);
+      setEvents(es => [...es, ev2].slice(ultraLite ? -2 : -5));
     };
     window.addEventListener("jce:crime-spawn-now", onManual as EventListener);
 
@@ -228,7 +233,7 @@ export default function CrimeEvents() {
         {events.map(e => {
           const meta = KIND_META[e.kind];
           const age = (performance.now() - e.startedAt) / e.ttl;
-          const pulse = 1 + Math.sin(performance.now() / 180 + e.id) * 0.15;
+          const pulse = reducedFx ? 1 : 1 + Math.sin(performance.now() / 180 + e.id) * 0.15;
           // Compte à rebours avant que l'AI rafle la mission
           const aiRemain = Math.max(0, e.aiClaimAt - performance.now());
           const aiPct = e.dispatched || e.stolenByAI ? 0 : Math.max(0, Math.min(1, aiRemain / (e.aiClaimAt - e.startedAt)));
@@ -253,7 +258,7 @@ export default function CrimeEvents() {
                 <circle r={20} fill="none" stroke={urgent ? "#ef4444" : "#fbbf24"} strokeWidth={2.5}
                   strokeDasharray={`${aiPct * 125.6} 125.6`} transform="rotate(-90)" opacity={0.9} />
               )}
-              {e.dispatched && (
+              {e.dispatched && !reducedFx && (
                 <circle r={22} fill="none" stroke="#22e36a" strokeWidth={2.5} strokeDasharray="6 4">
                   <animateTransform attributeName="transform" type="rotate" from="0" to="360" dur="2s" repeatCount="indefinite" />
                 </circle>
@@ -287,7 +292,7 @@ export default function CrimeEvents() {
               color: "#e8edf5",
               font: "600 10.5px/1.25 ui-sans-serif, system-ui",
               display: "flex", alignItems: "center", gap: 6,
-              backdropFilter: "blur(6px)",
+              backdropFilter: reducedFx ? undefined : "blur(6px)",
             }}>
               <span style={{ fontSize: 13 }}>{meta.icon}</span>
               <span style={{ flex: 1 }}>{e.label}{e.dispatched ? " · en route" : ""}</span>
