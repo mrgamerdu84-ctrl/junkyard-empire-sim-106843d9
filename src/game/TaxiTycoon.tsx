@@ -432,7 +432,7 @@ function RivalDepot({ x, y }: { x: number; y: number }) {
   const H = 200;
   const fx = !reduceMotion();
   return (
-    <g transform={`translate(${x},${y})`}>
+    <g transform={`translate(${x},${y})`} filter={fx ? "url(#taxi-shadow)" : undefined}>
       {/* ombre portée */}
       <ellipse cx="0" cy={H / 2 - 8} rx={W / 2 + 4} ry="14" fill="rgba(0,0,0,0.55)" />
 
@@ -2493,7 +2493,7 @@ export default function TaxiTycoon() {
 
         {/* Station-service — vraie station avec auvent, deux pompes, boutique */}
         {pathsReady && !ultraLite && (
-          <g transform={`translate(${admin.gasStationX},${admin.gasStationY})`}>
+          <g transform={`translate(${admin.gasStationX},${admin.gasStationY})`} filter={reducedFx ? undefined : "url(#taxi-shadow)"}>
             {/* ombre globale */}
             <ellipse cx="0" cy="34" rx="62" ry="10" fill="rgba(0,0,0,0.55)" />
 
@@ -2808,7 +2808,7 @@ export default function TaxiTycoon() {
         {circuitInfo.pts.length >= 2 && circuitTaxisRef.current.map((ct) => {
           const p = circuitAt(ct.pos);
           return (
-            <g key={ct.id} transform={`translate(${p.x},${p.y}) rotate(${p.angle})`}>
+            <g key={ct.id} transform={`translate(${p.x},${p.y}) rotate(${p.angle})`} filter={reducedFx ? undefined : "url(#taxi-shadow)"}>
               <TaxiSprite image={currentLivery.image} faceRight={currentLivery.faceRight} paintFilter={currentPaint.filter} markerColor={currentPaint.color} withClient={false} moving={true} />
             </g>
           );
@@ -2821,7 +2821,7 @@ export default function TaxiTycoon() {
           const angle = p.angle;
           return (
             <g key={r.id}>
-              <g transform={`translate(${p.x},${p.y}) rotate(${angle})`}>
+              <g transform={`translate(${p.x},${p.y}) rotate(${angle})`} filter={reducedFx ? undefined : "url(#taxi-shadow)"}>
                 <TaxiSprite image={TAXI_RED_URL} faceRight={true} withClient={r.mode === "to_dest"} moving={r.mode !== "idle"} />
               </g>
               
@@ -2921,7 +2921,7 @@ export default function TaxiTycoon() {
           void ledA; void ledB;
 
           return (
-            <g key={pc.id} transform={`translate(${p.x},${p.y}) rotate(${p.angle})`}>
+            <g key={pc.id} transform={`translate(${p.x},${p.y}) rotate(${p.angle})`} filter={reducedFx ? undefined : "url(#taxi-shadow)"}>
               {flashing && !reducedFx && (
                 <circle r="24" fill={t === 0 ? "#3b82f6" : "#ef4444"} opacity="0.28">
                   <animate attributeName="r" values="20;28;20" dur="0.5s" repeatCount="indefinite" />
@@ -3043,7 +3043,7 @@ export default function TaxiTycoon() {
           const W = VEHICLE_SIZE; // même taille que tous les autres véhicules
           const blueOn = t === 0;
           return (
-            <g key={ev.id} transform={`translate(${p.x},${p.y}) rotate(${p.angle})`}>
+            <g key={ev.id} transform={`translate(${p.x},${p.y}) rotate(${p.angle})`} filter={reducedFx ? undefined : "url(#taxi-shadow)"}>
               <g>
                 <RoadAlignedVehicleSprite image={href} size={W}>
                 {alerting && (
@@ -3196,7 +3196,7 @@ export default function TaxiTycoon() {
                 )}
                 <g
                   transform={`translate(${p.x},${p.y}) rotate(${angle})`}
-                 
+                  filter={reducedFx ? undefined : "url(#taxi-shadow)"}
                   style={{ cursor: "pointer", pointerEvents: "auto" }}
                   onClick={(e) => { e.stopPropagation(); honkTaxi(taxi.id); }}
                 >
@@ -3281,7 +3281,7 @@ export default function TaxiTycoon() {
                   {!reducedFx && <animate attributeName="r" values="14;22;14" dur="0.9s" repeatCount="indefinite" />}
                 </circle>
               )}
-              <g transform={`translate(${p.x},${p.y}) rotate(${p.angle})`}>
+              <g transform={`translate(${p.x},${p.y}) rotate(${p.angle})`} filter={reducedFx ? undefined : "url(#taxi-shadow)"}>
                 <circle r={22} fill="#ec4899" opacity={0.25} />
                 <TaxiSprite image={currentLivery.image} faceRight={currentLivery.faceRight}
                   paintFilter="hue-rotate(290deg) saturate(1.4)" markerColor="#ec4899"

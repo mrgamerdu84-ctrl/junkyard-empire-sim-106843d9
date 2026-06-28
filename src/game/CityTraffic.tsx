@@ -400,12 +400,10 @@ function buildCarsFromCustom(count?: number): CarSpec[] {
 
 
 export default function CityTraffic() {
-  // PERF MOBILE : jour permanent. Pas de filtre nuit/météo (très coûteux sur Xiaomi).
-  const night = 0;
+  const [night, setNight] = useState(0.25);
   const [lightsTick, setLightsTick] = useState(0);
   const tier = perfTier();
-  const reducedFx = true; // FX off partout (ombres, blurs) pour fluidité mobile
-
+  const reducedFx = reduceMotion();
   const admin = useAdminConfig();
   const [customTick, setCustomTick] = useState(0);
   // Re-render quand le joueur ajoute/supprime un véhicule custom.
@@ -469,15 +467,22 @@ export default function CityTraffic() {
   // Radars retirés à la demande du joueur.
 
 
-  // Cycle jour/nuit DÉSACTIVÉ (perf mobile). On garde uniquement un tick
-  // pour synchroniser les feux de circulation.
+  // Cycle jour/nuit 300s (5 minutes). Démarre en plein jour.
+  // PERF : on n'a pas besoin de 60 setState/s pour la nuit ; un rafraîchissement
+  // toutes les 250 ms est totalement invisible à l'œil et libère le main thread.
   useEffect(() => {
+    let last = 0;
     const id = window.setInterval(() => {
+      const now = performance.now();
+      if (now - last < 240) return;
+      last = now;
+      const t = (now % 300000) / 300000;
+      const daylight = Math.max(0, Math.sin(t * Math.PI * 2 + Math.PI / 2));
+      setNight(0.1 + (1 - daylight) * 0.6);
       setLightsTick(v => (v + 1) % 1000000);
     }, tier === "ultra" || tier === "low" ? 1000 : 500);
     return () => window.clearInterval(id);
-  }, [tier]);
-
+  }, []);
 
 
 
@@ -833,7 +838,7 @@ export default function CityTraffic() {
       {/* Radars retirés à la demande du joueur. */}
 
 
-      {/* Overlay nuit/météo retiré (perf mobile) */}
+      <rect width="1920" height="1080" fill="#0a1530" opacity={Math.max(0, (night - 0.15)) * 0.55} pointerEvents="none" />
     </svg>
   );
 }
