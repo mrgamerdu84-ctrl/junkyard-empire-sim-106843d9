@@ -18,6 +18,7 @@ import VersionBanner from "@/game/VersionBanner";
 import HomeScreen from "@/game/HomeScreen";
 import SplashScreen from "@/game/SplashScreen";
 import IntroStory, { hasSeenIntro } from "@/game/IntroStory";
+import { preferLiteAssets } from "@/lib/perf";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -42,6 +43,7 @@ function TaxiTycoonPage() {
   const worldRef = useRef<HTMLDivElement | null>(null);
 
   const zoom = ZOOM_LEVELS[zoomIdx];
+  const mapSrc = preferLiteAssets() ? citymapLiteAsset.url : citymap;
 
   // Clamp pan : on n'a pas le droit de tirer la carte hors-écran.
   useEffect(() => {
@@ -172,10 +174,7 @@ function TaxiTycoonPage() {
         onPointerUp={onPointerUp}
         onPointerCancel={onPointerUp}
       >
-        <picture>
-          <source srcSet={citymapLiteAsset.url} media="(max-width: 900px), (pointer: coarse)" />
-          <img src={citymap} alt="Plan de la ville pour le jeu de taxi" className="tt-map" />
-        </picture>
+        <img src={mapSrc} alt="Plan de la ville pour le jeu de taxi" className="tt-map" />
         <div className="tt-vignette" />
         <CityTraffic />
         <MafiaAttackers />
