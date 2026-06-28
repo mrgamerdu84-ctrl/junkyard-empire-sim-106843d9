@@ -84,53 +84,114 @@ export default function HomeScreen({ onPlay, onReplayIntro }: { onPlay: () => vo
         .hs-home {
           position: fixed; inset: 0; z-index: 9999;
           background: #0a0c10 url('${bgAssetV2}') center center / cover no-repeat;
+          background-attachment: fixed;
           font-family: system-ui, -apple-system, sans-serif;
-          overflow: hidden;
+          overflow-y: auto;
+          overflow-x: hidden;
+          -webkit-overflow-scrolling: touch;
+          overscroll-behavior: contain;
         }
         .hs-home::before {
-          content: ""; position: absolute; inset: 0;
-          background: linear-gradient(180deg, rgba(10,12,16,0.25) 0%, rgba(10,12,16,0.55) 55%, rgba(10,12,16,0.92) 100%);
+          content: ""; position: fixed; inset: 0;
+          background: linear-gradient(180deg, rgba(10,12,16,0.35) 0%, rgba(10,12,16,0.7) 55%, rgba(10,12,16,0.96) 100%);
           z-index: 1; pointer-events: none;
         }
+        .hs-scroll {
+          position: relative; z-index: 2;
+          min-height: 100%;
+          display: flex; flex-direction: column; align-items: center;
+          padding: calc(28px + env(safe-area-inset-top)) 16px calc(72px + env(safe-area-inset-bottom));
+          gap: 22px;
+        }
+        .hs-center {
+          display: flex; flex-direction: column; align-items: center; gap: 8px;
+          width: 100%; max-width: 380px;
+        }
+        .hs-title {
+          font-size: clamp(24px, 6vw, 38px);
+          font-weight: 900;
+          color: #f5c542;
+          text-shadow: 0 4px 16px rgba(0,0,0,0.8), 0 0 28px rgba(245,197,66,0.25);
+          letter-spacing: 1.5px;
+          text-align: center;
+          margin: 0;
+          line-height: 1.05;
+        }
+        .hs-tagline {
+          color: #fde047; opacity: 0.85;
+          font-size: 12px; font-weight: 700; letter-spacing: 1.5px;
+          text-transform: uppercase;
+          text-shadow: 0 1px 3px rgba(0,0,0,0.7);
+        }
         .hs-btns {
-          position: absolute;
-          left: 50%; bottom: 6vh;
-          transform: translateX(-50%);
-          display: flex; flex-direction: column; gap: 14px;
-          width: min(280px, 70vw);
-          z-index: 2;
+          display: flex; flex-direction: column; gap: 10px;
+          width: min(320px, 88vw);
+        }
+        .hs-grid {
+          display: grid; grid-template-columns: 1fr 1fr; gap: 10px;
+          width: min(320px, 88vw);
         }
         .hs-btn {
           appearance: none; border: none; cursor: pointer;
           background: linear-gradient(180deg, #f5c542 0%, #e0a92a 100%);
           color: #1a1208;
-          font-size: clamp(18px, 4.5vw, 22px);
+          font-size: 15px;
           font-weight: 900;
-          letter-spacing: 1px;
-          padding: 14px 0;
+          letter-spacing: 0.5px;
+          padding: 13px 14px;
           width: 100%;
-          border-radius: 16px;
+          border-radius: 14px;
           border: 2px solid #fde047;
-          box-shadow: 0 6px 0 #8a6510, 0 12px 20px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.25);
+          box-shadow: 0 5px 0 #8a6510, 0 10px 18px rgba(0,0,0,0.45), inset 0 1px 0 rgba(255,255,255,0.25);
           transition: transform 0.08s, box-shadow 0.08s, filter 0.15s;
-          display: flex; align-items: center; justify-content: center; gap: 10px;
+          display: flex; align-items: center; justify-content: center; gap: 8px;
           text-transform: uppercase;
           text-shadow: 0 1px 0 rgba(255,255,255,0.35);
           text-decoration: none;
+          box-sizing: border-box;
+          min-width: 0;
         }
         .hs-btn:hover { filter: brightness(1.08); }
         .hs-btn:active {
-          transform: translateY(4px);
-          box-shadow: 0 2px 0 #8a6510, 0 4px 8px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.2);
+          transform: translateY(3px);
+          box-shadow: 0 2px 0 #8a6510, 0 3px 6px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.2);
         }
-        .hs-apk-icon { width: 22px; height: 22px; fill: #1a1208; }
+        .hs-btn-hero {
+          font-size: 20px;
+          padding: 18px 0;
+          background: linear-gradient(180deg, #fde047 0%, #f5c542 50%, #d49419 100%);
+          box-shadow: 0 7px 0 #6b4f0c, 0 14px 26px rgba(245,197,66,0.5), inset 0 1px 0 rgba(255,255,255,0.4);
+          letter-spacing: 2px;
+          animation: hs-pulse 2.2s ease-in-out infinite;
+        }
+        .hs-btn-hero:active { box-shadow: 0 3px 0 #6b4f0c, 0 5px 10px rgba(0,0,0,0.4); }
+        @keyframes hs-pulse {
+          0%,100% { box-shadow: 0 7px 0 #6b4f0c, 0 14px 26px rgba(245,197,66,0.5), inset 0 1px 0 rgba(255,255,255,0.4); }
+          50% { box-shadow: 0 7px 0 #6b4f0c, 0 14px 32px rgba(245,197,66,0.85), inset 0 1px 0 rgba(255,255,255,0.5); }
+        }
+        .hs-apk-icon { width: 18px; height: 18px; fill: #1a1208; }
         .hs-name-badge {
-          text-align: center;
+          display: inline-flex; align-items: center; gap: 8px;
+          padding: 8px 14px;
+          background: rgba(0,0,0,0.55);
+          border: 1px solid rgba(245,197,66,0.45);
+          border-radius: 999px;
           color: #f5c542;
+          font-weight: 800;
+          font-size: 13px;
+          text-shadow: 0 1px 2px rgba(0,0,0,0.6);
+          backdrop-filter: blur(6px);
+        }
+        .hs-section-label {
+          width: min(320px, 88vw);
+          color: #fde047;
+          font-size: 10px;
           font-weight: 900;
-          font-size: 16px;
-          text-shadow: 0 2px 4px rgba(0,0,0,0.6);
-          margin-bottom: 2px;
+          letter-spacing: 2px;
+          text-transform: uppercase;
+          opacity: 0.7;
+          margin: 4px 0 -4px 6px;
+          text-shadow: 0 1px 2px rgba(0,0,0,0.8);
         }
         .hs-pseudo-overlay {
           position: fixed; inset: 0; z-index: 11000;
@@ -146,58 +207,32 @@ export default function HomeScreen({ onPlay, onReplayIntro }: { onPlay: () => vo
           padding: 24px;
           display: flex; flex-direction: column; gap: 16px;
         }
-        .hs-pseudo-title {
-          color: #f5c542; font-size: 20px; font-weight: 900;
-          margin: 0; text-align: center;
-        }
+        .hs-pseudo-title { color: #f5c542; font-size: 20px; font-weight: 900; margin: 0; text-align: center; }
         .hs-pseudo-input {
-          width: 100%;
-          background: #0a0c10;
-          border: 2px solid #374151;
-          border-radius: 10px;
-          padding: 12px 14px;
-          color: #fff;
-          font-size: 18px;
-          font-weight: 700;
-          outline: none;
-          box-sizing: border-box;
+          width: 100%; background: #0a0c10;
+          border: 2px solid #374151; border-radius: 10px;
+          padding: 12px 14px; color: #fff;
+          font-size: 18px; font-weight: 700; outline: none; box-sizing: border-box;
         }
         .hs-pseudo-input:focus { border-color: #f5c542; }
-        .hs-pseudo-actions {
-          display: flex; gap: 10px; justify-content: flex-end;
-        }
+        .hs-pseudo-actions { display: flex; gap: 10px; justify-content: flex-end; }
         .hs-pseudo-btn {
           appearance: none; border: none; cursor: pointer;
           background: linear-gradient(180deg, #f5c542 0%, #e0a92a 100%);
-          color: #1a1208;
-          font-weight: 900;
-          padding: 10px 18px;
-          border-radius: 10px;
-          font-size: 16px;
+          color: #1a1208; font-weight: 900;
+          padding: 10px 18px; border-radius: 10px; font-size: 16px;
         }
-        .hs-center {
-          position: absolute;
-          top: 16vh;
-          left: 50%;
-          transform: translateX(-50%);
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-          gap: 16px;
-          z-index: 2;
-          width: min(340px, 80vw);
-        }
-        .hs-title {
-          font-size: clamp(26px, 6vw, 44px);
-          font-weight: 900;
-          color: #f5c542;
-          text-shadow: 0 4px 12px rgba(0,0,0,0.6);
-          letter-spacing: 2px;
+        .hs-footer {
+          color: #fde047;
+          font-size: 11px;
+          font-weight: 700;
           text-align: center;
-          margin: 0;
-          line-height: 1.1;
+          text-shadow: 0 1px 2px rgba(0,0,0,0.8);
+          padding: 12px;
+          opacity: 0.85;
         }
       `}</style>
+
 
       <UpdateNotification />
 
