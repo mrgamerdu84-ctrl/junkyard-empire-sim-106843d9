@@ -4,6 +4,7 @@ import citymap from "@/assets/citymap2.jpg";
 import citymapLiteAsset from "@/assets/citymap2-lite.jpg.asset.json";
 import TaxiTycoon from "@/game/TaxiTycoon";
 import CityTraffic from "@/game/CityTraffic";
+import SimpleCivilTraffic from "@/game/SimpleCivilTraffic";
 import MafiaAttackers from "@/game/MafiaAttackers";
 import ArmoredTruck from "@/game/ArmoredTruck";
 import CrimeEvents from "@/game/CrimeEvents";
@@ -178,6 +179,7 @@ function TaxiTycoonPage() {
         <img src={mapSrc} alt="Plan de la ville pour le jeu de taxi" className="tt-map" />
         <div className="tt-vignette" />
         <CityTraffic />
+        <SimpleCivilTraffic />
         <MafiaAttackers />
         <EmergencyStations />
         <CrimeEvents />
