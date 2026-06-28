@@ -6,7 +6,7 @@ const LS_KEY = "mtwr.ultraLite"; // legacy : "1"/"0"/null
 const LS_SETTINGS = "mtwr.perfSettings.v1";
 
 export type PerfSettings = {
-  ultraFluid: boolean;   // master toggle (préréglage agressif)
+  ultraFluid: boolean;   // master toggle utilisateur
   entityScale: number;   // 0.1 → 1 (multiplicateur sur le nombre d'entités)
   fpsCap: number;        // 15 → 60
   fxOff: boolean;        // coupe halos, ombres, animations décoratives
@@ -21,13 +21,22 @@ const DEFAULT_SETTINGS: PerfSettings = {
 
 let _settings: PerfSettings | null = null;
 
+function clampSettings(s: PerfSettings): PerfSettings {
+  return {
+    ultraFluid: !!s.ultraFluid,
+    entityScale: Math.max(0.45, Math.min(1, Number.isFinite(s.entityScale) ? s.entityScale : 1)),
+    fpsCap: Math.max(24, Math.min(60, Number.isFinite(s.fpsCap) ? s.fpsCap : 60)),
+    fxOff: !!s.fxOff,
+  };
+}
+
 function readSettings(): PerfSettings {
   if (_settings) return _settings;
   try {
     const raw = typeof localStorage !== "undefined" ? localStorage.getItem(LS_SETTINGS) : null;
     if (raw) {
       const parsed = JSON.parse(raw);
-      _settings = { ...DEFAULT_SETTINGS, ...parsed };
+      _settings = clampSettings({ ...DEFAULT_SETTINGS, ...parsed });
       return _settings!;
     }
   } catch {}
@@ -40,11 +49,12 @@ export function perfSettings(): PerfSettings {
 }
 
 export function setPerfSettings(patch: Partial<PerfSettings>) {
-  const next = { ...readSettings(), ...patch };
-  // Si ultraFluid est activé, on applique un préréglage agressif.
+  const next = clampSettings({ ...readSettings(), ...patch });
+  // Ultra-fluide garde le gameplay vivant : on coupe surtout les effets,
+  // mais on ne descend plus à 8% d'entités ni à 18 FPS.
   if (patch.ultraFluid === true) {
-    next.entityScale = Math.min(next.entityScale, 0.3);
-    next.fpsCap = Math.min(next.fpsCap, 20);
+    next.entityScale = Math.max(next.entityScale, 0.55);
+    next.fpsCap = Math.max(next.fpsCap, 30);
     next.fxOff = true;
   }
   _settings = next;
@@ -67,28 +77,20 @@ function detectTier(): Tier {
   const nav = navigator as Navigator & { deviceMemory?: number };
   const mem = nav.deviceMemory ?? 4;
   const cpu = nav.hardwareConcurrency ?? 4;
-  const ua = nav.userAgent || "";
+  const ua = navigator.userAgent || "";
   const isMobile = /Android|iPhone|iPad|Mobile/i.test(ua);
-  const isAndroid = /Android/i.test(ua);
-  const isXiaomiLike = /Xiaomi|Redmi|Miui|M210|M200|M190|POCO/i.test(ua);
-
-  // L'option utilisateur "ultra-fluide" l'emporte sur tout.
-  if (readSettings().ultraFluid) return "ultra";
 
   const override = readOverride();
-  if (override === "on") return "ultra";
-  if (override === "off") {
-    if (mem <= 3 || cpu <= 4) return "low";
-    if (mem <= 6 || cpu <= 6 || isMobile) return "mid";
-    return "high";
-  }
+  if (override === "on") return "low";
+  if (override === "off") return isMobile ? "mid" : "high";
 
-  if (mem <= 2 || cpu <= 2) return "ultra";
-  if (isAndroid && isXiaomiLike) return "ultra";
-  if (isAndroid && isMobile && mem <= 4 && cpu <= 4) return "ultra";
-  if (isMobile && mem <= 3 && cpu <= 4) return "ultra";
-  if (mem <= 3 || cpu <= 4 || (isMobile && mem <= 4)) return "low";
-  if (mem <= 6 || cpu <= 6 || isMobile) return "mid";
+  // Avant, beaucoup d'Android/Xiaomi étaient forcés en ultra : ça vidait la
+  // ville et pouvait figer le moteur. Maintenant, ultra est réservé aux cas
+  // vraiment très faibles, et mobile standard reste au minimum en low/mid.
+  if (mem <= 1 || cpu <= 1) return "ultra";
+  if (mem <= 2 || cpu <= 2) return "low";
+  if (isMobile || mem <= 4 || cpu <= 4) return "mid";
+  if (mem <= 6 || cpu <= 6) return "mid";
   return "high";
 }
 
@@ -99,7 +101,7 @@ export function perfTier(): Tier {
 }
 
 export function isUltraLite(): boolean {
-  return perfTier() === "ultra" || readSettings().ultraFluid;
+  return perfTier() === "ultra";
 }
 
 export function setUltraLite(on: boolean | null) {
@@ -111,9 +113,9 @@ export function setUltraLite(on: boolean | null) {
 }
 
 function tierFps(t: Tier): number {
-  if (t === "ultra") return 18;
-  if (t === "low") return 22;
-  if (t === "mid") return 30;
+  if (t === "ultra") return 24;
+  if (t === "low") return 30;
+  if (t === "mid") return 40;
   return 60;
 }
 
@@ -124,9 +126,9 @@ export function targetFps(): number {
 }
 
 function tierDensity(t: Tier): number {
-  if (t === "ultra") return 0.08;
-  if (t === "low") return 0.25;
-  if (t === "mid") return 0.6;
+  if (t === "ultra") return 0.45;
+  if (t === "low") return 0.55;
+  if (t === "mid") return 0.75;
   return 1;
 }
 
@@ -147,8 +149,8 @@ export function preferLiteAssets(): boolean {
 export function trafficBudget(defaultCount: number): number {
   const t = perfTier();
   const scale = readSettings().entityScale;
-  const tierCap = t === "ultra" ? 5 : t === "low" ? 9 : t === "mid" ? 16 : defaultCount;
-  return Math.max(0, Math.floor(Math.min(defaultCount, tierCap) * scale));
+  const tierCap = t === "ultra" ? Math.max(4, Math.min(defaultCount, 8)) : t === "low" ? Math.min(defaultCount, 12) : t === "mid" ? Math.min(defaultCount, 18) : defaultCount;
+  return Math.max(3, Math.floor(Math.min(defaultCount, tierCap) * scale));
 }
 
 export function reduceMotion(): boolean {
