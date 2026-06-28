@@ -1,0 +1,2 @@
+ALTER TABLE public.game_saves REPLICA IDENTITY FULL;
+ALTER TABLE public.user_customizations REPLICA IDENTITY FULL;

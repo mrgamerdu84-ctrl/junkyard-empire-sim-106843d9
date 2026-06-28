@@ -1,7 +1,9 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useCallback } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { useAuth } from "@/lib/useAuth";
+import { supabase } from "@/integrations/supabase/client";
 import { getMyCustomizations, saveMyCustomizations } from "@/lib/customizations.functions";
+
 
 const CUSTOM_VEHICLES_KEY = "jce.customVehicles";
 const CUSTOM_PED_KEY = "jce.customPedestrians";
@@ -46,6 +48,34 @@ export function useCloudCustomizations() {
   const debounceRef = useRef<number | null>(null);
   const lastSaved = useRef<string>("");
 
+  // Applique un snapshot cloud au localStorage et notifie les écouteurs.
+  const applyCloud = useCallback((cloud: {
+    custom_vehicles?: unknown;
+    custom_pedestrians?: unknown;
+    armored_sprite?: string | null;
+    asset_overrides?: unknown;
+  } | null) => {
+    if (!cloud) return;
+    try {
+      localStorage.setItem(CUSTOM_VEHICLES_KEY, JSON.stringify(cloud.custom_vehicles ?? []));
+      localStorage.setItem(CUSTOM_PED_KEY, JSON.stringify(cloud.custom_pedestrians ?? []));
+      if (cloud.armored_sprite) localStorage.setItem(ARMORED_SPRITE_KEY, cloud.armored_sprite);
+      else localStorage.removeItem(ARMORED_SPRITE_KEY);
+      localStorage.setItem(OVERRIDE_KEY, JSON.stringify(cloud.asset_overrides ?? {}));
+    } catch { /* noop */ }
+    window.dispatchEvent(new Event(VEHICLES_EVT));
+    window.dispatchEvent(new Event(PED_EVT));
+    window.dispatchEvent(new CustomEvent(SPRITE_EVT));
+    window.dispatchEvent(new Event(OVERRIDES_EVT));
+    const local = readLocal();
+    lastSaved.current = JSON.stringify({
+      v: local.custom_vehicles,
+      p: local.custom_pedestrians,
+      s: local.armored_sprite,
+      o: local.asset_overrides,
+    });
+  }, []);
+
   // Pull cloud → local au login
   useEffect(() => {
     if (!user) {
@@ -60,38 +90,14 @@ export function useCloudCustomizations() {
       try {
         const cloud = await fetchCustom();
         if (cancelled) return;
-        if (cloud) {
-          try {
-            localStorage.setItem(CUSTOM_VEHICLES_KEY, JSON.stringify(cloud.custom_vehicles ?? []));
-            localStorage.setItem(CUSTOM_PED_KEY, JSON.stringify(cloud.custom_pedestrians ?? []));
-            if (cloud.armored_sprite) localStorage.setItem(ARMORED_SPRITE_KEY, cloud.armored_sprite);
-            else localStorage.removeItem(ARMORED_SPRITE_KEY);
-            localStorage.setItem(OVERRIDE_KEY, JSON.stringify(cloud.asset_overrides ?? {}));
-          } catch { /* noop */ }
-          // Notifie les écouteurs du jeu
-          window.dispatchEvent(new Event(VEHICLES_EVT));
-          window.dispatchEvent(new Event(PED_EVT));
-          window.dispatchEvent(new CustomEvent(SPRITE_EVT));
-          window.dispatchEvent(new Event(OVERRIDES_EVT));
-          // Recharger la page pour appliquer les overrides figés au chargement
-          // (les overrides d'assets sont lus une seule fois au mount de gameAssets)
-          const localBefore = readLocal();
-          lastSaved.current = JSON.stringify({
-            v: localBefore.custom_vehicles,
-            p: localBefore.custom_pedestrians,
-            s: localBefore.armored_sprite,
-            o: localBefore.asset_overrides,
-          });
-        } else {
-          // Pas de ligne cloud → on pousse l'état local existant
-          schedulePush();
-        }
+        if (cloud) applyCloud(cloud);
+        else schedulePush();
       } catch (e) {
         console.warn("[customizations] cloud pull failed", e);
       }
     })();
     return () => { cancelled = true; };
-  }, [user, fetchCustom]);
+  }, [user, fetchCustom, applyCloud]);
 
   // Push local → cloud (debounced)
   const schedulePush = () => {
@@ -131,4 +137,47 @@ export function useCloudCustomizations() {
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user]);
+
+  // Realtime : si un autre appareil du même joueur modifie ses personnalisations,
+  // on récupère la nouvelle version sans rechargement.
+  useEffect(() => {
+    if (!user) return;
+    const channel = supabase
+      .channel(`user_customizations:${user.id}`)
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "user_customizations", filter: `user_id=eq.${user.id}` },
+        (payload) => {
+          const row = (payload.new ?? payload.old) as {
+            custom_vehicles?: unknown;
+            custom_pedestrians?: unknown;
+            armored_sprite?: string | null;
+            asset_overrides?: unknown;
+          } | null;
+          if (!row) return;
+          applyCloud(row);
+        },
+      )
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, [user, applyCloud]);
+
+  // Refetch quand l'onglet redevient visible — filet si le canal a sauté.
+  useEffect(() => {
+    if (!user) return;
+    const onFocus = async () => {
+      try {
+        const cloud = await fetchCustom();
+        if (cloud) applyCloud(cloud);
+      } catch { /* noop */ }
+    };
+    window.addEventListener("focus", onFocus);
+    const onVis = () => { if (document.visibilityState === "visible") onFocus(); };
+    document.addEventListener("visibilitychange", onVis);
+    return () => {
+      window.removeEventListener("focus", onFocus);
+      document.removeEventListener("visibilitychange", onVis);
+    };
+  }, [user, fetchCustom, applyCloud]);
 }
+
