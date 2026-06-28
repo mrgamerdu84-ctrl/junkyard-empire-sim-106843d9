@@ -35,7 +35,7 @@ export function WeatherNightOverlay({ lite = false }: { lite?: boolean }) {
 
       {/* Brouillard */}
       {w === "fog" && (
-        <div style={{ position: "absolute", inset: 0, background: "rgba(220,225,235,0.35)", backdropFilter: "blur(1.5px)" }} />
+        <div style={{ position: "absolute", inset: 0, background: "rgba(220,225,235,0.30)", backdropFilter: staticFx ? undefined : "blur(1.5px)" }} />
       )}
 
       {/* Pluie / orage */}
