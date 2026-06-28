@@ -2761,7 +2761,7 @@ export default function TaxiTycoon() {
               <circle cx="3" cy="-2" r="1.1" fill="#0b0d10" />
               {/* sourire narquois */}
               <path d="M -3 3 Q 0 5.5 3 3" stroke="#0b0d10" strokeWidth="1.2" fill="none" strokeLinecap="round" />
-              <animateTransform attributeName="transform" type="translate" values="0 0; 0 -3; 0 0" dur="1.6s" repeatCount="indefinite" />
+              {!reducedFx && <animateTransform attributeName="transform" type="translate" values="0 0; 0 -3; 0 0" dur="1.6s" repeatCount="indefinite" />}
             </g>
             {/* bulle de dialogue */}
             {rivalTaunt && (() => {
