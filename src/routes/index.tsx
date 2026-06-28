@@ -176,6 +176,7 @@ function TaxiTycoonPage() {
         <InterventionDispatcher />
         <TaxiTycoon />
         <ArmoredTruck />
+        <MafiaLimo />
       </div>
 
       {/* HUD et panneaux hors zoom (toujours nets) */}
