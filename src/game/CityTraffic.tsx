@@ -573,7 +573,33 @@ export default function CityTraffic() {
         st.speed = st.baseSpeed;
       }
 
-      // 2) avancer et appliquer le transform
+      // Spacing pass : on garde une distance min entre voitures d'une même voie.
+      // Évite que les voitures se collent / se traversent visuellement.
+      const MIN_GAP = 70;
+      const BRAKE_GAP = 140;
+      const lanesMap = new Map<string, CarState[]>();
+      for (const st of states) {
+        if (!st.visible) continue;
+        const arr = lanesMap.get(st.laneKey);
+        if (arr) arr.push(st); else lanesMap.set(st.laneKey, [st]);
+      }
+      for (const arr of lanesMap.values()) {
+        if (arr.length < 2) continue;
+        arr.sort((a, b) => a.s - b.s);
+        for (let i = 0; i < arr.length; i++) {
+          const me = arr[i];
+          const next = arr[(i + 1) % arr.length];
+          let gap = next.s - me.s;
+          if (gap <= 0) gap += me.pathLen;
+          if (gap < MIN_GAP) me.speed = 0;
+          else if (gap < BRAKE_GAP) {
+            const k = (gap - MIN_GAP) / (BRAKE_GAP - MIN_GAP);
+            me.speed = me.baseSpeed * k;
+          }
+        }
+      }
+
+
       let needsRebuild = false;
       for (const st of states) {
         const node = st.node;
