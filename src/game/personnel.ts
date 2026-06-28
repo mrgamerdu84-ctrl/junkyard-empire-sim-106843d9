@@ -11,13 +11,13 @@ export type StaffDef = {
   label: string;
   icon: string;
   desc: string;
-  cost: number;       // coût d'embauche
-  wage: number;       // salaire ponctionné toutes les 60s (driver paie ses charges, etc.)
-  income: number;     // revenu brut généré toutes les 60s (driver uniquement)
-  discount: number;   // réduction entretien (mechanic) 0..1
-  tipBonus: number;   // bonus pourboire (manager) 0..1
-  missionBonus: number; // bonus % sur le prix des missions (secretary) 0..1
-  max: number;        // nombre max embauchable
+  cost: number;
+  wage: number;
+  income: number;
+  discount: number;
+  tipBonus: number;
+  missionBonus: number;
+  max: number;
 };
 
 export const STAFF_CATALOG: StaffDef[] = [
@@ -109,9 +109,7 @@ function saveStaff(list: StaffMember[]) {
   try {
     localStorage.setItem(KEY, JSON.stringify(list));
     window.dispatchEvent(new CustomEvent(EVT));
-  } catch {
-    /* ignore */
-  }
+  } catch {}
 }
 
 export function defFor(role: StaffRole): StaffDef {
@@ -119,13 +117,18 @@ export function defFor(role: StaffRole): StaffDef {
 }
 
 export function countByRole(list: StaffMember[], role: StaffRole): number {
-  return list.filter((s) => s.role === role).length;
+  const hired = list.filter((s) => s.role === role).length;
+  // Correctif gameplay : le joueur est toujours le premier chauffeur.
+  // Sans ça, une sauvegarde neuve avec 1 taxi / 0 personnel reste bloquée au QG.
+  if (role === "driver") return Math.max(1, hired);
+  return hired;
 }
 
 export function hire(role: StaffRole): { ok: boolean; cost: number; reason?: string } {
   const list = loadStaff();
   const def = defFor(role);
-  if (countByRole(list, role) >= def.max) {
+  const hiredCount = list.filter((s) => s.role === role).length;
+  if (hiredCount >= def.max) {
     return { ok: false, cost: def.cost, reason: "Capacité maximale atteinte" };
   }
   const member: StaffMember = {
@@ -152,26 +155,24 @@ export function subscribeStaff(cb: () => void): () => void {
   };
 }
 
-// Calculs agrégés utilisés par TaxiTycoon
 export function getMaintenanceDiscount(): number {
   const list = loadStaff();
   const n = countByRole(list, "mechanic");
-  return Math.min(0.6, n * defFor("mechanic").discount); // max 60 %
+  return Math.min(0.6, n * defFor("mechanic").discount);
 }
 
 export function getTipsBonus(): number {
   const list = loadStaff();
   const n = countByRole(list, "manager");
-  return Math.min(0.3, n * defFor("manager").tipBonus); // max +30 %
+  return Math.min(0.3, n * defFor("manager").tipBonus);
 }
 
 export function getMissionBonus(): number {
   const list = loadStaff();
   const n = countByRole(list, "secretary");
-  return Math.min(0.24, n * defFor("secretary").missionBonus); // max +24 %
+  return Math.min(0.24, n * defFor("secretary").missionBonus);
 }
 
-// Driver de revenu passif. Une seule instance à monter au démarrage du jeu.
 let tickHandle: number | null = null;
 let lastTick = Date.now();
 
@@ -200,7 +201,7 @@ export function startPersonnelTick() {
         },
       }),
     );
-  }, 30000); // tick toutes les 30 s pour éviter les micro-spams
+  }, 30000);
 }
 
 export function stopPersonnelTick() {
