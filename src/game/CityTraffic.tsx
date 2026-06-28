@@ -412,10 +412,11 @@ export default function CityTraffic() {
     window.addEventListener("jce.customVehicles.changed", onChange);
     return () => window.removeEventListener("jce.customVehicles.changed", onChange);
   }, []);
-  // Trafic = uniquement véhicules uploadés par le joueur (catégories roulantes).
-  // Le slider "Véhicules civils" du panel admin sert de plafond (0 = aucun, max = tous).
-  const requestedCars = trafficBudget(admin.civilVehicleCount);
-  const activeCars = useMemo(() => buildCarsFromCustom(requestedCars), [requestedCars, customTick]);
+  // PERF MOBILE : trafic civil désactivé — getPointAtLength en boucle à 60 FPS
+  // pour chaque voiture/piéton saturait le CPU sur Xiaomi/Redmi. On garde
+  // uniquement les feux, passages piétons et le cycle jour/nuit (statiques).
+  void admin; void customTick; void trafficBudget; void buildCarsFromCustom;
+  const activeCars = useMemo<CarSpec[]>(() => [], []);
   const pathRefs = useRef<(SVGPathElement | null)[]>([]);
   const carNodes = useRef<(SVGGElement | null)[]>([]);
   const svgRef = useRef<SVGSVGElement | null>(null);
