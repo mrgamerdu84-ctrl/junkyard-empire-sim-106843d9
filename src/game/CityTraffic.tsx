@@ -400,10 +400,12 @@ function buildCarsFromCustom(count?: number): CarSpec[] {
 
 
 export default function CityTraffic() {
-  const [night, setNight] = useState(0.25);
+  // PERF MOBILE : jour permanent. Pas de filtre nuit/météo (très coûteux sur Xiaomi).
+  const night = 0;
   const [lightsTick, setLightsTick] = useState(0);
   const tier = perfTier();
-  const reducedFx = reduceMotion();
+  const reducedFx = true; // FX off partout (ombres, blurs) pour fluidité mobile
+
   const admin = useAdminConfig();
   const [customTick, setCustomTick] = useState(0);
   // Re-render quand le joueur ajoute/supprime un véhicule custom.
