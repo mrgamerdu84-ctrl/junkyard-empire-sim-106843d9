@@ -17,6 +17,7 @@ import { useAdminConfig } from "./adminConfig";
 import { getCivilCarUrls } from "./gameAssets";
 import { isMafiaTruceActive } from "./MafiaGodfather";
 import armoredTruckAsset from "@/assets/armored-truck.png.asset.json";
+import { isUltraLite, reduceMotion, targetFps } from "@/lib/perf";
 
 const DEFAULT_ARMORED_SPRITE = armoredTruckAsset.url;
 
@@ -69,6 +70,8 @@ function fmtMoney(n: number): string {
 const EXPLOSION_MS = 900;
 
 export default function ArmoredTruck() {
+  const ultraLite = isUltraLite();
+  const reducedFx = reduceMotion();
   const cfg = useAdminConfig();
   const cfgRef = useRef(cfg);
   useEffect(() => { cfgRef.current = cfg; }, [cfg]);
@@ -165,7 +168,7 @@ export default function ArmoredTruck() {
     setPathIdx(idx);
     setFlip(fl);
     setLoot(amount);
-    setMafia(buildEscort(ESCORT_COUNT));
+    setMafia(buildEscort(ultraLite ? 1 : ESCORT_COUNT));
     rolloutStartRef.current = performance.now();
     setPhase("rolling");
     showToast(`🚛 Camion de la MAFIA repéré ! Butin : ${fmtMoney(amount)} $ — Tape-le pour le détourner !`, 5500);
@@ -255,7 +258,7 @@ export default function ArmoredTruck() {
 
     let raf = 0;
     let last = 0;
-    const MIN_FRAME = 1000 / 30;
+    const MIN_FRAME = 1000 / targetFps();
     const step = (now: number) => {
       raf = requestAnimationFrame(step);
       if (now - last < MIN_FRAME) return;
@@ -292,8 +295,8 @@ export default function ArmoredTruck() {
         // Renforts mafia
         const aliveCount = mafiaRef.current.filter((m) => m.alive).length;
         if (
-          aliveCount < MAX_MAFIA_ALIVE &&
-          (now - lastReinforceRef.current) > REINFORCE_EVERY_S * 1000
+          aliveCount < (ultraLite ? 3 : MAX_MAFIA_ALIVE) &&
+          (now - lastReinforceRef.current) > (ultraLite ? REINFORCE_EVERY_S * 2 : REINFORCE_EVERY_S) * 1000
         ) {
           lastReinforceRef.current = now;
           const newcomers = buildEscort(1);
@@ -331,6 +334,7 @@ export default function ArmoredTruck() {
     return mafia.map((m) => {
       // Si exploding : fade puis disparition
       if (!m.alive) {
+        if (reducedFx) return null;
         const age = (performance.now() - (m.explodedAt ?? 0)) / EXPLOSION_MS;
         if (age >= 1) return null;
         const ex = tx + (m.offX * cos - m.offY * sin);
@@ -429,13 +433,13 @@ export default function ArmoredTruck() {
               style={{ pointerEvents: "auto", cursor: phase === "rolling" ? "pointer" : "default" }}
               onClick={onTruckClick}
             >
-              {phase === "rolling" && (
+              {phase === "rolling" && !reducedFx && (
                 <circle cx="0" cy="0" r="22" fill="none" stroke="#fde047" strokeWidth="2" opacity="0.9">
                   <animate attributeName="r" values="18;30;18" dur="1.2s" repeatCount="indefinite" />
                   <animate attributeName="opacity" values="0.9;0.2;0.9" dur="1.2s" repeatCount="indefinite" />
                 </circle>
               )}
-              {phase === "hijacked" && (
+              {phase === "hijacked" && !reducedFx && (
                 <circle cx="0" cy="0" r="24" fill="none" stroke="#22d3ee" strokeWidth="2" opacity="0.85">
                   <animate attributeName="r" values="20;32;20" dur="1.4s" repeatCount="indefinite" />
                 </circle>
