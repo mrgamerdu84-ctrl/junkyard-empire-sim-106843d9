@@ -2964,7 +2964,7 @@ export default function TaxiTycoon() {
             <g key={`acc-${a.id}`} transform={`translate(${a.x},${a.y})`} pointerEvents="none">
               {/* zone rouge pulsante */}
               <circle r="22" fill="#ef4444" opacity="0.18">
-                <animate attributeName="r" values="18;28;18" dur="1.4s" repeatCount="indefinite" />
+                {!reducedFx && <animate attributeName="r" values="18;28;18" dur="1.4s" repeatCount="indefinite" />}
               </circle>
               {/* Cônes de signalisation orange centrés autour de l'accident */}
               {conePositions.map((c, i) => (
@@ -2975,14 +2975,14 @@ export default function TaxiTycoon() {
                 </g>
               ))}
               {/* fumée */}
-              <circle cx="-4" cy="-8" r="5" fill="#1f2937" opacity="0.55">
+              {!reducedFx && <circle cx="-4" cy="-8" r="5" fill="#1f2937" opacity="0.55">
                 <animate attributeName="cy" values="-8;-16;-8" dur="2.4s" repeatCount="indefinite" />
                 <animate attributeName="opacity" values="0.55;0.1;0.55" dur="2.4s" repeatCount="indefinite" />
               </circle>
               <circle cx="5" cy="-10" r="4" fill="#374151" opacity="0.5">
                 <animate attributeName="cy" values="-10;-18;-10" dur="2.8s" repeatCount="indefinite" />
                 <animate attributeName="opacity" values="0.5;0.05;0.5" dur="2.8s" repeatCount="indefinite" />
-              </circle>
+              </circle>}
               {/* triangle de signalisation */}
               <polygon points="0,-9 8,5 -8,5" fill="#fbbf24" stroke="#0b0d10" strokeWidth="1.2" />
               <text x="0" y="3" textAnchor="middle" fontSize="7" fontWeight="900" fill="#0b0d10">!</text>
