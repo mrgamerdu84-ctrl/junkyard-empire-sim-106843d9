@@ -15,21 +15,15 @@ function beep() {
     const osc = ctx.createOscillator();
     const gain = ctx.createGain();
     osc.connect(gain); gain.connect(ctx.destination);
-    osc.type = "square";
+    osc.type = "sine";
     osc.frequency.value = 880;
-    gain.gain.value = 0.18;
+    gain.gain.value = 0.05;
     osc.start();
-    osc.stop(ctx.currentTime + 0.12);
-    setTimeout(() => {
-      const o2 = ctx.createOscillator();
-      const g2 = ctx.createGain();
-      o2.connect(g2); g2.connect(ctx.destination);
-      o2.type = "square"; o2.frequency.value = 1320; g2.gain.value = 0.18;
-      o2.start(); o2.stop(ctx.currentTime + 0.12);
-      setTimeout(() => ctx.close().catch(() => {}), 300);
-    }, 160);
+    osc.stop(ctx.currentTime + 0.08);
+    setTimeout(() => ctx.close().catch(() => {}), 200);
   } catch {}
 }
+
 
 function pickFemaleFrVoice(): SpeechSynthesisVoice | null {
   try {
