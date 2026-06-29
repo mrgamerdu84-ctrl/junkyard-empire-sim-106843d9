@@ -1979,27 +1979,29 @@ export default function TaxiTycoon() {
 
   // Position décalée sur le trottoir (perpendiculaire à la route)
   const getSidewalk = (pathIdx: number, len: number, side: 1 | -1) => {
-    const p = pathRefs.current[pathIdx];
     const plen = pathLensRef.current[pathIdx] ?? 0;
-    if (!p || plen === 0) return { x: 0, y: 0, angle: 0 };
+    if (plen === 0) return { x: 0, y: 0, angle: 0 };
     const safe = clampRoadLen(pathIdx, len);
+    if (hasRoadCache()) {
+      const pt = getRoadPoint(pathIdx, safe / plen);
+      if (!pt) return { x: 0, y: 0, angle: 0 };
+      const dx = Math.cos((pt.angle * Math.PI) / 180);
+      const dy = Math.sin((pt.angle * Math.PI) / 180);
+      const L = Math.hypot(dx, dy) || 1;
+      const nx = -dy / L, ny = dx / L;
+      const raw = { x: pt.x + nx * SIDEWALK_OFFSET * side, y: pt.y + ny * SIDEWALK_OFFSET * side };
+      const locked = lockToSidewalk({ x: pt.x, y: pt.y }, { dx, dy }, side, raw.x, raw.y);
+      return { x: locked.x, y: locked.y, angle: pt.angle };
+    }
+    const p = pathRefs.current[pathIdx];
+    if (!p) return { x: 0, y: 0, angle: 0 };
     const pt = p.getPointAtLength(safe);
     const { dx, dy } = getRoadTangent(pathIdx, safe);
     const L = Math.hypot(dx, dy) || 1;
-    const nx = -dy / L, ny = dx / L; // normale unitaire
-    // 🔒 Verrou trottoir : on passe la position finale dans lockToSidewalk
-    // pour qu'AUCUN client/piéton ne puisse jamais déborder sur la chaussée,
-    // même si un futur code IA / collision tentait de l'y pousser.
-    const raw = {
-      x: pt.x + nx * SIDEWALK_OFFSET * side,
-      y: pt.y + ny * SIDEWALK_OFFSET * side,
-    };
+    const nx = -dy / L, ny = dx / L;
+    const raw = { x: pt.x + nx * SIDEWALK_OFFSET * side, y: pt.y + ny * SIDEWALK_OFFSET * side };
     const locked = lockToSidewalk({ x: pt.x, y: pt.y }, { dx, dy }, side, raw.x, raw.y);
-    return {
-      x: locked.x,
-      y: locked.y,
-      angle: (Math.atan2(dy, dx) * 180) / Math.PI,
-    };
+    return { x: locked.x, y: locked.y, angle: (Math.atan2(dy, dx) * 180) / Math.PI };
   };
 
   // Le QG est ancré en XY absolu sur la map.
