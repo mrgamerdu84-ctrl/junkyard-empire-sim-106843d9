@@ -739,8 +739,8 @@ export default function CityTraffic() {
           </g>
         );
       })}
-      {/* Piétons photos désactivés (perf mobile) */}
-      {false && <PhotoPedestrians pathRefs={pathRefs} />}
+      {/* Piétons réactivés — désactivés uniquement en mode ultra-lite */}
+      {!isUltraLite() && <PhotoPedestrians pathRefs={pathRefs} />}
 
 
       {/* Piétons cartoon SVG retirés — remplacés par les sprites top-down (PhotoPedestrians) */}
