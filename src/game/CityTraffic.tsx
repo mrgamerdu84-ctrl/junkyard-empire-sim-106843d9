@@ -430,6 +430,9 @@ export default function CityTraffic() {
   const activeCars = useMemo<CarSpec[]>(() => buildCarsFromCustom(carBudget), [carBudget, customTick]);
   const pathRefs = useRef<(SVGPathElement | null)[]>([]);
   const carNodes = useRef<(SVGGElement | null)[]>([]);
+  const pathCachesRef = useRef<(PathCache | null)[]>([]);
+  const pathCachesBuilt = useRef(false);
+  const statesRef = useRef<CarState[]>([]);
   const svgRef = useRef<SVGSVGElement | null>(null);
   // Viewport visible en coordonnées SVG (avec preserveAspectRatio="xMidYMid slice").
   // Recalculé sur resize. Marge de 200 px pour pré-activer les véhicules qui entrent.
