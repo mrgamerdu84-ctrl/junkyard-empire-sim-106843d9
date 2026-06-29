@@ -51,7 +51,7 @@ export default function MafiaLimo() {
       // Marque comme "actif" pour que le Parrain attende
       (window as unknown as { __mafiaLimoActive?: boolean }).__mafiaLimoActive = true;
       setSprite(pickLimoSprite());
-      setPos({ x: MAP_W + 180, y: target.y, angle: 180 });
+      setPos({ x: MAP_W - 20, y: target.y, angle: 180 });
       setPhase("arriving");
     };
     window.addEventListener("jce.limo.start", start);
@@ -79,7 +79,7 @@ export default function MafiaLimo() {
       const dt = Math.min(0.05, (now - prev) / 1000);
       prev = now;
       setPos((p) => {
-        const dx = (phase === "leaving" ? -300 : target.x) - p.x;
+        const dx = (phase === "leaving" ? 10 : target.x) - p.x;
         const dy = (phase === "leaving" ? p.y : target.y) - p.y;
         const dist = Math.hypot(dx, dy);
         if (phase === "arriving" && dist < 4) {
@@ -92,7 +92,7 @@ export default function MafiaLimo() {
           }, 0);
           return p;
         }
-        if (phase === "leaving" && p.x < -150) {
+        if (phase === "leaving" && p.x < 20) {
           window.setTimeout(() => {
             setPhase("off");
             (window as unknown as { __mafiaLimoActive?: boolean }).__mafiaLimoActive = false;
@@ -134,14 +134,16 @@ export default function MafiaLimo() {
         {/* ombre sous la limo */}
         <ellipse cx={4} cy={LIMO_H * 0.35} rx={LIMO_W * 0.52} ry={LIMO_H * 0.32} fill="rgba(0,0,0,0.45)" filter={reducedFx ? undefined : "url(#limo-shadow)"} />
         <g transform={`rotate(${pos.angle})`}>
-          <image
-            href={sprite}
-            x={-LIMO_W / 2}
-            y={-LIMO_H / 2}
-            width={LIMO_W}
-            height={LIMO_H}
-            preserveAspectRatio="none"
-          />
+          <g transform={`scale(1, ${Math.cos((pos.angle * Math.PI) / 180) < 0 ? -1 : 1})`}>
+            <image
+              href={sprite}
+              x={-LIMO_W / 2}
+              y={-LIMO_H / 2}
+              width={LIMO_W}
+              height={LIMO_H}
+              preserveAspectRatio="xMidYMid meet"
+            />
+          </g>
         </g>
         {phase === "parked" && (
           <g transform="translate(0,-44)">
