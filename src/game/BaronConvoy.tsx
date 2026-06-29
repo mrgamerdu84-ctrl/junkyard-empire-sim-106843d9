@@ -212,6 +212,12 @@ export default function BaronConvoy() {
         cur.leadS += (CONVOY_SPEED * stepMs) / 1000;
       }
 
+      // Dispatch "arrives" à 75% du parcours
+      if (!arrivedDispatched.current && cur.leadS >= cache.length * 0.75) {
+        arrivedDispatched.current = true;
+        window.dispatchEvent(new CustomEvent("jce.baron.arrives"));
+      }
+
       // Disparition quand le véhicule de tête a parcouru tout le path.
       if (cur.leadS >= cache.length) {
         // cacher tout
@@ -219,6 +225,8 @@ export default function BaronConvoy() {
           if (n) n.setAttribute("opacity", "0");
         }
         stopped = true;
+        arrivedDispatched.current = false;
+        window.dispatchEvent(new CustomEvent("jce.baron.leaves"));
         setActive(false);
         // planifier le prochain départ
         setTimeout(() => {
