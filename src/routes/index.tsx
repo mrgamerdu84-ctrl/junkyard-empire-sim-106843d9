@@ -18,7 +18,7 @@ import HomeScreen from "@/game/HomeScreen";
 import SplashScreen from "@/game/SplashScreen";
 import IntroStory, { hasSeenIntro } from "@/game/IntroStory";
 import UltraFluidPanel from "@/game/UltraFluidPanel";
-import { preferLiteAssets } from "@/lib/perf";
+
 
 export const Route = createFileRoute("/")({
   head: () => ({
