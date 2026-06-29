@@ -51,18 +51,24 @@ const LANE_HALF = 11;
 // Chaque path suit STRICTEMENT le bitume visible — aucune sortie sur
 // chantiers, parkings, toits ou bâtiments.
 export const ROADS = [
-  // 0 : Axe vertical principal — du haut vers le bas, côté droit du rond-point
-  "M 879 0 L 879 479 A 112 112 0 0 1 991 591 L 1920 591",
-  // 1 : Axe vertical principal — du bas vers le haut, côté gauche du rond-point
-  "M 879 1080 L 879 703 A 112 112 0 0 0 767 591 L 0 591",
-  // 2 : Sortie parking TAXI WORLD → rond-point
-  "M 520 60 L 520 200 L 684 200 L 684 309 C 684 400 750 479 820 520 A 112 112 0 0 1 879 479",
-  // 3 : Rond-point → retour parking
-  "M 879 479 A 112 112 0 0 0 820 520 C 750 479 684 400 684 309 L 684 200 L 520 200 L 520 60",
-  // 4 : Diagonale haut-droite (intersection haut-droite)
-  "M 1920 200 L 1200 200 L 991 380 A 112 112 0 0 1 991 591 L 1920 591",
-  // 5 : Route bas-gauche vers bas de la map
-  "M 0 591 L 767 591 A 112 112 0 0 1 767 703 L 500 900 L 300 1080",
+  // 0 : Axe horizontal principal — gauche → droite (voie nord)
+  "M 0 565 L 767 565 A 112 112 0 0 0 879 479 L 879 0",
+  // 1 : Axe horizontal principal — droite → gauche (voie sud)
+  "M 1920 617 L 991 617 A 112 112 0 0 0 879 703 L 879 1080",
+  // 2 : Axe vertical — haut → bas (voie est)
+  "M 905 0 L 905 479 A 112 112 0 0 1 991 591 L 1920 591",
+  // 3 : Axe vertical — bas → haut (voie ouest)
+  "M 853 1080 L 853 703 A 112 112 0 0 1 767 591 L 0 591",
+  // 4 : Sortie parking TAXI WORLD → rond-point
+  "M 580 60 L 580 240 C 580 280 620 300 660 300 L 760 300 C 800 300 830 330 845 370 L 853 430 A 112 112 0 0 0 767 565",
+  // 5 : Rond-point → retour parking TAXI WORLD
+  "M 991 565 A 112 112 0 0 0 905 479 L 897 430 C 890 370 860 320 820 300 L 720 300 C 680 300 640 280 620 240 L 620 60",
+  // 6 : Intersection haut-gauche (rond-point secondaire)
+  "M 0 310 L 280 310 C 340 310 380 340 400 380 L 420 430 C 440 480 460 520 500 545 L 767 565",
+  // 7 : Route bas-droite
+  "M 991 617 L 1200 617 C 1300 617 1400 700 1450 780 L 1600 1080",
+  // 8 : Route bas-gauche
+  "M 767 617 L 550 617 C 480 617 420 660 380 720 L 200 1080",
 ];
 
 type VehicleKind = VehicleSvgKind;
