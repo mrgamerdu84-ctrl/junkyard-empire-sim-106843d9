@@ -199,71 +199,56 @@ function PhotoPedestrians({ pathRefs }: { pathRefs: React.MutableRefObject<(SVGP
     const lens = pathRefs.current.map(p => p ? p.getTotalLength() : 0);
     if (lens.some(l => l <= 1)) return;
     if (pedSpecs.length === 0) return;
+    const caches: (PathCache | null)[] = pathRefs.current.map(p =>
+      p ? buildPathCache(p, PEDESTRIAN_SAMPLES) : null
+    );
     const states = pedSpecs.map(spec => ({
-      spec,
-      pathLen: lens[spec.pathIdx],
-      s: spec.startFrac * lens[spec.pathIdx],
+      spec, pathLen: lens[spec.pathIdx], s: spec.startFrac * lens[spec.pathIdx],
     }));
     let last = performance.now();
     let raf = 0;
+    const PED_INTERVAL = 1000 / Math.min(30, targetFps());
+    let lastPedFrame = 0;
+    const tSec = nowSeconds();
+    const lights = getTrafficLights();
     const step = (now: number) => {
       const dt = Math.min(0.05, (now - last) / 1000);
       last = now;
-      const tSec = nowSeconds();
-      const lights = getTrafficLights();
+      if (now - lastPedFrame < PED_INTERVAL) { raf = requestAnimationFrame(step); return; }
+      lastPedFrame = now;
       for (let i = 0; i < states.length; i++) {
         const st = states[i];
         const node = nodes.current[i];
-        const path = pathRefs.current[st.spec.pathIdx];
-        if (!path || !node) continue;
-        // Position courante pour décider d'un éventuel arrêt au passage piéton.
-        const cur = path.getPointAtLength(st.s);
-        // Cherche un feu à proximité : si le feu PIÉTON est rouge (= feu voiture vert/orange),
-        // on bloque le piéton AU BORD du passage (il n'entre pas sur la chaussée).
+        const cache = caches[st.spec.pathIdx];
+        if (!cache || !node) continue;
+        const cur = sampleCache(cache, st.s);
         let blocked = false;
         for (const l of lights) {
-          const dx0 = l.x - cur.x;
-          const dy0 = l.y - cur.y;
+          const dx0 = l.x - cur.x, dy0 = l.y - cur.y;
           if (dx0 * dx0 + dy0 * dy0 < PED_CROSSING_RADIUS * PED_CROSSING_RADIUS) {
-            const carState = getLightState(l, tSec);
-            // Feu piéton vert UNIQUEMENT quand le feu voiture est rouge.
-            if (carState !== "red") { blocked = true; break; }
+            if (getLightState(l, tSec) !== "red") { blocked = true; break; }
           }
         }
-        if (!blocked) {
-          st.s = (st.s + st.spec.speed * dt) % st.pathLen;
-        }
-        const p = blocked ? cur : path.getPointAtLength(st.s);
-        // CULLING : hors viewport SVG (avec marge) → skip getPointAtLength d'appoint + DOM write.
+        if (!blocked) st.s = (st.s + st.spec.speed * dt) % st.pathLen;
+        const p = sampleCache(cache, st.s);
         if (p.x < -200 || p.x > 2120 || p.y < -200 || p.y > 1280) continue;
-        const p2 = path.getPointAtLength(Math.min(st.pathLen, st.s + 1));
-        const dx = p2.x - p.x, dy = p2.y - p.y;
-        const L = Math.hypot(dx, dy) || 1;
-        // perpendiculaire = trottoir
-        const nx = -dy / L * PHOTO_PED_OFFSET * st.spec.side;
-        const ny =  dx / L * PHOTO_PED_OFFSET * st.spec.side;
-        // angle de marche (le sprite top-down tourne dans la direction du mouvement)
-        const ang = (Math.atan2(dy, dx) * 180) / Math.PI;
-        // 🔒 Verrou trottoir local (offset piéton, pas celui des clients taxi)
-        // Clamp la distance perpendiculaire à PHOTO_PED_MIN_OFFSET minimum.
-        let px = p.x + nx;
-        let py = p.y + ny;
-        const nUnitX = -dy / L;
-        const nUnitY = dx / L;
-        const signedDist = ((px - p.x) * nUnitX + (py - p.y) * nUnitY) * st.spec.side;
+        const L = Math.hypot(p.nx, p.ny) || 1;
+        const nx = -p.ny / L * PHOTO_PED_OFFSET * st.spec.side;
+        const ny = p.nx / L * PHOTO_PED_OFFSET * st.spec.side;
+        const ang = p.angle;
+        let px = p.x + nx, py = p.y + ny;
+        const signedDist = ((px - p.x) * (-p.ny / L) + (py - p.y) * (p.nx / L)) * st.spec.side;
         if (signedDist < PHOTO_PED_MIN_OFFSET) {
-          px = p.x + nUnitX * PHOTO_PED_MIN_OFFSET * st.spec.side;
-          py = p.y + nUnitY * PHOTO_PED_MIN_OFFSET * st.spec.side;
+          px = p.x + (-p.ny / L) * PHOTO_PED_MIN_OFFSET * st.spec.side;
+          py = p.y + (p.nx / L) * PHOTO_PED_MIN_OFFSET * st.spec.side;
         }
-        node.setAttribute(
-          "transform",
-          `translate(${px.toFixed(2)},${py.toFixed(2)}) rotate(${ang.toFixed(2)})`,
-        );
+        node.setAttribute("transform", `translate(${px.toFixed(1)},${py.toFixed(1)}) rotate(${ang.toFixed(1)})`);
       }
       raf = requestAnimationFrame(step);
     };
     raf = requestAnimationFrame(step);
     return () => cancelAnimationFrame(raf);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pathRefs, pedSpecs.length]);
   if (pedSpecs.length === 0) return null;
   return (
