@@ -51,7 +51,7 @@ export default function MafiaLimo() {
       // Marque comme "actif" pour que le Parrain attende
       (window as unknown as { __mafiaLimoActive?: boolean }).__mafiaLimoActive = true;
       setSprite(pickLimoSprite());
-      setPos({ x: MAP_W + 180, y: target.y, angle: 180 });
+      setPos({ x: MAP_W - 20, y: target.y, angle: 180 });
       setPhase("arriving");
     };
     window.addEventListener("jce.limo.start", start);
