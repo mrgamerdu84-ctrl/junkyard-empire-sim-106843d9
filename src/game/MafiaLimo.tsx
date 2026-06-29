@@ -134,14 +134,16 @@ export default function MafiaLimo() {
         {/* ombre sous la limo */}
         <ellipse cx={4} cy={LIMO_H * 0.35} rx={LIMO_W * 0.52} ry={LIMO_H * 0.32} fill="rgba(0,0,0,0.45)" filter={reducedFx ? undefined : "url(#limo-shadow)"} />
         <g transform={`rotate(${pos.angle})`}>
-          <image
-            href={sprite}
-            x={-LIMO_W / 2}
-            y={-LIMO_H / 2}
-            width={LIMO_W}
-            height={LIMO_H}
-            preserveAspectRatio="none"
-          />
+          <g transform={`scale(1, ${Math.cos((pos.angle * Math.PI) / 180) < 0 ? -1 : 1})`}>
+            <image
+              href={sprite}
+              x={-LIMO_W / 2}
+              y={-LIMO_H / 2}
+              width={LIMO_W}
+              height={LIMO_H}
+              preserveAspectRatio="xMidYMid meet"
+            />
+          </g>
         </g>
         {phase === "parked" && (
           <g transform="translate(0,-44)">
