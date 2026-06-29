@@ -1202,8 +1202,10 @@ export default function TaxiTycoon() {
         const { loadStaff, countByRole } = await import("./personnel");
         const tick = () => {
           if (stopped) return;
-          const drivers = countByRole(loadStaff(), "driver");
-          if (drivers <= 0) return;
+          // Le joueur compte toujours pour 1 chauffeur implicite — ainsi les
+          // taxis sortent du dépôt, prennent les courses et reviennent même
+          // sans personnel embauché.
+          const drivers = Math.max(1, countByRole(loadStaff(), "driver"));
           // Combien de taxis sont déjà sur une mission ?
           const busy = taxisRef.current.filter(
             (t) => t.mode === "to_pickup" || t.mode === "to_dest"
