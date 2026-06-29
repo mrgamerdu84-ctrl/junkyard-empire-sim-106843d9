@@ -1,26 +1,38 @@
-## Nouvelle map TAXI WORLD avec rond-point central
+… Voici ce que je propose de faire en un seul sprint :
 
-### 1. Upload de l'image
-- Uploader `1782560568907.png` vers Lovable Assets → `src/assets/citymap-taxiworld.jpg.asset.json`
-- Remplacer la map dans `src/routes/index.tsx` : `mapSrc` pointe sur la nouvelle image (en gardant la version "lite" identique en attendant)
+## 1. Tutoriel & Règlement mis à jour
+- Réécrire le **tutoriel** (`src/game/Tutorial.tsx` ou équivalent) avec le gameplay actuel :
+  - Flotte de taxis autonomes + chauffeurs embauchés
+  - Menace Mafia (sabotage, raids, rançon du Parrain)
+  - Détournement du camion blindé mafieux vers le QG
+  - Pilote manuel au doigt (mode 🕹️)
+  - Tableau de bord LCD (radio, équipe, profil, contrats, admin)
+- Réécrire le **règlement / principes du jeu** : objectifs, économie, conditions de défaite (raid réussi mafia), trêve, fair-play multijoueur Arène.
+- Accessible depuis le menu principal + bouton "?" dans le tableau de bord.
 
-### 2. Routes SVG (src/game/CityTraffic.tsx)
-Remplacement complet du tableau `ROADS` par les 6 chemins fournis (axe vertical N/S des deux côtés du rond-point, sorties parking TAXI WORLD, diagonale haut-droite, route bas-gauche). ViewBox conservé `0 0 1920 1080`, `preserveAspectRatio="xMidYMid slice"`.
+## 2. Carte de profil refaite
+- Mise à jour de `ProfileCard.tsx` : nouveau design cohérent avec le tableau de bord LCD (cadre noir, écran tactile), affichage flotte réelle, chauffeurs embauchés, stats Mafia (raids repoussés, camions détournés), ELO Arène, photo conducteur.
 
-### 3. Position du dépôt QG (src/game/TaxiTycoon.tsx)
-- `hqX = 580`, `hqY = 180` (parking TAXI WORLD)
-- Spots de parking réalignés sur ces coordonnées
-- L'asset `taxi-warehouse` repositionné/redimensionné en conséquence
+## 3. Menu du jeu refait (beau fond + style tableau de bord)
+- Refonte de l'écran d'accueil/menu (`src/routes/index.tsx` ou `MainMenu`) :
+  - Nouveau **fond illustré** (image générée : skyline nocturne avec taxis jaunes + entrepôt + ambiance mafia néon)
+  - Boutons type LCD/console bois comme le dashboard
+  - Entrées : Jouer, Tutoriel, Règlement, Profil, Arène, Admin, Quitter
 
-### 4. Sortie/retour des taxis sans téléportation
-- Spawn initial du taxi joueur : `pathIdx = 2`, `pos = 0` (sortie parking)
-- Retour au dépôt : navigation forcée sur `pathIdx = 3` jusqu'à `pos = pathLen` (entrée parking)
-- Aucune réinitialisation de position abrupte — uniquement progression le long du path
+## 4. Route nord du QG en travaux
+- Dans `TaxiTycoon.tsx` : identifier le tronçon de route inutilisé au nord du QG.
+- Le **barrer visuellement** : barrières rouges/blanches, panneau "🚧 EN DÉVELOPPEMENT — Nouvelle extension bientôt", cônes.
+- Désactiver le pathing des voitures sur ce segment (filtrer dans `roadPaths`).
 
-### 5. Hors-scope (intact)
-- Logique métier (missions, mafia, camion blindé, radio, dashboard)
-- RoadCache : sera reconstruit automatiquement au prochain mount avec les nouveaux paths
-- Limousine, urgences, piétons, feux : inchangés (les feux se recalculent depuis les nouveaux ROADS)
+## 5. Bouton "Nouvelle extension" (préparation future carte)
+- Bouton verrouillé 🔒 dans le menu/dashboard : "Étendre la ville (bientôt)".
+- Au clic actuel : toast "Extension en développement — débloquera une nouvelle carte avec circulation vers le nord."
+- Architecture prête pour brancher plus tard une 2ᵉ scène SVG.
 
-### Question rapide avant implémentation
-La map actuelle (`citymap2.jpg`) doit-elle être **supprimée** ou **gardée en backup** ? Je propose de la garder le temps de valider la nouvelle map en jeu, puis on la supprimera ensuite.
+## Détails techniques
+- Nouvelle image fond menu : `src/assets/menu-bg.jpg` (généré).
+- Nouvelle image barrières travaux : SVG inline (pas besoin d'asset lourd).
+- Aucun changement backend ; tout est frontend/présentation.
+- Pas de nouvelle table Supabase.
+
+Confirme et je lance l'implémentation. Une question rapide avant : **veux-tu que le menu principal soit une vraie page séparée (route `/menu`) avec bouton "JOUER" qui lance la partie, ou un overlay qui s'affiche par-dessus la carte au démarrage ?**
