@@ -522,6 +522,12 @@ export default function CityTraffic() {
     initTrafficLights(pathRefs.current, lens);
     setLights(getTrafficLights());
 
+    // ✅ Pré-calcul des caches une seule fois
+    const TRAFFIC_SAMPLES = 420;
+    const pathCaches: (PathCache | null)[] = pathRefs.current.map(p =>
+      p ? buildPathCache(p, TRAFFIC_SAMPLES) : null
+    );
+
     // Paths autorisés pour le trafic civil : tout sauf village.
     const civilAllowed: number[] = [];
     for (let i = 0; i < pathRefs.current.length; i++) {
