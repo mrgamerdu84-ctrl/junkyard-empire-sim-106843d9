@@ -79,7 +79,7 @@ export default function MafiaLimo() {
       const dt = Math.min(0.05, (now - prev) / 1000);
       prev = now;
       setPos((p) => {
-        const dx = (phase === "leaving" ? -300 : target.x) - p.x;
+        const dx = (phase === "leaving" ? 10 : target.x) - p.x;
         const dy = (phase === "leaving" ? p.y : target.y) - p.y;
         const dist = Math.hypot(dx, dy);
         if (phase === "arriving" && dist < 4) {
@@ -92,7 +92,7 @@ export default function MafiaLimo() {
           }, 0);
           return p;
         }
-        if (phase === "leaving" && p.x < -150) {
+        if (phase === "leaving" && p.x < 20) {
           window.setTimeout(() => {
             setPhase("off");
             (window as unknown as { __mafiaLimoActive?: boolean }).__mafiaLimoActive = false;
