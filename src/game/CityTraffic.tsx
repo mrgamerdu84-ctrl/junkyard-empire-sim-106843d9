@@ -609,9 +609,10 @@ export default function CityTraffic() {
           if (st.node) st.node.setAttribute("opacity", "0");
           continue;
         }
+        const cache = pathCaches[st.spec.pathIdx];
         const fwd = st.spec.flip ? st.pathLen - st.s : st.s;
-        const p = path.getPointAtLength(fwd);
-        // CULLING : hors viewport (+ marge) → pas de DOM write, mais la voiture continue d'avancer.
+        const p = cache ? sampleCache(cache, fwd) : null;
+        if (!p) { st.visible = false; if (st.node) st.node.setAttribute("opacity", "0"); continue; }
         st.visible = p.x >= vr.minX && p.x <= vr.maxX && p.y >= vr.minY && p.y <= vr.maxY;
         if (st.node) st.node.setAttribute("opacity", st.visible ? "1" : "0");
         st.speed = st.baseSpeed;
