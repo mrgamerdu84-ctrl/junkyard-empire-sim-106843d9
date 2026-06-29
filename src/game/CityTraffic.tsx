@@ -143,6 +143,29 @@ const PED_CROSSING_RADIUS = 44;
 
 /** Verrouille une coordonnée XY sur le trottoir : si elle est plus proche
  *  de l'axe que `SIDEWALK_LOCK_OFFSET`, on la repousse vers `side`. */
+// Cache pré-calculé des points de chemin — évite getPointAtLength dans la boucle RAF
+const PEDESTRIAN_SAMPLES = 300;
+type PathCache = CachedRoad;
+
+function buildPathCache(path: SVGPathElement, samples: number): PathCache {
+  const len = path.getTotalLength();
+  const points = [];
+  for (let i = 0; i <= samples; i++) {
+    const s = (i / samples) * len;
+    const p = path.getPointAtLength(s);
+    const p2 = path.getPointAtLength(Math.min(len, s + 2));
+    const dx = p2.x - p.x; const dy = p2.y - p.y;
+    const L = Math.hypot(dx, dy) || 1;
+    points.push({ x: p.x, y: p.y, angle: (Math.atan2(dy, dx) * 180) / Math.PI, nx: -dy / L, ny: dx / L });
+  }
+  return { length: len, points };
+}
+
+function sampleCache(cache: PathCache, s: number) {
+  const frac = Math.max(0, Math.min(1, s / cache.length));
+  return cache.points[Math.min(cache.points.length - 1, Math.floor(frac * (cache.points.length - 1)))];
+}
+
 export function lockToSidewalk(
   pathPoint: { x: number; y: number },
   tangent: { dx: number; dy: number },
