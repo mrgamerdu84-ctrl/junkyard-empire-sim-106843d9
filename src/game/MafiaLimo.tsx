@@ -140,7 +140,7 @@ export default function MafiaLimo() {
             y={-LIMO_H / 2}
             width={LIMO_W}
             height={LIMO_H}
-            preserveAspectRatio="xMidYMid meet"
+            preserveAspectRatio="none"
           />
         </g>
         {phase === "parked" && (
