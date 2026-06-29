@@ -1052,9 +1052,9 @@ export default function TaxiTycoon() {
     const newSpeed = (BASE_SPEED + save.taxiSpeedLvl * 18) * admin.taxiSpeedMult;
     while (taxisRef.current.length < save.taxis.length) {
       const idx = taxisRef.current.length;
-      // taxi neuf : path 0, posé près du QG
-      const pIdx = 0;
-      const pos = closestOnPath(pIdx, admin.hqX, admin.hqY);
+      // taxi neuf : spawn sur la sortie parking TAXI WORLD (path 4, pos 0)
+      const pIdx = 4;
+      const pos = 0;
       const spawnedTaxi: Taxi = {
         id: nextIdRef.current++,
         pathIdx: pIdx,
