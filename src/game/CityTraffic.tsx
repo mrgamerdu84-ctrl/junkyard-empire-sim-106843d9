@@ -580,7 +580,7 @@ export default function CityTraffic() {
         // Beaucoup de monde le jour, trafic très réduit la nuit.
         const ratio = Math.max(0.12, Math.min(1, gt.density / 1.2));
         // densityMult ramène l'effectif sur appareils low-end (≈35%).
-        activeCount = Math.max(1, Math.round(states.length * ratio * densityMult()));
+        activeCount = Math.max(6, Math.round(states.length * ratio * densityMult()));
       }
 
 
@@ -631,9 +631,24 @@ export default function CityTraffic() {
 
 
       let needsRebuild = false;
+      const tSec = nowSeconds();
+      const allLights = getTrafficLights();
       for (const st of states) {
         const node = st.node;
         if (!node) continue;
+        // ===== Feux rouges =====
+        let stoppedByLight = false;
+        for (const l of allLights) {
+          for (const stop of l.stops) {
+            if (stop.pathIdx !== st.spec.pathIdx) continue;
+            if (Math.abs(st.s - stop.s) < 80 && getLightState(l, tSec) === "red") {
+              stoppedByLight = true;
+              break;
+            }
+          }
+          if (stoppedByLight) break;
+        }
+        if (stoppedByLight) st.speed = 0;
         // ===== Trafic normal =====
         const prev = st.s;
         st.s += st.speed * dt;

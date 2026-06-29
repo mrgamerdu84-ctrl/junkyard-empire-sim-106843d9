@@ -733,7 +733,7 @@ export default function TaxiTycoon() {
   const SPEED_LIMIT = 78;          // px/s ; déclenche dès l'upgrade vitesse niveau 1+
   const RADAR_FINE = 50;
   const RADAR_TRIGGER_DIST = 26;   // px le long du path
-  const RADAR_COOLDOWN_MS = 6000;  // évite les amendes en chaîne
+  const RADAR_COOLDOWN_MS = 18000;  // évite les amendes en chaîne
   const radarLastHitRef = useRef<Record<string, number>>({}); // key = `${radarId}:${taxiId}`
   const radarFlashRef = useRef<{ id: number; x: number; y: number; t: number } | null>(null);
   const [radarFlashTick, setRadarFlashTick] = useState(0);
