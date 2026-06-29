@@ -5,6 +5,7 @@ import citymapLiteAsset from "@/assets/citymap2-lite.jpg.asset.json";
 import TaxiTycoon from "@/game/TaxiTycoon";
 import CityTraffic from "@/game/CityTraffic";
 import MafiaAttackers from "@/game/MafiaAttackers";
+import BaronConvoy from "@/game/BaronConvoy";
 import ArmoredTruck from "@/game/ArmoredTruck";
 import CrimeEvents from "@/game/CrimeEvents";
 import InterventionDispatcher from "@/game/InterventionDispatcher";
