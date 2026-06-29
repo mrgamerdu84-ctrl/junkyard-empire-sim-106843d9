@@ -704,7 +704,7 @@ export default function CityTraffic() {
     return () => {
       cancelAnimationFrame(raf);
     };
-  }, [activeCars]);
+  }, [activeCars.length]);
 
 
   return (
