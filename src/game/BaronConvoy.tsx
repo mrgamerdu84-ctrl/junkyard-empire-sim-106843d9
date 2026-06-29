@@ -87,6 +87,7 @@ export default function BaronConvoy() {
   const convoy = useMemo(() => buildConvoy(), [tick]);
 
   const nodeRefs = useRef<(SVGGElement | null)[]>([]);
+  const arrivedDispatched = useRef(false);
   const stateRef = useRef<{
     pathIdx: number;
     cache: PathCache | null;
