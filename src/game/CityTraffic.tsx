@@ -11,6 +11,7 @@ import {
 } from "./trafficLights";
 import { getGameTime } from "./cityClock";
 import { densityMult, isUltraLite, perfTier, reduceMotion, targetFps, trafficBudget } from "@/lib/perf";
+import { buildRoadCache, getRoadPoint, hasRoadCache, type CachedRoad } from "./RoadCache";
 
 
 // Dynamique : inclut les piétons custom uploadés via le panel admin.
