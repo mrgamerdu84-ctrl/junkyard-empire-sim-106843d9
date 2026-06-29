@@ -510,11 +510,15 @@ export default function CityTraffic() {
     initTrafficLights(pathRefs.current, lens);
     setLights(getTrafficLights());
 
-    // ✅ Pré-calcul des caches une seule fois
-    const TRAFFIC_SAMPLES = 420;
-    const pathCaches: (PathCache | null)[] = pathRefs.current.map(p =>
-      p ? buildPathCache(p, TRAFFIC_SAMPLES) : null
-    );
+    if (!pathCachesBuilt.current) {
+      pathCachesRef.current = pathRefs.current.map(p =>
+        p ? buildPathCache(p, 420) : null
+      );
+      pathCachesBuilt.current = true;
+    }
+
+    // ✅ Caches partagés (construits une seule fois)
+    const pathCaches = pathCachesRef.current;
 
     // Paths autorisés pour le trafic civil : tout sauf village.
     const civilAllowed: number[] = [];
@@ -530,11 +534,9 @@ export default function CityTraffic() {
       return p;
     };
     // Rerolle path + sens + durée à chaque tour pour casser la régularité.
-    // Trafic civil : conduite tranquille (durée allongée, peu de variation) — pas agressif.
     const rerollSpec = (spec: CarSpec): CarSpec => {
       const newPath = pickPath();
       const baseDur = Math.max(10, spec.duration);
-      // 0.9× à 1.2× → voitures rapides (~10–18s par tour de path)
       const dur = baseDur * (0.9 + Math.random() * 0.3);
       return {
         ...spec,
@@ -544,21 +546,28 @@ export default function CityTraffic() {
       };
     };
 
-    const states: CarState[] = activeCars.map((rawSpec, i) => {
-      // Init aléatoire : chaque voiture civile prend un path/dir/durée tirés au sort
-      const spec = rerollSpec(rawSpec);
-      const pathLen = lens[spec.pathIdx];
-      const baseSpeed = pathLen / spec.duration; // px/s
-      return {
-        spec,
-        pathLen,
-        baseSpeed,
-        s: Math.random() * pathLen,
-        speed: baseSpeed,
-        laneKey: `${spec.pathIdx}:${spec.flip ? "r" : "f"}`,
-        node: carNodes.current[i],
-      };
-    });
+    const prevLen = statesRef.current.length;
+    const newLen = activeCars.length;
+    if (newLen > prevLen) {
+      for (let i = prevLen; i < newLen; i++) {
+        const spec = rerollSpec(activeCars[i]);
+        const pathLen = lens[spec.pathIdx];
+        statesRef.current.push({
+          spec,
+          pathLen,
+          baseSpeed: pathLen / spec.duration,
+          s: Math.random() * pathLen,
+          speed: pathLen / spec.duration,
+          laneKey: `${spec.pathIdx}:${spec.flip ? "r" : "f"}`,
+          node: carNodes.current[i],
+          visible: true,
+        });
+      }
+    } else if (newLen < prevLen) {
+      statesRef.current.length = newLen;
+    }
+    statesRef.current.forEach((st, i) => { st.node = carNodes.current[i]; });
+    const states = statesRef.current;
 
     // Radars retirés : noop pour préserver l'API d'appel dans la boucle.
     const checkRadars = (_st: CarState, _prev: number) => {};
