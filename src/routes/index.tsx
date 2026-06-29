@@ -1,7 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
-import citymap from "@/assets/citymap2.jpg";
-import citymapLiteAsset from "@/assets/citymap2-lite.jpg.asset.json";
+import citymapAsset from "@/assets/citymap-taxiworld.jpg.asset.json";
 import TaxiTycoon from "@/game/TaxiTycoon";
 import CityTraffic from "@/game/CityTraffic";
 import MafiaAttackers from "@/game/MafiaAttackers";
@@ -19,7 +18,7 @@ import HomeScreen from "@/game/HomeScreen";
 import SplashScreen from "@/game/SplashScreen";
 import IntroStory, { hasSeenIntro } from "@/game/IntroStory";
 import UltraFluidPanel from "@/game/UltraFluidPanel";
-import { preferLiteAssets } from "@/lib/perf";
+
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -44,7 +43,7 @@ function TaxiTycoonPage() {
   const worldRef = useRef<HTMLDivElement | null>(null);
 
   const zoom = ZOOM_LEVELS[zoomIdx];
-  const mapSrc = preferLiteAssets() ? citymapLiteAsset.url : citymap;
+  const mapSrc = citymapAsset.url;
 
   // Clamp pan : on n'a pas le droit de tirer la carte hors-écran.
   useEffect(() => {

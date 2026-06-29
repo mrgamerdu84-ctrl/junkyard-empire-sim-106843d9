@@ -66,11 +66,10 @@ export const DEFAULT_ADMIN: AdminConfig = {
   maxActiveTaxis: 6,
   taxiSpawnCooldown: 1.5,
 
-  // QG incrusté à la place du petit restaurant juste au-dessus du rond-point
-  // (à côté de la route du camion blindé). Coords dans le repère SVG 1920×1080.
+  // QG sur le parking TAXI WORLD de la nouvelle map (SVG 1920×1080).
   hqUseFreePos: true,
-  hqX: 1030,
-  hqY: 360,
+  hqX: 580,
+  hqY: 180,
   hqScale: 0.75,
   hqRotation: 0,
 
@@ -107,9 +106,8 @@ function load(): AdminConfig {
     const raw = localStorage.getItem(KEY);
     if (!raw) return DEFAULT_ADMIN;
     const parsed = JSON.parse(raw);
-    // Migration ponctuelle : si l'ancienne position du QG (parking en bas-gauche)
-    // est encore là, on bascule sur la nouvelle (restaurant près du rond-point).
-    if (parsed && parsed.hqX === 230 && parsed.hqY === 900) {
+    // Migration : anciennes positions du QG → nouveau parking TAXI WORLD.
+    if (parsed && ((parsed.hqX === 230 && parsed.hqY === 900) || (parsed.hqX === 1030 && parsed.hqY === 360))) {
       parsed.hqX = DEFAULT_ADMIN.hqX;
       parsed.hqY = DEFAULT_ADMIN.hqY;
     }
