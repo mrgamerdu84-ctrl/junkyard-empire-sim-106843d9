@@ -68,8 +68,8 @@ export const DEFAULT_ADMIN: AdminConfig = {
 
   // QG sur le parking TAXI WORLD de la nouvelle map (SVG 1920×1080).
   hqUseFreePos: true,
-  hqX: 600,
-  hqY: 150,
+  hqX: 580,
+  hqY: 180,
   hqScale: 0.75,
   hqRotation: 0,
 
@@ -107,11 +107,7 @@ function load(): AdminConfig {
     if (!raw) return DEFAULT_ADMIN;
     const parsed = JSON.parse(raw);
     // Migration : anciennes positions du QG → nouveau parking TAXI WORLD.
-    if (parsed && (
-      (parsed.hqX === 230 && parsed.hqY === 900) ||
-      (parsed.hqX === 1030 && parsed.hqY === 360) ||
-      (parsed.hqX === 580 && parsed.hqY === 180)
-    )) {
+    if (parsed && ((parsed.hqX === 230 && parsed.hqY === 900) || (parsed.hqX === 1030 && parsed.hqY === 360))) {
       parsed.hqX = DEFAULT_ADMIN.hqX;
       parsed.hqY = DEFAULT_ADMIN.hqY;
     }
