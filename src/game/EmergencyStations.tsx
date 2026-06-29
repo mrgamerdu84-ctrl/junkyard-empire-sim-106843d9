@@ -135,15 +135,26 @@ export default function EmergencyStations() {
         }
         return changed ? next : prev;
       });
-      setResponders((prev) => prev
-        .map((r) => {
-          if (!r.resolved && now >= r.arriveAt) {
-            window.dispatchEvent(new CustomEvent("jce.intervention.resolved", { detail: { id: r.eventId } }));
-            return { ...r, resolved: true };
-          }
-          return r;
-        })
-        .filter((r) => now < r.doneAt));
+      setResponders((prev) => {
+        const toResolve: number[] = [];
+        const next = prev
+          .map((r) => {
+            if (!r.resolved && now >= r.arriveAt) {
+              toResolve.push(r.eventId);
+              return { ...r, resolved: true };
+            }
+            return r;
+          })
+          .filter((r) => now < r.doneAt);
+        if (toResolve.length) {
+          queueMicrotask(() => {
+            for (const id of toResolve) {
+              window.dispatchEvent(new CustomEvent("jce.intervention.resolved", { detail: { id } }));
+            }
+          });
+        }
+        return next;
+      });
     }, 180);
     return () => window.clearInterval(id);
   }, []);

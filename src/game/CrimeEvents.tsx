@@ -166,9 +166,11 @@ export default function CrimeEvents() {
       setEvents(es => {
         const found = es.find(e => e.id === detail.id);
         if (found && found.dispatched && !found.stolenByAI) {
-          window.dispatchEvent(new CustomEvent("jce.player.cashDelta", {
-            detail: { amount: 500, reason: "player-resolved", label: KIND_META[found.kind].label },
-          }));
+          queueMicrotask(() => {
+            window.dispatchEvent(new CustomEvent("jce.player.cashDelta", {
+              detail: { amount: 500, reason: "player-resolved", label: KIND_META[found.kind].label },
+            }));
+          });
         }
         return es.filter(e => e.id !== detail.id);
       });
