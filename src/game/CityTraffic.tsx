@@ -673,21 +673,16 @@ export default function CityTraffic() {
           checkRadars(st, prev);
           continue;
         }
-        const path = pathRefs.current[st.spec.pathIdx];
-        if (!path) continue;
+        const cache2 = pathCaches[st.spec.pathIdx];
+        if (!cache2) continue;
         const lenForward = st.spec.flip ? st.pathLen - st.s : st.s;
-        const p = path.getPointAtLength(lenForward);
-        const p2 = path.getPointAtLength(Math.min(st.pathLen, lenForward + (st.spec.flip ? -1 : 1)));
-        const tdx = p2.x - p.x, tdy = p2.y - p.y;
-        const L = Math.hypot(tdx, tdy) || 1;
-        const ang = (Math.atan2(tdy, tdx) * 180) / Math.PI;
-        // Lane offset toujours à droite DANS LE SENS DE MARCHE : oncoming
-        // traffic roule sur l'autre voie, et les véhicules ne se croisent
-        // jamais au milieu de la chaussée (rond-points compris).
+        const pt = sampleCache(cache2, lenForward);
+        const L = 1;
+        const ang = pt.angle;
         const side = st.spec.flip ? -1 : 1;
-        const ox = (-tdy / L) * LANE_HALF * side;
-        const oy = (tdx / L) * LANE_HALF * side;
-        node.setAttribute("transform", `translate(${(p.x + ox).toFixed(2)},${(p.y + oy).toFixed(2)}) rotate(${ang.toFixed(2)})`);
+        const ox = pt.nx * LANE_HALF * side;
+        const oy = pt.ny * LANE_HALF * side;
+        node.setAttribute("transform", `translate(${(pt.x + ox).toFixed(1)},${(pt.y + oy).toFixed(1)}) rotate(${ang.toFixed(1)})`);
         checkRadars(st, prev);
       }
       void needsRebuild;
