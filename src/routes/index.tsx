@@ -43,7 +43,7 @@ function TaxiTycoonPage() {
   const worldRef = useRef<HTMLDivElement | null>(null);
 
   const zoom = ZOOM_LEVELS[zoomIdx];
-  const mapSrc = preferLiteAssets() ? citymapLiteAsset.url : citymap;
+  const mapSrc = citymapAsset.url;
 
   // Clamp pan : on n'a pas le droit de tirer la carte hors-écran.
   useEffect(() => {
