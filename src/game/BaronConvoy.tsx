@@ -102,10 +102,8 @@ export default function BaronConvoy() {
       const delay = MIN_INTERVAL_MS + Math.random() * (MAX_INTERVAL_MS - MIN_INTERVAL_MS);
       timer = setTimeout(() => {
         // choisir un path autorisé
-        const allowed: number[] = [];
-        for (let i = 0; i < ROADS.length; i++) {
-          if (!VILLAGE_PATHS.has(i)) allowed.push(i);
-        }
+        // Utilise uniquement les 4 grands axes (index 0-3) qui suivent les routes principales
+        const allowed = [0, 1, 2, 3].filter(i => i < ROADS.length);
         if (allowed.length === 0) {
           schedule();
           return;
@@ -128,10 +126,8 @@ export default function BaronConvoy() {
     };
     // premier départ après un délai initial plus court (45-90s) pour la démo
     timer = setTimeout(() => {
-      const allowed: number[] = [];
-      for (let i = 0; i < ROADS.length; i++) {
-        if (!VILLAGE_PATHS.has(i)) allowed.push(i);
-      }
+      // Utilise uniquement les 4 grands axes (index 0-3) qui suivent les routes principales
+      const allowed = [0, 1, 2, 3].filter(i => i < ROADS.length);
       if (allowed.length) {
         const pathIdx = allowed[Math.floor(Math.random() * allowed.length)];
         const cache = buildPathCache(ROADS[pathIdx]);
