@@ -412,13 +412,11 @@ export default function CityTraffic() {
     window.addEventListener("jce.customVehicles.changed", onChange);
     return () => window.removeEventListener("jce.customVehicles.changed", onChange);
   }, []);
-  // Trafic civil réactivé avec un budget agressivement limité par perfTier.
-  // Le bug réel qui faisait ramer (setState pendant le rendu) a été corrigé ;
-  // on peut donc remettre quelques civils et piétons.
-  void admin;
-  const desiredCars = isUltraLite() ? 4 : tier === "low" ? 8 : tier === "mid" ? 14 : 22;
-  const carBudget = trafficBudget(desiredCars);
-  const activeCars = useMemo<CarSpec[]>(() => buildCarsFromCustom(carBudget), [carBudget, customTick]);
+  // PERF MOBILE : trafic civil désactivé — getPointAtLength en boucle à 60 FPS
+  // pour chaque voiture/piéton saturait le CPU sur Xiaomi/Redmi. On garde
+  // uniquement les feux, passages piétons et le cycle jour/nuit (statiques).
+  void admin; void customTick; void trafficBudget; void buildCarsFromCustom;
+  const activeCars = useMemo<CarSpec[]>(() => [], []);
   const pathRefs = useRef<(SVGPathElement | null)[]>([]);
   const carNodes = useRef<(SVGGElement | null)[]>([]);
   const svgRef = useRef<SVGSVGElement | null>(null);
@@ -739,8 +737,8 @@ export default function CityTraffic() {
           </g>
         );
       })}
-      {/* Piétons réactivés — désactivés uniquement en mode ultra-lite */}
-      {!isUltraLite() && <PhotoPedestrians pathRefs={pathRefs} />}
+      {/* Piétons photos désactivés (perf mobile) */}
+      {false && <PhotoPedestrians pathRefs={pathRefs} />}
 
 
       {/* Piétons cartoon SVG retirés — remplacés par les sprites top-down (PhotoPedestrians) */}
