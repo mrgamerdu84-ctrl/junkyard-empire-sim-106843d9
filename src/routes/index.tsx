@@ -6,8 +6,6 @@ import TaxiTycoon from "@/game/TaxiTycoon";
 import CityTraffic from "@/game/CityTraffic";
 import MafiaAttackers from "@/game/MafiaAttackers";
 import BaronConvoy from "@/game/BaronConvoy";
-import BaronManor from "@/game/BaronManor";
-import BaronNegotiation from "@/game/BaronNegotiation";
 import ArmoredTruck from "@/game/ArmoredTruck";
 import CrimeEvents from "@/game/CrimeEvents";
 import InterventionDispatcher from "@/game/InterventionDispatcher";
@@ -182,7 +180,6 @@ function TaxiTycoonPage() {
         <div className="tt-vignette" />
         <CityTraffic />
         <BaronConvoy />
-        <BaronManor />
         <MafiaAttackers />
         <EmergencyStations />
         <CrimeEvents />
@@ -198,7 +195,6 @@ function TaxiTycoonPage() {
       {/* <AmbientSirens /> — désactivé sur demande joueur */}
       <AdminPanel />
       <MafiaGodfather />
-      <BaronNegotiation playerMoney={0} onDeal={(a) => console.log("baron deal", a)} />
       <VersionBanner />
       <UltraFluidPanel />
 
