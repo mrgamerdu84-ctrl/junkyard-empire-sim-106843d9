@@ -566,6 +566,7 @@ export default function TaxiTycoon() {
   // Une ref par chemin disponible — permet de varier les trajets des taxis.
   const pathRefs = useRef<(SVGPathElement | null)[]>([]);
   const pathLensRef = useRef<number[]>([]);
+  const roadCacheBuilt = useRef(false);
   const containerRef = useRef<SVGSVGElement | null>(null);
   const [pathsReady, setPathsReady] = useState(false);
   const admin = useAdminConfig(); // re-render quand l'admin change
@@ -935,6 +936,11 @@ export default function TaxiTycoon() {
     const lens = pathRefs.current.map((p) => (p ? p.getTotalLength() : 0));
     pathLensRef.current = lens;
     if (lens.every((l) => l > 0)) {
+      if (!roadCacheBuilt.current) {
+        const validPaths = pathRefs.current.filter(Boolean) as SVGPathElement[];
+        buildRoadCache(validPaths, 420);
+        roadCacheBuilt.current = true;
+      }
       setPathsReady(true);
       regenVipCircuit();
     }
@@ -947,9 +953,23 @@ export default function TaxiTycoon() {
 
   // Trouve la longueur sur `pathIdx` la plus proche d'un point (x,y) du SVG.
   const closestOnPath = (pathIdx: number, x: number, y: number): number => {
-    const p = pathRefs.current[pathIdx];
     const plen = pathLensRef.current[pathIdx] ?? 0;
-    if (!p || plen === 0) return 0;
+    if (plen === 0) return 0;
+    if (hasRoadCache()) {
+      let bestL = 0, bestD = Infinity;
+      const N = 420;
+      for (let i = 0; i <= N; i++) {
+        const frac = i / N;
+        const pt = getRoadPoint(pathIdx, frac);
+        if (!pt) continue;
+        const dx = pt.x - x, dy = pt.y - y;
+        const d = dx * dx + dy * dy;
+        if (d < bestD) { bestD = d; bestL = frac * plen; }
+      }
+      return bestL;
+    }
+    const p = pathRefs.current[pathIdx];
+    if (!p) return 0;
     let bestL = 0, bestD = Infinity;
     const N = 160;
     for (let i = 0; i <= N; i++) {
@@ -964,11 +984,16 @@ export default function TaxiTycoon() {
 
   // Récupère les coordonnées XY courantes d'un taxi.
   const taxiXY = (taxi: Taxi): { x: number; y: number } => {
-    const p = pathRefs.current[taxi.pathIdx];
     const plen = pathLensRef.current[taxi.pathIdx] ?? 0;
-    if (!p || plen === 0) return { x: 0, y: 0 };
-    const safe = ((taxi.pos % plen) + plen) % plen;
-    const pt = p.getPointAtLength(safe);
+    if (plen === 0) return { x: 0, y: 0 };
+    const frac = ((taxi.pos % plen) + plen) % plen / plen;
+    if (hasRoadCache()) {
+      const pt = getRoadPoint(taxi.pathIdx, frac);
+      return pt ? { x: pt.x, y: pt.y } : { x: 0, y: 0 };
+    }
+    const p = pathRefs.current[taxi.pathIdx];
+    if (!p) return { x: 0, y: 0 };
+    const pt = p.getPointAtLength(frac * plen);
     return { x: pt.x, y: pt.y };
   };
 
@@ -1891,9 +1916,14 @@ export default function TaxiTycoon() {
   };
 
   const getRoadTangent = (pathIdx: number, len: number) => {
-    const p = pathRefs.current[pathIdx];
     const plen = pathLensRef.current[pathIdx] ?? 0;
-    if (!p || plen === 0) return { dx: 1, dy: 0 };
+    if (plen === 0) return { dx: 1, dy: 0 };
+    if (hasRoadCache()) {
+      const pt = getRoadPoint(pathIdx, len / plen);
+      return pt ? { dx: Math.cos((pt.angle * Math.PI) / 180), dy: Math.sin((pt.angle * Math.PI) / 180) } : { dx: 1, dy: 0 };
+    }
+    const p = pathRefs.current[pathIdx];
+    if (!p) return { dx: 1, dy: 0 };
     const aLen = Math.max(0, len - 2);
     const bLen = Math.min(plen - 0.1, len + 2);
     const a = p.getPointAtLength(aLen);
@@ -1902,33 +1932,43 @@ export default function TaxiTycoon() {
   };
 
   const getXYOn = (pathIdx: number, len: number): { x: number; y: number; angle: number } => {
-    const p = pathRefs.current[pathIdx];
     const plen = pathLensRef.current[pathIdx] ?? 0;
-    if (!p || plen === 0) return { x: 0, y: 0, angle: 0 };
+    if (plen === 0) return { x: 0, y: 0, angle: 0 };
     const safe = clampRoadLen(pathIdx, len);
+    if (hasRoadCache()) {
+      const pt = getRoadPoint(pathIdx, safe / plen);
+      return pt ? { x: pt.x, y: pt.y, angle: pt.angle } : { x: 0, y: 0, angle: 0 };
+    }
+    const p = pathRefs.current[pathIdx];
+    if (!p) return { x: 0, y: 0, angle: 0 };
     const pt = p.getPointAtLength(safe);
     const { dx, dy } = getRoadTangent(pathIdx, safe);
-    const angle = (Math.atan2(dy, dx) * 180) / Math.PI;
-    return { x: pt.x, y: pt.y, angle };
+    return { x: pt.x, y: pt.y, angle: (Math.atan2(dy, dx) * 180) / Math.PI };
   };
   // Position décalée d'une voie sur la droite (en sens de marche).
   // forward = true si le véhicule progresse dans le sens du path.
   const getLaneXY = (pathIdx: number, len: number, forward: boolean) => {
-    const p = pathRefs.current[pathIdx];
     const plen = pathLensRef.current[pathIdx] ?? 0;
-    if (!p || plen === 0) return { x: 0, y: 0, angle: 0 };
+    if (plen === 0) return { x: 0, y: 0, angle: 0 };
     const safe = clampRoadLen(pathIdx, len);
+    if (hasRoadCache()) {
+      const pt = getRoadPoint(pathIdx, safe / plen);
+      if (!pt) return { x: 0, y: 0, angle: 0 };
+      let dx = Math.cos((pt.angle * Math.PI) / 180);
+      let dy = Math.sin((pt.angle * Math.PI) / 180);
+      if (!forward) { dx = -dx; dy = -dy; }
+      const L = Math.hypot(dx, dy) || 1;
+      const rx = dy / L, ry = -dx / L;
+      return { x: pt.x + rx * LANE_OFFSET, y: pt.y + ry * LANE_OFFSET, angle: (Math.atan2(dy, dx) * 180) / Math.PI };
+    }
+    const p = pathRefs.current[pathIdx];
+    if (!p) return { x: 0, y: 0, angle: 0 };
     const pt = p.getPointAtLength(safe);
     let { dx, dy } = getRoadTangent(pathIdx, safe);
     if (!forward) { dx = -dx; dy = -dy; }
     const L = Math.hypot(dx, dy) || 1;
-    // perpendiculaire « à droite » du sens de marche (repère y vers le bas)
     const rx = dy / L, ry = -dx / L;
-    return {
-      x: pt.x + rx * LANE_OFFSET,
-      y: pt.y + ry * LANE_OFFSET,
-      angle: (Math.atan2(dy, dx) * 180) / Math.PI,
-    };
+    return { x: pt.x + rx * LANE_OFFSET, y: pt.y + ry * LANE_OFFSET, angle: (Math.atan2(dy, dx) * 180) / Math.PI };
   };
 
   function syncVehicleLane(vehicle: { pathIdx: number; pos: number; target: number; lane?: LanePosition }) {
