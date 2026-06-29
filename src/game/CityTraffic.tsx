@@ -694,7 +694,8 @@ export default function CityTraffic() {
         const side = st.spec.flip ? -1 : 1;
         const ox = pt.nx * LANE_HALF * side;
         const oy = pt.ny * LANE_HALF * side;
-        node.setAttribute("transform", `translate(${(pt.x + ox).toFixed(1)},${(pt.y + oy).toFixed(1)}) rotate(${ang.toFixed(1)})`);
+        const displayAng = st.spec.flip ? ang + 180 : ang;
+        node.setAttribute("transform", `translate(${(pt.x + ox).toFixed(1)},${(pt.y + oy).toFixed(1)}) rotate(${displayAng.toFixed(1)})`);
         checkRadars(st, prev);
       }
       void needsRebuild;
