@@ -4,6 +4,8 @@
  * ============================================================ */
 import { useEffect, useState } from "react";
 
+export type BaronVehicleType = "limousine" | "suv" | "sedan" | "game";
+
 export type AdminConfig = {
   depotPosNorm: number;       // 0..1 — position du QG le long du path principal
   civilVehicleCount: number;  // 0..24 — voitures civiles affichées
@@ -22,6 +24,9 @@ export type AdminConfig = {
   hqY: number;                   // 0..1080 — position absolue Y (SVG)
   hqScale: number;               // 0.5..3 — échelle visuelle
   hqRotation: number;            // -180..180 — rotation (deg)
+
+  // ====== Manoir / Baron ======
+  baronVehicleType: BaronVehicleType; // véhicule du cortège du Baron
 
   // ====== Carburant ======
   fuelConsumption: number;       // 0.1..3 — points de carburant consommés / seconde de roulage
@@ -74,6 +79,8 @@ export const DEFAULT_ADMIN: AdminConfig = {
   hqScale: 0.75,
   hqRotation: 0,
 
+  // Véhicule du Baron : configuré maintenant, utilisé par le cortège à l'étape suivante.
+  baronVehicleType: "limousine",
 
   fuelConsumption: 0.6,
   gasStationX: 1450,
