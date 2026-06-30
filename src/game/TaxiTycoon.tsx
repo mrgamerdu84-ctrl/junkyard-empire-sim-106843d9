@@ -107,6 +107,7 @@ type Taxi = {
   transitionFromX?: number;
   transitionFromY?: number;
   transitionUntil?: number;
+  transitionDuration?: number;
 };
 const TRANSITION_MS = 1500;
 
