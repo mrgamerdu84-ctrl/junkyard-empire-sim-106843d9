@@ -107,6 +107,7 @@ type Taxi = {
   transitionFromX?: number;
   transitionFromY?: number;
   transitionUntil?: number;
+  transitionDuration?: number;
 };
 const TRANSITION_MS = 1500;
 
@@ -991,12 +992,15 @@ export default function TaxiTycoon() {
     taxi.pathIdx = newPathIdx;
     taxi.pos = newPos;
     taxi.target = newTarget;
-    if ((visual.x !== 0 || visual.y !== 0) && dist <= 60) {
+    if (visual.x !== 0 || visual.y !== 0) {
+      // Lerp doux jusqu'au nouveau point sur le path : durée proportionnelle
+      // à la distance pour éviter les sauts visibles, même sur longue transition.
+      const ms = Math.min(2400, Math.max(TRANSITION_MS, dist * 6));
       taxi.transitionFromX = visual.x;
       taxi.transitionFromY = visual.y;
-      taxi.transitionUntil = performance.now() + TRANSITION_MS;
+      taxi.transitionUntil = performance.now() + ms;
+      taxi.transitionDuration = ms;
     } else {
-      // Snap : pas de trajet hors route.
       taxi.transitionFromX = undefined;
       taxi.transitionFromY = undefined;
       taxi.transitionUntil = undefined;
@@ -3157,7 +3161,8 @@ export default function TaxiTycoon() {
             if (!parkInfo && taxi.transitionUntil && taxi.transitionFromX != null && taxi.transitionFromY != null) {
               const tNow = performance.now();
               if (tNow < taxi.transitionUntil) {
-                const k = 1 - (taxi.transitionUntil - tNow) / TRANSITION_MS;
+                const dur = taxi.transitionDuration ?? TRANSITION_MS;
+                const k = Math.max(0, Math.min(1, 1 - (taxi.transitionUntil - tNow) / dur));
                 const ease = k * k * (3 - 2 * k);
                 const lx = taxi.transitionFromX + (onPath.x - taxi.transitionFromX) * ease;
                 const ly = taxi.transitionFromY + (onPath.y - taxi.transitionFromY) * ease;
