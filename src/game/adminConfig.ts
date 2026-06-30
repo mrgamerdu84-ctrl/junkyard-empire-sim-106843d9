@@ -32,6 +32,7 @@ export type AdminConfig = {
   fuelConsumption: number;       // 0.1..3 — points de carburant consommés / seconde de roulage
   gasStationX: number;           // 0..1920 — position X de la station-service
   gasStationY: number;           // 0..1080 — position Y de la station-service
+  gasStationScale: number;       // 0.5..3 — taille visuelle de la station-service
 
   // ====== Entreprise concurrente (IA) ======
   rivalEnabled: boolean;         // active la concurrence IA
@@ -85,6 +86,7 @@ export const DEFAULT_ADMIN: AdminConfig = {
   fuelConsumption: 0.6,
   gasStationX: 1450,
   gasStationY: 540,
+  gasStationScale: 1,
 
   rivalEnabled: false,
   rivalHQX: 1650,
