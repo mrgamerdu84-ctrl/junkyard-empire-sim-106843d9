@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { setAdmin, useAdminConfig, type BaronVehicleType } from "./adminConfig";
 
 const MAP_W = 1920;
 const MAP_H = 1080;
@@ -6,6 +7,13 @@ const STORAGE_KEY = "jce.baronManor.position.v1";
 const DEFAULT_POS = { x: 520, y: 135 };
 
 type ManorPos = { x: number; y: number };
+
+const BARON_VEHICLE_OPTIONS: { id: BaronVehicleType; label: string }[] = [
+  { id: "limousine", label: "🚘 Limousine noire" },
+  { id: "suv", label: "🚙 SUV noir" },
+  { id: "sedan", label: "🚗 Berline luxe" },
+  { id: "game", label: "🎮 Véhicule du jeu" },
+];
 
 function clampPos(pos: ManorPos): ManorPos {
   return {
@@ -199,6 +207,24 @@ function ManorGroup({
   );
 }
 
+function BaronVehicleSelector() {
+  const cfg = useAdminConfig();
+  return (
+    <div style={{ display: "flex", alignItems: "center", gap: 6, background: "rgba(20,22,28,0.9)", border: "1px solid #3a3f48", borderRadius: 10, padding: "6px 8px" }}>
+      <span style={{ color: "#facc15", fontWeight: 900, fontSize: 12 }}>🚘 Baron</span>
+      <select
+        value={cfg.baronVehicleType}
+        onChange={(e) => setAdmin({ baronVehicleType: e.target.value as BaronVehicleType })}
+        style={{ background: "#111827", color: "#e5e7eb", border: "1px solid #4b5563", borderRadius: 8, padding: "6px 8px", fontSize: 12, fontWeight: 700 }}
+      >
+        {BARON_VEHICLE_OPTIONS.map((opt) => (
+          <option key={opt.id} value={opt.id}>{opt.label}</option>
+        ))}
+      </select>
+    </div>
+  );
+}
+
 export default function BaronManor() {
   const svgRef = useRef<SVGSVGElement | null>(null);
   const dragRef = useRef(false);
@@ -282,16 +308,20 @@ export default function BaronManor() {
           gap: 6,
           pointerEvents: "auto",
           fontFamily: "system-ui, sans-serif",
+          flexWrap: "wrap",
         }}
       >
         {!editMode ? (
-          <button
-            type="button"
-            onClick={() => setEditMode(true)}
-            style={{ padding: "7px 10px", borderRadius: 10, border: "1px solid #d4a838", background: "rgba(20,22,28,0.88)", color: "#facc15", fontWeight: 800, fontSize: 12 }}
-          >
-            🏰 Déplacer manoir
-          </button>
+          <>
+            <button
+              type="button"
+              onClick={() => setEditMode(true)}
+              style={{ padding: "7px 10px", borderRadius: 10, border: "1px solid #d4a838", background: "rgba(20,22,28,0.88)", color: "#facc15", fontWeight: 800, fontSize: 12 }}
+            >
+              🏰 Déplacer manoir
+            </button>
+            <BaronVehicleSelector />
+          </>
         ) : (
           <>
             <button type="button" onClick={validate} style={{ padding: "7px 10px", borderRadius: 10, border: "none", background: "#facc15", color: "#111827", fontWeight: 900, fontSize: 12 }}>
