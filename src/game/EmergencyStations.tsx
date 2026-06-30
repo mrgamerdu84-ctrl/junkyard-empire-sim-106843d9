@@ -5,6 +5,27 @@
 // =============================================================
 import { useEffect, useState } from "react";
 import { GAME_ASSETS } from "./gameAssets";
+import { ROADS } from "./CityTraffic";
+import { getRoad, getRoadPoint, hasRoadCache } from "./RoadCache";
+
+// Projette (x,y) sur le réseau routier et renvoie le path le plus proche
+// avec la fraction (0..1) correspondante.
+function projectOnRoads(x: number, y: number): { pathIdx: number; frac: number; dist: number } | null {
+  if (!hasRoadCache()) return null;
+  let best: { pathIdx: number; frac: number; dist: number } | null = null;
+  for (let i = 0; i < ROADS.length; i++) {
+    const road = getRoad(i);
+    if (!road || road.points.length === 0) continue;
+    for (let j = 0; j < road.points.length; j++) {
+      const p = road.points[j];
+      const d = (p.x - x) * (p.x - x) + (p.y - y) * (p.y - y);
+      if (!best || d < best.dist) {
+        best = { pathIdx: i, frac: j / (road.points.length - 1), dist: d };
+      }
+    }
+  }
+  return best;
+}
 
 // Coordonnées dans le même viewBox 1920×1080 que CityTraffic.
 // Tu peux ajuster ces positions si la map change.
@@ -61,6 +82,11 @@ type Responder = {
   leaveAt: number;
   doneAt: number;
   resolved: boolean;
+  // Trajet "snappé" sur une route réelle (si disponible) pour ne pas
+  // traverser la map en ligne droite.
+  roadPathIdx?: number;
+  roadFracFrom?: number;
+  roadFracTo?: number;
 };
 
 let responderSeq = 1;
@@ -90,6 +116,30 @@ export default function EmergencyStations() {
       const dist = Math.hypot(d.x - station.x, d.y - station.y);
       const travelMs = Math.max(1400, Math.min(5200, (dist / 250) * 1000));
       const now = performance.now();
+      // Snap départ + arrivée sur le réseau routier. On choisit la même
+      // route pour les 2 (la plus proche de la cible) afin que le véhicule
+      // suive un vrai axe au lieu de couper en ligne droite à travers les
+      // bâtiments / le rond-point.
+      const toProj = projectOnRoads(d.x, d.y);
+      let roadPathIdx: number | undefined;
+      let roadFracFrom: number | undefined;
+      let roadFracTo: number | undefined;
+      if (toProj) {
+        const road = getRoad(toProj.pathIdx);
+        if (road && road.points.length > 0) {
+          // Cherche sur la MÊME route le point le plus proche de la station.
+          let bestJ = 0;
+          let bestD = Infinity;
+          for (let j = 0; j < road.points.length; j++) {
+            const p = road.points[j];
+            const dd = (p.x - station.x) * (p.x - station.x) + (p.y - station.y) * (p.y - station.y);
+            if (dd < bestD) { bestD = dd; bestJ = j; }
+          }
+          roadPathIdx = toProj.pathIdx;
+          roadFracFrom = bestJ / (road.points.length - 1);
+          roadFracTo = toProj.frac;
+        }
+      }
       setActive((prev) => ({ ...prev, [station.category]: now + travelMs * 2 + 2600 }));
       setResponders((prev) => [
         ...prev.filter((r) => r.category !== station.category),
@@ -109,6 +159,9 @@ export default function EmergencyStations() {
           leaveAt: now + travelMs + 2200,
           doneAt: now + travelMs * 2 + 2200,
           resolved: false,
+          roadPathIdx,
+          roadFracFrom,
+          roadFracTo,
         },
       ]);
       window.dispatchEvent(new CustomEvent("jce.intervention.assigned", {
@@ -251,13 +304,35 @@ export default function EmergencyStations() {
           const end = outbound ? r.arriveAt : r.doneAt;
           const rawK = end > start ? (now - start) / (end - start) : 1;
           const k = Math.max(0, Math.min(1, rawK));
-          const ax = outbound ? r.fromX : r.toX;
-          const ay = outbound ? r.fromY : r.toY;
-          const bx = outbound ? r.toX : r.fromX;
-          const by = outbound ? r.toY : r.fromY;
-          const x = ax + (bx - ax) * k;
-          const y = ay + (by - ay) * k;
-          const angle = (Math.atan2(by - ay, bx - ax) * 180) / Math.PI;
+          let x: number, y: number, angle: number;
+          // Suit une vraie route si on a pu projeter le trajet, sinon fallback ligne droite.
+          if (r.roadPathIdx != null && r.roadFracFrom != null && r.roadFracTo != null) {
+            const fA = outbound ? r.roadFracFrom : r.roadFracTo;
+            const fB = outbound ? r.roadFracTo : r.roadFracFrom;
+            const frac = fA + (fB - fA) * k;
+            const pt = getRoadPoint(r.roadPathIdx, Math.max(0, Math.min(1, frac)));
+            if (pt) {
+              x = pt.x;
+              y = pt.y;
+              angle = fB >= fA ? pt.angle : pt.angle + 180;
+            } else {
+              const ax = outbound ? r.fromX : r.toX;
+              const ay = outbound ? r.fromY : r.toY;
+              const bx = outbound ? r.toX : r.fromX;
+              const by = outbound ? r.toY : r.fromY;
+              x = ax + (bx - ax) * k;
+              y = ay + (by - ay) * k;
+              angle = (Math.atan2(by - ay, bx - ax) * 180) / Math.PI;
+            }
+          } else {
+            const ax = outbound ? r.fromX : r.toX;
+            const ay = outbound ? r.fromY : r.toY;
+            const bx = outbound ? r.toX : r.fromX;
+            const by = outbound ? r.toY : r.fromY;
+            x = ax + (bx - ax) * k;
+            y = ay + (by - ay) * k;
+            angle = (Math.atan2(by - ay, bx - ax) * 180) / Math.PI;
+          }
           const flash = Math.floor(now / 160) % 2 === 0;
           return (
             <g key={r.id} transform={`translate(${x} ${y}) rotate(${angle})`}>
