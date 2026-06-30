@@ -2,7 +2,8 @@ import { useEffect, useState } from "react";
 
 const MAP_W = 1920;
 const MAP_H = 1080;
-const MX = 200, MY = 150;
+// Manoir déplacé dans le haut du village, hors du rond-point et hors des routes visibles.
+const MX = 520, MY = 135;
 
 function ManorGroup() {
   const [gateOpen, setGateOpen] = useState(false);
@@ -86,7 +87,7 @@ export default function BaronManor() {
   return (
     <svg
       viewBox={`0 0 ${MAP_W} ${MAP_H}`}
-      preserveAspectRatio="xMidYMid meet"
+      preserveAspectRatio="xMidYMid slice"
       style={{ position: "absolute", inset: 0, width: "100%", height: "100%", pointerEvents: "none", zIndex: 6 }}
     >
       <ManorGroup />
