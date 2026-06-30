@@ -5,6 +5,27 @@
 // =============================================================
 import { useEffect, useState } from "react";
 import { GAME_ASSETS } from "./gameAssets";
+import { ROADS } from "./CityTraffic";
+import { getRoad, getRoadPoint, hasRoadCache } from "./RoadCache";
+
+// Projette (x,y) sur le réseau routier et renvoie le path le plus proche
+// avec la fraction (0..1) correspondante.
+function projectOnRoads(x: number, y: number): { pathIdx: number; frac: number; dist: number } | null {
+  if (!hasRoadCache()) return null;
+  let best: { pathIdx: number; frac: number; dist: number } | null = null;
+  for (let i = 0; i < ROADS.length; i++) {
+    const road = getRoad(i);
+    if (!road || road.points.length === 0) continue;
+    for (let j = 0; j < road.points.length; j++) {
+      const p = road.points[j];
+      const d = (p.x - x) * (p.x - x) + (p.y - y) * (p.y - y);
+      if (!best || d < best.dist) {
+        best = { pathIdx: i, frac: j / (road.points.length - 1), dist: d };
+      }
+    }
+  }
+  return best;
+}
 
 // Coordonnées dans le même viewBox 1920×1080 que CityTraffic.
 // Tu peux ajuster ces positions si la map change.
