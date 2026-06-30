@@ -82,6 +82,11 @@ type Responder = {
   leaveAt: number;
   doneAt: number;
   resolved: boolean;
+  // Trajet "snappé" sur une route réelle (si disponible) pour ne pas
+  // traverser la map en ligne droite.
+  roadPathIdx?: number;
+  roadFracFrom?: number;
+  roadFracTo?: number;
 };
 
 let responderSeq = 1;
