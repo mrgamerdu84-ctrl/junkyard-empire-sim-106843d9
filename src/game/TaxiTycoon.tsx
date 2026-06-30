@@ -991,12 +991,14 @@ export default function TaxiTycoon() {
     taxi.pathIdx = newPathIdx;
     taxi.pos = newPos;
     taxi.target = newTarget;
-    if ((visual.x !== 0 || visual.y !== 0) && dist <= 60) {
+    if (visual.x !== 0 || visual.y !== 0) {
+      // Lerp doux jusqu'au nouveau point sur le path : durée proportionnelle
+      // à la distance pour éviter les sauts visibles, même sur longue transition.
+      const ms = Math.min(2400, Math.max(TRANSITION_MS, dist * 6));
       taxi.transitionFromX = visual.x;
       taxi.transitionFromY = visual.y;
-      taxi.transitionUntil = performance.now() + TRANSITION_MS;
+      taxi.transitionUntil = performance.now() + ms;
     } else {
-      // Snap : pas de trajet hors route.
       taxi.transitionFromX = undefined;
       taxi.transitionFromY = undefined;
       taxi.transitionUntil = undefined;
