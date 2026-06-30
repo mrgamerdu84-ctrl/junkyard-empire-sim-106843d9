@@ -23,6 +23,7 @@ import SplashScreen from "@/game/SplashScreen";
 import IntroStory, { hasSeenIntro } from "@/game/IntroStory";
 import UltraFluidPanel from "@/game/UltraFluidPanel";
 import AbandonedWarehouse from "@/game/AbandonedWarehouse";
+import StoryStartTools from "@/game/StoryStartTools";
 import { preferLiteAssets } from "@/lib/perf";
 
 export const Route = createFileRoute("/")({
@@ -199,6 +200,7 @@ function TaxiTycoonPage() {
       
       {/* <AmbientSirens /> — désactivé sur demande joueur */}
       <AdminPanel />
+      <StoryStartTools />
       <MafiaGodfather />
       <BaronNegotiation playerMoney={0} onDeal={(a) => console.log("baron deal", a)} />
       <VersionBanner />
