@@ -3161,7 +3161,8 @@ export default function TaxiTycoon() {
             if (!parkInfo && taxi.transitionUntil && taxi.transitionFromX != null && taxi.transitionFromY != null) {
               const tNow = performance.now();
               if (tNow < taxi.transitionUntil) {
-                const k = 1 - (taxi.transitionUntil - tNow) / TRANSITION_MS;
+                const dur = taxi.transitionDuration ?? TRANSITION_MS;
+                const k = Math.max(0, Math.min(1, 1 - (taxi.transitionUntil - tNow) / dur));
                 const ease = k * k * (3 - 2 * k);
                 const lx = taxi.transitionFromX + (onPath.x - taxi.transitionFromX) * ease;
                 const ly = taxi.transitionFromY + (onPath.y - taxi.transitionFromY) * ease;
