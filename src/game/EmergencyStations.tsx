@@ -116,6 +116,30 @@ export default function EmergencyStations() {
       const dist = Math.hypot(d.x - station.x, d.y - station.y);
       const travelMs = Math.max(1400, Math.min(5200, (dist / 250) * 1000));
       const now = performance.now();
+      // Snap départ + arrivée sur le réseau routier. On choisit la même
+      // route pour les 2 (la plus proche de la cible) afin que le véhicule
+      // suive un vrai axe au lieu de couper en ligne droite à travers les
+      // bâtiments / le rond-point.
+      const toProj = projectOnRoads(d.x, d.y);
+      let roadPathIdx: number | undefined;
+      let roadFracFrom: number | undefined;
+      let roadFracTo: number | undefined;
+      if (toProj) {
+        const road = getRoad(toProj.pathIdx);
+        if (road && road.points.length > 0) {
+          // Cherche sur la MÊME route le point le plus proche de la station.
+          let bestJ = 0;
+          let bestD = Infinity;
+          for (let j = 0; j < road.points.length; j++) {
+            const p = road.points[j];
+            const dd = (p.x - station.x) * (p.x - station.x) + (p.y - station.y) * (p.y - station.y);
+            if (dd < bestD) { bestD = dd; bestJ = j; }
+          }
+          roadPathIdx = toProj.pathIdx;
+          roadFracFrom = bestJ / (road.points.length - 1);
+          roadFracTo = toProj.frac;
+        }
+      }
       setActive((prev) => ({ ...prev, [station.category]: now + travelMs * 2 + 2600 }));
       setResponders((prev) => [
         ...prev.filter((r) => r.category !== station.category),
@@ -135,6 +159,9 @@ export default function EmergencyStations() {
           leaveAt: now + travelMs + 2200,
           doneAt: now + travelMs * 2 + 2200,
           resolved: false,
+          roadPathIdx,
+          roadFracFrom,
+          roadFracTo,
         },
       ]);
       window.dispatchEvent(new CustomEvent("jce.intervention.assigned", {
