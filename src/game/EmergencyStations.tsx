@@ -304,13 +304,35 @@ export default function EmergencyStations() {
           const end = outbound ? r.arriveAt : r.doneAt;
           const rawK = end > start ? (now - start) / (end - start) : 1;
           const k = Math.max(0, Math.min(1, rawK));
-          const ax = outbound ? r.fromX : r.toX;
-          const ay = outbound ? r.fromY : r.toY;
-          const bx = outbound ? r.toX : r.fromX;
-          const by = outbound ? r.toY : r.fromY;
-          const x = ax + (bx - ax) * k;
-          const y = ay + (by - ay) * k;
-          const angle = (Math.atan2(by - ay, bx - ax) * 180) / Math.PI;
+          let x: number, y: number, angle: number;
+          // Suit une vraie route si on a pu projeter le trajet, sinon fallback ligne droite.
+          if (r.roadPathIdx != null && r.roadFracFrom != null && r.roadFracTo != null) {
+            const fA = outbound ? r.roadFracFrom : r.roadFracTo;
+            const fB = outbound ? r.roadFracTo : r.roadFracFrom;
+            const frac = fA + (fB - fA) * k;
+            const pt = getRoadPoint(r.roadPathIdx, Math.max(0, Math.min(1, frac)));
+            if (pt) {
+              x = pt.x;
+              y = pt.y;
+              angle = fB >= fA ? pt.angle : pt.angle + 180;
+            } else {
+              const ax = outbound ? r.fromX : r.toX;
+              const ay = outbound ? r.fromY : r.toY;
+              const bx = outbound ? r.toX : r.fromX;
+              const by = outbound ? r.toY : r.fromY;
+              x = ax + (bx - ax) * k;
+              y = ay + (by - ay) * k;
+              angle = (Math.atan2(by - ay, bx - ax) * 180) / Math.PI;
+            }
+          } else {
+            const ax = outbound ? r.fromX : r.toX;
+            const ay = outbound ? r.fromY : r.toY;
+            const bx = outbound ? r.toX : r.fromX;
+            const by = outbound ? r.toY : r.fromY;
+            x = ax + (bx - ax) * k;
+            y = ay + (by - ay) * k;
+            angle = (Math.atan2(by - ay, bx - ax) * 180) / Math.PI;
+          }
           const flash = Math.floor(now / 160) % 2 === 0;
           return (
             <g key={r.id} transform={`translate(${x} ${y}) rotate(${angle})`}>
