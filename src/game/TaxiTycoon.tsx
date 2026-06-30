@@ -999,6 +999,7 @@ export default function TaxiTycoon() {
       taxi.transitionFromX = visual.x;
       taxi.transitionFromY = visual.y;
       taxi.transitionUntil = performance.now() + ms;
+      taxi.transitionDuration = ms;
     } else {
       taxi.transitionFromX = undefined;
       taxi.transitionFromY = undefined;
