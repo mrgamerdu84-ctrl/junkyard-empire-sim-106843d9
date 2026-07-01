@@ -26,13 +26,21 @@ export default function DealershipPanel({ onClose }: { onClose: () => void }) {
   const [tab, setTab] = useState<Tab>("shop");
   const [, force] = useState(0);
   const refresh = () => force((n) => n + 1);
+  const { user } = useAuth();
+  const { isAdmin } = useIsAdmin(user);
 
   useEffect(() => {
     const u1 = subscribeDealership(refresh);
     const u2 = subscribeStaff(refresh);
     const onSave = () => refresh();
+    const onCustom = () => refresh();
     window.addEventListener("mtw:save-updated", onSave);
-    return () => { u1(); u2(); window.removeEventListener("mtw:save-updated", onSave); };
+    window.addEventListener("jce.customVehicles.changed", onCustom);
+    return () => {
+      u1(); u2();
+      window.removeEventListener("mtw:save-updated", onSave);
+      window.removeEventListener("jce.customVehicles.changed", onCustom);
+    };
   }, []);
 
   const money = getMoney();
@@ -60,19 +68,25 @@ export default function DealershipPanel({ onClose }: { onClose: () => void }) {
         <div style={tabs}>
           <button style={{ ...tabBtn, ...(tab === "shop" ? tabActive : {}) }} onClick={() => setTab("shop")}>Concessionnaire</button>
           <button style={{ ...tabBtn, ...(tab === "garage" ? tabActive : {}) }} onClick={() => setTab("garage")}>Mon Garage ({fleet.length})</button>
+          {isAdmin && (
+            <button style={{ ...tabBtn, ...(tab === "import" ? tabActive : {}) }} onClick={() => setTab("import")}>🛠 Import Admin</button>
+          )}
         </div>
 
         <div style={body}>
-          {tab === "shop" ? (
+          {tab === "shop" && (
             <ShopTab money={money} cap={cap} onBuy={(id) => {
               const r = buyModel(id, cap);
               if (!r.ok) alert(r.reason ?? "Achat refusé");
               refresh();
             }} />
-          ) : (
+          )}
+          {tab === "garage" && (
             <GarageTab fleet={fleet} drivers={drivers} onAssign={(driverId, taxiIndex) => { assignDriver(driverId, taxiIndex); refresh(); }} onUnassign={(driverId) => { unassignDriver(driverId); refresh(); }} />
           )}
+          {tab === "import" && isAdmin && <ImportTab />}
         </div>
+
       </div>
     </div>,
     document.body
