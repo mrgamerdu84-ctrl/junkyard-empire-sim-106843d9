@@ -293,6 +293,13 @@ export default function HomeScreen({ onPlay, onReplayIntro }: { onPlay: () => vo
             <button className="hs-btn hs-btn-hero" onClick={() => setLoading(true)}>
               ▶ Jouer
             </button>
+            <button
+              className="hs-btn"
+              style={{ background: "linear-gradient(180deg,#7c3aed,#4c1d95)", color: "#fde047", boxShadow: "0 5px 0 #2e1065, 0 10px 18px rgba(0,0,0,0.45)", border: "2px solid #a78bfa", textShadow: "0 1px 0 rgba(0,0,0,0.35)" }}
+              onClick={() => setShowCampaign(true)}
+            >
+              📖 Campagne — La Renaissance
+            </button>
           </div>
         )}
 
