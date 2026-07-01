@@ -3250,11 +3250,14 @@ export default function TaxiTycoon() {
                 const ease = k * k * (3 - 2 * k);
                 const lx = taxi.transitionFromX + (onPath.x - taxi.transitionFromX) * ease;
                 const ly = taxi.transitionFromY + (onPath.y - taxi.transitionFromY) * ease;
-                const dxA = onPath.x - taxi.transitionFromX;
-                const dyA = onPath.y - taxi.transitionFromY;
-                const ang = Math.hypot(dxA, dyA) > 2
-                  ? (Math.atan2(dyA, dxA) * 180) / Math.PI
-                  : onPath.angle;
+                // Angle lissé : on interpole depuis l'angle rendu au départ
+                // (place de parking, souvent -18°) vers l'angle de la route,
+                // via le plus court chemin — plus de « pivot instantané ».
+                const fromA = taxi.transitionFromAngle ?? onPath.angle;
+                let da = onPath.angle - fromA;
+                while (da > 180) da -= 360;
+                while (da < -180) da += 360;
+                const ang = fromA + da * ease;
                 p = { x: lx, y: ly, angle: ang };
               }
             }
