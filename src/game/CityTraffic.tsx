@@ -9,8 +9,7 @@ import {
   nowSeconds,
   type TrafficLight,
 } from "./trafficLights";
-import { getGameTime } from "./cityClock";
-import { densityMult, isUltraLite, perfTier, reduceMotion, targetFps, trafficBudget } from "@/lib/perf";
+import { isUltraLite, perfTier, reduceMotion, targetFps, trafficBudget } from "@/lib/perf";
 import { buildRoadCache, getRoadPoint, hasRoadCache, type CachedRoad } from "./RoadCache";
 
 
@@ -73,8 +72,8 @@ type CarSpec = {
   category?: CustomVehicleCategory;
 };
 
-// Trafic civil par défaut VIDE — toutes les voitures qui roulent sont
-// celles ajoutées par le joueur via le panel admin (📦⬇️ Import en lot).
+// Trafic civil par défaut actif : assets civils intégrés + véhicules ajoutés
+// dans le panel Admin. Indépendant de la campagne.
 // Voir buildCarsFromCustom() dans le composant ci-dessous.
 
 
@@ -357,12 +356,10 @@ type CarState = {
   visible?: boolean;             // CULLING : dans le viewport visible (+ marge)
 };
 
-// Catégories autorisées dans le trafic libre : uniquement les civils & véhicules
-// de service. Police / ambulance / pompiers ne roulent QUE sur intervention
-// (cf. EmergencyStations + InterventionDispatcher) → ils restent à leur QG
-// le reste du temps.
+// Catégories autorisées dans le trafic libre : le panel Admin doit rester
+// indépendant de la campagne, donc tous les véhicules importés peuvent rouler.
 const TRAFFIC_CATEGORIES: CustomVehicleCategory[] = [
-  "civil", "service",
+  "civil", "service", "taxi", "police", "ambulance", "firetruck", "robber", "armored", "limo",
 ];
 
 function buildCarsFromCustom(count?: number): CarSpec[] {
@@ -373,7 +370,8 @@ function buildCarsFromCustom(count?: number): CarSpec[] {
 
   // Pool d'URLs disponibles : assets civils par défaut + customs roulants.
   // Permet d'avoir du trafic même sans uploads, et boucle modulo si N > pool.length.
-  const civilUrls = getCivilCarUrls();
+  const customUrls = new Set(customs.map((v) => v.url));
+  const civilUrls = getCivilCarUrls().filter((url) => !customUrls.has(url));
   type Entry = { url: string; category: CustomVehicleCategory };
   const pool: Entry[] = [
     ...civilUrls.map((url): Entry => ({ url, category: "civil" })),
@@ -382,7 +380,7 @@ function buildCarsFromCustom(count?: number): CarSpec[] {
   if (pool.length === 0) return [];
 
 
-  const N = Math.max(0, count ?? pool.length);
+  const N = Math.max(6, count ?? pool.length, pool.length);
   const out: CarSpec[] = [];
   for (let i = 0; i < N; i++) {
     const entry = pool[i % pool.length];
@@ -422,13 +420,11 @@ export default function CityTraffic() {
     return () => window.removeEventListener("jce.customVehicles.changed", onChange);
   }, []);
   // Trafic civil TOUJOURS actif (indépendant de la campagne).
-  // Le count vient du panel Admin (civilVehicleCount), plafonné par le tier
-  // pour rester fluide sur mobile, avec un plancher de 6 pour que la ville
-  // soit toujours vivante — même sur Xiaomi bas de gamme.
+  // Le count vient du panel Admin (civilVehicleCount) avec un plancher de 6.
   const adminDesired = Math.max(6, admin.civilVehicleCount || 0);
-  const tierDefault = isUltraLite() ? 6 : tier === "low" ? 10 : tier === "mid" ? 16 : 24;
-  const desiredCars = Math.min(adminDesired, tierDefault);
-  const carBudget = Math.max(6, trafficBudget(desiredCars));
+  const customTrafficCount = listCustomVehicles().filter(v => TRAFFIC_CATEGORIES.includes(v.category)).length;
+  const desiredCars = Math.max(adminDesired, customTrafficCount);
+  const carBudget = Math.max(6, customTrafficCount, trafficBudget(desiredCars));
   const activeCars = useMemo<CarSpec[]>(() => buildCarsFromCustom(carBudget), [carBudget, customTick]);
   const pathRefs = useRef<(SVGPathElement | null)[]>([]);
   const carNodes = useRef<(SVGGElement | null)[]>([]);
@@ -568,7 +564,10 @@ export default function CityTraffic() {
     } else if (newLen < prevLen) {
       statesRef.current.length = newLen;
     }
-    statesRef.current.forEach((st, i) => { st.node = carNodes.current[i]; });
+    statesRef.current.forEach((st, i) => {
+      st.node = carNodes.current[i];
+      if (activeCars[i]) st.spec = { ...st.spec, imageUrl: activeCars[i].imageUrl, category: activeCars[i].category, kind: activeCars[i].kind, color: activeCars[i].color, accent: activeCars[i].accent, scale: activeCars[i].scale };
+    });
     const states = statesRef.current;
 
     // Radars retirés : noop pour préserver l'API d'appel dans la boucle.
@@ -580,7 +579,6 @@ export default function CityTraffic() {
     // 30 fps suffit largement pour du trafic vu de haut, ça divise le coût CPU
     // par 2 sur les smartphones d'entrée de gamme (Xiaomi, Redmi, etc.).
     const MIN_FRAME = 1000 / targetFps();
-    let lastDensityCheck = 0;
     let activeCount = states.length;
     const step = (now: number) => {
       raf = requestAnimationFrame(step);
@@ -588,14 +586,7 @@ export default function CityTraffic() {
       const dt = Math.min(0.05, (now - last) / 1000);
       last = now;
 
-      if (now - lastDensityCheck > 4000) {
-        lastDensityCheck = now;
-        const gt = getGameTime();
-        // Beaucoup de monde le jour, trafic très réduit la nuit.
-        const ratio = Math.max(0.12, Math.min(1, gt.density / 1.2));
-        // densityMult ramène l'effectif sur appareils low-end (≈35%).
-        activeCount = Math.max(6, Math.round(states.length * ratio * densityMult()));
-      }
+      activeCount = states.length;
 
 
       const vr = visibleRect.current;
@@ -707,7 +698,7 @@ export default function CityTraffic() {
     return () => {
       cancelAnimationFrame(raf);
     };
-  }, [activeCars.length]);
+  }, [activeCars]);
 
 
   return (

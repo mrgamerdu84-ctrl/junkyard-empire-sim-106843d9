@@ -145,12 +145,10 @@ export function preferLiteAssets(): boolean {
 }
 
 export function trafficBudget(defaultCount: number): number {
-  const t = perfTier();
   const scale = readSettings().entityScale;
-  // Plafonds par tier — plancher volontaire à 6 pour garder la ville vivante
-  // même sur bas de gamme (le trafic civil n'est jamais coupé par la campagne).
-  const tierCap = t === "ultra" ? 6 : t === "low" ? 10 : t === "mid" ? 18 : defaultCount;
-  const scaled = Math.floor(Math.min(defaultCount, tierCap) * scale);
+  // Le panel Admin reste la source de vérité. Le mode ultra-fluide peut réduire
+  // les entités, mais la détection automatique mobile ne coupe plus le trafic.
+  const scaled = Math.floor(defaultCount * scale);
   return Math.max(6, scaled);
 }
 

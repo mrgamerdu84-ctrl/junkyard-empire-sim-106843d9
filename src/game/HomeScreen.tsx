@@ -13,6 +13,7 @@ import LoadingScreen from "./LoadingScreen";
 import CampaignPanel from "./CampaignPanel";
 import { preferLiteAssets } from "@/lib/perf";
 import { useUnlock } from "./campaign/unlocks";
+import { resetFullGame } from "./resetGame";
 
 export default function HomeScreen({ onPlay, onReplayIntro }: { onPlay: () => void; onReplayIntro?: () => void }) {
   const bgUrl = preferLiteAssets() ? bgLiteAsset.url : bgAssetV2;
@@ -294,6 +295,18 @@ export default function HomeScreen({ onPlay, onReplayIntro }: { onPlay: () => vo
           <div className="hs-btns">
             <button className="hs-btn hs-btn-hero" onClick={() => setLoading(true)}>
               ▶ Jouer
+            </button>
+            <button
+              className="hs-btn"
+              style={{ background: "linear-gradient(180deg,#ef4444,#b91c1c)", color: "#fff", boxShadow: "0 5px 0 #7f1d1d, 0 10px 18px rgba(0,0,0,0.45)", border: "2px solid #fca5a5", textShadow: "0 1px 0 rgba(0,0,0,0.3)" }}
+              onClick={async () => {
+                if (!confirm("Recommencer depuis le chapitre 1 avec un seul vieux taxi ?")) return;
+                await resetFullGame();
+                setProgress(0);
+                setLoading(true);
+              }}
+            >
+              ↻ Nouvelle partie
             </button>
             <button
               className="hs-btn"

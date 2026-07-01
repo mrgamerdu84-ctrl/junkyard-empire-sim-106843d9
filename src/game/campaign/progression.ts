@@ -8,6 +8,7 @@
 
 import { CHAPTERS } from "./campaignData";
 import { loadCampaign, saveCampaign, completeChapter, chapterProgress } from "./campaignState";
+import { CAMPAIGN_COUNTERS_KEY, GAME_SAVE_KEY } from "../resetGame";
 
 export type ChapterGoals = {
   courses: number;
@@ -46,8 +47,8 @@ export type ChapterCounters = {
   baseline: { money: number; taxis: number; depotTier: number };
 };
 
-const CKEY = "campaign_counters_v1";
-const SAVE_KEY = "taxi-tycoon-v4";
+const CKEY = CAMPAIGN_COUNTERS_KEY;
+const SAVE_KEY = GAME_SAVE_KEY;
 
 function readSnapshot(): { money: number; taxis: number; depotTier: number } {
   try {
