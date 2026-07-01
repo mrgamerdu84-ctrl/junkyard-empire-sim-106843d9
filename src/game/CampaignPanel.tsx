@@ -3,13 +3,15 @@ import { ACTS, CHAPTERS, type CampaignChapter } from "./campaign/campaignData";
 import {
   loadCampaign,
   startCampaign,
-  toggleMission,
+  completeMission,
   isChapterMissionsDone,
   recordChoice,
   completeChapter,
   resetCampaign,
+  chapterProgress,
   type CampaignState,
 } from "./campaign/campaignState";
+
 
 export default function CampaignPanel({ onClose }: { onClose: () => void }) {
   const [state, setState] = useState<CampaignState>(() => startCampaign());
@@ -66,11 +68,16 @@ export default function CampaignPanel({ onClose }: { onClose: () => void }) {
                           <div className="cp-chapter-txt">
                             <div className="cp-chapter-title">{ch.title}</div>
                             {ch.subtitle && <div className="cp-chapter-sub">{ch.subtitle}</div>}
+                            {!locked && !done && (() => {
+                              const p = chapterProgress(ch.id);
+                              return <div className="cp-chapter-sub">Progression : {p.done}/{p.total}{p.hasChoice ? (p.choiceDone ? " · choix ✓" : " · choix requis") : ""}</div>;
+                            })()}
                           </div>
                           <span className="cp-chapter-state">
                             {locked ? "🔒" : done ? "✅" : "▶"}
                           </span>
                         </li>
+
                       );
                     })}
                   </ul>
@@ -111,7 +118,9 @@ export default function CampaignPanel({ onClose }: { onClose: () => void }) {
             chapter={activeChapter}
             state={state}
             onBack={() => setOpenChapter(null)}
-            onToggleMission={(mid) => setState(toggleMission(activeChapter.id, mid))}
+            onToggleMission={(mid) => setState(completeMission(activeChapter.id, mid))}
+
+
             onChoice={(cid, opt) => {
               const s = recordChoice(cid, opt);
               setState(s);
