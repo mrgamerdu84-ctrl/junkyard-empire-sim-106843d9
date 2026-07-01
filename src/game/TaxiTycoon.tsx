@@ -2099,12 +2099,24 @@ export default function TaxiTycoon() {
           manualPosRef.current = { x: cur.x + Math.cos(rad) * step, y: cur.y + Math.sin(rad) * step, angle: cur.angle };
         }
       }
+      // Publie la position du taxi pour la caméra "world" (index.tsx suit ce point).
+      try {
+        (window as any).__mtwDriveFocus = { x: manualPosRef.current.x, y: manualPosRef.current.y };
+      } catch {}
       setManualTick((n) => (n + 1) % 1000000);
     };
     raf = requestAnimationFrame(tick);
 
-    return () => cancelAnimationFrame(raf);
+    return () => {
+      cancelAnimationFrame(raf);
+      try { (window as any).__mtwDriveFocus = null; } catch {}
+    };
   }, [manualMode, admin.hqX, admin.hqY, frameMs]);
+
+  // Signale l'activation/désactivation du mode PILOTE au conteneur monde.
+  useEffect(() => {
+    try { window.dispatchEvent(new CustomEvent("mtw:drive-mode", { detail: { active: manualMode } })); } catch {}
+  }, [manualMode]);
 
 
   // === Actions UI ===
