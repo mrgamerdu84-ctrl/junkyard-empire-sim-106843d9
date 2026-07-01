@@ -23,6 +23,7 @@ import SplashScreen from "@/game/SplashScreen";
 import IntroStory, { hasSeenIntro } from "@/game/IntroStory";
 import UltraFluidPanel from "@/game/UltraFluidPanel";
 import CampaignHud from "@/game/CampaignHud";
+import Chapter1Manager from "@/game/Chapter1Manager";
 import DepotEvolution from "@/game/DepotEvolution";
 import { preferLiteAssets } from "@/lib/perf";
 
@@ -206,6 +207,7 @@ function TaxiTycoonPage() {
       <VersionBanner />
       <UltraFluidPanel />
       <CampaignHud />
+      <Chapter1Manager />
 
 
 
