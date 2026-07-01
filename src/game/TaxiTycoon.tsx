@@ -17,6 +17,8 @@ import { pickSpecialMission, SPECIAL_COOLDOWN_MS } from "@/lib/specialMissions";
 import { getGameTime, periodLabel } from "./cityClock";
 import RadioPlayer from "./RadioPlayer";
 import PersonnelPanel from "./PersonnelPanel";
+import DealershipPanel from "./DealershipPanel";
+import { useUnlock } from "./campaign/unlocks";
 import MissionOfferToast from "./MissionOfferToast";
 import { getMaintenanceDiscount, getTipsBonus, startPersonnelTick } from "./personnel";
 import { useAuth } from "@/lib/useAuth";
@@ -2250,6 +2252,8 @@ export default function TaxiTycoon() {
   const [pseudoOpen, setPseudoOpen] = useState(false);
   const [cityInfoOpen, setCityInfoOpen] = useState(false);
   const [personnelOpen, setPersonnelOpen] = useState(false);
+  const [dealershipOpen, setDealershipOpen] = useState(false);
+  const dealershipUnlocked = useUnlock("dealership");
 
   const auth = useAuth();
   const [pseudoDraft, setPseudoDraft] = useState("");
@@ -3674,6 +3678,16 @@ export default function TaxiTycoon() {
             <button className="tt-lcd-tool" onClick={() => navigate({ to: "/download" })} title="APK Android">
               <span className="tt-lcd-tool-ico" style={{ color: "#a4c639" }}>🤖</span><b>APK</b>
             </button>
+            <button
+              className="tt-lcd-tool"
+              onClick={() => dealershipUnlocked
+                ? setDealershipOpen(true)
+                : alert("🔒 Le Concessionnaire ouvrira au Chapitre 2 (après le recrutement du premier chauffeur).")}
+              title={dealershipUnlocked ? "Concessionnaire Taxi Co." : "Débloqué au chapitre 2"}
+              style={dealershipUnlocked ? undefined : { opacity: 0.6 }}
+            >
+              <span className="tt-lcd-tool-ico">🏪</span><b>{dealershipUnlocked ? "CONCESS." : "🔒 CONCESS."}</b>
+            </button>
             <button className="tt-lcd-tool" onClick={() => window.dispatchEvent(new CustomEvent("mtw:open-admin"))} title="Admin">
               <span className="tt-lcd-tool-ico">⚙</span><b>ADMIN</b>
             </button>
@@ -3722,6 +3736,7 @@ export default function TaxiTycoon() {
           money={save.money}
           onHireCharge={(cost) => setSave((s) => ({ ...s, money: Math.max(0, s.money - cost) }))}
         />
+        {dealershipOpen && <DealershipPanel onClose={() => setDealershipOpen(false)} />}
 
 
         {/* Dialog Pseudo */}
