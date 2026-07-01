@@ -11,9 +11,16 @@ import {
 } from "./dealership/dealershipState";
 import { loadStaff, subscribeStaff, type StaffMember } from "./personnel";
 import { unlockedTaxiCount } from "./campaign/campaignState";
-import { GAME_ASSETS } from "./gameAssets";
+import {
+  GAME_ASSETS,
+  addCustomVehicle, removeCustomVehicle, listCustomVehicles,
+  VEHICLE_CATEGORY_LABELS, VEHICLE_ERA_LABELS,
+  type CustomVehicle, type CustomVehicleCategory, type VehicleEra,
+} from "./gameAssets";
+import { useAuth } from "@/lib/useAuth";
+import { useIsAdmin } from "@/lib/adminState";
 
-type Tab = "shop" | "garage";
+type Tab = "shop" | "garage" | "import";
 
 export default function DealershipPanel({ onClose }: { onClose: () => void }) {
   const [tab, setTab] = useState<Tab>("shop");
