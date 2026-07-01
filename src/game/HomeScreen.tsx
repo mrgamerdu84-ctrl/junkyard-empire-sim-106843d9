@@ -318,6 +318,16 @@ export default function HomeScreen({ onPlay, onReplayIntro }: { onPlay: () => vo
             >
               📖 Campagne — La Renaissance
             </button>
+            <button
+              className="hs-btn"
+              style={dealershipUnlocked
+                ? { background: "linear-gradient(180deg,#10b981,#047857)", color: "#052e16", boxShadow: "0 5px 0 #064e3b, 0 10px 18px rgba(0,0,0,0.45)", border: "2px solid #34d399", textShadow: "0 1px 0 rgba(255,255,255,0.35)" }
+                : { opacity: 0.55, cursor: "not-allowed", background: "linear-gradient(180deg,#4b5563,#1f2937)", color: "#e5e7eb", border: "2px solid #6b7280" }}
+              onClick={() => dealershipUnlocked ? setShowDealership(true) : alert("🔒 Le Concessionnaire ouvrira au Chapitre 2 (après le recrutement du premier chauffeur).")}
+              title={dealershipUnlocked ? "Concessionnaire Taxi Co." : "Débloqué au chapitre 2"}
+            >
+              {dealershipUnlocked ? "🏪 Concessionnaire" : "🔒 Concessionnaire"}
+            </button>
           </div>
         )}
 
