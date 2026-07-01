@@ -64,7 +64,7 @@ const DEFAULTS: Record<AssetKey, string> = {
   "taxi.yellow": taxiYellowAsset,
   "taxi.black": taxiBlackAsset,
   "taxi.red": taxiRedAsset,
-  "taxi.father": taxiFatherAsset,
+  "taxi.father": taxiYellowAsset,
   "police.car": policeCarAsset,
   "emergency.ambulance": ambulanceAsset,
   "emergency.firetruck": firetruckAsset,
@@ -77,14 +77,14 @@ const DEFAULTS: Record<AssetKey, string> = {
 
   "audio.music": musicAsset.url,
 
-  "dealer.heritage": dealerHeritageAsset,
-  "dealer.classic": dealerClassicAsset,
-  "dealer.comfort": dealerComfortAsset,
-  "dealer.premium": dealerPremiumAsset,
-  "dealer.electric": dealerElectricAsset,
-  "dealer.van": dealerVanAsset,
-  "dealer.luxury": dealerLuxuryAsset,
-  "dealer.limousine": dealerLimoAsset,
+  "dealer.heritage": taxiYellowAsset,
+  "dealer.classic": taxiYellowAsset,
+  "dealer.comfort": taxiBlackAsset,
+  "dealer.premium": taxiBlackAsset,
+  "dealer.electric": taxiRedAsset,
+  "dealer.van": taxiBlackAsset,
+  "dealer.luxury": taxiBlackAsset,
+  "dealer.limousine": taxiBlackAsset,
 };
 
 
