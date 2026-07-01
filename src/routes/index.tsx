@@ -22,9 +22,6 @@ import HomeScreen from "@/game/HomeScreen";
 import SplashScreen from "@/game/SplashScreen";
 import IntroStory, { hasSeenIntro } from "@/game/IntroStory";
 import UltraFluidPanel from "@/game/UltraFluidPanel";
-import AbandonedWarehouse from "@/game/AbandonedWarehouse";
-import WarehouseSurroundings from "@/game/WarehouseSurroundings";
-import StoryStartTools from "@/game/StoryStartTools";
 import { preferLiteAssets } from "@/lib/perf";
 
 export const Route = createFileRoute("/")({
@@ -184,8 +181,6 @@ function TaxiTycoonPage() {
         <img src={mapSrc} alt="Plan de la ville pour le jeu de taxi" className="tt-map" />
         <div className="tt-vignette" />
         <CityTraffic />
-        {/* WarehouseSurroundings retiré : la nouvelle illustration isométrique intègre déjà clôture, cour, parking, portail, palmiers */}
-        <AbandonedWarehouse />
         <BaronConvoy />
         <BaronManor />
         <MafiaAttackers />
@@ -202,11 +197,12 @@ function TaxiTycoonPage() {
       
       {/* <AmbientSirens /> — désactivé sur demande joueur */}
       <AdminPanel />
-      <StoryStartTools />
       <MafiaGodfather />
       <BaronNegotiation playerMoney={0} onDeal={(a) => console.log("baron deal", a)} />
       <VersionBanner />
       <UltraFluidPanel />
+
+
     </div>
   );
 }
