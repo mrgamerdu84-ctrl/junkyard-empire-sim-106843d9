@@ -3253,6 +3253,8 @@ export default function TaxiTycoon() {
               }
             }
             const angle = p.angle;
+            // Mémorise la position visuelle rendue pour un dispatch fluide.
+            taxiVisualPosRef.current.set(taxi.id, { x: p.x, y: p.y, angle });
             const fuelPct = Math.max(0, Math.min(1, taxi.fuel / 100));
             const fuelLow = taxi.fuel < FUEL_LOW_THRESHOLD;
             const isHonking = honkingTaxis.has(taxi.id);
