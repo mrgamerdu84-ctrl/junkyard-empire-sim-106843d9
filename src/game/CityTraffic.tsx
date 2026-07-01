@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useAdminConfig } from "./adminConfig";
 import { getPedestrianPhotoUrls, listCustomVehicles, getCivilCarUrls, type CustomVehicleCategory } from "./gameAssets";
+import { getActiveCivilCarUrls } from "./civilFleetProgression";
+import { currentChapterNumber } from "./dealership/dealershipState";
 import { VehicleSvg, type VehicleSvgKind } from "./vehicles/VehicleSvgs";
 import {
   initTrafficLights,
