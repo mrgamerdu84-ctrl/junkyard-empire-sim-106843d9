@@ -15,6 +15,7 @@ import {
   type MpPlayer,
   type MpMatch,
 } from "@/lib/multiplayer.functions";
+import { useUnlock } from "@/game/campaign/unlocks";
 
 export const Route = createFileRoute("/_authenticated/arena")({
   head: () => ({
@@ -47,7 +48,7 @@ function LockedScreen({ title }: { title: string }) {
 }
 
 function ArenaPage() {
-  const arenaUnlocked = require("@/game/campaign/unlocks").useUnlock("empire.arena");
+  const arenaUnlocked = useUnlock("empire.arena");
   if (!arenaUnlocked) return <LockedScreen title="Arène mondiale verrouillée" />;
   return <ArenaPageInner />;
 }

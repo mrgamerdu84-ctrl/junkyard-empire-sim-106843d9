@@ -9,6 +9,7 @@ import {
   listMyDefis,
   type DefiWithPeers,
 } from "@/lib/defis.functions";
+import { useUnlock } from "@/game/campaign/unlocks";
 
 export const Route = createFileRoute("/_authenticated/defis")({
   head: () => ({
@@ -27,7 +28,24 @@ export const Route = createFileRoute("/_authenticated/defis")({
   notFoundComponent: () => <div style={{ padding: 24, color: "#fff7d6" }}>Page introuvable</div>,
 });
 
+function DefisLocked() {
+  return (
+    <div style={{ padding: 32, textAlign: "center", color: "#fde047", minHeight: "60vh", display: "flex", flexDirection: "column", justifyContent: "center", alignItems: "center", gap: 12 }}>
+      <div style={{ fontSize: 64 }}>🔒</div>
+      <h1 style={{ margin: 0 }}>Défis 1v1 verrouillés</h1>
+      <p style={{ maxWidth: 420, opacity: 0.85 }}>Les défis entre chauffeurs s'ouvriront après la fin de la campagne (Mode Empire).</p>
+      <a href="/" style={{ marginTop: 12, padding: "10px 18px", background: "#f5c542", color: "#1a1208", borderRadius: 8, fontWeight: 800, textDecoration: "none" }}>Retour au jeu</a>
+    </div>
+  );
+}
+
 function DefisPage() {
+  const unlocked = useUnlock("empire.defis");
+  if (!unlocked) return <DefisLocked />;
+  return <DefisPageInner />;
+}
+
+function DefisPageInner() {
   const router = useRouter();
   const queryClient = useQueryClient();
   const { user } = useAuth();
