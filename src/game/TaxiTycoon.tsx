@@ -110,6 +110,7 @@ type Taxi = {
   // et la nouvelle position sur le path pickup pendant TRANSITION_MS.
   transitionFromX?: number;
   transitionFromY?: number;
+  transitionFromAngle?: number;
   transitionUntil?: number;
 };
 const TRANSITION_MS = 1500;
