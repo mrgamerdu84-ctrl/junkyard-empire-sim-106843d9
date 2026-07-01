@@ -181,11 +181,11 @@ export default function Chapter1Manager() {
       {/* Confirmation : réparer le vieux taxi */}
       {confirmRepair && (
         <ActionModal
-          title="Réparer le vieux taxi"
+          title="Réparer « Le Taxi du Père »"
           desc={
             yardCleaned
-              ? "Sous la bâche : le vieux Ford jaune de ton père. Marcel remonte le carbu, gonfle les pneus, tourne la clé… le moteur tousse, puis rugit. Il est prêt à reprendre la route."
-              : "Avant de mettre les mains sous le capot, il faudrait dégager la cour. Marcel dit qu'il ne peut rien faire dans ce bazar."
+              ? "Sous la bâche : « Le Taxi du Père », la vieille berline jaune héritée de ton père — dernier vestige de l'ancien Taxi Co. Marcel remonte le carbu, gonfle les pneus, tourne la clé… le moteur tousse, puis rugit. Il est prêt à reprendre la route."
+              : "Avant de mettre les mains sous le capot du Taxi du Père, il faudrait dégager la cour. Marcel dit qu'il ne peut rien faire dans ce bazar."
           }
           confirmLabel={yardCleaned ? "🔧 Terminer la réparation" : "OK"}
           disabled={!yardCleaned}
