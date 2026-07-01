@@ -1,82 +1,70 @@
-# Refonte : Progression 100% pilotée par la campagne
+# Concessionnaire Taxi — Plan d'implémentation
 
-## Principe
+## Objectif
+Ajouter une boutique de taxis progressive gatée par la campagne, avec un système d'affectation chauffeur↔véhicule, sans casser la flotte existante ni le panel Admin.
 
-Créer **un seul module central** `src/game/campaign/unlocks.ts` qui expose des flags booléens (`isUnlocked(featureId)`) calculés à partir de `campaignState`. Tous les autres systèmes existants **restent intacts** mais consultent ce module pour s'auto-masquer si le chapitre requis n'est pas atteint.
+## Fichiers créés
 
-Aucun composant n'est supprimé. Aucune sauvegarde n'est cassée : les parties existantes voient simplement `campaignState.started = true` et sont considérées comme "campagne en cours" au chapitre courant. Une migration douce garde les taxis déjà achetés au-dessus du cap (grandfather).
+### `src/game/dealership/taxiModels.ts`
+Catalogue de 8 modèles avec toutes les stats :
+```ts
+export type TaxiModel = {
+  id: string;
+  name: string;
+  emoji: string;
+  unlockChapter: number;   // 1, 2, 3, 5, 7, 8, 10, 12
+  price: number;           // 0 pour Héritage
+  speed: number;           // 1-10
+  fuel: number;            // consommation
+  reliability: number;
+  comfort: number;
+  maintenance: number;     // coût mensuel
+  prestige: number;
+  assetKey: string;        // clé dans GAME_ASSETS
+};
+```
+Contient les 8 modèles (Héritage, Classique, Berline Confort, Premium, Électrique, Van 7 places, Luxe, Limousine).
 
-## Table des déblocages (feature → chapitre requis)
+### `src/game/dealership/dealershipState.ts`
+- `getOwnedModels()` / `buyModel(id)` — lit/écrit dans `taxi-tycoon-v4` (ajoute champ `ownedModelIds` + `assignments` par taxi).
+- `assignDriver(taxiId, driverId)` / `unassign(taxiId)`.
+- `isModelUnlocked(id)` — croise `unlockChapter` avec `campaignState.currentChapterIndex + 1` ou `empireUnlocked`.
+- Événement `dealership.updated` pour rafraîchir l'UI.
 
-| Feature ID | Débloqué à | Contrôlé par |
-|---|---|---|
-| `taxi.count` (cap flotte) | progressif | déjà en place (`unlockedTaxiCount`) |
-| `depot.clean` | Ch1 | Chapter1Manager |
-| `depot.repair_taxi` | Ch1 | Chapter1Manager |
-| `personnel.marcel` | Ch2 | PersonnelPanel |
-| `depot.gate`, `depot.power`, `depot.workshop2` | Ch2 | DepotEvolution |
-| `office.explore`, `item.cassette`, `item.keyB12` | Ch3 | (nouveau) OfficePanel |
-| `mail.system`, `baron.hint` | Ch4 | MafiaLimo (indirect) |
-| `baron.active`, `baron.dialogue` | Ch5 | BaronConvoy / BaronNegotiation / MafiaGodfather |
-| `contracts.system`, `reputation.system` | Ch6 | MissionOfferToast (special) |
-| `security.system`, `driver.morale`, `sabotage.repair` | Ch7 | MafiaAttackers |
-| `depot.b12`, `evidence.docs`, `map.hidden_zone` | Ch8 | (zone carte) |
-| `investigation.system`, `choice.justice_pardon` | Ch9 | CampaignPanel choices |
-| `pnj.journalist`, `evidence.gather`, `evidence.protect` | Ch10 | CampaignPanel |
-| `choice.three_paths` | Ch11 | CampaignPanel |
-| `baron.final`, `campaign.end` | Ch12 | — |
-| `empire.mode` (dépôts, VTC, limos, navettes, minibus, événements infinis) | Épilogue | HomeScreen + AdminPanel |
+### `src/game/DealershipPanel.tsx`
+Deux onglets :
+- **Concessionnaire** : grille de cartes (photo asset, stats en barres, prix, bouton Acheter). Modèles verrouillés grisés avec badge "Disponible Chapitre X". Bouton Acheter désactivé si argent insuffisant ou verrouillé.
+- **Mon Garage** : liste des taxis possédés + select d'affectation vers les chauffeurs de `personnel.ts`. Un taxi sans chauffeur = badge "Inactif". Un chauffeur non affecté = warning en haut.
 
-## Modifications
+### Intégration UI
+- `src/game/HomeScreen.tsx` ou console dashboard (TaxiTycoon) : bouton "🏪 Concessionnaire" gaté via `useUnlock("dealership")` (nouvelle feature clé, chapitre min = 2, après recrutement du 1er chauffeur — on ajoute une clé `personnel.first_driver` complétée par la mission `m2c` ou équivalent).
+- Ajout dans `FEATURE_MIN_CHAPTER` de `unlocks.ts` : `"dealership": 2`.
 
-### 1. Nouveau fichier `src/game/campaign/unlocks.ts`
-- Exporte `isUnlocked(featureId)`, `requiredChapter(featureId)`, `useUnlock(id)` (hook réactif via `campaign.updated`).
-- Table de mapping feature → chapitre.
-- Helper `withLock(featureId, jsx)` pour rendus conditionnels.
-- Événement `campaign.updated` déjà émis par `campaignState.ts`.
+## Intégration avec l'existant
 
-### 2. `src/game/campaign/campaignState.ts`
-- Ajouter `ensureStartedForNewPlayers()` appelé au boot : si aucune sauvegarde campagne mais taxis > 1 en mémoire, marquer `started=true` et fixer `currentChapterIndex` selon nombre de taxis (migration douce, grandfathering).
-- Ne pas casser les sauvegardes.
+### `src/game/TaxiTycoon.tsx`
+- La flotte reste gérée par le système actuel (`taxis[]`, `dispatchTaxi`, `unlockedTaxiCount`).
+- Quand on achète un modèle dans le concessionnaire, on **appelle la logique d'achat de taxi existante** en passant `assetKey` + `modelId` pour que le nouveau taxi utilise le bon sprite (via `GAME_ASSETS`).
+- Le cap `unlockedTaxiCount()` de la campagne reste actif : le concessionnaire refuse l'achat si la flotte est déjà au max du chapitre (message clair).
+- Le taxi index 0 (Héritage/"Taxi du Père") reste forcé, aucun changement.
 
-### 3. Gate des systèmes existants
-Chaque composant ajoute un `if (!isUnlocked('xxx')) return null;` en tête. Aucun code métier retiré.
+### `src/game/personnel.ts`
+- Ajout des helpers `listDrivers()` / `getDriverById(id)` s'ils manquent, pour le picker d'affectation.
+- Le champ `assignedTaxiId` par chauffeur (persisté dans le state personnel existant).
 
-- `MafiaLimo.tsx` → `baron.hint` (Ch4)
-- `BaronConvoy.tsx`, `BaronManor.tsx`, `BaronNegotiation.tsx` → `baron.active` (Ch5)
-- `MafiaGodfather.tsx` → `baron.dialogue` (Ch5)
-- `MafiaAttackers.tsx` → `security.system` (Ch7)
-- `ArmoredTruck.tsx` → `empire.mode` (post-campagne, événement mafia haut niveau)
-- `PersonnelPanel.tsx` → bouton Marcel gate Ch2, autres rôles gate Ch7 (moral), managers gate Empire
-- `MissionOfferToast.tsx` → missions spéciales gate Ch6 (contrats)
-- `CrimeEvents.tsx` → gate Ch7
-- `HomeScreen.tsx` → entrées "Arène", "Défis", "Empire" gate épilogue
-- `AdminPanel.tsx` : inchangé (outil admin, pas gameplay)
-- `TaxiTycoon.tsx` :
-  - `buyTaxi` déjà cappé
-  - masquer boutons "acheter 2e taxi" tant que Ch2 non atteint
-  - désactiver spawn de rivaux (`CityRivalTaxis`, `CityCompetitors`) tant que Ch6 non atteint
+### `src/game/gameAssets.ts`
+- Enregistrer les 8 asset keys correspondants. Réutiliser les assets existants (taxi-yellow, taxi-red, taxi-gold, taxi-black, armored-truck pour van, etc.) au démarrage — l'admin pourra les remplacer via le panel comme aujourd'hui.
 
-### 4. Routes protégées (`_authenticated/arena.tsx`, `defis.tsx`)
-- Ajouter un garde côté composant : si `!isUnlocked('empire.mode')`, afficher écran "Débloqué après la campagne" au lieu de rediriger (pas de changement de router).
+### `src/game/resetGame.ts`
+- Ajouter la clé `DEALERSHIP_KEY` au reset complet.
 
-### 5. Chapter1Manager
-- Déjà présent. S'assurer que l'intro se lance automatiquement sur nouvelle partie (déjà OK).
-- Ajouter au 1er lancement `startCampaign()` si non démarré.
+## Contraintes respectées
+- ✅ Panel Admin : les assets restent surchargeables (rotation, upload custom).
+- ✅ Véhicules achetés circulent sur les vraies routes (même pipeline que la flotte actuelle).
+- ✅ Système de taxis existant préservé, uniquement étendu.
+- ✅ Compatibilité cloud : les nouveaux champs `ownedModelIds` / `assignments` s'ajoutent au save existant sans casser les anciennes parties (grandfathering : modèles déjà en flotte marqués comme possédés à la volée).
 
-### 6. UX
-- CampaignHud déjà en place → conservé.
-- Toast discret quand une feature se débloque : `window.dispatchEvent('feature.unlocked', {id, chapter})` émis par unlocks.ts au changement de chapitre; un composant global `UnlockToast.tsx` affiche "🔓 Nouveauté débloquée : …".
-
-## Ce qui NE change PAS
-- CSS/interface générale, panel Admin, économie, DB, sauvegardes cloud, radio, trafic, feux rouges, piétons, `UltraFluidPanel`, `RadioPlayer`, HUD console, `DepotEvolution` visuel.
-
-## Détails techniques
-- `useUnlock` : `useState + useEffect` sur `campaign.updated`, renvoie boolean.
-- Aucune migration SQL. Uniquement `localStorage`.
-- Grandfather : joueurs existants avec > 1 taxi → `currentChapterIndex = min(taxis-1, 11)`, `completedChapters` remplis en conséquence, pour ne rien leur retirer.
-- Compilation : tous les composants gardés, pas de refactor router.
-
-## Fichiers touchés
-Nouveau : `src/game/campaign/unlocks.ts`, `src/game/UnlockToast.tsx`.
-Modifiés (ajout d'un gate en tête, ~3 lignes chacun) : MafiaLimo, BaronConvoy, BaronManor, BaronNegotiation, MafiaGodfather, MafiaAttackers, ArmoredTruck, PersonnelPanel, MissionOfferToast, CrimeEvents, HomeScreen, TaxiTycoon (spawn rivaux + bouton achat), CityRivalTaxis, CityCompetitors, Chapter1Manager (autostart), campaignState (grandfather), routes arena/defis (gate composant), routes/index.tsx (monter UnlockToast).
+## Ce que je ne touche pas
+- Trafic civil, Mafia, Baron, Radar, Radio.
+- Logique de mission / dispatch.
+- Système de sauvegarde cloud (juste des nouveaux champs additifs).

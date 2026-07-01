@@ -34,6 +34,7 @@ const DEFAULT_CAMPAIGN_STATE = {
 };
 
 const STORY_STATE_KEYS = [
+  "mtw.dealership.v1",
   "mtw.godfather.v1",
   "mtw.personnel.v1",
   "mtw.intro.seen.v1",

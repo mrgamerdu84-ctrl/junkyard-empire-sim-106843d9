@@ -11,6 +11,7 @@ import { useAuth, signOut } from "@/lib/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import LoadingScreen from "./LoadingScreen";
 import CampaignPanel from "./CampaignPanel";
+import DealershipPanel from "./DealershipPanel";
 import { preferLiteAssets } from "@/lib/perf";
 import { useUnlock } from "./campaign/unlocks";
 import { resetFullGame } from "./resetGame";
@@ -20,8 +21,10 @@ export default function HomeScreen({ onPlay, onReplayIntro }: { onPlay: () => vo
   const navigate = useNavigate();
   const { user, pseudo: cloudPseudo, avatarKind, avatarUrl } = useAuth();
   const arenaUnlocked = useUnlock("empire.arena");
+  const dealershipUnlocked = useUnlock("dealership");
   const [showProfile, setShowProfile] = useState(false);
   const [showCampaign, setShowCampaign] = useState(false);
+  const [showDealership, setShowDealership] = useState(false);
   const [loading, setLoading] = useState(false);
   const [progress, setProgress] = useState(0);
   const [showTutorial, setShowTutorial] = useState(false);
@@ -315,6 +318,16 @@ export default function HomeScreen({ onPlay, onReplayIntro }: { onPlay: () => vo
             >
               📖 Campagne — La Renaissance
             </button>
+            <button
+              className="hs-btn"
+              style={dealershipUnlocked
+                ? { background: "linear-gradient(180deg,#10b981,#047857)", color: "#052e16", boxShadow: "0 5px 0 #064e3b, 0 10px 18px rgba(0,0,0,0.45)", border: "2px solid #34d399", textShadow: "0 1px 0 rgba(255,255,255,0.35)" }
+                : { opacity: 0.55, cursor: "not-allowed", background: "linear-gradient(180deg,#4b5563,#1f2937)", color: "#e5e7eb", border: "2px solid #6b7280" }}
+              onClick={() => dealershipUnlocked ? setShowDealership(true) : alert("🔒 Le Concessionnaire ouvrira au Chapitre 2 (après le recrutement du premier chauffeur).")}
+              title={dealershipUnlocked ? "Concessionnaire Taxi Co." : "Débloqué au chapitre 2"}
+            >
+              {dealershipUnlocked ? "🏪 Concessionnaire" : "🔒 Concessionnaire"}
+            </button>
           </div>
         )}
 
@@ -432,6 +445,7 @@ export default function HomeScreen({ onPlay, onReplayIntro }: { onPlay: () => vo
       {showLeaderboard && <LeaderboardPanel onClose={() => setShowLeaderboard(false)} />}
       {showProfile && <ProfileCard onClose={() => setShowProfile(false)} />}
       {showCampaign && <CampaignPanel onClose={() => setShowCampaign(false)} />}
+      {showDealership && <DealershipPanel onClose={() => setShowDealership(false)} />}
 
       {showPseudo && (
         <div className="hs-pseudo-overlay">

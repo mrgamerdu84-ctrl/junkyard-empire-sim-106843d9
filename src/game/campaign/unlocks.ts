@@ -23,6 +23,7 @@ export const FEATURE_MIN_CHAPTER: Record<string, number> = {
   "depot.power": 2,
   "depot.workshop2": 2,
   "taxi.buy_second": 2,
+  "dealership": 2,
 
   // Ch3 — Les Premiers Indices
   "office.explore": 3,
