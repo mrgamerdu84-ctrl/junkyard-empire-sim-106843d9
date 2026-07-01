@@ -198,6 +198,7 @@ export function addCustomVehicle(v: Omit<CustomVehicle, "id"> & { id?: string })
     name: v.name || "Véhicule",
     url: v.url,
     category: v.category ?? "civil",
+    era: v.era,
   };
   const all = listCustomVehicles();
   all.push(item);
