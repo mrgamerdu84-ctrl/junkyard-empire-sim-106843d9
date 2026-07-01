@@ -68,11 +68,16 @@ export default function CampaignPanel({ onClose }: { onClose: () => void }) {
                           <div className="cp-chapter-txt">
                             <div className="cp-chapter-title">{ch.title}</div>
                             {ch.subtitle && <div className="cp-chapter-sub">{ch.subtitle}</div>}
+                            {!locked && !done && (() => {
+                              const p = chapterProgress(ch.id);
+                              return <div className="cp-chapter-sub">Progression : {p.done}/{p.total}{p.hasChoice ? (p.choiceDone ? " · choix ✓" : " · choix requis") : ""}</div>;
+                            })()}
                           </div>
                           <span className="cp-chapter-state">
                             {locked ? "🔒" : done ? "✅" : "▶"}
                           </span>
                         </li>
+
                       );
                     })}
                   </ul>
