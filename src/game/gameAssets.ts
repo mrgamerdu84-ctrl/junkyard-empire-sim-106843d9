@@ -78,7 +78,7 @@ const DEFAULTS: Record<AssetKey, string> = {
 
   "audio.music": musicAsset.url,
 
-  "dealer.heritage": taxiYellowAsset,
+  "dealer.heritage": taxiFatherAsset.url,
   "dealer.classic": taxiYellowAsset,
   "dealer.comfort": taxiBlackAsset,
   "dealer.premium": taxiBlackAsset,
