@@ -307,7 +307,7 @@ function OutroModal({
         <div className="ch1-eyebrow ch1-success">✅ Chapitre terminé</div>
         <h2>Chapitre 1 — {chapterTitle}</h2>
         <p>
-          La cour est propre, le vieux taxi ronronne et ton premier client vient de descendre en te glissant un pourboire.
+          La cour est propre, « Le Taxi du Père » ronronne à nouveau et ton premier client vient de descendre en te glissant un pourboire.
           Taxi Co. est officiellement de retour dans la course.
         </p>
         <div className="ch1-next">
