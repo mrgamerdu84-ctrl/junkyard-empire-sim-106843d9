@@ -23,22 +23,13 @@
 import taxiYellowAsset from "@/assets/taxi-yellow-top.png";
 import taxiBlackAsset from "@/assets/taxi-black-top.png";
 import taxiRedAsset from "@/assets/taxi-red-top.png";
-import taxiFatherAsset from "@/assets/taxi-father-top.png";
 import policeCarAsset from "@/assets/police-car-top.png";
 import ambulanceAsset from "@/assets/ambulance-top.png";
 import firetruckAsset from "@/assets/firetruck-top.png";
 import pedManTopAsset from "@/assets/pedestrian-man-top.png";
 import pedWomanTopAsset from "@/assets/pedestrian-woman-top.png";
 import musicAsset from "@/assets/midnight-fare.mp3.asset.json";
-// Concessionnaire — sprites premium top-down
-import dealerHeritageAsset from "@/assets/models/taxi-heritage.png";
-import dealerClassicAsset from "@/assets/models/taxi-classic.png";
-import dealerComfortAsset from "@/assets/models/taxi-comfort.png";
-import dealerPremiumAsset from "@/assets/models/taxi-premium.png";
-import dealerElectricAsset from "@/assets/models/taxi-electric.png";
-import dealerVanAsset from "@/assets/models/taxi-van.png";
-import dealerLuxuryAsset from "@/assets/models/taxi-luxury.png";
-import dealerLimoAsset from "@/assets/models/taxi-limousine.png";
+
 
 
 
@@ -73,7 +64,7 @@ const DEFAULTS: Record<AssetKey, string> = {
   "taxi.yellow": taxiYellowAsset,
   "taxi.black": taxiBlackAsset,
   "taxi.red": taxiRedAsset,
-  "taxi.father": taxiFatherAsset,
+  "taxi.father": taxiYellowAsset,
   "police.car": policeCarAsset,
   "emergency.ambulance": ambulanceAsset,
   "emergency.firetruck": firetruckAsset,
@@ -86,14 +77,14 @@ const DEFAULTS: Record<AssetKey, string> = {
 
   "audio.music": musicAsset.url,
 
-  "dealer.heritage": dealerHeritageAsset,
-  "dealer.classic": dealerClassicAsset,
-  "dealer.comfort": dealerComfortAsset,
-  "dealer.premium": dealerPremiumAsset,
-  "dealer.electric": dealerElectricAsset,
-  "dealer.van": dealerVanAsset,
-  "dealer.luxury": dealerLuxuryAsset,
-  "dealer.limousine": dealerLimoAsset,
+  "dealer.heritage": taxiYellowAsset,
+  "dealer.classic": taxiYellowAsset,
+  "dealer.comfort": taxiBlackAsset,
+  "dealer.premium": taxiBlackAsset,
+  "dealer.electric": taxiRedAsset,
+  "dealer.van": taxiBlackAsset,
+  "dealer.luxury": taxiBlackAsset,
+  "dealer.limousine": taxiBlackAsset,
 };
 
 
