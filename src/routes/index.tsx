@@ -191,6 +191,7 @@ function TaxiTycoonPage() {
         <CrimeEvents />
         <InterventionDispatcher />
         <TaxiTycoon />
+        <DepotEvolution />
         <ArmoredTruck />
         <MafiaLimo />
       </div>
@@ -204,6 +205,9 @@ function TaxiTycoonPage() {
       <BaronNegotiation playerMoney={0} onDeal={(a) => console.log("baron deal", a)} />
       <VersionBanner />
       <UltraFluidPanel />
+      <CampaignHud />
+
+
 
 
     </div>
