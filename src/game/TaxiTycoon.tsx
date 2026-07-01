@@ -2127,6 +2127,10 @@ export default function TaxiTycoon() {
   };
 
   const buyTaxi = () => {
+    if (save.taxis.length >= campaignCap) {
+      showToast("🔒 Nouveau taxi verrouillé : avance dans la campagne");
+      return;
+    }
     if (taxiCount >= effectiveMaxTaxis) {
       showToast(`Capacité max : améliore le QG`);
       return;
