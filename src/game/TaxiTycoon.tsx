@@ -3984,8 +3984,14 @@ export default function TaxiTycoon() {
           border-top: 3px solid #000;
           padding: 8px 10px max(10px, env(safe-area-inset-bottom));
           display: flex; flex-direction: column; gap: 6px;
+          max-height: 46vh;
+          overflow-y: auto;
+          overscroll-behavior: contain;
+          -webkit-overflow-scrolling: touch;
+          scrollbar-width: none;
         }
-        .tt-console-lcd .tt-dashboard-lcd { margin: 0; }
+        .tt-console-lcd::-webkit-scrollbar { display: none; }
+        .tt-console  .tt-dashboard-lcd { margin: 0; }
         .tt-lcd-row2 { grid-template-columns: repeat(5, 1fr) !important; }
         .tt-lcd-mini {
           background: rgba(0,0,0,0.35); border: 1px solid rgba(255,180,60,0.18);
