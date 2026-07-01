@@ -2099,12 +2099,24 @@ export default function TaxiTycoon() {
           manualPosRef.current = { x: cur.x + Math.cos(rad) * step, y: cur.y + Math.sin(rad) * step, angle: cur.angle };
         }
       }
+      // Publie la position du taxi pour la caméra "world" (index.tsx suit ce point).
+      try {
+        (window as any).__mtwDriveFocus = { x: manualPosRef.current.x, y: manualPosRef.current.y };
+      } catch {}
       setManualTick((n) => (n + 1) % 1000000);
     };
     raf = requestAnimationFrame(tick);
 
-    return () => cancelAnimationFrame(raf);
+    return () => {
+      cancelAnimationFrame(raf);
+      try { (window as any).__mtwDriveFocus = null; } catch {}
+    };
   }, [manualMode, admin.hqX, admin.hqY, frameMs]);
+
+  // Signale l'activation/désactivation du mode PILOTE au conteneur monde.
+  useEffect(() => {
+    try { window.dispatchEvent(new CustomEvent("mtw:drive-mode", { detail: { active: manualMode } })); } catch {}
+  }, [manualMode]);
 
 
   // === Actions UI ===
@@ -2587,21 +2599,11 @@ export default function TaxiTycoon() {
       {!ultraLite && <WeatherNightOverlay lite={perfMode === "low"} />}
 
       {/* === Calque SVG du jeu === */}
-      {/* En mode PILOTE : la caméra suit le taxi (viewBox dynamique zoomé, taxi centré). */}
-      {(() => { void manualTick; return null; })()}
       <svg
         ref={containerRef}
-        viewBox={(() => {
-          if (!manualMode) return "0 0 1920 1080";
-          const zoomW = 720; // largeur visible en mode conduite (zoom ~2.6x)
-          const zoomH = 405;
-          const p = manualPosRef.current;
-          const x = Math.max(0, Math.min(1920 - zoomW, p.x - zoomW / 2));
-          const y = Math.max(0, Math.min(1080 - zoomH, p.y - zoomH / 2));
-          return `${x} ${y} ${zoomW} ${zoomH}`;
-        })()}
+        viewBox="0 0 1920 1080"
         preserveAspectRatio="xMidYMid slice"
-        style={{ position: "absolute", inset: 0, width: "100%", height: "100%", pointerEvents: "none", zIndex: manualMode ? 9500 : 4, touchAction: manualMode ? "none" : undefined, transition: manualMode ? "none" : "none" }}
+        style={{ position: "absolute", inset: 0, width: "100%", height: "100%", pointerEvents: "none", zIndex: manualMode ? 9500 : 4, touchAction: manualMode ? "none" : undefined }}
       >
         <defs>
           {ROADS.map((d, i) => (

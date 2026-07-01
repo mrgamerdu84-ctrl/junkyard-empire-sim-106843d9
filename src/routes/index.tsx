@@ -52,6 +52,8 @@ function TaxiTycoonPage() {
   const [pan, setPan] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
   const dragRef = useRef<{ startX: number; startY: number; baseX: number; baseY: number } | null>(null);
   const worldRef = useRef<HTMLDivElement | null>(null);
+  const [driveMode, setDriveMode] = useState(false);
+  const [driveTransform, setDriveTransform] = useState<string | null>(null);
 
   const zoom = ZOOM_LEVELS[zoomIdx];
   const mapSrc = preferLiteAssets() ? citymapLiteAsset.url : citymap;
@@ -65,6 +67,48 @@ function TaxiTycoonPage() {
   const unlockBaronDialogue = useUnlock("baron.dialogue");
   const unlockBaronNegotiation = useUnlock("baron.negotiation");
 
+  // Écoute le mode PILOTE émis par TaxiTycoon.
+  useEffect(() => {
+    const on = (e: Event) => {
+      const active = !!(e as CustomEvent).detail?.active;
+      setDriveMode(active);
+      if (!active) setDriveTransform(null);
+    };
+    window.addEventListener("mtw:drive-mode", on);
+    return () => window.removeEventListener("mtw:drive-mode", on);
+  }, []);
+
+  // Caméra qui suit le taxi en mode PILOTE : on transforme TOUT le monde
+  // (map + trafic + overlays) via CSS transform pour éviter le calque blanc.
+  useEffect(() => {
+    if (!driveMode) return;
+    const el = worldRef.current;
+    if (!el) return;
+    const DRIVE_ZOOM = 2.4;
+    let raf = 0;
+    const tick = () => {
+      raf = requestAnimationFrame(tick);
+      const f = (window as any).__mtwDriveFocus as { x: number; y: number } | null;
+      if (!f) return;
+      const w = el.clientWidth || 1;
+      const h = el.clientHeight || 1;
+      // Le SVG utilise viewBox 1920x1080 avec preserveAspectRatio="xMidYMid slice",
+      // donc la map remplit le conteneur. Convertit (x,y) viewBox → pixels écran.
+      const scale = Math.max(w / 1920, h / 1080);
+      const drawnW = 1920 * scale;
+      const drawnH = 1080 * scale;
+      const offX = (w - drawnW) / 2;
+      const offY = (h - drawnH) / 2;
+      const px = offX + f.x * scale; // position taxi en px écran
+      const py = offY + f.y * scale;
+      // Après zoom, décaler pour ramener (px,py) au centre.
+      const tx = w / 2 - px * DRIVE_ZOOM;
+      const ty = h / 2 - py * DRIVE_ZOOM;
+      setDriveTransform(`translate(${tx}px, ${ty}px) scale(${DRIVE_ZOOM})`);
+    };
+    raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
+  }, [driveMode]);
 
   // Clamp pan : on n'a pas le droit de tirer la carte hors-écran.
   useEffect(() => {
@@ -189,11 +233,16 @@ function TaxiTycoonPage() {
       <div
         ref={worldRef}
         className="tt-world"
-        style={{ transform: `translate(${pan.x}px, ${pan.y}px) scale(${zoom})`, cursor: zoom > 1 ? (dragRef.current ? "grabbing" : "grab") : "default" }}
-        onPointerDown={onPointerDown}
-        onPointerMove={onPointerMove}
-        onPointerUp={onPointerUp}
-        onPointerCancel={onPointerUp}
+        style={{
+          transform: driveTransform ?? `translate(${pan.x}px, ${pan.y}px) scale(${zoom})`,
+          transformOrigin: driveMode ? "0 0" : "center center",
+          transition: driveMode ? "none" : "transform 0.12s ease-out",
+          cursor: zoom > 1 && !driveMode ? (dragRef.current ? "grabbing" : "grab") : "default",
+        }}
+        onPointerDown={driveMode ? undefined : onPointerDown}
+        onPointerMove={driveMode ? undefined : onPointerMove}
+        onPointerUp={driveMode ? undefined : onPointerUp}
+        onPointerCancel={driveMode ? undefined : onPointerUp}
       >
         <img src={mapSrc} alt="Plan de la ville pour le jeu de taxi" className="tt-map" />
         <div className="tt-vignette" />
