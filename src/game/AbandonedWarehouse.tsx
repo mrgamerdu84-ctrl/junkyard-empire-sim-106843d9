@@ -1,5 +1,5 @@
 import { useAdminConfig } from "./adminConfig";
-import depotAsset from "@/assets/taxi-depot-industrial.png.asset.json";
+import depotAsset from "@/assets/taxi-depot-iso.png.asset.json";
 
 /**
  * Dépôt de taxis — entrepôt industriel réaliste (image PNG).
@@ -16,8 +16,8 @@ export default function AbandonedWarehouse() {
 
   // Dimensions de rendu (viewBox 1920x1080) — l'image originale fait 1280x960,
   // on garde son ratio et on la centre sur (cx, cy).
-  const baseW = 460;
-  const baseH = baseW * (960 / 1280);
+  const baseW = 420;
+  const baseH = baseW; // image isométrique carrée 1024x1024
   const w = baseW * scale;
   const h = baseH * scale;
 
@@ -37,16 +37,13 @@ export default function AbandonedWarehouse() {
       aria-hidden
     >
       <defs>
-        <filter id="depot-shadow" x="-30%" y="-30%" width="160%" height="160%">
-          <feDropShadow dx="0" dy="10" stdDeviation="8" floodColor="#000" floodOpacity="0.55" />
+        <filter id="depot-shadow" x="-20%" y="-20%" width="140%" height="140%">
+          <feDropShadow dx="0" dy="4" stdDeviation="5" floodColor="#3a2a10" floodOpacity="0.35" />
         </filter>
       </defs>
 
       <g transform={`translate(${cx},${cy}) rotate(${rot})`}>
-        {/* Ombre portée au sol */}
-        <ellipse cx="0" cy={h * 0.42} rx={w * 0.48} ry={h * 0.12} fill="#000" opacity="0.45" />
-
-        {/* Bâtiment principal */}
+        {/* Bâtiment isométrique — l'ombre est déjà intégrée à l'illustration */}
         <image
           href={depotAsset.url}
           x={-w / 2}
