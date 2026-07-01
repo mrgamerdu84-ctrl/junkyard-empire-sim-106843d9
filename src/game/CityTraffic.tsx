@@ -358,9 +358,9 @@ type CarState = {
 };
 
 // Catégories autorisées dans le trafic libre : le panel Admin doit rester
-// indépendant de la campagne. On exclut seulement les véhicules d'histoire.
+// indépendant de la campagne, donc tous les véhicules importés peuvent rouler.
 const TRAFFIC_CATEGORIES: CustomVehicleCategory[] = [
-  "civil", "service", "taxi", "police", "ambulance", "firetruck",
+  "civil", "service", "taxi", "police", "ambulance", "firetruck", "robber", "armored", "limo",
 ];
 
 function buildCarsFromCustom(count?: number): CarSpec[] {
@@ -580,7 +580,6 @@ export default function CityTraffic() {
     // 30 fps suffit largement pour du trafic vu de haut, ça divise le coût CPU
     // par 2 sur les smartphones d'entrée de gamme (Xiaomi, Redmi, etc.).
     const MIN_FRAME = 1000 / targetFps();
-    let lastDensityCheck = 0;
     let activeCount = states.length;
     const step = (now: number) => {
       raf = requestAnimationFrame(step);
@@ -588,13 +587,7 @@ export default function CityTraffic() {
       const dt = Math.min(0.05, (now - last) / 1000);
       last = now;
 
-      if (now - lastDensityCheck > 4000) {
-        lastDensityCheck = now;
-        const gt = getGameTime();
-        // Beaucoup de monde le jour, trafic très réduit la nuit.
-        const ratio = Math.max(0.12, Math.min(1, gt.density / 1.2));
-        activeCount = Math.max(6, Math.round(states.length * ratio));
-      }
+      activeCount = states.length;
 
 
       const vr = visibleRect.current;

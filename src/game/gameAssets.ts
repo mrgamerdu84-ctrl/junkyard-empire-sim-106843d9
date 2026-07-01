@@ -180,9 +180,9 @@ export function removeCustomVehicle(id: string) {
   emitCustomChange();
 }
 
-// Circulation libre : tous les véhicules ajoutés par l'admin qui ne sont pas
-// des véhicules d'histoire/special mission doivent pouvoir vivre sur la carte.
-const TRAFFIC_CATEGORIES: CustomVehicleCategory[] = ["civil", "service", "taxi", "police", "ambulance", "firetruck"];
+// Circulation libre : tous les véhicules ajoutés par l'admin doivent pouvoir
+// apparaître dans le trafic si l'admin les importe dans le catalogue.
+const TRAFFIC_CATEGORIES: CustomVehicleCategory[] = ["civil", "service", "taxi", "police", "ambulance", "firetruck", "robber", "armored", "limo"];
 
 /** 🔧 DYNAMIC - Se met à jour chaque fois qu'on l'appelle */
 function getCustomTrafficUrls(): string[] {

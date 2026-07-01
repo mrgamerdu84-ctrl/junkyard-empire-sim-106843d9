@@ -41,6 +41,11 @@ const STORY_STATE_KEYS = [
   "mtw.ch1.outro.seen",
   "mtw.ch1.yard.cleaned",
   "mtw.ch1.taxi.repaired",
+  "tt-daily-scores",
+  "tt-special-taxi-unlocked",
+  "tt-last-week-processed",
+  "tt-best-week-score",
+  "tt-tutorial-seen",
 ];
 
 function emitResetEvents() {
