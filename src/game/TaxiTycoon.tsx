@@ -1543,9 +1543,14 @@ export default function TaxiTycoon() {
             taxi.refuelUntil = Date.now() + FUEL_REFILL_MS;
           }
         } else {
-          // Respect des feux : si rouge devant, on s'arrête (skip ce frame)
+          // Respect des feux + file d'attente derrière un autre véhicule
           const forward = diff > 0;
-          if (!shouldStopAhead(taxi.pathIdx, taxi.pos, forward, nowSeconds())) {
+          const tid = `taxi-${taxi.id}`;
+          reportVehicle(tid, taxi.pathIdx, taxi.pos, forward);
+          if (
+            !shouldStopAhead(taxi.pathIdx, taxi.pos, forward, nowSeconds()) &&
+            !hasVehicleAhead(tid, taxi.pathIdx, taxi.pos, forward)
+          ) {
             taxi.pos += Math.sign(diff) * step;
           }
         }
