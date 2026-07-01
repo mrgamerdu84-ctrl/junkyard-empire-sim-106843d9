@@ -877,6 +877,15 @@ function SkinsTab() {
     setAssetOverride(key, null);
     force(v => v + 1);
   };
+  const onRotate = async (key: AssetKey, deg: 90 | 270) => {
+    try {
+      const rotated = await rotateToDataUrl(GAME_ASSETS[key], deg);
+      setAssetOverride(key, rotated);
+      force(v => v + 1);
+    } catch {
+      window.alert("Impossible de faire pivoter cette image (CORS ou URL invalide).");
+    }
+  };
   return (
     <>
       <div style={{ fontSize: 12, color: "#c8ccd2", lineHeight: 1.5, marginBottom: 8 }}>
