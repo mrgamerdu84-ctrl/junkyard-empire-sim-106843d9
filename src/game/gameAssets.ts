@@ -30,6 +30,16 @@ import firetruckAsset from "@/assets/firetruck-top.png";
 import pedManTopAsset from "@/assets/pedestrian-man-top.png";
 import pedWomanTopAsset from "@/assets/pedestrian-woman-top.png";
 import musicAsset from "@/assets/midnight-fare.mp3.asset.json";
+// Concessionnaire — sprites premium top-down
+import dealerHeritageAsset from "@/assets/models/taxi-heritage.png";
+import dealerClassicAsset from "@/assets/models/taxi-classic.png";
+import dealerComfortAsset from "@/assets/models/taxi-comfort.png";
+import dealerPremiumAsset from "@/assets/models/taxi-premium.png";
+import dealerElectricAsset from "@/assets/models/taxi-electric.png";
+import dealerVanAsset from "@/assets/models/taxi-van.png";
+import dealerLuxuryAsset from "@/assets/models/taxi-luxury.png";
+import dealerLimoAsset from "@/assets/models/taxi-limousine.png";
+
 
 
 
@@ -49,7 +59,15 @@ export type AssetKey =
   | "civil.car.4"
   | "pedestrian.man"
   | "pedestrian.woman"
-  | "audio.music";
+  | "audio.music"
+  | "dealer.heritage"
+  | "dealer.classic"
+  | "dealer.comfort"
+  | "dealer.premium"
+  | "dealer.electric"
+  | "dealer.van"
+  | "dealer.luxury"
+  | "dealer.limousine";
 
 const DEFAULTS: Record<AssetKey, string> = {
   "taxi.yellow": taxiYellowAsset,
@@ -67,7 +85,17 @@ const DEFAULTS: Record<AssetKey, string> = {
   "pedestrian.woman": pedWomanTopAsset,
 
   "audio.music": musicAsset.url,
+
+  "dealer.heritage": dealerHeritageAsset,
+  "dealer.classic": dealerClassicAsset,
+  "dealer.comfort": dealerComfortAsset,
+  "dealer.premium": dealerPremiumAsset,
+  "dealer.electric": dealerElectricAsset,
+  "dealer.van": dealerVanAsset,
+  "dealer.luxury": dealerLuxuryAsset,
+  "dealer.limousine": dealerLimoAsset,
 };
+
 
 
 const OVERRIDE_KEY = "jce.assetOverrides";
