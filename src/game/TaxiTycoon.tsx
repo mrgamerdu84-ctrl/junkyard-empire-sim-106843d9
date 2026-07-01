@@ -2083,22 +2083,26 @@ export default function TaxiTycoon() {
     })();
     return () => { cancelled = true; };
   }, []);
-  const taxiCount = save.taxis.length;
-  const effectiveMaxTaxis = tier.maxTaxis + (save.hqCapacityLvl ?? 0) + driversCount;
+  // Flotte réellement disponible = min(taxis possédés, cap campagne).
+  const taxiCount = Math.min(save.taxis.length, campaignCap);
+  const effectiveMaxTaxis = Math.min(
+    tier.maxTaxis + (save.hqCapacityLvl ?? 0) + driversCount,
+    campaignCap,
+  );
   const taxiBuyCost = Math.round(TAXI_COST_BASE * Math.pow(1.65, taxiCount));
   const speedCost = Math.round(SPEED_UPGRADE_COST_BASE * Math.pow(2.1, save.taxiSpeedLvl));
 
-  // Chaque chauffeur embauché reçoit automatiquement un taxi gratuit
-  // (= un véhicule supplémentaire qui sort de l'entrepôt sur la route).
+  // Chaque chauffeur embauché reçoit automatiquement un taxi gratuit,
+  // MAIS jamais au-delà de ce que la campagne a débloqué.
   useEffect(() => {
-    const target = 1 + driversCount; // 1 taxi de base au joueur + 1 par chauffeur
+    const target = Math.min(1 + driversCount, campaignCap);
     if (save.taxis.length >= target) return;
     setSave((s) => {
       if (s.taxis.length >= target) return s;
       const extras = Array.from({ length: target - s.taxis.length }, () => ({ colorId: s.defaultColor }));
       return { ...s, taxis: [...s.taxis, ...extras] };
     });
-  }, [driversCount, save.taxis.length, setSave]);
+  }, [driversCount, save.taxis.length, campaignCap, setSave]);
 
 
   const hqCostFor = (base: number, lvl: number) => Math.round(base * Math.pow(1.9, lvl));
