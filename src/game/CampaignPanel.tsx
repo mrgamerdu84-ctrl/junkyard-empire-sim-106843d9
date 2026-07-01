@@ -3,10 +3,7 @@ import { ACTS, CHAPTERS, type CampaignChapter } from "./campaign/campaignData";
 import {
   loadCampaign,
   startCampaign,
-  completeMission,
-  isChapterMissionsDone,
   recordChoice,
-  completeChapter,
   resetCampaign,
   chapterProgress,
   type CampaignState,
