@@ -110,6 +110,7 @@ type Taxi = {
   // et la nouvelle position sur le path pickup pendant TRANSITION_MS.
   transitionFromX?: number;
   transitionFromY?: number;
+  transitionFromAngle?: number;
   transitionUntil?: number;
 };
 const TRANSITION_MS = 1500;
@@ -671,6 +672,11 @@ export default function TaxiTycoon() {
 
   // === Dynamic state (not persisted) ===
   const taxisRef = useRef<Taxi[]>([]);
+  // Dernière position visuelle rendue par taxi (mise à jour à chaque frame).
+  // Permet à dispatchTaxi de partir *exactement* de là où le joueur voit le
+  // taxi (place de parking ou position lerpée), au lieu de sauter au centre
+  // du QG puis de re-lerper vers la route.
+  const taxiVisualPosRef = useRef<Map<number, { x: number; y: number; angle: number }>>(new Map());
   const nextIdRef = useRef(1);
   const lastJobSpawnRef = useRef(0);
   const lastTaxiDispatchRef = useRef(0);
@@ -2433,10 +2439,14 @@ export default function TaxiTycoon() {
       return;
     }
     free.jobId = job.id;
-    // Position visuelle de départ : si le taxi était garé au QG, on part
-    // du QG pour qu'on le voie sortir vraiment (pas un saut sur la route).
+    // Position visuelle de départ : on part *exactement* de la position que
+    // le joueur voit à l'écran (place de parking pour un taxi garé, ou
+    // dernière position lerpée pour un taxi déjà en route). Sinon le taxi
+    // sautait au centre du QG avant de re-lerper vers la route.
     const wasParked = free.mode === "idle" || free.mode === "depositing";
-    const visualFrom = wasParked ? { x: depotXY.x, y: depotXY.y - 18 } : taxiXY(free);
+    const rendered = taxiVisualPosRef.current.get(free.id);
+    const fallback = wasParked ? { x: depotXY.x, y: depotXY.y - 18 } : taxiXY(free);
+    const visualFrom = rendered ?? fallback;
     // Bascule vers le path du pickup, partant de sa position actuelle.
     free.pathIdx = job.pickupPath;
     free.pos = closestOnPath(job.pickupPath, visualFrom.x, visualFrom.y);
@@ -2447,6 +2457,7 @@ export default function TaxiTycoon() {
     // interpoler vers le path (évite le « saut »).
     free.transitionFromX = visualFrom.x;
     free.transitionFromY = visualFrom.y;
+    free.transitionFromAngle = rendered?.angle;
     free.transitionUntil = performance.now() + TRANSITION_MS;
     setJobs((js) => js.map((j) => j.id === id ? { ...j, status: "accepted", acceptedAt: Date.now() } : j));
 
@@ -3239,15 +3250,20 @@ export default function TaxiTycoon() {
                 const ease = k * k * (3 - 2 * k);
                 const lx = taxi.transitionFromX + (onPath.x - taxi.transitionFromX) * ease;
                 const ly = taxi.transitionFromY + (onPath.y - taxi.transitionFromY) * ease;
-                const dxA = onPath.x - taxi.transitionFromX;
-                const dyA = onPath.y - taxi.transitionFromY;
-                const ang = Math.hypot(dxA, dyA) > 2
-                  ? (Math.atan2(dyA, dxA) * 180) / Math.PI
-                  : onPath.angle;
+                // Angle lissé : on interpole depuis l'angle rendu au départ
+                // (place de parking, souvent -18°) vers l'angle de la route,
+                // via le plus court chemin — plus de « pivot instantané ».
+                const fromA = taxi.transitionFromAngle ?? onPath.angle;
+                let da = onPath.angle - fromA;
+                while (da > 180) da -= 360;
+                while (da < -180) da += 360;
+                const ang = fromA + da * ease;
                 p = { x: lx, y: ly, angle: ang };
               }
             }
             const angle = p.angle;
+            // Mémorise la position visuelle rendue pour un dispatch fluide.
+            taxiVisualPosRef.current.set(taxi.id, { x: p.x, y: p.y, angle });
             const fuelPct = Math.max(0, Math.min(1, taxi.fuel / 100));
             const fuelLow = taxi.fuel < FUEL_LOW_THRESHOLD;
             const isHonking = honkingTaxis.has(taxi.id);
