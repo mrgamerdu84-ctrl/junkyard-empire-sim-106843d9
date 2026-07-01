@@ -10,6 +10,7 @@ import { hasSeenTutorial, resetTutorial, getPlayerName, setPlayerName, pushLocal
 import { useAuth, signOut } from "@/lib/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import LoadingScreen from "./LoadingScreen";
+import CampaignPanel from "./CampaignPanel";
 import { preferLiteAssets } from "@/lib/perf";
 
 export default function HomeScreen({ onPlay, onReplayIntro }: { onPlay: () => void; onReplayIntro?: () => void }) {
@@ -17,6 +18,7 @@ export default function HomeScreen({ onPlay, onReplayIntro }: { onPlay: () => vo
   const navigate = useNavigate();
   const { user, pseudo: cloudPseudo, avatarKind, avatarUrl } = useAuth();
   const [showProfile, setShowProfile] = useState(false);
+  const [showCampaign, setShowCampaign] = useState(false);
   const [loading, setLoading] = useState(false);
   const [progress, setProgress] = useState(0);
   const [showTutorial, setShowTutorial] = useState(false);
@@ -291,6 +293,13 @@ export default function HomeScreen({ onPlay, onReplayIntro }: { onPlay: () => vo
             <button className="hs-btn hs-btn-hero" onClick={() => setLoading(true)}>
               ▶ Jouer
             </button>
+            <button
+              className="hs-btn"
+              style={{ background: "linear-gradient(180deg,#7c3aed,#4c1d95)", color: "#fde047", boxShadow: "0 5px 0 #2e1065, 0 10px 18px rgba(0,0,0,0.45)", border: "2px solid #a78bfa", textShadow: "0 1px 0 rgba(0,0,0,0.35)" }}
+              onClick={() => setShowCampaign(true)}
+            >
+              📖 Campagne — La Renaissance
+            </button>
           </div>
         )}
 
@@ -395,6 +404,7 @@ export default function HomeScreen({ onPlay, onReplayIntro }: { onPlay: () => vo
       {showTutorial && <TutorialDialog onClose={() => setShowTutorial(false)} />}
       {showLeaderboard && <LeaderboardPanel onClose={() => setShowLeaderboard(false)} />}
       {showProfile && <ProfileCard onClose={() => setShowProfile(false)} />}
+      {showCampaign && <CampaignPanel onClose={() => setShowCampaign(false)} />}
 
       {showPseudo && (
         <div className="hs-pseudo-overlay">
