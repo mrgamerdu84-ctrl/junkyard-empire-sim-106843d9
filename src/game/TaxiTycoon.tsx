@@ -671,6 +671,11 @@ export default function TaxiTycoon() {
 
   // === Dynamic state (not persisted) ===
   const taxisRef = useRef<Taxi[]>([]);
+  // Dernière position visuelle rendue par taxi (mise à jour à chaque frame).
+  // Permet à dispatchTaxi de partir *exactement* de là où le joueur voit le
+  // taxi (place de parking ou position lerpée), au lieu de sauter au centre
+  // du QG puis de re-lerper vers la route.
+  const taxiVisualPosRef = useRef<Map<number, { x: number; y: number; angle: number }>>(new Map());
   const nextIdRef = useRef(1);
   const lastJobSpawnRef = useRef(0);
   const lastTaxiDispatchRef = useRef(0);
