@@ -421,12 +421,14 @@ export default function CityTraffic() {
     window.addEventListener("jce.customVehicles.changed", onChange);
     return () => window.removeEventListener("jce.customVehicles.changed", onChange);
   }, []);
-  // Trafic civil réactivé avec un budget agressivement limité par perfTier.
-  // Le bug réel qui faisait ramer (setState pendant le rendu) a été corrigé ;
-  // on peut donc remettre quelques civils et piétons.
-  void admin;
-  const desiredCars = isUltraLite() ? 4 : tier === "low" ? 8 : tier === "mid" ? 14 : 22;
-  const carBudget = trafficBudget(desiredCars);
+  // Trafic civil TOUJOURS actif (indépendant de la campagne).
+  // Le count vient du panel Admin (civilVehicleCount), plafonné par le tier
+  // pour rester fluide sur mobile, avec un plancher de 6 pour que la ville
+  // soit toujours vivante — même sur Xiaomi bas de gamme.
+  const adminDesired = Math.max(6, admin.civilVehicleCount || 0);
+  const tierDefault = isUltraLite() ? 6 : tier === "low" ? 10 : tier === "mid" ? 16 : 24;
+  const desiredCars = Math.min(adminDesired, tierDefault);
+  const carBudget = Math.max(6, trafficBudget(desiredCars));
   const activeCars = useMemo<CarSpec[]>(() => buildCarsFromCustom(carBudget), [carBudget, customTick]);
   const pathRefs = useRef<(SVGPathElement | null)[]>([]);
   const carNodes = useRef<(SVGGElement | null)[]>([]);
