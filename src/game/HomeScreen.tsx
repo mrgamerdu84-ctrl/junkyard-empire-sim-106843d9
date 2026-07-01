@@ -404,6 +404,7 @@ export default function HomeScreen({ onPlay, onReplayIntro }: { onPlay: () => vo
       {showTutorial && <TutorialDialog onClose={() => setShowTutorial(false)} />}
       {showLeaderboard && <LeaderboardPanel onClose={() => setShowLeaderboard(false)} />}
       {showProfile && <ProfileCard onClose={() => setShowProfile(false)} />}
+      {showCampaign && <CampaignPanel onClose={() => setShowCampaign(false)} />}
 
       {showPseudo && (
         <div className="hs-pseudo-overlay">
