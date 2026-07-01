@@ -33,6 +33,7 @@ function pickLimoSprite(): string {
 }
 
 export default function MafiaLimo() {
+  const unlocked = useUnlock("baron.hint");
   const reducedFx = reduceMotion();
   const [phase, setPhase] = useState<Phase>("off");
   const [pos, setPos] = useState({ x: MAP_W + 200, y: MAP_H / 2, angle: 180 });
