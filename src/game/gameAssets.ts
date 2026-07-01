@@ -23,6 +23,7 @@
 import taxiYellowAsset from "@/assets/taxi-yellow-top.png";
 import taxiBlackAsset from "@/assets/taxi-black-top.png";
 import taxiRedAsset from "@/assets/taxi-red-top.png";
+import taxiFatherAsset from "@/assets/taxi-father-top.png";
 import policeCarAsset from "@/assets/police-car-top.png";
 import ambulanceAsset from "@/assets/ambulance-top.png";
 import firetruckAsset from "@/assets/firetruck-top.png";
@@ -38,6 +39,7 @@ export type AssetKey =
   | "taxi.yellow"
   | "taxi.black"
   | "taxi.red"
+  | "taxi.father"
   | "police.car"
   | "emergency.ambulance"
   | "emergency.firetruck"
@@ -53,6 +55,7 @@ const DEFAULTS: Record<AssetKey, string> = {
   "taxi.yellow": taxiYellowAsset,
   "taxi.black": taxiBlackAsset,
   "taxi.red": taxiRedAsset,
+  "taxi.father": taxiFatherAsset,
   "police.car": policeCarAsset,
   "emergency.ambulance": ambulanceAsset,
   "emergency.firetruck": firetruckAsset,

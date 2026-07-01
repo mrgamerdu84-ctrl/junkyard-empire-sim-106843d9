@@ -38,6 +38,7 @@ const PLAYER_HQ_IMG = playerHqAsset.url;
 const TAXI_YELLOW_URL = GAME_ASSETS["taxi.yellow"];
 const TAXI_BLACK_URL = GAME_ASSETS["taxi.black"];
 const TAXI_RED_URL = GAME_ASSETS["taxi.red"];
+const TAXI_FATHER_URL = GAME_ASSETS["taxi.father"];
 const POLICE_CAR_URL = GAME_ASSETS["police.car"];
 const AMBULANCE_URL = GAME_ASSETS["emergency.ambulance"];
 const FIRETRUCK_URL = GAME_ASSETS["emergency.firetruck"];
@@ -166,6 +167,19 @@ export type Livery = {
   stripeColor: string;
   image: string;
   faceRight: boolean; // true if image's car nose points right
+};
+
+export const FATHER_TAXI_LIVERY: Livery = {
+  id: "father",
+  name: "Le Taxi du Père",
+  city: "Héritage familial — Taxi Co.",
+  roofLabel: "TAXI",
+  roofBg: "#2a1f14",
+  roofFg: "#e8c56a",
+  stripe: "checker",
+  stripeColor: "#1a1d22",
+  image: TAXI_FATHER_URL,
+  faceRight: true,
 };
 
 export const LIVERIES: Livery[] = [
@@ -3264,7 +3278,8 @@ export default function TaxiTycoon() {
                   style={{ cursor: "pointer", pointerEvents: "auto" }}
                   onClick={(e) => { e.stopPropagation(); honkTaxi(taxi.id); }}
                 >
-                  <TaxiSprite image={currentLivery.image} faceRight={currentLivery.faceRight} paintFilter={ownPaint.filter} markerColor={ownPaint.color} withClient={taxi.mode === "to_dest"} moving={taxi.mode !== "idle" && taxi.mode !== "refueling" && taxi.mode !== "depositing"} />
+                  <title>{idx === 0 ? "Le Taxi du Père — héritage de Taxi Co." : `Taxi #${idx + 1}`}</title>
+                  <TaxiSprite image={idx === 0 ? FATHER_TAXI_LIVERY.image : currentLivery.image} faceRight={idx === 0 ? FATHER_TAXI_LIVERY.faceRight : currentLivery.faceRight} paintFilter={idx === 0 ? "none" : ownPaint.filter} markerColor={ownPaint.color} withClient={taxi.mode === "to_dest"} moving={taxi.mode !== "idle" && taxi.mode !== "refueling" && taxi.mode !== "depositing"} />
                 </g>
                 {/* Numéro de taxi — toujours visible, ne tourne pas */}
                 {!ultraLite && <g transform={`translate(${p.x + 14},${p.y - 14})`} pointerEvents="none">
