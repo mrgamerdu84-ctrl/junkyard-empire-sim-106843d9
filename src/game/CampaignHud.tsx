@@ -3,6 +3,7 @@
 import { useEffect, useState, useMemo } from "react";
 import { CHAPTERS } from "./campaign/campaignData";
 import { loadCampaign, chapterProgress, type CampaignState } from "./campaign/campaignState";
+import { chapterProgressPercent } from "./campaign/progression";
 import CampaignPanel from "./CampaignPanel";
 
 export default function CampaignHud() {
@@ -10,10 +11,17 @@ export default function CampaignHud() {
   const [open, setOpen] = useState(false);
   const [minimized, setMinimized] = useState(false);
 
+  const [tick, setTick] = useState(0);
   useEffect(() => {
-    const on = () => setState(loadCampaign());
+    const on = () => { setState(loadCampaign()); setTick(t => t + 1); };
     window.addEventListener("campaign.updated", on);
-    return () => window.removeEventListener("campaign.updated", on);
+    window.addEventListener("campaign.progress.tick", on);
+    const iv = window.setInterval(() => setTick(t => t + 1), 3000);
+    return () => {
+      window.removeEventListener("campaign.updated", on);
+      window.removeEventListener("campaign.progress.tick", on);
+      window.clearInterval(iv);
+    };
   }, []);
 
   const chapter = useMemo(() => CHAPTERS[state.currentChapterIndex] ?? null, [state.currentChapterIndex]);
@@ -23,7 +31,8 @@ export default function CampaignHud() {
   const prog = chapterProgress(chapter.id);
   const doneSet = new Set(state.completedMissions[chapter.id] ?? []);
   const nextMission = chapter.missions.find((m) => !doneSet.has(m.id));
-  const pct = prog.total > 0 ? Math.round((prog.done / prog.total) * 100) : 0;
+  const pct = chapterProgressPercent(chapter.id);
+  void tick;
 
   return (
     <>
@@ -48,7 +57,7 @@ export default function CampaignHud() {
             )}
           </div>
           <div className="cphud-count">
-            {prog.done}/{prog.total}
+            {pct}%
           </div>
           <button
             className="cphud-min"

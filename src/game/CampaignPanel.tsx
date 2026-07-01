@@ -212,13 +212,13 @@ function ChapterView({
         </>
       )}
 
-      <button
-        className="cp-complete"
-        disabled={!canComplete}
-        onClick={onComplete}
-      >
-        {already ? "Rejouer / Terminer à nouveau" : canComplete ? "Terminer le chapitre ▶" : "Complète toutes les étapes"}
-      </button>
+      <div className="cp-auto-note">
+        {already
+          ? "✅ Chapitre déjà terminé."
+          : canComplete
+            ? "Progression complète — le chapitre va se conclure automatiquement."
+            : "Progression en cours. Continue de jouer : courses, argent, améliorations et objectifs remplissent la barre du chapitre."}
+      </div>
     </div>
   );
 }
@@ -336,11 +336,9 @@ const css = `
 .cp-option.active { border-color: #f5c542; background: rgba(245,197,66,0.15); }
 .cp-option-title { font-weight: 800; font-size: 14px; color: #fde047; }
 .cp-option-desc { font-size: 12px; color: #d1d5db; margin-top: 3px; }
-.cp-complete {
-  margin-top: 16px; width: 100%;
-  background: linear-gradient(180deg, #f5c542, #d49419); color: #1a1208;
-  border: none; padding: 14px; border-radius: 12px; font-weight: 900;
-  font-size: 15px; cursor: pointer; letter-spacing: 1px; text-transform: uppercase;
+.cp-auto-note {
+  margin-top: 16px; padding: 12px 14px; border-radius: 10px;
+  background: rgba(245,197,66,0.08); border: 1px solid rgba(245,197,66,0.35);
+  color: #fde047; font-size: 13px; line-height: 1.4; text-align: center;
 }
-.cp-complete:disabled { opacity: 0.4; cursor: not-allowed; }
 `;

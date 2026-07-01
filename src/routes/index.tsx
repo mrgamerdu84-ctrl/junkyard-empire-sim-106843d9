@@ -26,6 +26,7 @@ import CampaignHud from "@/game/CampaignHud";
 import Chapter1Manager from "@/game/Chapter1Manager";
 import DepotEvolution from "@/game/DepotEvolution";
 import UnlockToast from "@/game/UnlockToast";
+import CampaignProgressTracker from "@/game/CampaignProgressTracker";
 import { useUnlock } from "@/game/campaign/unlocks";
 import { preferLiteAssets } from "@/lib/perf";
 
@@ -224,6 +225,7 @@ function TaxiTycoonPage() {
       <CampaignHud />
       <Chapter1Manager />
       <UnlockToast />
+      <CampaignProgressTracker />
 
 
 
