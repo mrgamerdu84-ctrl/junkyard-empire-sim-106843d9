@@ -114,7 +114,7 @@ export default function Chapter1Manager() {
     },
     {
       id: MISSIONS.repair,
-      label: "Réparer le vieux taxi",
+      label: "Réparer « Le Taxi du Père »",
       done: doneSet.has(MISSIONS.repair),
       action: () => setConfirmRepair(true),
       actionLabel: "🔧 Réparer",
