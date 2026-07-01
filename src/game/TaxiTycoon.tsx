@@ -3988,6 +3988,7 @@ export default function TaxiTycoon() {
           overflow-y: auto;
           overscroll-behavior: contain;
           -webkit-overflow-scrolling: touch;
+          touch-action: pan-y;
           scrollbar-width: none;
         }
         .tt-console-lcd::-webkit-scrollbar { display: none; }
