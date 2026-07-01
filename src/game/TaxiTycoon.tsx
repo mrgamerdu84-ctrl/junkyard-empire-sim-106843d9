@@ -682,6 +682,18 @@ export default function TaxiTycoon() {
   const jobIdRef = useRef(1);
   const [specialCooldownUntil, setSpecialCooldownUntil] = useState<number>(0);
 
+  // === Campagne : cap dur sur la flotte visible ===
+  const [campaignCap, setCampaignCap] = useState<number>(() => campaignTaxiCap());
+  useEffect(() => {
+    const on = () => setCampaignCap(campaignTaxiCap());
+    window.addEventListener("campaign.updated", on);
+    window.addEventListener("campaign.chapter.completed", on);
+    return () => {
+      window.removeEventListener("campaign.updated", on);
+      window.removeEventListener("campaign.chapter.completed", on);
+    };
+  }, []);
+
   // === Concurrent IA ===
   type RivalTaxi = { id: number; pathIdx: number; pos: number; target: number; lane?: LanePosition; mode: TaxiMode; jobId: number | null };
   const rivalTaxisRef = useRef<RivalTaxi[]>([]);
