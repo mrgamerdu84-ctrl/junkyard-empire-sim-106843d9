@@ -854,6 +854,14 @@ const SKIN_LABELS: Record<AssetKey, string> = {
   "pedestrian.man": "Piéton homme",
   "pedestrian.woman": "Piéton femme",
   "audio.music": "Musique",
+  "dealer.heritage": "Concess. — Taxi Héritage",
+  "dealer.classic": "Concess. — Taxi Classique",
+  "dealer.comfort": "Concess. — Berline Confort",
+  "dealer.premium": "Concess. — Taxi Premium",
+  "dealer.electric": "Concess. — Taxi Électrique",
+  "dealer.van": "Concess. — Van 7 places",
+  "dealer.luxury": "Concess. — Taxi Luxe",
+  "dealer.limousine": "Concess. — Limousine",
 };
 
 function SkinsTab() {

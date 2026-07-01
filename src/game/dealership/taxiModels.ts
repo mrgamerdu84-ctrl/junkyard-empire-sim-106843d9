@@ -28,7 +28,7 @@ export const TAXI_MODELS: TaxiModel[] = [
     unlockChapter: 1,
     price: 0,
     speed: 4, fuel: 7, reliability: 4, comfort: 3, maintenance: 45, prestige: 2,
-    assetKey: "taxi.father",
+    assetKey: "dealer.heritage",
     desc: "Le taxi du père. Fatigué mais increvable.",
   },
   {
@@ -38,7 +38,7 @@ export const TAXI_MODELS: TaxiModel[] = [
     unlockChapter: 2,
     price: 4500,
     speed: 5, fuel: 6, reliability: 6, comfort: 5, maintenance: 60, prestige: 3,
-    assetKey: "taxi.yellow",
+    assetKey: "dealer.classic",
     desc: "La berline jaune de série. Fiable et rentable.",
   },
   {
@@ -48,7 +48,7 @@ export const TAXI_MODELS: TaxiModel[] = [
     unlockChapter: 3,
     price: 9500,
     speed: 6, fuel: 6, reliability: 7, comfort: 7, maintenance: 90, prestige: 5,
-    assetKey: "taxi.black",
+    assetKey: "dealer.comfort",
     desc: "Suspensions revues, sièges cuir. Les clients tips mieux.",
   },
   {
@@ -58,7 +58,7 @@ export const TAXI_MODELS: TaxiModel[] = [
     unlockChapter: 5,
     price: 18000,
     speed: 7, fuel: 5, reliability: 8, comfort: 8, maintenance: 130, prestige: 6,
-    assetKey: "taxi.red",
+    assetKey: "dealer.premium",
     desc: "Turbo diesel, finitions haut de gamme.",
   },
   {
@@ -68,7 +68,7 @@ export const TAXI_MODELS: TaxiModel[] = [
     unlockChapter: 7,
     price: 32000,
     speed: 8, fuel: 2, reliability: 8, comfort: 8, maintenance: 70, prestige: 7,
-    assetKey: "taxi.yellow",
+    assetKey: "dealer.electric",
     desc: "Zéro carburant, silencieux. Entretien réduit.",
   },
   {
@@ -78,7 +78,7 @@ export const TAXI_MODELS: TaxiModel[] = [
     unlockChapter: 8,
     price: 48000,
     speed: 6, fuel: 8, reliability: 7, comfort: 7, maintenance: 160, prestige: 6,
-    assetKey: "taxi.black",
+    assetKey: "dealer.van",
     desc: "Idéal aéroport & groupes. Course facturée +30%.",
   },
   {
@@ -88,7 +88,7 @@ export const TAXI_MODELS: TaxiModel[] = [
     unlockChapter: 10,
     price: 85000,
     speed: 8, fuel: 6, reliability: 9, comfort: 10, maintenance: 240, prestige: 9,
-    assetKey: "taxi.red",
+    assetKey: "dealer.luxury",
     desc: "Cuir Nappa, écrans arrière. Les VIP réclament ce modèle.",
   },
   {
@@ -98,9 +98,10 @@ export const TAXI_MODELS: TaxiModel[] = [
     unlockChapter: 12,
     price: 175000,
     speed: 7, fuel: 9, reliability: 9, comfort: 10, maintenance: 480, prestige: 10,
-    assetKey: "taxi.black",
+    assetKey: "dealer.limousine",
     desc: "Mode Empire. La signature de Taxi Co.",
   },
+
 ];
 
 export function findModel(id: string): TaxiModel | undefined {
