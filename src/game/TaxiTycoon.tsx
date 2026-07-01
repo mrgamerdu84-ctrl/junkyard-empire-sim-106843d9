@@ -2438,10 +2438,14 @@ export default function TaxiTycoon() {
       return;
     }
     free.jobId = job.id;
-    // Position visuelle de départ : si le taxi était garé au QG, on part
-    // du QG pour qu'on le voie sortir vraiment (pas un saut sur la route).
+    // Position visuelle de départ : on part *exactement* de la position que
+    // le joueur voit à l'écran (place de parking pour un taxi garé, ou
+    // dernière position lerpée pour un taxi déjà en route). Sinon le taxi
+    // sautait au centre du QG avant de re-lerper vers la route.
     const wasParked = free.mode === "idle" || free.mode === "depositing";
-    const visualFrom = wasParked ? { x: depotXY.x, y: depotXY.y - 18 } : taxiXY(free);
+    const rendered = taxiVisualPosRef.current.get(free.id);
+    const fallback = wasParked ? { x: depotXY.x, y: depotXY.y - 18 } : taxiXY(free);
+    const visualFrom = rendered ?? fallback;
     // Bascule vers le path du pickup, partant de sa position actuelle.
     free.pathIdx = job.pickupPath;
     free.pos = closestOnPath(job.pickupPath, visualFrom.x, visualFrom.y);
