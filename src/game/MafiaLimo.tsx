@@ -12,7 +12,6 @@ import { getAdmin } from "./adminConfig";
 import { listCustomVehiclesByCategory } from "./gameAssets";
 import defaultLimoImg from "@/assets/mafia-limo.png";
 import { reduceMotion, targetFps } from "@/lib/perf";
-import { useUnlock } from "./campaign/unlocks";
 
 const MAP_W = 1920;
 const MAP_H = 1080;
@@ -33,7 +32,6 @@ function pickLimoSprite(): string {
 }
 
 export default function MafiaLimo() {
-  const unlocked = useUnlock("baron.hint");
   const reducedFx = reduceMotion();
   const [phase, setPhase] = useState<Phase>("off");
   const [pos, setPos] = useState({ x: MAP_W + 200, y: MAP_H / 2, angle: 180 });
