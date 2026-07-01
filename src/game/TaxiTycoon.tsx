@@ -717,6 +717,7 @@ export default function TaxiTycoon() {
   // === Mode PILOTE : un taxi spécial conduit par le joueur au doigt ===
   const [manualMode, setManualMode] = useState(false);
   const manualPosRef = useRef<{ x: number; y: number; angle: number }>({ x: 960, y: 540, angle: 0 });
+  const manualVelRef = useRef<{ speed: number }>({ speed: 0 });
   const manualTargetRef = useRef<{ x: number; y: number } | null>(null);
   const [manualTick, setManualTick] = useState(0);
 
@@ -2040,16 +2041,24 @@ export default function TaxiTycoon() {
     [admin.hqX, admin.hqY]);
 
 
-  // === Pilote manuel : boucle d'interpolation vers la cible (doigt) ===
+  // === Pilote manuel : physique progressive (accélération, freinage, virages) ===
   useEffect(() => {
     if (!manualMode) return;
     // Spawn devant le QG au lancement
     manualPosRef.current = { x: admin.hqX, y: admin.hqY, angle: 0 };
+    manualVelRef.current = { speed: 0 };
     manualTargetRef.current = null;
     let raf = 0;
     let last = performance.now();
     const MIN_FRAME = frameMs;
-    const SPEED = 260;
+    // Comportement réaliste : vitesse modérée, accélération/freinage progressifs, virages doux
+    const MAX_SPEED = 130;      // px/s (avant : 260 — trop nerveux)
+    const ACCEL = 160;          // px/s²
+    const BRAKE = 260;          // px/s² — freinage plus fort que l'accélération
+    const IDLE_DECAY = 90;      // px/s² en roue libre
+    const MAX_TURN_RATE = 160;  // deg/s — direction précise mais douce
+    // Plus on va vite, moins on peut tourner fort (stabilité en virage)
+    const speedTurnFactor = (v: number) => 1 - Math.min(0.6, (v / MAX_SPEED) * 0.55);
     const tick = () => {
       raf = requestAnimationFrame(tick);
       const now = performance.now();
@@ -2057,17 +2066,37 @@ export default function TaxiTycoon() {
       const dt = Math.min(0.06, (now - last) / 1000);
       last = now;
       const cur = manualPosRef.current;
+      const vel = manualVelRef.current;
       const tgt = manualTargetRef.current;
       if (tgt) {
         const dx = tgt.x - cur.x;
         const dy = tgt.y - cur.y;
         const dist = Math.hypot(dx, dy);
-        if (dist > 1) {
-          const step = Math.min(dist, SPEED * dt);
-          const nx = cur.x + (dx / dist) * step;
-          const ny = cur.y + (dy / dist) * step;
-          const ang = Math.atan2(dy, dx) * 180 / Math.PI;
-          manualPosRef.current = { x: nx, y: ny, angle: ang };
+        if (dist > 2) {
+          const desired = (Math.atan2(dy, dx) * 180) / Math.PI;
+          const diff = ((desired - cur.angle + 540) % 360) - 180;
+          const maxStep = MAX_TURN_RATE * speedTurnFactor(vel.speed) * dt;
+          const turn = Math.max(-maxStep, Math.min(maxStep, diff));
+          const newAng = cur.angle + turn;
+          // Vitesse visée : baisse en approche, baisse en gros virage
+          const alignment = Math.max(0, Math.cos((diff * Math.PI) / 180));
+          const approach = Math.min(1, dist / 120);
+          const targetSpeed = MAX_SPEED * alignment * approach;
+          if (vel.speed < targetSpeed) vel.speed = Math.min(targetSpeed, vel.speed + ACCEL * dt);
+          else vel.speed = Math.max(targetSpeed, vel.speed - BRAKE * dt);
+          const rad = (newAng * Math.PI) / 180;
+          const step = vel.speed * dt;
+          manualPosRef.current = { x: cur.x + Math.cos(rad) * step, y: cur.y + Math.sin(rad) * step, angle: newAng };
+        } else {
+          vel.speed = Math.max(0, vel.speed - BRAKE * dt);
+        }
+      } else {
+        // Roue libre : décélération douce, on continue à avancer un peu
+        vel.speed = Math.max(0, vel.speed - IDLE_DECAY * dt);
+        if (vel.speed > 0.5) {
+          const rad = (cur.angle * Math.PI) / 180;
+          const step = vel.speed * dt;
+          manualPosRef.current = { x: cur.x + Math.cos(rad) * step, y: cur.y + Math.sin(rad) * step, angle: cur.angle };
         }
       }
       setManualTick((n) => (n + 1) % 1000000);
@@ -2075,7 +2104,7 @@ export default function TaxiTycoon() {
     raf = requestAnimationFrame(tick);
 
     return () => cancelAnimationFrame(raf);
-  }, [manualMode, admin.hqX, admin.hqY]);
+  }, [manualMode, admin.hqX, admin.hqY, frameMs]);
 
 
   // === Actions UI ===
@@ -2558,11 +2587,21 @@ export default function TaxiTycoon() {
       {!ultraLite && <WeatherNightOverlay lite={perfMode === "low"} />}
 
       {/* === Calque SVG du jeu === */}
+      {/* En mode PILOTE : la caméra suit le taxi (viewBox dynamique zoomé, taxi centré). */}
+      {(() => { void manualTick; return null; })()}
       <svg
         ref={containerRef}
-        viewBox="0 0 1920 1080"
+        viewBox={(() => {
+          if (!manualMode) return "0 0 1920 1080";
+          const zoomW = 720; // largeur visible en mode conduite (zoom ~2.6x)
+          const zoomH = 405;
+          const p = manualPosRef.current;
+          const x = Math.max(0, Math.min(1920 - zoomW, p.x - zoomW / 2));
+          const y = Math.max(0, Math.min(1080 - zoomH, p.y - zoomH / 2));
+          return `${x} ${y} ${zoomW} ${zoomH}`;
+        })()}
         preserveAspectRatio="xMidYMid slice"
-        style={{ position: "absolute", inset: 0, width: "100%", height: "100%", pointerEvents: "none", zIndex: manualMode ? 9500 : 4, touchAction: manualMode ? "none" : undefined }}
+        style={{ position: "absolute", inset: 0, width: "100%", height: "100%", pointerEvents: "none", zIndex: manualMode ? 9500 : 4, touchAction: manualMode ? "none" : undefined, transition: manualMode ? "none" : "none" }}
       >
         <defs>
           {ROADS.map((d, i) => (
