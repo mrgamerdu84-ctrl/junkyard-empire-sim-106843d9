@@ -185,10 +185,13 @@ export function removeCustomVehicle(id: string) {
 
 // Circulation libre : tous les véhicules ajoutés par l'admin doivent pouvoir
 // apparaître dans le trafic si l'admin les importe dans le catalogue.
-const TRAFFIC_CATEGORIES: CustomVehicleCategory[] = ["civil", "service", "taxi", "police", "ambulance", "firetruck", "robber", "armored", "limo"];
+export const TRAFFIC_CATEGORIES: CustomVehicleCategory[] = ["civil", "service", "taxi", "police", "ambulance", "firetruck", "robber", "armored", "limo"];
 
-/** 🔧 DYNAMIC - Se met à jour chaque fois qu'on l'appelle */
-function getCustomTrafficUrls(): string[] {
+/** 🔧 DYNAMIC - Se met à jour chaque fois qu'on l'appelle.
+ *  Utilisé par CityTraffic (et par les tests de non-régression) pour vérifier
+ *  que les véhicules du panel Admin sont toujours pris en compte dans le
+ *  trafic, indépendamment de l'état de la campagne. */
+export function getCustomTrafficUrls(): string[] {
   return listCustomVehicles()
     .filter((v) => TRAFFIC_CATEGORIES.includes(v.category))
     .map((v) => v.url);
