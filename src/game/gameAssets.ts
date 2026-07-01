@@ -29,6 +29,7 @@ import firetruckAsset from "@/assets/firetruck-top.png";
 import pedManTopAsset from "@/assets/pedestrian-man-top.png";
 import pedWomanTopAsset from "@/assets/pedestrian-woman-top.png";
 import musicAsset from "@/assets/midnight-fare.mp3.asset.json";
+import taxiFatherAsset from "@/assets/taxi-father.png.asset.json";
 
 
 
