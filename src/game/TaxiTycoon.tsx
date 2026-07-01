@@ -3678,6 +3678,16 @@ export default function TaxiTycoon() {
             <button className="tt-lcd-tool" onClick={() => navigate({ to: "/download" })} title="APK Android">
               <span className="tt-lcd-tool-ico" style={{ color: "#a4c639" }}>🤖</span><b>APK</b>
             </button>
+            <button
+              className="tt-lcd-tool"
+              onClick={() => dealershipUnlocked
+                ? setDealershipOpen(true)
+                : alert("🔒 Le Concessionnaire ouvrira au Chapitre 2 (après le recrutement du premier chauffeur).")}
+              title={dealershipUnlocked ? "Concessionnaire Taxi Co." : "Débloqué au chapitre 2"}
+              style={dealershipUnlocked ? undefined : { opacity: 0.6 }}
+            >
+              <span className="tt-lcd-tool-ico">🏪</span><b>{dealershipUnlocked ? "CONCESS." : "🔒 CONCESS."}</b>
+            </button>
             <button className="tt-lcd-tool" onClick={() => window.dispatchEvent(new CustomEvent("mtw:open-admin"))} title="Admin">
               <span className="tt-lcd-tool-ico">⚙</span><b>ADMIN</b>
             </button>
