@@ -914,8 +914,10 @@ function SkinsTab() {
                   onChange={(e) => { const f = e.target.files?.[0]; if (f) onFile(key, f); }}
                 />
               </label>
-              <button onClick={() => onUrl(key)} style={btnMini}>🔗</button>
-              <button onClick={() => onReset(key)} style={btnMini} title="Réinitialiser">↺</button>
+              <button onClick={() => onUrl(key)} style={btnMini} title="Depuis une URL">🔗</button>
+              <button onClick={() => onRotate(key, 270)} style={btnMini} title="Pivoter −90° (horizontal)">↺90</button>
+              <button onClick={() => onRotate(key, 90)} style={btnMini} title="Pivoter +90° (vertical)">↻90</button>
+              <button onClick={() => onReset(key)} style={btnMini} title="Réinitialiser">✖</button>
             </div>
           );
         })}
