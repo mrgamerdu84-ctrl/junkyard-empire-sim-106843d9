@@ -122,17 +122,9 @@ export default function CampaignPanel({ onClose }: { onClose: () => void }) {
             chapter={activeChapter}
             state={state}
             onBack={() => setOpenChapter(null)}
-            onToggleMission={(mid) => setState(completeMission(activeChapter.id, mid))}
-
-
             onChoice={(cid, opt) => {
               const s = recordChoice(cid, opt);
               setState(s);
-            }}
-            onComplete={() => {
-              const s = completeChapter(activeChapter.id);
-              setState(s);
-              setOpenChapter(null);
             }}
           />
         )}
@@ -145,21 +137,14 @@ function ChapterView({
   chapter,
   state,
   onBack,
-  onToggleMission,
   onChoice,
-  onComplete,
 }: {
   chapter: CampaignChapter;
   state: CampaignState;
   onBack: () => void;
-  onToggleMission: (id: string) => void;
   onChoice: (id: "chap6" | "chap11", opt: string) => void;
-  onComplete: () => void;
 }) {
   const doneMissions = new Set(state.completedMissions[chapter.id] ?? []);
-  const allDone = chapter.missions.every((m) => doneMissions.has(m.id));
-  const choiceMade = chapter.choice ? Boolean(state.choices[chapter.choice.id]) : true;
-  const canComplete = allDone && choiceMade;
   const already = state.completedChapters.includes(chapter.id);
 
   return (
@@ -178,12 +163,12 @@ function ChapterView({
         ))}
       </div>
 
-      <div className="cp-section-title">Objectifs</div>
-      <ul className="cp-missions">
+      <div className="cp-section-title">Objectifs (validés automatiquement)</div>
+      <ul className="cp-missions cp-missions-readonly">
         {chapter.missions.map((m) => {
           const done = doneMissions.has(m.id);
           return (
-            <li key={m.id} className={done ? "done" : ""} onClick={() => onToggleMission(m.id)}>
+            <li key={m.id} className={done ? "done" : ""}>
               <span className="cp-check">{done ? "☑" : "☐"}</span>
               <div>
                 <div className="cp-m-title">{m.title}</div>
@@ -219,9 +204,7 @@ function ChapterView({
       <div className="cp-auto-note">
         {already
           ? "✅ Chapitre déjà terminé."
-          : canComplete
-            ? "Progression complète — le chapitre va se conclure automatiquement."
-            : "Progression en cours. Continue de jouer : courses, argent, améliorations et objectifs remplissent la barre du chapitre."}
+          : "Aucun bouton à cliquer : joue normalement (courses, argent, améliorations). Quand la barre atteint 100%, la cinématique se lance et le chapitre suivant se débloque automatiquement."}
       </div>
     </div>
   );
