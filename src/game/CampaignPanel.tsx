@@ -3,13 +3,15 @@ import { ACTS, CHAPTERS, type CampaignChapter } from "./campaign/campaignData";
 import {
   loadCampaign,
   startCampaign,
-  toggleMission,
+  completeMission,
   isChapterMissionsDone,
   recordChoice,
   completeChapter,
   resetCampaign,
+  chapterProgress,
   type CampaignState,
 } from "./campaign/campaignState";
+
 
 export default function CampaignPanel({ onClose }: { onClose: () => void }) {
   const [state, setState] = useState<CampaignState>(() => startCampaign());
