@@ -69,8 +69,8 @@ function baronVehicleFromType(type: BaronVehicleType): ConvoyVehicle {
     const civils = listCustomVehiclesByCategory("civil");
     const picked = taxis[0]?.url || civils[0]?.url;
     return picked
-      ? { kind: "taxi", color: "#facc15", accent: "#111827", scale: 1.2, imageUrl: picked, role: "baron" }
-      : { kind: "taxi", color: "#facc15", accent: "#111827", scale: 1.2, role: "baron" };
+      ? { kind: "sedan", color: "#facc15", accent: "#111827", scale: 1.2, imageUrl: picked, role: "baron" }
+      : { kind: "sedan", color: "#facc15", accent: "#111827", scale: 1.2, role: "baron" };
   }
   if (type === "suv") return { kind: "van", color: "#0f172a", accent: "#ef4444", scale: 1.2, role: "baron" };
   if (type === "sedan") return { kind: "sedan", color: "#111827", accent: "#d4a838", scale: 1.25, role: "baron" };
