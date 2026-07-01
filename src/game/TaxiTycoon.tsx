@@ -1059,11 +1059,16 @@ export default function TaxiTycoon() {
     return idx;
   };
 
-  // Sync taxis runtime list with save
+  // Sync taxis runtime list with save (cappé par la campagne)
   useEffect(() => {
     if (!pathsReady) return;
     const newSpeed = (BASE_SPEED + save.taxiSpeedLvl * 18) * admin.taxiSpeedMult;
-    while (taxisRef.current.length < save.taxis.length) {
+    const visibleCount = Math.min(save.taxis.length, campaignCap);
+    // Trim si on dépasse la limite campagne (chapitre pas encore débloqué)
+    if (taxisRef.current.length > visibleCount) {
+      taxisRef.current.length = visibleCount;
+    }
+    while (taxisRef.current.length < visibleCount) {
       const idx = taxisRef.current.length;
       // taxi neuf : path 0, posé près du QG
       const pIdx = 0;
@@ -1093,7 +1098,7 @@ export default function TaxiTycoon() {
       syncVehicleLane(t);
     });
     forceRender((n) => n + 1);
-  }, [pathsReady, save.taxis, save.taxiSpeedLvl, admin.taxiSpeedMult, admin.hqX, admin.hqY]);
+  }, [pathsReady, save.taxis, save.taxiSpeedLvl, admin.taxiSpeedMult, admin.hqX, admin.hqY, campaignCap]);
 
   // Sync rival AI taxis fleet — flotte stable : pas de pop/disparition aléatoire.
   useEffect(() => {
