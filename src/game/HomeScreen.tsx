@@ -10,6 +10,7 @@ import { hasSeenTutorial, resetTutorial, getPlayerName, setPlayerName, pushLocal
 import { useAuth, signOut } from "@/lib/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import LoadingScreen from "./LoadingScreen";
+import CampaignPanel from "./CampaignPanel";
 import { preferLiteAssets } from "@/lib/perf";
 
 export default function HomeScreen({ onPlay, onReplayIntro }: { onPlay: () => void; onReplayIntro?: () => void }) {
@@ -17,6 +18,7 @@ export default function HomeScreen({ onPlay, onReplayIntro }: { onPlay: () => vo
   const navigate = useNavigate();
   const { user, pseudo: cloudPseudo, avatarKind, avatarUrl } = useAuth();
   const [showProfile, setShowProfile] = useState(false);
+  const [showCampaign, setShowCampaign] = useState(false);
   const [loading, setLoading] = useState(false);
   const [progress, setProgress] = useState(0);
   const [showTutorial, setShowTutorial] = useState(false);
