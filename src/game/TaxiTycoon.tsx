@@ -24,6 +24,7 @@ import { resolveAvatarSrc } from "@/components/ProfileCard";
 import { supabase } from "@/integrations/supabase/client";
 import playerHqAsset from "@/assets/taxi-warehouse.png.asset.json";
 import { isUltraLite, perfTier, reduceMotion, targetFps } from "@/lib/perf";
+import { unlockedTaxiCount as campaignTaxiCap } from "./campaign/campaignState";
 
 const PLAYER_HQ_IMG = playerHqAsset.url;
 
