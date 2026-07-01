@@ -9,6 +9,9 @@ import {
   getTrafficLights,
   getLightState,
   nowSeconds,
+  reportVehicle,
+  clearVehicle,
+  hasVehicleAhead,
   type TrafficLight,
 } from "./trafficLights";
 import { isUltraLite, perfTier, reduceMotion, targetFps, trafficBudget } from "@/lib/perf";
