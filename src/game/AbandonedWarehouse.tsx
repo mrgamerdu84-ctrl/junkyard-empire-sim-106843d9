@@ -16,8 +16,8 @@ export default function AbandonedWarehouse() {
 
   // Dimensions de rendu (viewBox 1920x1080) — l'image originale fait 1280x960,
   // on garde son ratio et on la centre sur (cx, cy).
-  const baseW = 460;
-  const baseH = baseW * (960 / 1280);
+  const baseW = 420;
+  const baseH = baseW; // image isométrique carrée 1024x1024
   const w = baseW * scale;
   const h = baseH * scale;
 
