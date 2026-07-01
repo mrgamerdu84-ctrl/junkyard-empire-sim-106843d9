@@ -233,11 +233,16 @@ function TaxiTycoonPage() {
       <div
         ref={worldRef}
         className="tt-world"
-        style={{ transform: `translate(${pan.x}px, ${pan.y}px) scale(${zoom})`, cursor: zoom > 1 ? (dragRef.current ? "grabbing" : "grab") : "default" }}
-        onPointerDown={onPointerDown}
-        onPointerMove={onPointerMove}
-        onPointerUp={onPointerUp}
-        onPointerCancel={onPointerUp}
+        style={{
+          transform: driveTransform ?? `translate(${pan.x}px, ${pan.y}px) scale(${zoom})`,
+          transformOrigin: driveMode ? "0 0" : "center center",
+          transition: driveMode ? "none" : "transform 0.12s ease-out",
+          cursor: zoom > 1 && !driveMode ? (dragRef.current ? "grabbing" : "grab") : "default",
+        }}
+        onPointerDown={driveMode ? undefined : onPointerDown}
+        onPointerMove={driveMode ? undefined : onPointerMove}
+        onPointerUp={driveMode ? undefined : onPointerUp}
+        onPointerCancel={driveMode ? undefined : onPointerUp}
       >
         <img src={mapSrc} alt="Plan de la ville pour le jeu de taxi" className="tt-map" />
         <div className="tt-vignette" />
