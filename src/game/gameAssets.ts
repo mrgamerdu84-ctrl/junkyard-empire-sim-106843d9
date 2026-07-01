@@ -29,6 +29,7 @@ import firetruckAsset from "@/assets/firetruck-top.png";
 import pedManTopAsset from "@/assets/pedestrian-man-top.png";
 import pedWomanTopAsset from "@/assets/pedestrian-woman-top.png";
 import musicAsset from "@/assets/midnight-fare.mp3.asset.json";
+import taxiFatherAsset from "@/assets/taxi-father.png.asset.json";
 
 
 
@@ -64,7 +65,7 @@ const DEFAULTS: Record<AssetKey, string> = {
   "taxi.yellow": taxiYellowAsset,
   "taxi.black": taxiBlackAsset,
   "taxi.red": taxiRedAsset,
-  "taxi.father": taxiYellowAsset,
+  "taxi.father": taxiFatherAsset.url,
   "police.car": policeCarAsset,
   "emergency.ambulance": ambulanceAsset,
   "emergency.firetruck": firetruckAsset,
@@ -77,7 +78,7 @@ const DEFAULTS: Record<AssetKey, string> = {
 
   "audio.music": musicAsset.url,
 
-  "dealer.heritage": taxiYellowAsset,
+  "dealer.heritage": taxiFatherAsset.url,
   "dealer.classic": taxiYellowAsset,
   "dealer.comfort": taxiBlackAsset,
   "dealer.premium": taxiBlackAsset,
