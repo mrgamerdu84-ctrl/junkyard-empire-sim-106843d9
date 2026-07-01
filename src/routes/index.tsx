@@ -197,16 +197,16 @@ function TaxiTycoonPage() {
         <img src={mapSrc} alt="Plan de la ville pour le jeu de taxi" className="tt-map" />
         <div className="tt-vignette" />
         <CityTraffic />
-        {useUnlock("baron.active") && <BaronConvoy />}
-        {useUnlock("baron.active") && <BaronManor />}
-        {useUnlock("mafia.attackers") && <MafiaAttackers />}
+        {unlockBaronActive && <BaronConvoy />}
+        {unlockBaronActive && <BaronManor />}
+        {unlockMafiaAttackers && <MafiaAttackers />}
         <EmergencyStations />
-        {useUnlock("crime.events") && <CrimeEvents />}
+        {unlockCrimeEvents && <CrimeEvents />}
         <InterventionDispatcher />
         <TaxiTycoon />
         <DepotEvolution />
-        {useUnlock("empire.armored_truck") && <ArmoredTruck />}
-        {useUnlock("baron.hint") && <MafiaLimo />}
+        {unlockArmoredTruck && <ArmoredTruck />}
+        {unlockBaronHint && <MafiaLimo />}
       </div>
 
       {/* HUD et panneaux hors zoom (toujours nets) */}
@@ -214,10 +214,11 @@ function TaxiTycoonPage() {
       
       {/* <AmbientSirens /> — désactivé sur demande joueur */}
       <AdminPanel />
-      {useUnlock("baron.dialogue") && <MafiaGodfather />}
-      {useUnlock("baron.negotiation") && (
+      {unlockBaronDialogue && <MafiaGodfather />}
+      {unlockBaronNegotiation && (
         <BaronNegotiation playerMoney={0} onDeal={(a) => console.log("baron deal", a)} />
       )}
+
       <VersionBanner />
       <UltraFluidPanel />
       <CampaignHud />
