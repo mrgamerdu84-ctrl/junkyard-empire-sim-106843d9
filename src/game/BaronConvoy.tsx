@@ -106,7 +106,17 @@ export default function BaronConvoy() {
   useEffect(() => {
     if (isUltraLite()) return;
     let timer: ReturnType<typeof setTimeout> | null = null;
+    // Le Baron n'apparaît qu'à partir du chapitre 4 (invitation) — scénarisé.
+    const baronUnlocked = () => {
+      try {
+        const raw = localStorage.getItem("campaign_state_v1");
+        if (!raw) return false;
+        const s = JSON.parse(raw);
+        return (s?.currentChapterIndex ?? 0) >= 3; // idx 3 = ch4
+      } catch { return false; }
+    };
     const startConvoy = () => {
+      if (!baronUnlocked()) return false;
       const allowed = [0, 1, 2, 3].filter((i) => i < ROADS.length);
       if (!allowed.length) return false;
       const pathIdx = allowed[Math.floor(Math.random() * allowed.length)];
@@ -124,6 +134,7 @@ export default function BaronConvoy() {
     timer = setTimeout(() => { if (!startConvoy()) schedule(); }, 45000 + Math.random() * 45000);
     return () => { if (timer) clearTimeout(timer); };
   }, []);
+
 
   useEffect(() => {
     if (!active) return;
