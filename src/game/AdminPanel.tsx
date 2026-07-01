@@ -842,6 +842,7 @@ const SKIN_LABELS: Record<AssetKey, string> = {
   "taxi.yellow": "Taxi jaune",
   "taxi.black": "Taxi noir",
   "taxi.red": "Taxi rouge",
+  "taxi.father": "Taxi du Père (héritage)",
   "police.car": "Voiture police",
   "emergency.ambulance": "Ambulance",
   "emergency.firetruck": "Camion pompiers",
