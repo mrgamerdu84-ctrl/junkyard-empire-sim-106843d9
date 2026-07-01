@@ -1,5 +1,5 @@
 import { useAdminConfig } from "./adminConfig";
-import depotAsset from "@/assets/taxi-depot-industrial.png.asset.json";
+import depotAsset from "@/assets/taxi-depot-iso.png.asset.json";
 
 /**
  * Dépôt de taxis — entrepôt industriel réaliste (image PNG).
