@@ -219,6 +219,116 @@ function GarageTab({
   );
 }
 
+// -------- Import Admin --------
+
+function ImportTab() {
+  const [name, setName] = useState("");
+  const [era, setEra] = useState<VehicleEra>(1);
+  const [category, setCategory] = useState<CustomVehicleCategory>("civil");
+  const [dataUrl, setDataUrl] = useState<string>("");
+  const [busy, setBusy] = useState(false);
+  const [items, setItems] = useState<CustomVehicle[]>(() => listCustomVehicles());
+  const [filterEra, setFilterEra] = useState<VehicleEra | "all">("all");
+
+  useEffect(() => {
+    const h = () => setItems(listCustomVehicles());
+    window.addEventListener("jce.customVehicles.changed", h);
+    return () => window.removeEventListener("jce.customVehicles.changed", h);
+  }, []);
+
+  const onFile = (f: File | null) => {
+    if (!f) return;
+    setBusy(true);
+    const reader = new FileReader();
+    reader.onload = () => {
+      setDataUrl(String(reader.result));
+      if (!name) setName(f.name.replace(/\.[^.]+$/, ""));
+      setBusy(false);
+    };
+    reader.onerror = () => setBusy(false);
+    reader.readAsDataURL(f);
+  };
+
+  const add = () => {
+    if (!dataUrl) { alert("Choisis d'abord une image."); return; }
+    addCustomVehicle({ name: name || "Véhicule", url: dataUrl, category, era });
+    setName(""); setDataUrl("");
+  };
+
+  const shown = items.filter((v) => filterEra === "all" ? true : (v.era ?? 3) === filterEra);
+
+  return (
+    <div style={{ display: "grid", gap: 12 }}>
+      <div style={{ background: "#0b1220", border: "1px solid #374151", borderRadius: 10, padding: 12, display: "grid", gap: 8 }}>
+        <div style={{ fontWeight: 900, color: "#f5c542" }}>➕ Ajouter une voiture</div>
+        <div style={{ fontSize: 11, color: "#94a3b8" }}>
+          Sprite vue du ciel (PNG transparent conseillé), pointant vers le haut. L'époque détermine à partir de quel chapitre la voiture apparaît dans le trafic.
+        </div>
+        <input
+          type="text" placeholder="Nom (ex: Peugeot 504)" value={name}
+          onChange={(e) => setName(e.target.value)}
+          style={{ background: "#0f172a", color: "#fde047", border: "1px solid #374151", borderRadius: 6, padding: "8px 10px", fontWeight: 600 }}
+        />
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+          <label style={{ fontSize: 12, color: "#cbd5e1" }}>Époque
+            <select value={era} onChange={(e) => setEra(Number(e.target.value) as VehicleEra)} style={select}>
+              {([1, 2, 3, 4] as VehicleEra[]).map((n) => (
+                <option key={n} value={n}>{VEHICLE_ERA_LABELS[n]}</option>
+              ))}
+            </select>
+          </label>
+          <label style={{ fontSize: 12, color: "#cbd5e1" }}>Catégorie
+            <select value={category} onChange={(e) => setCategory(e.target.value as CustomVehicleCategory)} style={select}>
+              {(Object.keys(VEHICLE_CATEGORY_LABELS) as CustomVehicleCategory[]).map((k) => (
+                <option key={k} value={k}>{VEHICLE_CATEGORY_LABELS[k]}</option>
+              ))}
+            </select>
+          </label>
+        </div>
+        <input type="file" accept="image/*" onChange={(e) => onFile(e.target.files?.[0] ?? null)} />
+        {dataUrl && (
+          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+            <img src={dataUrl} alt="preview" style={{ width: 70, height: 50, objectFit: "contain", background: "#1f2937", borderRadius: 6 }} />
+            <button style={btnBuy} disabled={busy} onClick={add}>🚗 Ajouter au trafic</button>
+          </div>
+        )}
+      </div>
+
+      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+        <div style={{ fontWeight: 800, color: "#fde047", flex: 1 }}>Véhicules importés ({items.length})</div>
+        <select value={String(filterEra)} onChange={(e) => setFilterEra(e.target.value === "all" ? "all" : (Number(e.target.value) as VehicleEra))} style={select}>
+          <option value="all">Toutes époques</option>
+          {([1, 2, 3, 4] as VehicleEra[]).map((n) => <option key={n} value={n}>{VEHICLE_ERA_LABELS[n]}</option>)}
+        </select>
+      </div>
+
+      {shown.length === 0 && (
+        <div style={{ padding: 16, textAlign: "center", color: "#94a3b8" }}>Aucune voiture importée pour ce filtre.</div>
+      )}
+
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(180px,1fr))", gap: 10 }}>
+        {shown.map((v) => (
+          <div key={v.id} style={{ background: "#111827", border: "1px solid #374151", borderRadius: 8, padding: 8, display: "grid", gap: 6 }}>
+            <div style={{ background: "#0b1220", borderRadius: 6, height: 70, display: "flex", alignItems: "center", justifyContent: "center" }}>
+              <img src={v.url} alt={v.name} style={{ maxWidth: "100%", maxHeight: "100%", objectFit: "contain" }} />
+            </div>
+            <div style={{ fontSize: 12, fontWeight: 800, color: "#fde047" }}>{v.name}</div>
+            <div style={{ fontSize: 10, color: "#94a3b8" }}>
+              {VEHICLE_ERA_LABELS[(v.era ?? 3) as VehicleEra]} · {VEHICLE_CATEGORY_LABELS[v.category]}
+            </div>
+            <button
+              onClick={() => { if (confirm(`Supprimer ${v.name} ?`)) removeCustomVehicle(v.id); }}
+              style={{ background: "#7f1d1d", color: "#fecaca", border: "none", borderRadius: 6, padding: "6px 8px", fontWeight: 700, cursor: "pointer" }}
+            >
+              🗑 Supprimer
+            </button>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 // -------- styles --------
 
 const overlay: React.CSSProperties = {
