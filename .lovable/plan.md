@@ -1,70 +1,51 @@
-# Concessionnaire Taxi — Plan d'implémentation
+# Trafic civil évolutif par chapitre
 
-## Objectif
-Ajouter une boutique de taxis progressive gatée par la campagne, avec un système d'affectation chauffeur↔véhicule, sans casser la flotte existante ni le panel Admin.
+La ville commence avec de vieilles voitures (années 70-80, cohérent avec le Taxi du Père) et se modernise chapitre après chapitre. À la fin (Mode Empire), on voit surtout des berlines modernes, SUV et électriques.
 
-## Fichiers créés
+## Découpage par époque
 
-### `src/game/dealership/taxiModels.ts`
-Catalogue de 8 modèles avec toutes les stats :
-```ts
-export type TaxiModel = {
-  id: string;
-  name: string;
-  emoji: string;
-  unlockChapter: number;   // 1, 2, 3, 5, 7, 8, 10, 12
-  price: number;           // 0 pour Héritage
-  speed: number;           // 1-10
-  fuel: number;            // consommation
-  reliability: number;
-  comfort: number;
-  maintenance: number;     // coût mensuel
-  prestige: number;
-  assetKey: string;        // clé dans GAME_ASSETS
-};
+| Chapitres | Époque | Style |
+|---|---|---|
+| Ch 1-3 | Vintage 70-80 | Vieilles berlines carrées, break familial, coupé rouillé, van hippie |
+| Ch 4-6 | Rétro 90 | Compactes bombées, berline 90s, SUV première génération |
+| Ch 7-9 | Moderne 2000-2010 | Citadines rondes, SUV, monospaces |
+| Ch 10-13 | Contemporain / Empire | Berlines premium, crossovers, électriques, sportives |
+
+## Nouveaux assets à générer (fond transparent — pas de calque blanc)
+
+12 sprites top-down premium, PNG transparent, orientation vers le haut, même échelle que le Taxi Héritage. Style Tycoon premium, silhouettes reconnaissables, carrosseries avec courbes/reflets/ombres douces. Générés avec `transparent_background: true` pour éviter le carré blanc autour du sprite.
+
+Dépôt dans `src/assets/civil/` avec préfixe d'époque pour tri :
+
 ```
-Contient les 8 modèles (Héritage, Classique, Berline Confort, Premium, Électrique, Van 7 places, Luxe, Limousine).
+era1-sedan-brown.png       era1-wagon-beige.png       era1-coupe-rust.png
+era2-hatchback-red.png     era2-sedan-silver.png      era2-suv-green.png
+era3-citadine-blue.png     era3-suv-black.png         era3-van-white.png
+era4-premium-dark.png      era4-crossover-white.png   era4-electric-teal.png
+```
 
-### `src/game/dealership/dealershipState.ts`
-- `getOwnedModels()` / `buyModel(id)` — lit/écrit dans `taxi-tycoon-v4` (ajoute champ `ownedModelIds` + `assignments` par taxi).
-- `assignDriver(taxiId, driverId)` / `unassign(taxiId)`.
-- `isModelUnlocked(id)` — croise `unlockChapter` avec `campaignState.currentChapterIndex + 1` ou `empireUnlocked`.
-- Événement `dealership.updated` pour rafraîchir l'UI.
+## Nouveau fichier `src/game/civilFleetProgression.ts`
 
-### `src/game/DealershipPanel.tsx`
-Deux onglets :
-- **Concessionnaire** : grille de cartes (photo asset, stats en barres, prix, bouton Acheter). Modèles verrouillés grisés avec badge "Disponible Chapitre X". Bouton Acheter désactivé si argent insuffisant ou verrouillé.
-- **Mon Garage** : liste des taxis possédés + select d'affectation vers les chauffeurs de `personnel.ts`. Un taxi sans chauffeur = badge "Inactif". Un chauffeur non affecté = warning en haut.
+- Export `getActiveCivilCarUrls(chapter: number): string[]`
+- Mappe chaque URL à son époque (`era1..era4`)
+- Retourne uniquement les sprites dont l'époque est ≤ époque du chapitre courant
+- Inclut aussi les véhicules custom uploadés par l'admin (toujours actifs, indépendants)
+- Fallback : si `src/assets/civil/` vide, retombe sur `getCivilCarUrls()` actuel
 
-### Intégration UI
-- `src/game/HomeScreen.tsx` ou console dashboard (TaxiTycoon) : bouton "🏪 Concessionnaire" gaté via `useUnlock("dealership")` (nouvelle feature clé, chapitre min = 2, après recrutement du 1er chauffeur — on ajoute une clé `personnel.first_driver` complétée par la mission `m2c` ou équivalent).
-- Ajout dans `FEATURE_MIN_CHAPTER` de `unlocks.ts` : `"dealership": 2`.
+## Câblage dans `src/game/CityTraffic.tsx`
 
-## Intégration avec l'existant
+- Remplace l'appel à `getCivilCarUrls()` par `getActiveCivilCarUrls(currentChapterNumber())`
+- Écoute `mtw:campaign-changed` pour rafraîchir le pool de sprites quand le joueur change de chapitre
+- Aucune modification de la logique de conduite / feux / piétons
 
-### `src/game/TaxiTycoon.tsx`
-- La flotte reste gérée par le système actuel (`taxis[]`, `dispatchTaxi`, `unlockedTaxiCount`).
-- Quand on achète un modèle dans le concessionnaire, on **appelle la logique d'achat de taxi existante** en passant `assetKey` + `modelId` pour que le nouveau taxi utilise le bon sprite (via `GAME_ASSETS`).
-- Le cap `unlockedTaxiCount()` de la campagne reste actif : le concessionnaire refuse l'achat si la flotte est déjà au max du chapitre (message clair).
-- Le taxi index 0 (Héritage/"Taxi du Père") reste forcé, aucun changement.
+## Ce qui ne change pas
 
-### `src/game/personnel.ts`
-- Ajout des helpers `listDrivers()` / `getDriverById(id)` s'ils manquent, pour le picker d'affectation.
-- Le champ `assignedTaxiId` par chauffeur (persisté dans le state personnel existant).
+- Concessionnaire, taxis, Mafia, admin panel, performance
+- Les 7 voitures civiles premium déjà générées restent en place et sont classées `era3/era4` (modernes)
+- Les véhicules ajoutés via le panel Admin restent visibles à tous les chapitres
 
-### `src/game/gameAssets.ts`
-- Enregistrer les 8 asset keys correspondants. Réutiliser les assets existants (taxi-yellow, taxi-red, taxi-gold, taxi-black, armored-truck pour van, etc.) au démarrage — l'admin pourra les remplacer via le panel comme aujourd'hui.
+## Détails techniques
 
-### `src/game/resetGame.ts`
-- Ajouter la clé `DEALERSHIP_KEY` au reset complet.
-
-## Contraintes respectées
-- ✅ Panel Admin : les assets restent surchargeables (rotation, upload custom).
-- ✅ Véhicules achetés circulent sur les vraies routes (même pipeline que la flotte actuelle).
-- ✅ Système de taxis existant préservé, uniquement étendu.
-- ✅ Compatibilité cloud : les nouveaux champs `ownedModelIds` / `assignments` s'ajoutent au save existant sans casser les anciennes parties (grandfathering : modèles déjà en flotte marqués comme possédés à la volée).
-
-## Ce que je ne touche pas
-- Trafic civil, Mafia, Baron, Radar, Radio.
-- Logique de mission / dispatch.
-- Système de sauvegarde cloud (juste des nouveaux champs additifs).
+- Auto-découverte via `import.meta.glob` déjà en place → il suffit de déposer les fichiers dans `src/assets/civil/`
+- Époque déduite du préfixe `era{n}-` du filename dans le nouveau helper
+- `currentChapterNumber()` déjà exposé par `dealership/dealershipState.ts`, réutilisé

@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useAdminConfig } from "./adminConfig";
 import { getPedestrianPhotoUrls, listCustomVehicles, getCivilCarUrls, type CustomVehicleCategory } from "./gameAssets";
+import { getActiveCivilCarUrls } from "./civilFleetProgression";
+import { currentChapterNumber } from "./dealership/dealershipState";
 import { VehicleSvg, type VehicleSvgKind } from "./vehicles/VehicleSvgs";
 import {
   initTrafficLights,
@@ -371,7 +373,7 @@ function buildCarsFromCustom(count?: number): CarSpec[] {
   // Pool d'URLs disponibles : assets civils par défaut + customs roulants.
   // Permet d'avoir du trafic même sans uploads, et boucle modulo si N > pool.length.
   const customUrls = new Set(customs.map((v) => v.url));
-  const civilUrls = getCivilCarUrls().filter((url) => !customUrls.has(url));
+  const civilUrls = getActiveCivilCarUrls(currentChapterNumber()).filter((url) => !customUrls.has(url));
   type Entry = { url: string; category: CustomVehicleCategory };
   const pool: Entry[] = [
     ...civilUrls.map((url): Entry => ({ url, category: "civil" })),
@@ -417,7 +419,11 @@ export default function CityTraffic() {
   useEffect(() => {
     const onChange = () => setCustomTick(t => t + 1);
     window.addEventListener("jce.customVehicles.changed", onChange);
-    return () => window.removeEventListener("jce.customVehicles.changed", onChange);
+    window.addEventListener("campaign.updated", onChange);
+    return () => {
+      window.removeEventListener("jce.customVehicles.changed", onChange);
+      window.removeEventListener("campaign.updated", onChange);
+    };
   }, []);
   // Trafic civil TOUJOURS actif (indépendant de la campagne).
   // Le count vient du panel Admin (civilVehicleCount) avec un plancher de 6.
