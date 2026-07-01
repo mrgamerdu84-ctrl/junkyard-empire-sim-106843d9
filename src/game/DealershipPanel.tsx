@@ -67,9 +67,11 @@ export default function DealershipPanel({ onClose }: { onClose: () => void }) {
           )}
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }
+
 
 // -------- Shop --------
 
