@@ -23,6 +23,7 @@ import SplashScreen from "@/game/SplashScreen";
 import IntroStory, { hasSeenIntro } from "@/game/IntroStory";
 import UltraFluidPanel from "@/game/UltraFluidPanel";
 import AbandonedWarehouse from "@/game/AbandonedWarehouse";
+import WarehouseSurroundings from "@/game/WarehouseSurroundings";
 import StoryStartTools from "@/game/StoryStartTools";
 import { preferLiteAssets } from "@/lib/perf";
 
