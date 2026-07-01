@@ -877,6 +877,15 @@ function SkinsTab() {
     setAssetOverride(key, null);
     force(v => v + 1);
   };
+  const onRotate = async (key: AssetKey, deg: 90 | 270) => {
+    try {
+      const rotated = await rotateToDataUrl(GAME_ASSETS[key], deg);
+      setAssetOverride(key, rotated);
+      force(v => v + 1);
+    } catch {
+      window.alert("Impossible de faire pivoter cette image (CORS ou URL invalide).");
+    }
+  };
   return (
     <>
       <div style={{ fontSize: 12, color: "#c8ccd2", lineHeight: 1.5, marginBottom: 8 }}>
@@ -905,8 +914,10 @@ function SkinsTab() {
                   onChange={(e) => { const f = e.target.files?.[0]; if (f) onFile(key, f); }}
                 />
               </label>
-              <button onClick={() => onUrl(key)} style={btnMini}>🔗</button>
-              <button onClick={() => onReset(key)} style={btnMini} title="Réinitialiser">↺</button>
+              <button onClick={() => onUrl(key)} style={btnMini} title="Depuis une URL">🔗</button>
+              <button onClick={() => onRotate(key, 270)} style={btnMini} title="Pivoter −90° (horizontal)">↺90</button>
+              <button onClick={() => onRotate(key, 90)} style={btnMini} title="Pivoter +90° (vertical)">↻90</button>
+              <button onClick={() => onReset(key)} style={btnMini} title="Réinitialiser">✖</button>
             </div>
           );
         })}
