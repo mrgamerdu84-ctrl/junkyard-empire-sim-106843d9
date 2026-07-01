@@ -9,7 +9,6 @@ import {
   nowSeconds,
   type TrafficLight,
 } from "./trafficLights";
-import { getGameTime } from "./cityClock";
 import { isUltraLite, perfTier, reduceMotion, targetFps, trafficBudget } from "@/lib/perf";
 import { buildRoadCache, getRoadPoint, hasRoadCache, type CachedRoad } from "./RoadCache";
 
