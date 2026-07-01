@@ -9,6 +9,7 @@ import {
   type StaffMember,
   type StaffRole,
 } from "./personnel";
+import { useUnlock } from "./campaign/unlocks";
 
 type Props = {
   open: boolean;
@@ -18,6 +19,7 @@ type Props = {
 };
 
 export default function PersonnelPanel({ open, onClose, money, onHireCharge }: Props) {
+  const marcelUnlocked = useUnlock("personnel.marcel");
   const [list, setList] = useState<StaffMember[]>([]);
   const [toast, setToast] = useState<string | null>(null);
 
@@ -34,6 +36,20 @@ export default function PersonnelPanel({ open, onClose, money, onHireCharge }: P
   };
 
   if (!open) return null;
+
+  if (!marcelUnlocked) {
+    return (
+      <div style={{ position:"fixed", inset:0, zIndex:9000, background:"rgba(0,0,0,0.75)", display:"flex", alignItems:"center", justifyContent:"center", padding:20 }} onClick={onClose}>
+        <div style={{ background:"linear-gradient(180deg,#1c1408,#0a0603)", border:"2px solid #6b7280", borderRadius:12, padding:"22px 24px", maxWidth:360, color:"#fde047", textAlign:"center" }} onClick={(e)=>e.stopPropagation()}>
+          <div style={{ fontSize:48, marginBottom:8 }}>🔒</div>
+          <h3 style={{ margin:"0 0 8px" }}>Équipe verrouillée</h3>
+          <p style={{ margin:"0 0 14px", opacity:0.85, fontSize:13 }}>Marcel, l'ancien mécano de ton père, ne reviendra qu'au <b>Chapitre 2 — La Reconstruction</b>.</p>
+          <button onClick={onClose} style={{ padding:"8px 18px", background:"#f5c542", color:"#1a1208", border:"none", borderRadius:8, fontWeight:800, cursor:"pointer" }}>Fermer</button>
+        </div>
+      </div>
+    );
+  }
+
 
   const handleHire = (role: StaffRole, cost: number) => {
     if (money < cost) {
