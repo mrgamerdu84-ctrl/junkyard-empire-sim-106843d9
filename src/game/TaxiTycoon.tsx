@@ -2457,6 +2457,7 @@ export default function TaxiTycoon() {
     // interpoler vers le path (évite le « saut »).
     free.transitionFromX = visualFrom.x;
     free.transitionFromY = visualFrom.y;
+    free.transitionFromAngle = rendered?.angle;
     free.transitionUntil = performance.now() + TRANSITION_MS;
     setJobs((js) => js.map((j) => j.id === id ? { ...j, status: "accepted", acceptedAt: Date.now() } : j));
 
