@@ -38,6 +38,7 @@ const PLAYER_HQ_IMG = playerHqAsset.url;
 const TAXI_YELLOW_URL = GAME_ASSETS["taxi.yellow"];
 const TAXI_BLACK_URL = GAME_ASSETS["taxi.black"];
 const TAXI_RED_URL = GAME_ASSETS["taxi.red"];
+const TAXI_FATHER_URL = GAME_ASSETS["taxi.father"];
 const POLICE_CAR_URL = GAME_ASSETS["police.car"];
 const AMBULANCE_URL = GAME_ASSETS["emergency.ambulance"];
 const FIRETRUCK_URL = GAME_ASSETS["emergency.firetruck"];
