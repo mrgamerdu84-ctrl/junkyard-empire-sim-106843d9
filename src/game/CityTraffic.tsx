@@ -663,9 +663,15 @@ export default function CityTraffic() {
           if (stoppedByLight) break;
         }
         if (stoppedByLight) st.speed = 0;
+        // ===== File d'attente derrière un autre véhicule (taxi/civil) =====
+        const civId = `civ-${st.spec.pathIdx}-${st.laneKey}-${states.indexOf(st)}`;
+        if (!stoppedByLight && hasVehicleAhead(civId, st.spec.pathIdx, st.s, true, 44)) {
+          st.speed = 0;
+        }
         // ===== Trafic normal =====
         const prev = st.s;
         st.s += st.speed * dt;
+        reportVehicle(civId, st.spec.pathIdx, st.s, true);
         // En bout de path → demi-tour sur place (inversion du sens), pas de saut
         // à l'autre extrémité de la carte.
         if (st.s >= st.pathLen) {
