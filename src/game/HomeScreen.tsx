@@ -11,6 +11,7 @@ import { useAuth, signOut } from "@/lib/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import LoadingScreen from "./LoadingScreen";
 import CampaignPanel from "./CampaignPanel";
+import DealershipPanel from "./DealershipPanel";
 import { preferLiteAssets } from "@/lib/perf";
 import { useUnlock } from "./campaign/unlocks";
 import { resetFullGame } from "./resetGame";
@@ -20,8 +21,10 @@ export default function HomeScreen({ onPlay, onReplayIntro }: { onPlay: () => vo
   const navigate = useNavigate();
   const { user, pseudo: cloudPseudo, avatarKind, avatarUrl } = useAuth();
   const arenaUnlocked = useUnlock("empire.arena");
+  const dealershipUnlocked = useUnlock("dealership");
   const [showProfile, setShowProfile] = useState(false);
   const [showCampaign, setShowCampaign] = useState(false);
+  const [showDealership, setShowDealership] = useState(false);
   const [loading, setLoading] = useState(false);
   const [progress, setProgress] = useState(0);
   const [showTutorial, setShowTutorial] = useState(false);
