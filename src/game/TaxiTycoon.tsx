@@ -2587,11 +2587,21 @@ export default function TaxiTycoon() {
       {!ultraLite && <WeatherNightOverlay lite={perfMode === "low"} />}
 
       {/* === Calque SVG du jeu === */}
+      {/* En mode PILOTE : la caméra suit le taxi (viewBox dynamique zoomé, taxi centré). */}
+      {(() => { void manualTick; return null; })()}
       <svg
         ref={containerRef}
-        viewBox="0 0 1920 1080"
+        viewBox={(() => {
+          if (!manualMode) return "0 0 1920 1080";
+          const zoomW = 720; // largeur visible en mode conduite (zoom ~2.6x)
+          const zoomH = 405;
+          const p = manualPosRef.current;
+          const x = Math.max(0, Math.min(1920 - zoomW, p.x - zoomW / 2));
+          const y = Math.max(0, Math.min(1080 - zoomH, p.y - zoomH / 2));
+          return `${x} ${y} ${zoomW} ${zoomH}`;
+        })()}
         preserveAspectRatio="xMidYMid slice"
-        style={{ position: "absolute", inset: 0, width: "100%", height: "100%", pointerEvents: "none", zIndex: manualMode ? 9500 : 4, touchAction: manualMode ? "none" : undefined }}
+        style={{ position: "absolute", inset: 0, width: "100%", height: "100%", pointerEvents: "none", zIndex: manualMode ? 9500 : 4, touchAction: manualMode ? "none" : undefined, transition: manualMode ? "none" : "none" }}
       >
         <defs>
           {ROADS.map((d, i) => (
