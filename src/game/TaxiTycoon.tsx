@@ -4,7 +4,7 @@ import { useNavigate } from "@tanstack/react-router";
 import { ROADS, VILLAGE_PATHS, SIDEWALK_LOCK_OFFSET, lockToSidewalk } from "./CityTraffic";
 import { buildRoadCache, getRoadPoint, hasRoadCache } from "./RoadCache";
 import { GAME_ASSETS, listCustomVehicles } from "./gameAssets";
-import { shouldStopAhead, nowSeconds, registerAccident, clearAccident, getAccidents, type AccidentZone } from "./trafficLights";
+import { shouldStopAhead, nowSeconds, registerAccident, clearAccident, getAccidents, reportVehicle, hasVehicleAhead, type AccidentZone } from "./trafficLights";
 import { getAdmin, useAdminConfig } from "./adminConfig";
 import { recordEarning, isSpecialTaxiUnlocked } from "@/lib/leaderboard";
 import { pushNews } from "@/lib/radioNews";
@@ -1543,9 +1543,14 @@ export default function TaxiTycoon() {
             taxi.refuelUntil = Date.now() + FUEL_REFILL_MS;
           }
         } else {
-          // Respect des feux : si rouge devant, on s'arrête (skip ce frame)
+          // Respect des feux + file d'attente derrière un autre véhicule
           const forward = diff > 0;
-          if (!shouldStopAhead(taxi.pathIdx, taxi.pos, forward, nowSeconds())) {
+          const tid = `taxi-${taxi.id}`;
+          reportVehicle(tid, taxi.pathIdx, taxi.pos, forward);
+          if (
+            !shouldStopAhead(taxi.pathIdx, taxi.pos, forward, nowSeconds()) &&
+            !hasVehicleAhead(tid, taxi.pathIdx, taxi.pos, forward)
+          ) {
             taxi.pos += Math.sign(diff) * step;
           }
         }
@@ -1628,7 +1633,12 @@ export default function TaxiTycoon() {
             }
           } else {
             const forward = diff > 0;
-            if (!shouldStopAhead(r.pathIdx, r.pos, forward, nowSeconds())) {
+            const rid = `rival-${r.id}`;
+            reportVehicle(rid, r.pathIdx, r.pos, forward);
+            if (
+              !shouldStopAhead(r.pathIdx, r.pos, forward, nowSeconds()) &&
+              !hasVehicleAhead(rid, r.pathIdx, r.pos, forward)
+            ) {
               r.pos += Math.sign(diff) * step;
             }
           }

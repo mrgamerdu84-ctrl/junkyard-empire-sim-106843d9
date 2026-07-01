@@ -9,6 +9,9 @@ import {
   getTrafficLights,
   getLightState,
   nowSeconds,
+  reportVehicle,
+  clearVehicle,
+  hasVehicleAhead,
   type TrafficLight,
 } from "./trafficLights";
 import { isUltraLite, perfTier, reduceMotion, targetFps, trafficBudget } from "@/lib/perf";
@@ -660,9 +663,15 @@ export default function CityTraffic() {
           if (stoppedByLight) break;
         }
         if (stoppedByLight) st.speed = 0;
+        // ===== File d'attente derrière un autre véhicule (taxi/civil) =====
+        const civId = `civ-${st.spec.pathIdx}-${st.laneKey}-${states.indexOf(st)}`;
+        if (!stoppedByLight && hasVehicleAhead(civId, st.spec.pathIdx, st.s, true, 44)) {
+          st.speed = 0;
+        }
         // ===== Trafic normal =====
         const prev = st.s;
         st.s += st.speed * dt;
+        reportVehicle(civId, st.spec.pathIdx, st.s, true);
         // En bout de path → demi-tour sur place (inversion du sens), pas de saut
         // à l'autre extrémité de la carte.
         if (st.s >= st.pathLen) {
@@ -728,20 +737,65 @@ export default function CityTraffic() {
         <filter id="jce-soft-shadow" x="-30%" y="-30%" width="160%" height="160%">
           <feDropShadow dx="0" dy="6" stdDeviation="5" floodColor="#000" floodOpacity="0.35" />
         </filter>
+        {/* Reflet asphalte : sombre → clair → sombre pour l'effet "brillant" */}
+        <linearGradient id="jce-road-shine" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" stopColor="#000" stopOpacity="0" />
+          <stop offset="0.5" stopColor="#e8ecf5" stopOpacity="0.9" />
+          <stop offset="1" stopColor="#000" stopOpacity="0" />
+        </linearGradient>
       </defs>
 
-      <g opacity="0.12">
-        {ROADS.map((d, i) => (
-          VILLAGE_PATHS.has(i) ? null : (
-            <path key={i} d={d} stroke="#0b0d10" strokeWidth={i >= 4 ? 34 : 46} fill="none" strokeLinecap="round" />
-          )
-        ))}
-        {ROADS.slice(0, 4).map((d, i) => (
-          VILLAGE_PATHS.has(i) ? null : (
-            <path key={`dash-${i}`} d={d} stroke="#f6d56a" strokeWidth="2.4" strokeDasharray="18 18" fill="none" opacity="0.72" />
-          )
-        ))}
+
+      {/* Chaussée : léger noir + reflet blanc central pour "faire briller" la route */}
+      <g pointerEvents="none">
+        {/* Base assombrie très subtile pour ancrer la route sur la texture */}
+        <g opacity="0.10">
+          {ROADS.map((d, i) => (
+            VILLAGE_PATHS.has(i) ? null : (
+              <path key={i} d={d} stroke="#0b0d10" strokeWidth={i >= 4 ? 34 : 46} fill="none" strokeLinecap="round" />
+            )
+          ))}
+        </g>
+        {/* Reflet spéculaire : fin trait blanc décalé, effet "asphalte mouillé" */}
+        <g opacity="0.14">
+          {ROADS.map((d, i) => (
+            VILLAGE_PATHS.has(i) ? null : (
+              <path
+                key={`shine-${i}`}
+                d={d}
+                stroke="url(#jce-road-shine)"
+                strokeWidth={i >= 4 ? 10 : 14}
+                fill="none"
+                strokeLinecap="round"
+              />
+            )
+          ))}
+        </g>
+        {/* Bord d'ombre côté opposé pour donner du relief */}
+        <g opacity="0.22">
+          {ROADS.map((d, i) => (
+            VILLAGE_PATHS.has(i) ? null : (
+              <path
+                key={`edge-${i}`}
+                d={d}
+                stroke="#000"
+                strokeWidth={i >= 4 ? 2 : 3}
+                fill="none"
+                strokeLinecap="round"
+              />
+            )
+          ))}
+        </g>
+        {/* Marquage central pointillé jaune */}
+        <g opacity="0.75">
+          {ROADS.slice(0, 4).map((d, i) => (
+            VILLAGE_PATHS.has(i) ? null : (
+              <path key={`dash-${i}`} d={d} stroke="#f6d56a" strokeWidth="2.4" strokeDasharray="18 18" fill="none" />
+            )
+          ))}
+        </g>
       </g>
+
 
 
 
@@ -794,20 +848,66 @@ export default function CityTraffic() {
         const pedGreen = red;
         void pedGreen;
         return (
-          <g key={`tl-${l.id}`} transform={`translate(${l.x},${l.y}) scale(1.6)`} pointerEvents="none">
-            <ellipse cx="0" cy="14" rx="14" ry="4" fill="rgba(0,0,0,0.45)" />
-            <rect x="-7" y="-22" width="14" height="36" rx="3" fill="#0e1217" stroke="#000" strokeWidth="1" />
-            <circle cx="0" cy="-14" r="3.4" fill={red ? "#ff2a2a" : "#2a0808"} opacity={red ? 1 : 0.4}>
-              {red && !reducedFx && <animate attributeName="r" values="3.4;4.2;3.4" dur="1s" repeatCount="indefinite" />}
-            </circle>
-            <circle cx="0" cy="-4"  r="3.4" fill={orange ? "#ffb020" : "#2a1a00"} opacity={orange ? 1 : 0.4} />
-            <circle cx="0" cy="6"   r="3.4" fill={green ? "#22e36a" : "#0a2a14"} opacity={green ? 1 : 0.4} />
-            {/* halo lumineux la nuit */}
-            {night > 0.4 && (
-              <circle cx="0" cy={red ? -14 : orange ? -4 : 6} r="10"
+          <g key={`tl-${l.id}`} transform={`translate(${l.x},${l.y})`} pointerEvents="none">
+            {/* Ombre au sol */}
+            <ellipse cx="0" cy="34" rx="22" ry="6" fill="rgba(0,0,0,0.42)" />
+            {/* Socle béton */}
+            <ellipse cx="0" cy="30" rx="10" ry="3.5" fill="#3a3a42" />
+            <rect x="-5" y="24" width="10" height="8" rx="1.5" fill="url(#tl-base)" />
+            {/* Mât vertical (dégradé métal) */}
+            <rect x="-2.4" y="-40" width="4.8" height="66" rx="1.4" fill="url(#tl-pole)" />
+            <rect x="-1.2" y="-40" width="1.4" height="66" fill="rgba(255,255,255,0.18)" />
+            {/* Bras horizontal */}
+            <rect x="-2.4" y="-40" width="30" height="4" rx="1.2" fill="url(#tl-pole)" />
+            <rect x="-2.4" y="-40" width="30" height="1" fill="rgba(255,255,255,0.25)" />
+            {/* Boîtier suspendu */}
+            <g transform="translate(23,-32)">
+              {/* Attache */}
+              <rect x="-1.2" y="-4" width="2.4" height="6" fill="#1c1f26" />
+              {/* Backboard jaune (visibilité) */}
+              <rect x="-11" y="2" width="22" height="46" rx="2" fill="#f4c542" opacity="0.85" />
+              <rect x="-11" y="2" width="22" height="46" rx="2" fill="none" stroke="#1a1a1a" strokeWidth="0.8" />
+              {/* Boîtier noir */}
+              <rect x="-8.5" y="4" width="17" height="42" rx="3" fill="url(#tl-body)" stroke="#050505" strokeWidth="0.8" />
+              {/* Reflet vertical */}
+              <rect x="-7.5" y="5" width="1.4" height="40" fill="rgba(255,255,255,0.12)" />
+              {/* Visières (petits toits au-dessus des ampoules) */}
+              <path d="M -8.5 10 L 8.5 10 L 7 7 L -7 7 Z" fill="#0a0c10" />
+              <path d="M -8.5 22 L 8.5 22 L 7 19 L -7 19 Z" fill="#0a0c10" />
+              <path d="M -8.5 34 L 8.5 34 L 7 31 L -7 31 Z" fill="#0a0c10" />
+              {/* Ampoules */}
+              <circle cx="0" cy="14" r="4.4" fill={red ? "#ff2a2a" : "#2a0808"}>
+                {red && !reducedFx && <animate attributeName="r" values="4.4;5;4.4" dur="1.4s" repeatCount="indefinite" />}
+              </circle>
+              <circle cx="0" cy="26" r="4.4" fill={orange ? "#ffb020" : "#2a1a00"} />
+              <circle cx="0" cy="38" r="4.4" fill={green ? "#22e36a" : "#0a2a14"} />
+              {/* Reflets sur les ampoules allumées */}
+              {red && <circle cx="-1.4" cy="12.6" r="1.4" fill="rgba(255,255,255,0.7)" />}
+              {orange && <circle cx="-1.4" cy="24.6" r="1.4" fill="rgba(255,255,255,0.7)" />}
+              {green && <circle cx="-1.4" cy="36.6" r="1.4" fill="rgba(255,255,255,0.7)" />}
+              {/* Halo lumineux (visible aussi de jour, plus fort la nuit) */}
+              <circle cx="0" cy={red ? 14 : orange ? 26 : 38} r="14"
                 fill={red ? "#ff2a2a" : orange ? "#ffb020" : "#22e36a"}
-                opacity={night * 0.35} />
-            )}
+                opacity={0.18 + night * 0.4} />
+            </g>
+            {/* Gradients réutilisables — définis inline pour éviter dep externe */}
+            <defs>
+              <linearGradient id="tl-pole" x1="0" y1="0" x2="1" y2="0">
+                <stop offset="0" stopColor="#4a4a52" />
+                <stop offset="0.5" stopColor="#8a8a92" />
+                <stop offset="1" stopColor="#2c2c32" />
+              </linearGradient>
+              <linearGradient id="tl-body" x1="0" y1="0" x2="1" y2="0">
+                <stop offset="0" stopColor="#141618" />
+                <stop offset="0.55" stopColor="#22262c" />
+                <stop offset="1" stopColor="#0a0b0d" />
+              </linearGradient>
+              <linearGradient id="tl-base" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0" stopColor="#6a6a72" />
+                <stop offset="1" stopColor="#2a2a30" />
+              </linearGradient>
+            </defs>
+
             {/* Feu piéton — retiré en ultra-léger pour réduire les nœuds SVG */}
             {!reducedFx && <g transform="translate(18,-4)">
               {/* Boîtier noir */}

@@ -180,3 +180,46 @@ export function getAccidents(): AccidentZone[] {
   return accidents;
 }
 
+// ====== Registre partagé des positions de véhicules ======
+// Permet aux taxis de "faire la queue" derrière les voitures civiles
+// (et vice-versa) sur la même route. Chaque acteur met à jour son slot
+// à chaque frame ; les slots trop vieux sont ignorés.
+export type VehicleSlot = {
+  pathIdx: number;
+  s: number;
+  forward: boolean; // sens de progression le long du path
+  updatedAt: number; // performance.now()
+};
+const vehicleSlots = new Map<string, VehicleSlot>();
+const VEHICLE_STALE_MS = 400;
+const CAR_QUEUE_GAP = 42; // distance de sécurité (px SVG) — un peu plus qu'une longueur de voiture
+
+export function reportVehicle(id: string, pathIdx: number, s: number, forward: boolean) {
+  vehicleSlots.set(id, { pathIdx, s, forward, updatedAt: performance.now() });
+}
+export function clearVehicle(id: string) {
+  vehicleSlots.delete(id);
+}
+
+/** Y a-t-il un autre véhicule devant `self` sur le même path ? */
+export function hasVehicleAhead(
+  selfId: string,
+  pathIdx: number,
+  s: number,
+  forward: boolean,
+  gap: number = CAR_QUEUE_GAP,
+): boolean {
+  const now = performance.now();
+  for (const [id, slot] of vehicleSlots) {
+    if (id === selfId) continue;
+    if (slot.pathIdx !== pathIdx) continue;
+    if (now - slot.updatedAt > VEHICLE_STALE_MS) continue;
+    // On considère "devant" uniquement les véhicules qui vont dans le même sens.
+    if (slot.forward !== forward) continue;
+    const ahead = forward ? slot.s - s : s - slot.s;
+    if (ahead > 0 && ahead < gap) return true;
+  }
+  return false;
+}
+
+
