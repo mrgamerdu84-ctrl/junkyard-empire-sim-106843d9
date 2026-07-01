@@ -17,6 +17,8 @@ import { pickSpecialMission, SPECIAL_COOLDOWN_MS } from "@/lib/specialMissions";
 import { getGameTime, periodLabel } from "./cityClock";
 import RadioPlayer from "./RadioPlayer";
 import PersonnelPanel from "./PersonnelPanel";
+import DealershipPanel from "./DealershipPanel";
+import { useUnlock } from "./campaign/unlocks";
 import MissionOfferToast from "./MissionOfferToast";
 import { getMaintenanceDiscount, getTipsBonus, startPersonnelTick } from "./personnel";
 import { useAuth } from "@/lib/useAuth";
