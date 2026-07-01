@@ -2,7 +2,7 @@
 // Débloqué au Chapitre 2 via la feature "dealership".
 // Achats écrits dans `taxi-tycoon-v4` — respect strict du cap campagne.
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState, type CSSProperties } from "react";
 import { TAXI_MODELS, type TaxiModel } from "./dealership/taxiModels";
 import {
   loadDealership, subscribeDealership, isModelUnlocked,
