@@ -49,6 +49,10 @@ export function useCloudCustomizations() {
   const lastSaved = useRef<string>("");
 
   // Applique un snapshot cloud au localStorage et notifie les écouteurs.
+  // ⚠️ Merge conservateur : les valeurs locales (rotations récentes,
+  // véhicules ajoutés sur cet appareil) ne sont JAMAIS écrasées par le cloud —
+  // sinon une rotation faite juste avant un reload disparaîtrait si le push
+  // debouncé n'a pas eu le temps de partir.
   const applyCloud = useCallback((cloud: {
     custom_vehicles?: unknown;
     custom_pedestrians?: unknown;
@@ -57,11 +61,30 @@ export function useCloudCustomizations() {
   } | null) => {
     if (!cloud) return;
     try {
-      localStorage.setItem(CUSTOM_VEHICLES_KEY, JSON.stringify(cloud.custom_vehicles ?? []));
-      localStorage.setItem(CUSTOM_PED_KEY, JSON.stringify(cloud.custom_pedestrians ?? []));
-      if (cloud.armored_sprite) localStorage.setItem(ARMORED_SPRITE_KEY, cloud.armored_sprite);
+      const local = readLocal();
+
+      // Overrides : union, local prioritaire (rotations, remplacements).
+      const cloudOv = (cloud.asset_overrides ?? {}) as Record<string, unknown>;
+      const mergedOv = { ...cloudOv, ...local.asset_overrides };
+
+      // Véhicules / piétons : union par id, local prioritaire.
+      const mergeById = (a: unknown[], b: unknown[]) => {
+        const map = new Map<string, unknown>();
+        for (const it of a) { const id = (it as { id?: string })?.id; if (id) map.set(id, it); }
+        for (const it of b) { const id = (it as { id?: string })?.id; if (id) map.set(id, it); }
+        return [...map.values()];
+      };
+      const mergedVeh = mergeById((cloud.custom_vehicles as unknown[]) ?? [], local.custom_vehicles);
+      const mergedPed = mergeById((cloud.custom_pedestrians as unknown[]) ?? [], local.custom_pedestrians);
+
+      // Sprite blindé : local prioritaire s'il existe.
+      const mergedSprite = local.armored_sprite ?? cloud.armored_sprite ?? null;
+
+      localStorage.setItem(CUSTOM_VEHICLES_KEY, JSON.stringify(mergedVeh));
+      localStorage.setItem(CUSTOM_PED_KEY, JSON.stringify(mergedPed));
+      if (mergedSprite) localStorage.setItem(ARMORED_SPRITE_KEY, mergedSprite);
       else localStorage.removeItem(ARMORED_SPRITE_KEY);
-      localStorage.setItem(OVERRIDE_KEY, JSON.stringify(cloud.asset_overrides ?? {}));
+      localStorage.setItem(OVERRIDE_KEY, JSON.stringify(mergedOv));
     } catch { /* noop */ }
     window.dispatchEvent(new Event(VEHICLES_EVT));
     window.dispatchEvent(new Event(PED_EVT));
@@ -74,6 +97,8 @@ export function useCloudCustomizations() {
       s: local.armored_sprite,
       o: local.asset_overrides,
     });
+    // Après merge, on repush pour que le cloud reflète l'union.
+    schedulePush();
   }, []);
 
   // Pull cloud → local au login
