@@ -51,6 +51,7 @@ export function getActiveCivilCarUrls(chapter: number): string[] {
   if (civils.length === 0) civils = CIVIL_ASSETS.map((a) => a.url);
   const customUrls = listCustomVehicles()
     .filter((v) => TRAFFIC_CATS.has(v.category))
+    .filter((v) => !v.era || v.era <= maxEra)
     .map((v) => v.url);
   return [...civils, ...customUrls];
 }
