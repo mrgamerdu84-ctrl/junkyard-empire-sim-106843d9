@@ -25,6 +25,8 @@ import UltraFluidPanel from "@/game/UltraFluidPanel";
 import CampaignHud from "@/game/CampaignHud";
 import Chapter1Manager from "@/game/Chapter1Manager";
 import DepotEvolution from "@/game/DepotEvolution";
+import UnlockToast from "@/game/UnlockToast";
+import { useUnlock } from "@/game/campaign/unlocks";
 import { preferLiteAssets } from "@/lib/perf";
 
 
@@ -185,16 +187,16 @@ function TaxiTycoonPage() {
         <img src={mapSrc} alt="Plan de la ville pour le jeu de taxi" className="tt-map" />
         <div className="tt-vignette" />
         <CityTraffic />
-        <BaronConvoy />
-        <BaronManor />
-        <MafiaAttackers />
+        {useUnlock("baron.active") && <BaronConvoy />}
+        {useUnlock("baron.active") && <BaronManor />}
+        {useUnlock("mafia.attackers") && <MafiaAttackers />}
         <EmergencyStations />
-        <CrimeEvents />
+        {useUnlock("crime.events") && <CrimeEvents />}
         <InterventionDispatcher />
         <TaxiTycoon />
         <DepotEvolution />
-        <ArmoredTruck />
-        <MafiaLimo />
+        {useUnlock("empire.armored_truck") && <ArmoredTruck />}
+        {useUnlock("baron.hint") && <MafiaLimo />}
       </div>
 
       {/* HUD et panneaux hors zoom (toujours nets) */}
@@ -202,12 +204,16 @@ function TaxiTycoonPage() {
       
       {/* <AmbientSirens /> — désactivé sur demande joueur */}
       <AdminPanel />
-      <MafiaGodfather />
-      <BaronNegotiation playerMoney={0} onDeal={(a) => console.log("baron deal", a)} />
+      {useUnlock("baron.dialogue") && <MafiaGodfather />}
+      {useUnlock("baron.negotiation") && (
+        <BaronNegotiation playerMoney={0} onDeal={(a) => console.log("baron deal", a)} />
+      )}
       <VersionBanner />
       <UltraFluidPanel />
       <CampaignHud />
       <Chapter1Manager />
+      <UnlockToast />
+
 
 
 
