@@ -3,6 +3,7 @@
 // Achats écrits dans `taxi-tycoon-v4` — respect strict du cap campagne.
 
 import { useEffect, useState, type CSSProperties } from "react";
+import { createPortal } from "react-dom";
 import { TAXI_MODELS, type TaxiModel } from "./dealership/taxiModels";
 import {
   loadDealership, subscribeDealership, isModelUnlocked,
