@@ -112,8 +112,8 @@ export default function CampaignPanel({ onClose }: { onClose: () => void }) {
           <ChapterView
             chapter={activeChapter}
             state={state}
-            onBack={() => setOpenChapter(null)}
-            onToggleMission={(mid) => setState(toggleMission(activeChapter.id, mid))}
+            onToggleMission={(mid) => setState(completeMission(activeChapter.id, mid))}
+
             onChoice={(cid, opt) => {
               const s = recordChoice(cid, opt);
               setState(s);
