@@ -12,6 +12,7 @@ import { supabase } from "@/integrations/supabase/client";
 import LoadingScreen from "./LoadingScreen";
 import CampaignPanel from "./CampaignPanel";
 import { preferLiteAssets } from "@/lib/perf";
+import { useUnlock } from "./campaign/unlocks";
 
 export default function HomeScreen({ onPlay, onReplayIntro }: { onPlay: () => void; onReplayIntro?: () => void }) {
   const bgUrl = preferLiteAssets() ? bgLiteAsset.url : bgAssetV2;
@@ -307,19 +308,31 @@ export default function HomeScreen({ onPlay, onReplayIntro }: { onPlay: () => vo
           <>
             <div className="hs-section-label">Compétition</div>
             <div className="hs-grid">
-              <button
-                className="hs-btn"
-                style={{ background: "linear-gradient(180deg,#ef4444,#b91c1c)", color: "#fff", boxShadow: "0 5px 0 #7f1d1d, 0 10px 18px rgba(0,0,0,0.45)", border: "2px solid #fca5a5", textShadow: "0 1px 0 rgba(0,0,0,0.3)" }}
-                onClick={() => navigate({ to: "/arena" })}
-              >
-                ⚔️ Arène
-              </button>
+              {arenaUnlocked ? (
+                <button
+                  className="hs-btn"
+                  style={{ background: "linear-gradient(180deg,#ef4444,#b91c1c)", color: "#fff", boxShadow: "0 5px 0 #7f1d1d, 0 10px 18px rgba(0,0,0,0.45)", border: "2px solid #fca5a5", textShadow: "0 1px 0 rgba(0,0,0,0.3)" }}
+                  onClick={() => navigate({ to: "/arena" })}
+                >
+                  ⚔️ Arène
+                </button>
+              ) : (
+                <button
+                  className="hs-btn"
+                  style={{ opacity: 0.55, cursor: "not-allowed", background: "linear-gradient(180deg,#4b5563,#1f2937)", color: "#e5e7eb", border: "2px solid #6b7280" }}
+                  onClick={() => setShowCampaign(true)}
+                  title="Débloqué après la campagne (Mode Empire)"
+                >
+                  🔒 Arène
+                </button>
+              )}
               <button className="hs-btn" onClick={() => setShowLeaderboard(true)}>
                 🏆 Classement
               </button>
             </div>
           </>
         )}
+
 
         {!user && (
           <div className="hs-btns">
