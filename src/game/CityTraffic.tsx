@@ -10,7 +10,7 @@ import {
   type TrafficLight,
 } from "./trafficLights";
 import { getGameTime } from "./cityClock";
-import { densityMult, isUltraLite, perfTier, reduceMotion, targetFps, trafficBudget } from "@/lib/perf";
+import { isUltraLite, perfTier, reduceMotion, targetFps, trafficBudget } from "@/lib/perf";
 import { buildRoadCache, getRoadPoint, hasRoadCache, type CachedRoad } from "./RoadCache";
 
 
@@ -357,12 +357,10 @@ type CarState = {
   visible?: boolean;             // CULLING : dans le viewport visible (+ marge)
 };
 
-// Catégories autorisées dans le trafic libre : uniquement les civils & véhicules
-// de service. Police / ambulance / pompiers ne roulent QUE sur intervention
-// (cf. EmergencyStations + InterventionDispatcher) → ils restent à leur QG
-// le reste du temps.
+// Catégories autorisées dans le trafic libre : le panel Admin doit rester
+// indépendant de la campagne. On exclut seulement les véhicules d'histoire.
 const TRAFFIC_CATEGORIES: CustomVehicleCategory[] = [
-  "civil", "service",
+  "civil", "service", "taxi", "police", "ambulance", "firetruck",
 ];
 
 function buildCarsFromCustom(count?: number): CarSpec[] {
@@ -382,7 +380,7 @@ function buildCarsFromCustom(count?: number): CarSpec[] {
   if (pool.length === 0) return [];
 
 
-  const N = Math.max(0, count ?? pool.length);
+  const N = Math.max(6, count ?? pool.length, pool.length);
   const out: CarSpec[] = [];
   for (let i = 0; i < N; i++) {
     const entry = pool[i % pool.length];
@@ -422,12 +420,10 @@ export default function CityTraffic() {
     return () => window.removeEventListener("jce.customVehicles.changed", onChange);
   }, []);
   // Trafic civil TOUJOURS actif (indépendant de la campagne).
-  // Le count vient du panel Admin (civilVehicleCount), plafonné par le tier
-  // pour rester fluide sur mobile, avec un plancher de 6 pour que la ville
-  // soit toujours vivante — même sur Xiaomi bas de gamme.
+  // Le count vient du panel Admin (civilVehicleCount) avec un plancher de 6.
   const adminDesired = Math.max(6, admin.civilVehicleCount || 0);
-  const tierDefault = isUltraLite() ? 6 : tier === "low" ? 10 : tier === "mid" ? 16 : 24;
-  const desiredCars = Math.min(adminDesired, tierDefault);
+  const customTrafficCount = listCustomVehicles().filter(v => TRAFFIC_CATEGORIES.includes(v.category)).length;
+  const desiredCars = Math.max(adminDesired, customTrafficCount);
   const carBudget = Math.max(6, trafficBudget(desiredCars));
   const activeCars = useMemo<CarSpec[]>(() => buildCarsFromCustom(carBudget), [carBudget, customTick]);
   const pathRefs = useRef<(SVGPathElement | null)[]>([]);
@@ -593,8 +589,7 @@ export default function CityTraffic() {
         const gt = getGameTime();
         // Beaucoup de monde le jour, trafic très réduit la nuit.
         const ratio = Math.max(0.12, Math.min(1, gt.density / 1.2));
-        // densityMult ramène l'effectif sur appareils low-end (≈35%).
-        activeCount = Math.max(6, Math.round(states.length * ratio * densityMult()));
+        activeCount = Math.max(6, Math.round(states.length * ratio));
       }
 
 

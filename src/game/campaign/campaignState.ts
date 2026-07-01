@@ -2,8 +2,9 @@
 // Isolée du reste : rien d'autre ne lit/écrit ces clés.
 
 import { CHAPTERS } from "./campaignData";
+import { CAMPAIGN_STATE_KEY } from "../resetGame";
 
-const KEY = "campaign_state_v1";
+const KEY = CAMPAIGN_STATE_KEY;
 
 export type CampaignChoiceId = "chap6" | "chap11";
 

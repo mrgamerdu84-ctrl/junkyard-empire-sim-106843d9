@@ -5,6 +5,7 @@ import { useVersionCheck, formatBuildDate } from "@/lib/version-check";
 import { GAME_ASSETS, setAssetOverride, listAssetKeys, type AssetKey, listCustomVehicles, addCustomVehicle, removeCustomVehicle, type CustomVehicle, type CustomVehicleCategory, VEHICLE_CATEGORY_LABELS, listCustomPedestrians, addCustomPedestrian, removeCustomPedestrian, type CustomPedestrian } from "./gameAssets";
 import { useAuth } from "@/lib/useAuth";
 import { useIsAdmin, useCloudAdminSync, getLocalCompetitors, setCompetitorsFromCloud, type CloudCompetitor } from "@/lib/adminState";
+import { resetFullGame } from "./resetGame";
 
 /* Floating gear button + slide-in admin panel.
  * Accès = rôle "admin" sur le compte connecté (table user_roles).
@@ -98,15 +99,15 @@ export default function AdminPanel() {
 
 
 
-  const doResetGame = () => {
+  const doResetGame = async () => {
     setResetGameMsg("");
     if (resetGamePhrase.trim() !== "RESET") {
       setResetGameMsg('Tape exactement "RESET" pour effacer toute la progression.');
       return;
     }
     try {
-      localStorage.removeItem("taxi-tycoon-v4");
-      setResetGameMsg("✅ Partie réinitialisée. Rechargement…");
+      await resetFullGame();
+      setResetGameMsg("✅ Nouvelle partie prête. Rechargement…");
       window.setTimeout(() => window.location.reload(), 800);
     } catch {
       setResetGameMsg("❌ Impossible d'effacer la sauvegarde.");
@@ -716,7 +717,7 @@ export default function AdminPanel() {
               {resetGameOpen && (
                 <div style={{ display: "flex", flexDirection: "column", gap: 8, marginTop: 8 }}>
                   <p style={{ margin: 0, fontSize: 12, color: "#fca5a5" }}>
-                    Cela efface <b>toute la progression</b> (argent, taxis, améliorations). Tape <b>RESET</b> pour confirmer.
+                    Cela relance une <b>nouvelle partie complète</b> : chapitre 1, dépôt niveau 1, un seul vieux taxi, missions et choix remis à zéro. Les réglages Admin restent conservés. Tape <b>RESET</b> pour confirmer.
                   </p>
                   <input
                     type="text"

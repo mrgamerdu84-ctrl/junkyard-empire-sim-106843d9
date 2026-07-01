@@ -25,6 +25,7 @@ import { supabase } from "@/integrations/supabase/client";
 import playerHqAsset from "@/assets/taxi-warehouse.png.asset.json";
 import { isUltraLite, perfTier, reduceMotion, targetFps } from "@/lib/perf";
 import { unlockedTaxiCount as campaignTaxiCap } from "./campaign/campaignState";
+import { RESET_MARKER_KEY } from "./resetGame";
 
 const PLAYER_HQ_IMG = playerHqAsset.url;
 
@@ -264,6 +265,10 @@ function loadSave(): SaveData {
   } catch {
     return DEFAULT_SAVE;
   }
+}
+
+function latestNewGameResetAt(): number {
+  try { return Number(localStorage.getItem(RESET_MARKER_KEY) || "0") || 0; } catch { return 0; }
 }
 
 function fmt(n: number) {
@@ -611,6 +616,8 @@ export default function TaxiTycoon() {
         const { fetchCloudSave } = await import("@/lib/cloudSave");
         const cloud = await fetchCloudSave();
         if (cloud && cloud.data && typeof cloud.data === "object") {
+          const cloudTs = new Date(cloud.updatedAt).getTime();
+          if (cloudTs < latestNewGameResetAt()) return;
           // marque ce timestamp pour éviter qu'un push immédiat écrase le cloud
           lastCloudPushRef.current = Date.now();
           setSave({ ...DEFAULT_SAVE, ...(cloud.data as Partial<SaveData>) });
@@ -642,6 +649,7 @@ export default function TaxiTycoon() {
           (payload) => {
             const row = (payload.new ?? payload.old) as { data?: unknown; updated_at?: string } | null;
             if (!row || !row.data || typeof row.data !== "object") return;
+            if (row.updated_at && new Date(row.updated_at).getTime() < latestNewGameResetAt()) return;
             // Ignore l'écho de notre propre push récent (< 3 s).
             if (Date.now() - lastCloudPushRef.current < 3000) return;
             setSave({ ...DEFAULT_SAVE, ...(row.data as Partial<SaveData>) });
@@ -1192,6 +1200,7 @@ export default function TaxiTycoon() {
         const cloud = await fetchCloudSave();
         if (cloud && cloud.data && typeof cloud.data === "object") {
           const cloudTs = new Date(cloud.updatedAt).getTime();
+          if (cloudTs < latestNewGameResetAt()) return;
           // n'écrase pas un push local très récent
           if (cloudTs - lastCloudPushRef.current > 2000) {
             setSave({ ...DEFAULT_SAVE, ...(cloud.data as Partial<SaveData>) });

@@ -11,6 +11,7 @@ import {
   chapterProgress,
   type CampaignState,
 } from "./campaign/campaignState";
+import { resetFullGame } from "./resetGame";
 
 
 export default function CampaignPanel({ onClose }: { onClose: () => void }) {
@@ -102,12 +103,15 @@ export default function CampaignPanel({ onClose }: { onClose: () => void }) {
               <button
                 className="cp-reset"
                 onClick={() => {
-                  if (confirm("Réinitialiser toute la campagne ? (les autres sauvegardes du jeu ne sont pas touchées)")) {
-                    setState(resetCampaign());
+                  if (confirm("Recommencer une vraie nouvelle partie ? Toute la progression de jeu et de campagne sera remise au chapitre 1.")) {
+                    resetFullGame().then(() => {
+                      setState(resetCampaign());
+                      window.location.reload();
+                    });
                   }
                 }}
               >
-                Réinitialiser la campagne
+                Nouvelle partie
               </button>
             </div>
           </div>

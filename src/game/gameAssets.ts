@@ -180,9 +180,9 @@ export function removeCustomVehicle(id: string) {
   emitCustomChange();
 }
 
-// Circulation libre : civils + services seulement.
-// Police / ambulance / pompiers restent à leur base et ne sortent que sur mission.
-const TRAFFIC_CATEGORIES: CustomVehicleCategory[] = ["civil", "service"];
+// Circulation libre : tous les véhicules ajoutés par l'admin qui ne sont pas
+// des véhicules d'histoire/special mission doivent pouvoir vivre sur la carte.
+const TRAFFIC_CATEGORIES: CustomVehicleCategory[] = ["civil", "service", "taxi", "police", "ambulance", "firetruck"];
 
 /** 🔧 DYNAMIC - Se met à jour chaque fois qu'on l'appelle */
 function getCustomTrafficUrls(): string[] {
