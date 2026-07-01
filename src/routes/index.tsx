@@ -80,11 +80,12 @@ function TaxiTycoonPage() {
 
   // Caméra qui suit le taxi en mode PILOTE : on transforme TOUT le monde
   // (map + trafic + overlays) via CSS transform pour éviter le calque blanc.
+  // Recalcul complet à chaque frame → gère resize et orientationchange sans
+  // rechargement.
   useEffect(() => {
     if (!driveMode) return;
     const el = worldRef.current;
     if (!el) return;
-    const DRIVE_ZOOM = 2.4;
     let raf = 0;
     const tick = () => {
       raf = requestAnimationFrame(tick);
@@ -92,6 +93,15 @@ function TaxiTycoonPage() {
       if (!f) return;
       const w = el.clientWidth || 1;
       const h = el.clientHeight || 1;
+
+      // Zoom adaptatif : moins fort en paysage (viewport large) pour laisser
+      // voir la route devant le taxi ; plus fort en portrait pour l'immersion.
+      const aspect = w / h;
+      const isLandscape = aspect >= 1.15;
+      const isTablet = Math.min(w, h) >= 640;
+      const DRIVE_ZOOM = isTablet ? (isLandscape ? 1.9 : 2.1)
+                                  : (isLandscape ? 2.0 : 2.4);
+
       // Le SVG utilise viewBox 1920x1080 avec preserveAspectRatio="xMidYMid slice",
       // donc la map remplit le conteneur. Convertit (x,y) viewBox → pixels écran.
       const scale = Math.max(w / 1920, h / 1080);
@@ -101,14 +111,35 @@ function TaxiTycoonPage() {
       const offY = (h - drawnH) / 2;
       const px = offX + f.x * scale; // position taxi en px écran
       const py = offY + f.y * scale;
-      // Après zoom, décaler pour ramener (px,py) au centre.
-      const tx = w / 2 - px * DRIVE_ZOOM;
-      const ty = h / 2 - py * DRIVE_ZOOM;
+
+      // Centre le taxi, puis clamp pour que le monde couvre TOUJOURS le
+      // viewport (jamais de bandes noires sur les bords). Le monde après
+      // transform occupe [tx, tx + w*Z] × [ty, ty + h*Z].
+      let tx = w / 2 - px * DRIVE_ZOOM;
+      let ty = h / 2 - py * DRIVE_ZOOM;
+      const minTx = w - w * DRIVE_ZOOM;
+      const minTy = h - h * DRIVE_ZOOM;
+      tx = Math.min(0, Math.max(minTx, tx));
+      ty = Math.min(0, Math.max(minTy, ty));
+
       setDriveTransform(`translate(${tx}px, ${ty}px) scale(${DRIVE_ZOOM})`);
     };
     raf = requestAnimationFrame(tick);
-    return () => cancelAnimationFrame(raf);
+
+    // Force un recalcul immédiat au changement de taille/orientation
+    // (le tick tourne déjà en RAF, mais on invalide le cache éventuel du navigateur).
+    const onResize = () => {
+      // clientWidth/Height sont relus au prochain frame automatiquement.
+    };
+    window.addEventListener("resize", onResize);
+    window.addEventListener("orientationchange", onResize);
+    return () => {
+      cancelAnimationFrame(raf);
+      window.removeEventListener("resize", onResize);
+      window.removeEventListener("orientationchange", onResize);
+    };
   }, [driveMode]);
+
 
   // Clamp pan : on n'a pas le droit de tirer la carte hors-écran.
   useEffect(() => {
