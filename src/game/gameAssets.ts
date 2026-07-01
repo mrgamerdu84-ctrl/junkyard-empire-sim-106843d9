@@ -142,11 +142,21 @@ export type CustomVehicleCategory =
   | "armored"
   | "limo";
 
+export type VehicleEra = 1 | 2 | 3 | 4;
+
 export type CustomVehicle = {
   id: string;
   name: string;
   url: string;
   category: CustomVehicleCategory;
+  era?: VehicleEra; // 1=70-80, 2=90, 3=2000-10, 4=contemporain
+};
+
+export const VEHICLE_ERA_LABELS: Record<VehicleEra, string> = {
+  1: "Années 70-80",
+  2: "Années 90",
+  3: "Années 2000-2010",
+  4: "Contemporain",
 };
 
 export const VEHICLE_CATEGORY_LABELS: Record<CustomVehicleCategory, string> = {
