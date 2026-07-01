@@ -160,16 +160,29 @@ export function depotLevel(): 1 | 2 | 3 | 4 | 5 {
   return 1;
 }
 
-/** Nombre de taxis débloqués par la campagne (soft cap indicatif). */
+/** Nombre de taxis débloqués par la campagne (hard cap sur la flotte joueur).
+ *  Règle : 1 taxi débloqué = 1 chapitre terminé ou 1 objectif spécifique validé.
+ *  - Ch1 (Le Retour) : 1 seul vieux taxi.
+ *  - Ch2 (La Reconstruction) : +1 après l'objectif "Acheter un deuxième taxi" (m2d).
+ *  - Puis chaque chapitre terminé débloque un ou plusieurs taxis supplémentaires.
+ */
 export function unlockedTaxiCount(): number {
   const s = loadCampaign();
-  const idx = s.currentChapterIndex;
   if (s.empireUnlocked) return 99;
-  if (idx >= 10) return 12;
-  if (idx >= 7) return 8;
-  if (idx >= 5) return 5;
-  if (idx >= 2) return 3;
-  if (idx >= 1) return 2;
-  return 1;
+  const done = new Set(s.completedChapters);
+  const m2d = (s.completedMissions["ch2"] ?? []).includes("m2d");
+  let n = 1;
+  if (m2d || done.has("ch2")) n = Math.max(n, 2);
+  if (done.has("ch3")) n = Math.max(n, 3);
+  if (done.has("ch4")) n = Math.max(n, 4);
+  if (done.has("ch5")) n = Math.max(n, 5);
+  if (done.has("ch6")) n = Math.max(n, 6);
+  if (done.has("ch7")) n = Math.max(n, 8);
+  if (done.has("ch8")) n = Math.max(n, 9);
+  if (done.has("ch9")) n = Math.max(n, 10);
+  if (done.has("ch10")) n = Math.max(n, 12);
+  if (done.has("ch11")) n = Math.max(n, 15);
+  if (done.has("ch12")) n = Math.max(n, 20);
+  return n;
 }
 

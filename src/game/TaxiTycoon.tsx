@@ -24,6 +24,7 @@ import { resolveAvatarSrc } from "@/components/ProfileCard";
 import { supabase } from "@/integrations/supabase/client";
 import playerHqAsset from "@/assets/taxi-warehouse.png.asset.json";
 import { isUltraLite, perfTier, reduceMotion, targetFps } from "@/lib/perf";
+import { unlockedTaxiCount as campaignTaxiCap } from "./campaign/campaignState";
 
 const PLAYER_HQ_IMG = playerHqAsset.url;
 
@@ -681,6 +682,18 @@ export default function TaxiTycoon() {
   const jobIdRef = useRef(1);
   const [specialCooldownUntil, setSpecialCooldownUntil] = useState<number>(0);
 
+  // === Campagne : cap dur sur la flotte visible ===
+  const [campaignCap, setCampaignCap] = useState<number>(() => campaignTaxiCap());
+  useEffect(() => {
+    const on = () => setCampaignCap(campaignTaxiCap());
+    window.addEventListener("campaign.updated", on);
+    window.addEventListener("campaign.chapter.completed", on);
+    return () => {
+      window.removeEventListener("campaign.updated", on);
+      window.removeEventListener("campaign.chapter.completed", on);
+    };
+  }, []);
+
   // === Concurrent IA ===
   type RivalTaxi = { id: number; pathIdx: number; pos: number; target: number; lane?: LanePosition; mode: TaxiMode; jobId: number | null };
   const rivalTaxisRef = useRef<RivalTaxi[]>([]);
@@ -1046,11 +1059,16 @@ export default function TaxiTycoon() {
     return idx;
   };
 
-  // Sync taxis runtime list with save
+  // Sync taxis runtime list with save (cappé par la campagne)
   useEffect(() => {
     if (!pathsReady) return;
     const newSpeed = (BASE_SPEED + save.taxiSpeedLvl * 18) * admin.taxiSpeedMult;
-    while (taxisRef.current.length < save.taxis.length) {
+    const visibleCount = Math.min(save.taxis.length, campaignCap);
+    // Trim si on dépasse la limite campagne (chapitre pas encore débloqué)
+    if (taxisRef.current.length > visibleCount) {
+      taxisRef.current.length = visibleCount;
+    }
+    while (taxisRef.current.length < visibleCount) {
       const idx = taxisRef.current.length;
       // taxi neuf : path 0, posé près du QG
       const pIdx = 0;
@@ -1080,7 +1098,7 @@ export default function TaxiTycoon() {
       syncVehicleLane(t);
     });
     forceRender((n) => n + 1);
-  }, [pathsReady, save.taxis, save.taxiSpeedLvl, admin.taxiSpeedMult, admin.hqX, admin.hqY]);
+  }, [pathsReady, save.taxis, save.taxiSpeedLvl, admin.taxiSpeedMult, admin.hqX, admin.hqY, campaignCap]);
 
   // Sync rival AI taxis fleet — flotte stable : pas de pop/disparition aléatoire.
   useEffect(() => {
@@ -2065,22 +2083,26 @@ export default function TaxiTycoon() {
     })();
     return () => { cancelled = true; };
   }, []);
-  const taxiCount = save.taxis.length;
-  const effectiveMaxTaxis = tier.maxTaxis + (save.hqCapacityLvl ?? 0) + driversCount;
+  // Flotte réellement disponible = min(taxis possédés, cap campagne).
+  const taxiCount = Math.min(save.taxis.length, campaignCap);
+  const effectiveMaxTaxis = Math.min(
+    tier.maxTaxis + (save.hqCapacityLvl ?? 0) + driversCount,
+    campaignCap,
+  );
   const taxiBuyCost = Math.round(TAXI_COST_BASE * Math.pow(1.65, taxiCount));
   const speedCost = Math.round(SPEED_UPGRADE_COST_BASE * Math.pow(2.1, save.taxiSpeedLvl));
 
-  // Chaque chauffeur embauché reçoit automatiquement un taxi gratuit
-  // (= un véhicule supplémentaire qui sort de l'entrepôt sur la route).
+  // Chaque chauffeur embauché reçoit automatiquement un taxi gratuit,
+  // MAIS jamais au-delà de ce que la campagne a débloqué.
   useEffect(() => {
-    const target = 1 + driversCount; // 1 taxi de base au joueur + 1 par chauffeur
+    const target = Math.min(1 + driversCount, campaignCap);
     if (save.taxis.length >= target) return;
     setSave((s) => {
       if (s.taxis.length >= target) return s;
       const extras = Array.from({ length: target - s.taxis.length }, () => ({ colorId: s.defaultColor }));
       return { ...s, taxis: [...s.taxis, ...extras] };
     });
-  }, [driversCount, save.taxis.length, setSave]);
+  }, [driversCount, save.taxis.length, campaignCap, setSave]);
 
 
   const hqCostFor = (base: number, lvl: number) => Math.round(base * Math.pow(1.9, lvl));
@@ -2105,6 +2127,10 @@ export default function TaxiTycoon() {
   };
 
   const buyTaxi = () => {
+    if (save.taxis.length >= campaignCap) {
+      showToast("🔒 Nouveau taxi verrouillé : avance dans la campagne");
+      return;
+    }
     if (taxiCount >= effectiveMaxTaxis) {
       showToast(`Capacité max : améliore le QG`);
       return;
