@@ -12,6 +12,7 @@ import { getAdmin } from "./adminConfig";
 import { listCustomVehiclesByCategory } from "./gameAssets";
 import defaultLimoImg from "@/assets/mafia-limo.png";
 import { reduceMotion, targetFps } from "@/lib/perf";
+import { useUnlock } from "./campaign/unlocks";
 
 const MAP_W = 1920;
 const MAP_H = 1080;
