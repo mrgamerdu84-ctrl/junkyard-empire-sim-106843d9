@@ -55,6 +55,7 @@ const DEFAULTS: Record<AssetKey, string> = {
   "taxi.yellow": taxiYellowAsset,
   "taxi.black": taxiBlackAsset,
   "taxi.red": taxiRedAsset,
+  "taxi.father": taxiFatherAsset,
   "police.car": policeCarAsset,
   "emergency.ambulance": ambulanceAsset,
   "emergency.firetruck": firetruckAsset,
