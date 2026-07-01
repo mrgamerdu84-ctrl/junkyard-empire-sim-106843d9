@@ -25,7 +25,7 @@ import { supabase } from "@/integrations/supabase/client";
 import playerHqAsset from "@/assets/taxi-warehouse.png.asset.json";
 import { isUltraLite, perfTier, reduceMotion, targetFps } from "@/lib/perf";
 import { unlockedTaxiCount as campaignTaxiCap } from "./campaign/campaignState";
-import { RESET_MARKER_KEY } from "./resetGame";
+import { DEFAULT_NEW_GAME_SAVE, GAME_SAVE_KEY, RESET_MARKER_KEY } from "./resetGame";
 
 const PLAYER_HQ_IMG = playerHqAsset.url;
 
@@ -146,7 +146,7 @@ type Job = {
 
 
 const DEFAULT_DEPOT_POS = 0.78; // fallback si mode "suit le circuit" (legacy)
-const SAVE_KEY = "taxi-tycoon-v4";
+const SAVE_KEY = GAME_SAVE_KEY;
 const BASE_SPEED = 74; // px (sur viewBox 1920) par seconde — taxis un peu plus vifs que la circulation
 const SPEED_UPGRADE_COST_BASE = 800;
 const TAXI_COST_BASE = 600;
@@ -235,23 +235,7 @@ export function getCityLevel(fund: number) {
   return { index: lvl, ...CITY_LEVELS[lvl], next: CITY_LEVELS[lvl + 1] };
 }
 
-const DEFAULT_SAVE: SaveData = {
-  money: 250,
-  customersServed: 0,
-  totalEarned: 0,
-  depotTier: 0,
-  taxiSpeedLvl: 0,
-  taxis: [{ colorId: "yellow" }],
-  defaultColor: "yellow",
-  jobsCompleted: 0,
-  liveryId: "classic",
-  hqCapacityLvl: 0,
-  hqProductionLvl: 0,
-  hqRevenueLvl: 0,
-  cityFund: 0,
-  playerTaxiColor: "blue",
-  taxiWear: 0,
-};
+const DEFAULT_SAVE: SaveData = DEFAULT_NEW_GAME_SAVE;
 
 
 

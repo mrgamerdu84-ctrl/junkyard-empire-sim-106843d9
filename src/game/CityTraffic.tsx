@@ -565,7 +565,10 @@ export default function CityTraffic() {
     } else if (newLen < prevLen) {
       statesRef.current.length = newLen;
     }
-    statesRef.current.forEach((st, i) => { st.node = carNodes.current[i]; });
+    statesRef.current.forEach((st, i) => {
+      st.node = carNodes.current[i];
+      if (activeCars[i]) st.spec = { ...st.spec, imageUrl: activeCars[i].imageUrl, category: activeCars[i].category, kind: activeCars[i].kind, color: activeCars[i].color, accent: activeCars[i].accent, scale: activeCars[i].scale };
+    });
     const states = statesRef.current;
 
     // Radars retirés : noop pour préserver l'API d'appel dans la boucle.
@@ -703,7 +706,7 @@ export default function CityTraffic() {
     return () => {
       cancelAnimationFrame(raf);
     };
-  }, [activeCars.length]);
+  }, [activeCars]);
 
 
   return (
