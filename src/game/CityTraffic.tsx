@@ -373,7 +373,7 @@ function buildCarsFromCustom(count?: number): CarSpec[] {
   // Pool d'URLs disponibles : assets civils par défaut + customs roulants.
   // Permet d'avoir du trafic même sans uploads, et boucle modulo si N > pool.length.
   const customUrls = new Set(customs.map((v) => v.url));
-  const civilUrls = getCivilCarUrls().filter((url) => !customUrls.has(url));
+  const civilUrls = getActiveCivilCarUrls(currentChapterNumber()).filter((url) => !customUrls.has(url));
   type Entry = { url: string; category: CustomVehicleCategory };
   const pool: Entry[] = [
     ...civilUrls.map((url): Entry => ({ url, category: "civil" })),
