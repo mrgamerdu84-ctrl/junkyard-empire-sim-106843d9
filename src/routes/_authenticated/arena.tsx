@@ -35,7 +35,24 @@ export const Route = createFileRoute("/_authenticated/arena")({
 
 type View = "lobby" | "queue" | "match" | "result";
 
+function LockedScreen({ title }: { title: string }) {
+  return (
+    <div style={{ padding: 32, textAlign: "center", color: "#fde047", minHeight: "60vh", display: "flex", flexDirection: "column", justifyContent: "center", alignItems: "center", gap: 12 }}>
+      <div style={{ fontSize: 64 }}>🔒</div>
+      <h1 style={{ margin: 0 }}>{title}</h1>
+      <p style={{ maxWidth: 420, opacity: 0.85 }}>Ce mode est débloqué après avoir terminé la campagne « La Renaissance de Taxi Co. ». Continue de progresser dans les chapitres pour ouvrir le Mode Empire.</p>
+      <a href="/" style={{ marginTop: 12, padding: "10px 18px", background: "#f5c542", color: "#1a1208", borderRadius: 8, fontWeight: 800, textDecoration: "none" }}>Retour au jeu</a>
+    </div>
+  );
+}
+
 function ArenaPage() {
+  const arenaUnlocked = require("@/game/campaign/unlocks").useUnlock("empire.arena");
+  if (!arenaUnlocked) return <LockedScreen title="Arène mondiale verrouillée" />;
+  return <ArenaPageInner />;
+}
+
+function ArenaPageInner() {
   const navigate = useNavigate();
   const { user } = useAuth();
   const [view, setView] = useState<View>("lobby");
