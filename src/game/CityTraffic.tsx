@@ -739,18 +739,56 @@ export default function CityTraffic() {
         </filter>
       </defs>
 
-      <g opacity="0.12">
-        {ROADS.map((d, i) => (
-          VILLAGE_PATHS.has(i) ? null : (
-            <path key={i} d={d} stroke="#0b0d10" strokeWidth={i >= 4 ? 34 : 46} fill="none" strokeLinecap="round" />
-          )
-        ))}
-        {ROADS.slice(0, 4).map((d, i) => (
-          VILLAGE_PATHS.has(i) ? null : (
-            <path key={`dash-${i}`} d={d} stroke="#f6d56a" strokeWidth="2.4" strokeDasharray="18 18" fill="none" opacity="0.72" />
-          )
-        ))}
+      {/* Chaussée : léger noir + reflet blanc central pour "faire briller" la route */}
+      <g pointerEvents="none">
+        {/* Base assombrie très subtile pour ancrer la route sur la texture */}
+        <g opacity="0.10">
+          {ROADS.map((d, i) => (
+            VILLAGE_PATHS.has(i) ? null : (
+              <path key={i} d={d} stroke="#0b0d10" strokeWidth={i >= 4 ? 34 : 46} fill="none" strokeLinecap="round" />
+            )
+          ))}
+        </g>
+        {/* Reflet spéculaire : fin trait blanc décalé, effet "asphalte mouillé" */}
+        <g opacity="0.14">
+          {ROADS.map((d, i) => (
+            VILLAGE_PATHS.has(i) ? null : (
+              <path
+                key={`shine-${i}`}
+                d={d}
+                stroke="url(#jce-road-shine)"
+                strokeWidth={i >= 4 ? 10 : 14}
+                fill="none"
+                strokeLinecap="round"
+              />
+            )
+          ))}
+        </g>
+        {/* Bord d'ombre côté opposé pour donner du relief */}
+        <g opacity="0.22">
+          {ROADS.map((d, i) => (
+            VILLAGE_PATHS.has(i) ? null : (
+              <path
+                key={`edge-${i}`}
+                d={d}
+                stroke="#000"
+                strokeWidth={i >= 4 ? 2 : 3}
+                fill="none"
+                strokeLinecap="round"
+              />
+            )
+          ))}
+        </g>
+        {/* Marquage central pointillé jaune */}
+        <g opacity="0.75">
+          {ROADS.slice(0, 4).map((d, i) => (
+            VILLAGE_PATHS.has(i) ? null : (
+              <path key={`dash-${i}`} d={d} stroke="#f6d56a" strokeWidth="2.4" strokeDasharray="18 18" fill="none" />
+            )
+          ))}
+        </g>
       </g>
+
 
 
 
