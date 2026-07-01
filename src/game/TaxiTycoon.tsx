@@ -1633,7 +1633,12 @@ export default function TaxiTycoon() {
             }
           } else {
             const forward = diff > 0;
-            if (!shouldStopAhead(r.pathIdx, r.pos, forward, nowSeconds())) {
+            const rid = `rival-${r.id}`;
+            reportVehicle(rid, r.pathIdx, r.pos, forward);
+            if (
+              !shouldStopAhead(r.pathIdx, r.pos, forward, nowSeconds()) &&
+              !hasVehicleAhead(rid, r.pathIdx, r.pos, forward)
+            ) {
               r.pos += Math.sign(diff) * step;
             }
           }
