@@ -17,23 +17,27 @@ export type CampaignState = {
   started: boolean;
 };
 
-const DEFAULT: CampaignState = {
-  currentChapterIndex: 0,
-  completedChapters: [],
-  completedMissions: {},
-  choices: {},
-  empireUnlocked: false,
-  started: false,
-};
+function makeDefault(): CampaignState {
+  return {
+    currentChapterIndex: 0,
+    completedChapters: [],
+    completedMissions: {},
+    choices: {},
+    empireUnlocked: false,
+    started: false,
+  };
+}
+
+const DEFAULT: CampaignState = makeDefault();
 
 export function loadCampaign(): CampaignState {
   try {
     const raw = localStorage.getItem(KEY);
-    if (!raw) return { ...DEFAULT };
+    if (!raw) return makeDefault();
     const parsed = JSON.parse(raw);
-    return { ...DEFAULT, ...parsed, completedMissions: { ...(parsed.completedMissions ?? {}) }, choices: { ...(parsed.choices ?? {}) } };
+    return { ...makeDefault(), ...parsed, completedChapters: Array.isArray(parsed.completedChapters) ? [...parsed.completedChapters] : [], completedMissions: { ...(parsed.completedMissions ?? {}) }, choices: { ...(parsed.choices ?? {}) } };
   } catch {
-    return { ...DEFAULT };
+    return makeDefault();
   }
 }
 
@@ -54,7 +58,7 @@ export function startCampaign(): CampaignState {
 }
 
 export function resetCampaign(): CampaignState {
-  const s = { ...DEFAULT };
+  const s = makeDefault();
   saveCampaign(s);
   return s;
 }
