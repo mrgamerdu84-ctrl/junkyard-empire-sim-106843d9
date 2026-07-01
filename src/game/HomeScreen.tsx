@@ -18,6 +18,7 @@ export default function HomeScreen({ onPlay, onReplayIntro }: { onPlay: () => vo
   const bgUrl = preferLiteAssets() ? bgLiteAsset.url : bgAssetV2;
   const navigate = useNavigate();
   const { user, pseudo: cloudPseudo, avatarKind, avatarUrl } = useAuth();
+  const arenaUnlocked = useUnlock("empire.arena");
   const [showProfile, setShowProfile] = useState(false);
   const [showCampaign, setShowCampaign] = useState(false);
   const [loading, setLoading] = useState(false);
