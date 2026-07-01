@@ -55,6 +55,16 @@ function TaxiTycoonPage() {
   const zoom = ZOOM_LEVELS[zoomIdx];
   const mapSrc = preferLiteAssets() ? citymapLiteAsset.url : citymap;
 
+  // Hooks unlock : TOUJOURS appelés avant tout return conditionnel.
+  const unlockBaronActive = useUnlock("baron.active");
+  const unlockMafiaAttackers = useUnlock("mafia.attackers");
+  const unlockCrimeEvents = useUnlock("crime.events");
+  const unlockArmoredTruck = useUnlock("empire.armored_truck");
+  const unlockBaronHint = useUnlock("baron.hint");
+  const unlockBaronDialogue = useUnlock("baron.dialogue");
+  const unlockBaronNegotiation = useUnlock("baron.negotiation");
+
+
   // Clamp pan : on n'a pas le droit de tirer la carte hors-écran.
   useEffect(() => {
     const el = worldRef.current;
