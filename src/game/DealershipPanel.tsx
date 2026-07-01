@@ -35,9 +35,9 @@ export default function DealershipPanel({ onClose }: { onClose: () => void }) {
   const cap = unlockedTaxiCount();
   const chapter = currentChapterNumber();
 
-  return (
   return createPortal(
     <div style={overlay}>
+
 
       <div style={card}>
         <div style={header}>
