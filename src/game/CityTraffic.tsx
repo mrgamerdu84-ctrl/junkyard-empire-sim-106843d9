@@ -371,7 +371,8 @@ function buildCarsFromCustom(count?: number): CarSpec[] {
 
   // Pool d'URLs disponibles : assets civils par défaut + customs roulants.
   // Permet d'avoir du trafic même sans uploads, et boucle modulo si N > pool.length.
-  const civilUrls = getCivilCarUrls();
+  const customUrls = new Set(customs.map((v) => v.url));
+  const civilUrls = getCivilCarUrls().filter((url) => !customUrls.has(url));
   type Entry = { url: string; category: CustomVehicleCategory };
   const pool: Entry[] = [
     ...civilUrls.map((url): Entry => ({ url, category: "civil" })),
@@ -424,7 +425,7 @@ export default function CityTraffic() {
   const adminDesired = Math.max(6, admin.civilVehicleCount || 0);
   const customTrafficCount = listCustomVehicles().filter(v => TRAFFIC_CATEGORIES.includes(v.category)).length;
   const desiredCars = Math.max(adminDesired, customTrafficCount);
-  const carBudget = Math.max(6, trafficBudget(desiredCars));
+  const carBudget = Math.max(6, customTrafficCount, trafficBudget(desiredCars));
   const activeCars = useMemo<CarSpec[]>(() => buildCarsFromCustom(carBudget), [carBudget, customTick]);
   const pathRefs = useRef<(SVGPathElement | null)[]>([]);
   const carNodes = useRef<(SVGGElement | null)[]>([]);
