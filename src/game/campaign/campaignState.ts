@@ -174,14 +174,13 @@ export function depotLevel(): 1 | 2 | 3 | 4 | 5 {
 export function unlockedTaxiCount(): number {
   const s = loadCampaign();
   if (s.empireUnlocked) return 99;
+  // Cap = chapitre courant (Ch1 → 1 taxi, Ch2 → 2, etc.).
+  // Le cap s'ouvre dès l'entrée dans le chapitre pour permettre l'achat
+  // du taxi qui débloque l'objectif — pas l'inverse.
+  const chapter = (s.currentChapterIndex ?? 0) + 1;
   const done = new Set(s.completedChapters);
-  const m2d = (s.completedMissions["ch2"] ?? []).includes("m2d");
-  let n = 1;
-  if (m2d || done.has("ch2")) n = Math.max(n, 2);
-  if (done.has("ch3")) n = Math.max(n, 3);
-  if (done.has("ch4")) n = Math.max(n, 4);
-  if (done.has("ch5")) n = Math.max(n, 5);
-  if (done.has("ch6")) n = Math.max(n, 6);
+  let n = Math.max(1, chapter);
+  // Bonus de fin de chapitre pour les paliers tardifs.
   if (done.has("ch7")) n = Math.max(n, 8);
   if (done.has("ch8")) n = Math.max(n, 9);
   if (done.has("ch9")) n = Math.max(n, 10);
