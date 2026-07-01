@@ -4,7 +4,7 @@ import { useNavigate } from "@tanstack/react-router";
 import { ROADS, VILLAGE_PATHS, SIDEWALK_LOCK_OFFSET, lockToSidewalk } from "./CityTraffic";
 import { buildRoadCache, getRoadPoint, hasRoadCache } from "./RoadCache";
 import { GAME_ASSETS, listCustomVehicles } from "./gameAssets";
-import { shouldStopAhead, nowSeconds, registerAccident, clearAccident, getAccidents, type AccidentZone } from "./trafficLights";
+import { shouldStopAhead, nowSeconds, registerAccident, clearAccident, getAccidents, reportVehicle, hasVehicleAhead, type AccidentZone } from "./trafficLights";
 import { getAdmin, useAdminConfig } from "./adminConfig";
 import { recordEarning, isSpecialTaxiUnlocked } from "@/lib/leaderboard";
 import { pushNews } from "@/lib/radioNews";
