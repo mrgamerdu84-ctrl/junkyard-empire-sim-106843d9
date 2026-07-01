@@ -3736,6 +3736,7 @@ export default function TaxiTycoon() {
           money={save.money}
           onHireCharge={(cost) => setSave((s) => ({ ...s, money: Math.max(0, s.money - cost) }))}
         />
+        {dealershipOpen && <DealershipPanel onClose={() => setDealershipOpen(false)} />}
 
 
         {/* Dialog Pseudo */}
