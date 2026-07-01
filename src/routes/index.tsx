@@ -55,6 +55,16 @@ function TaxiTycoonPage() {
   const zoom = ZOOM_LEVELS[zoomIdx];
   const mapSrc = preferLiteAssets() ? citymapLiteAsset.url : citymap;
 
+  // Hooks unlock : TOUJOURS appelés avant tout return conditionnel.
+  const unlockBaronActive = useUnlock("baron.active");
+  const unlockMafiaAttackers = useUnlock("mafia.attackers");
+  const unlockCrimeEvents = useUnlock("crime.events");
+  const unlockArmoredTruck = useUnlock("empire.armored_truck");
+  const unlockBaronHint = useUnlock("baron.hint");
+  const unlockBaronDialogue = useUnlock("baron.dialogue");
+  const unlockBaronNegotiation = useUnlock("baron.negotiation");
+
+
   // Clamp pan : on n'a pas le droit de tirer la carte hors-écran.
   useEffect(() => {
     const el = worldRef.current;
@@ -187,16 +197,16 @@ function TaxiTycoonPage() {
         <img src={mapSrc} alt="Plan de la ville pour le jeu de taxi" className="tt-map" />
         <div className="tt-vignette" />
         <CityTraffic />
-        {useUnlock("baron.active") && <BaronConvoy />}
-        {useUnlock("baron.active") && <BaronManor />}
-        {useUnlock("mafia.attackers") && <MafiaAttackers />}
+        {unlockBaronActive && <BaronConvoy />}
+        {unlockBaronActive && <BaronManor />}
+        {unlockMafiaAttackers && <MafiaAttackers />}
         <EmergencyStations />
-        {useUnlock("crime.events") && <CrimeEvents />}
+        {unlockCrimeEvents && <CrimeEvents />}
         <InterventionDispatcher />
         <TaxiTycoon />
         <DepotEvolution />
-        {useUnlock("empire.armored_truck") && <ArmoredTruck />}
-        {useUnlock("baron.hint") && <MafiaLimo />}
+        {unlockArmoredTruck && <ArmoredTruck />}
+        {unlockBaronHint && <MafiaLimo />}
       </div>
 
       {/* HUD et panneaux hors zoom (toujours nets) */}
@@ -204,10 +214,11 @@ function TaxiTycoonPage() {
       
       {/* <AmbientSirens /> — désactivé sur demande joueur */}
       <AdminPanel />
-      {useUnlock("baron.dialogue") && <MafiaGodfather />}
-      {useUnlock("baron.negotiation") && (
+      {unlockBaronDialogue && <MafiaGodfather />}
+      {unlockBaronNegotiation && (
         <BaronNegotiation playerMoney={0} onDeal={(a) => console.log("baron deal", a)} />
       )}
+
       <VersionBanner />
       <UltraFluidPanel />
       <CampaignHud />
