@@ -169,6 +169,19 @@ export type Livery = {
   faceRight: boolean; // true if image's car nose points right
 };
 
+export const FATHER_TAXI_LIVERY: Livery = {
+  id: "father",
+  name: "Le Taxi du Père",
+  city: "Héritage familial — Taxi Co.",
+  roofLabel: "TAXI",
+  roofBg: "#2a1f14",
+  roofFg: "#e8c56a",
+  stripe: "checker",
+  stripeColor: "#1a1d22",
+  image: TAXI_FATHER_URL,
+  faceRight: true,
+};
+
 export const LIVERIES: Livery[] = [
   { id: "classic",  name: "Classic Cab",   city: "Origine",     roofLabel: "TAXI",      roofBg: "#1a1d22", roofFg: "#fde047", stripe: "none",    stripeColor: "#1a1d22", image: TAXI_YELLOW_URL, faceRight: true  },
   { id: "executive", name: "Executive",    city: "Berline noire", roofLabel: "VIP",     roofBg: "#0a0c10", roofFg: "#fde047", stripe: "none",    stripeColor: "#0a0c10", image: TAXI_BLACK_URL,  faceRight: false },
