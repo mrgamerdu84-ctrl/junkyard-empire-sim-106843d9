@@ -147,8 +147,11 @@ export function preferLiteAssets(): boolean {
 export function trafficBudget(defaultCount: number): number {
   const t = perfTier();
   const scale = readSettings().entityScale;
-  const tierCap = t === "ultra" ? 5 : t === "low" ? 9 : t === "mid" ? 16 : defaultCount;
-  return Math.max(0, Math.floor(Math.min(defaultCount, tierCap) * scale));
+  // Plafonds par tier — plancher volontaire à 6 pour garder la ville vivante
+  // même sur bas de gamme (le trafic civil n'est jamais coupé par la campagne).
+  const tierCap = t === "ultra" ? 6 : t === "low" ? 10 : t === "mid" ? 18 : defaultCount;
+  const scaled = Math.floor(Math.min(defaultCount, tierCap) * scale);
+  return Math.max(6, scaled);
 }
 
 export function reduceMotion(): boolean {
