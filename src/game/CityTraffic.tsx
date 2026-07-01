@@ -73,8 +73,8 @@ type CarSpec = {
   category?: CustomVehicleCategory;
 };
 
-// Trafic civil par défaut VIDE — toutes les voitures qui roulent sont
-// celles ajoutées par le joueur via le panel admin (📦⬇️ Import en lot).
+// Trafic civil par défaut actif : assets civils intégrés + véhicules ajoutés
+// dans le panel Admin. Indépendant de la campagne.
 // Voir buildCarsFromCustom() dans le composant ci-dessous.
 
 
