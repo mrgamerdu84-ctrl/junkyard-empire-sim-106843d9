@@ -3278,7 +3278,8 @@ export default function TaxiTycoon() {
                   style={{ cursor: "pointer", pointerEvents: "auto" }}
                   onClick={(e) => { e.stopPropagation(); honkTaxi(taxi.id); }}
                 >
-                  <TaxiSprite image={currentLivery.image} faceRight={currentLivery.faceRight} paintFilter={ownPaint.filter} markerColor={ownPaint.color} withClient={taxi.mode === "to_dest"} moving={taxi.mode !== "idle" && taxi.mode !== "refueling" && taxi.mode !== "depositing"} />
+                  <title>{idx === 0 ? "Le Taxi du Père — héritage de Taxi Co." : `Taxi #${idx + 1}`}</title>
+                  <TaxiSprite image={idx === 0 ? FATHER_TAXI_LIVERY.image : currentLivery.image} faceRight={idx === 0 ? FATHER_TAXI_LIVERY.faceRight : currentLivery.faceRight} paintFilter={idx === 0 ? "none" : ownPaint.filter} markerColor={ownPaint.color} withClient={taxi.mode === "to_dest"} moving={taxi.mode !== "idle" && taxi.mode !== "refueling" && taxi.mode !== "depositing"} />
                 </g>
                 {/* Numéro de taxi — toujours visible, ne tourne pas */}
                 {!ultraLite && <g transform={`translate(${p.x + 14},${p.y - 14})`} pointerEvents="none">
