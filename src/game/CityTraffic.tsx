@@ -419,7 +419,11 @@ export default function CityTraffic() {
   useEffect(() => {
     const onChange = () => setCustomTick(t => t + 1);
     window.addEventListener("jce.customVehicles.changed", onChange);
-    return () => window.removeEventListener("jce.customVehicles.changed", onChange);
+    window.addEventListener("campaign.updated", onChange);
+    return () => {
+      window.removeEventListener("jce.customVehicles.changed", onChange);
+      window.removeEventListener("campaign.updated", onChange);
+    };
   }, []);
   // Trafic civil TOUJOURS actif (indépendant de la campagne).
   // Le count vient du panel Admin (civilVehicleCount) avec un plancher de 6.
