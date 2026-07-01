@@ -39,6 +39,7 @@ export type AssetKey =
   | "taxi.yellow"
   | "taxi.black"
   | "taxi.red"
+  | "taxi.father"
   | "police.car"
   | "emergency.ambulance"
   | "emergency.firetruck"
