@@ -23,6 +23,7 @@
 import taxiYellowAsset from "@/assets/taxi-yellow-top.png";
 import taxiBlackAsset from "@/assets/taxi-black-top.png";
 import taxiRedAsset from "@/assets/taxi-red-top.png";
+import taxiFatherAsset from "@/assets/taxi-father-top.png";
 import policeCarAsset from "@/assets/police-car-top.png";
 import ambulanceAsset from "@/assets/ambulance-top.png";
 import firetruckAsset from "@/assets/firetruck-top.png";
