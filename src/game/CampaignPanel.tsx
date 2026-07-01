@@ -212,13 +212,13 @@ function ChapterView({
         </>
       )}
 
-      <button
-        className="cp-complete"
-        disabled={!canComplete}
-        onClick={onComplete}
-      >
-        {already ? "Rejouer / Terminer à nouveau" : canComplete ? "Terminer le chapitre ▶" : "Complète toutes les étapes"}
-      </button>
+      <div className="cp-auto-note">
+        {already
+          ? "✅ Chapitre déjà terminé."
+          : canComplete
+            ? "Progression complète — le chapitre va se conclure automatiquement."
+            : "Progression en cours. Continue de jouer : courses, argent, améliorations et objectifs remplissent la barre du chapitre."}
+      </div>
     </div>
   );
 }

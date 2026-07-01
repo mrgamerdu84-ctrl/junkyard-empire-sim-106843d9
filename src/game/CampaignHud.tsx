@@ -57,7 +57,7 @@ export default function CampaignHud() {
             )}
           </div>
           <div className="cphud-count">
-            {prog.done}/{prog.total}
+            {pct}%
           </div>
           <button
             className="cphud-min"
