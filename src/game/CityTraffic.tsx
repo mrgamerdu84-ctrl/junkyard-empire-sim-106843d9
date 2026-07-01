@@ -737,7 +737,14 @@ export default function CityTraffic() {
         <filter id="jce-soft-shadow" x="-30%" y="-30%" width="160%" height="160%">
           <feDropShadow dx="0" dy="6" stdDeviation="5" floodColor="#000" floodOpacity="0.35" />
         </filter>
+        {/* Reflet asphalte : sombre → clair → sombre pour l'effet "brillant" */}
+        <linearGradient id="jce-road-shine" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" stopColor="#000" stopOpacity="0" />
+          <stop offset="0.5" stopColor="#e8ecf5" stopOpacity="0.9" />
+          <stop offset="1" stopColor="#000" stopOpacity="0" />
+        </linearGradient>
       </defs>
+
 
       {/* Chaussée : léger noir + reflet blanc central pour "faire briller" la route */}
       <g pointerEvents="none">
