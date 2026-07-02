@@ -230,7 +230,8 @@ function PhotoPedestrians({ pathRefs }: { pathRefs: React.MutableRefObject<(SVGP
         for (const l of lights) {
           const dx0 = l.x - cur.x, dy0 = l.y - cur.y;
           if (dx0 * dx0 + dy0 * dy0 < PED_CROSSING_RADIUS * PED_CROSSING_RADIUS) {
-            if (getLightState(l, tSec) !== "red") { blocked = true; break; }
+            // Piéton bloqué si l'un des deux axes voitures est passant.
+            if (getLightState(l, tSec, 0) !== "red" || getLightState(l, tSec, 1) !== "red") { blocked = true; break; }
           }
         }
         if (!blocked) st.s = (st.s + st.spec.speed * dt) % st.pathLen;
