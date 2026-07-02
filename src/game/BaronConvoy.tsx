@@ -168,7 +168,7 @@ export default function BaronConvoy() {
       for (const l of lights) {
         for (const stop of l.stops) {
           if (stop.pathIdx !== cur.pathIdx) continue;
-          if (Math.abs(leadPosForward - stop.s) < RED_LIGHT_RADIUS && getLightState(l, t) === "red") {
+          if (Math.abs(leadPosForward - stop.s) < RED_LIGHT_RADIUS && getLightState(l, t, stop.axis) === "red") {
             blocked = true;
             break;
           }

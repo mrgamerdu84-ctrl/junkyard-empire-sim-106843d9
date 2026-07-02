@@ -13,6 +13,7 @@ import {
   clearVehicle,
   hasVehicleAhead,
   type TrafficLight,
+  type LightState,
 } from "./trafficLights";
 import { isUltraLite, perfTier, reduceMotion, targetFps, trafficBudget } from "@/lib/perf";
 import { buildRoadCache, getRoadPoint, hasRoadCache, type CachedRoad } from "./RoadCache";
@@ -230,7 +231,8 @@ function PhotoPedestrians({ pathRefs }: { pathRefs: React.MutableRefObject<(SVGP
         for (const l of lights) {
           const dx0 = l.x - cur.x, dy0 = l.y - cur.y;
           if (dx0 * dx0 + dy0 * dy0 < PED_CROSSING_RADIUS * PED_CROSSING_RADIUS) {
-            if (getLightState(l, tSec) !== "red") { blocked = true; break; }
+            // Piéton bloqué si l'un des deux axes voitures est passant.
+            if (getLightState(l, tSec, 0) !== "red" || getLightState(l, tSec, 1) !== "red") { blocked = true; break; }
           }
         }
         if (!blocked) st.s = (st.s + st.spec.speed * dt) % st.pathLen;
@@ -655,7 +657,7 @@ export default function CityTraffic() {
         for (const l of allLights) {
           for (const stop of l.stops) {
             if (stop.pathIdx !== st.spec.pathIdx) continue;
-            if (Math.abs(st.s - stop.s) < 80 && getLightState(l, tSec) === "red") {
+            if (Math.abs(st.s - stop.s) < 80 && getLightState(l, tSec, stop.axis) === "red") {
               stoppedByLight = true;
               break;
             }
@@ -840,56 +842,53 @@ export default function CityTraffic() {
 
       {/* Feux rouges aux intersections + feux piétons synchronisés */}
       {lights.map((l) => {
-        // lightsTick force le re-render à chaque frame pour animer la couleur
         void lightsTick;
-        const st = getLightState(l, nowSeconds());
-        const red = st === "red", orange = st === "orange", green = st === "green";
-        // Feu piéton : vert uniquement quand le feu voiture est rouge.
-        const pedGreen = red;
-        void pedGreen;
-        return (
-          <g key={`tl-${l.id}`} transform={`translate(${l.x},${l.y})`} pointerEvents="none">
-            {/* Ombre au sol */}
-            <ellipse cx="0" cy="34" rx="22" ry="6" fill="rgba(0,0,0,0.42)" />
-            {/* Socle béton */}
-            <ellipse cx="0" cy="30" rx="10" ry="3.5" fill="#3a3a42" />
-            <rect x="-5" y="24" width="10" height="8" rx="1.5" fill="url(#tl-base)" />
-            {/* Mât vertical (dégradé métal) */}
-            <rect x="-2.4" y="-40" width="4.8" height="66" rx="1.4" fill="url(#tl-pole)" />
-            <rect x="-1.2" y="-40" width="1.4" height="66" fill="rgba(255,255,255,0.18)" />
-            {/* Bras horizontal */}
-            <rect x="-2.4" y="-40" width="30" height="4" rx="1.2" fill="url(#tl-pole)" />
-            <rect x="-2.4" y="-40" width="30" height="1" fill="rgba(255,255,255,0.25)" />
-            {/* Boîtier suspendu */}
-            <g transform="translate(23,-32)">
-              {/* Attache */}
+        const tSec = nowSeconds();
+        const stA = getLightState(l, tSec, 0);
+        const stB = getLightState(l, tSec, 1);
+        // Feu piéton : vert uniquement quand LES DEUX axes voitures sont au rouge.
+        const pedGreen = stA === "red" && stB === "red";
+        const renderHead = (state: LightState, dx: number, dy: number, rot: number) => {
+          const red = state === "red", orange = state === "orange", green = state === "green";
+          return (
+            <g transform={`translate(${dx},${dy}) rotate(${rot})`}>
               <rect x="-1.2" y="-4" width="2.4" height="6" fill="#1c1f26" />
-              {/* Backboard jaune (visibilité) */}
               <rect x="-11" y="2" width="22" height="46" rx="2" fill="#f4c542" opacity="0.85" />
               <rect x="-11" y="2" width="22" height="46" rx="2" fill="none" stroke="#1a1a1a" strokeWidth="0.8" />
-              {/* Boîtier noir */}
               <rect x="-8.5" y="4" width="17" height="42" rx="3" fill="url(#tl-body)" stroke="#050505" strokeWidth="0.8" />
-              {/* Reflet vertical */}
               <rect x="-7.5" y="5" width="1.4" height="40" fill="rgba(255,255,255,0.12)" />
-              {/* Visières (petits toits au-dessus des ampoules) */}
               <path d="M -8.5 10 L 8.5 10 L 7 7 L -7 7 Z" fill="#0a0c10" />
               <path d="M -8.5 22 L 8.5 22 L 7 19 L -7 19 Z" fill="#0a0c10" />
               <path d="M -8.5 34 L 8.5 34 L 7 31 L -7 31 Z" fill="#0a0c10" />
-              {/* Ampoules */}
               <circle cx="0" cy="14" r="4.4" fill={red ? "#ff2a2a" : "#2a0808"}>
                 {red && !reducedFx && <animate attributeName="r" values="4.4;5;4.4" dur="1.4s" repeatCount="indefinite" />}
               </circle>
               <circle cx="0" cy="26" r="4.4" fill={orange ? "#ffb020" : "#2a1a00"} />
               <circle cx="0" cy="38" r="4.4" fill={green ? "#22e36a" : "#0a2a14"} />
-              {/* Reflets sur les ampoules allumées */}
               {red && <circle cx="-1.4" cy="12.6" r="1.4" fill="rgba(255,255,255,0.7)" />}
               {orange && <circle cx="-1.4" cy="24.6" r="1.4" fill="rgba(255,255,255,0.7)" />}
               {green && <circle cx="-1.4" cy="36.6" r="1.4" fill="rgba(255,255,255,0.7)" />}
-              {/* Halo lumineux (visible aussi de jour, plus fort la nuit) */}
               <circle cx="0" cy={red ? 14 : orange ? 26 : 38} r="14"
                 fill={red ? "#ff2a2a" : orange ? "#ffb020" : "#22e36a"}
                 opacity={0.18 + night * 0.4} />
             </g>
+          );
+        };
+        return (
+          <g key={`tl-${l.id}`} transform={`translate(${l.x},${l.y})`} pointerEvents="none">
+            <ellipse cx="0" cy="34" rx="22" ry="6" fill="rgba(0,0,0,0.42)" />
+            <ellipse cx="0" cy="30" rx="10" ry="3.5" fill="#3a3a42" />
+            <rect x="-5" y="24" width="10" height="8" rx="1.5" fill="url(#tl-base)" />
+            <rect x="-2.4" y="-40" width="4.8" height="66" rx="1.4" fill="url(#tl-pole)" />
+            <rect x="-1.2" y="-40" width="1.4" height="66" fill="rgba(255,255,255,0.18)" />
+            {/* Bras axe 0 (droite) */}
+            <rect x="-2.4" y="-40" width="30" height="4" rx="1.2" fill="url(#tl-pole)" />
+            <rect x="-2.4" y="-40" width="30" height="1" fill="rgba(255,255,255,0.25)" />
+            {/* Bras axe 1 (gauche, perpendiculaire visuellement) */}
+            <rect x="-27.6" y="-36" width="30" height="4" rx="1.2" fill="url(#tl-pole)" />
+            <rect x="-27.6" y="-36" width="30" height="1" fill="rgba(255,255,255,0.25)" />
+            {renderHead(stA, 23, -32, 0)}
+            {renderHead(stB, -23, -28, 0)}
             {/* Gradients réutilisables — définis inline pour éviter dep externe */}
             <defs>
               <linearGradient id="tl-pole" x1="0" y1="0" x2="1" y2="0">
