@@ -656,7 +656,7 @@ export default function CityTraffic() {
         for (const l of allLights) {
           for (const stop of l.stops) {
             if (stop.pathIdx !== st.spec.pathIdx) continue;
-            if (Math.abs(st.s - stop.s) < 80 && getLightState(l, tSec) === "red") {
+            if (Math.abs(st.s - stop.s) < 80 && getLightState(l, tSec, stop.axis) === "red") {
               stoppedByLight = true;
               break;
             }
