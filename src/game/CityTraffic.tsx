@@ -13,6 +13,7 @@ import {
   clearVehicle,
   hasVehicleAhead,
   type TrafficLight,
+  type LightState,
 } from "./trafficLights";
 import { isUltraLite, perfTier, reduceMotion, targetFps, trafficBudget } from "@/lib/perf";
 import { buildRoadCache, getRoadPoint, hasRoadCache, type CachedRoad } from "./RoadCache";
